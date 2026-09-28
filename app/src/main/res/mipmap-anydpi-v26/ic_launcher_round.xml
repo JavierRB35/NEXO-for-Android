@@ -1,0 +1,4 @@
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/nexo_navy" />
+    <foreground android:drawable="@drawable/nexo_icon_foreground" />
+</adaptive-icon>
