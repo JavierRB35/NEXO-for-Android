@@ -1,0 +1,146 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SET_ALARM" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="Nexo"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter android:label="Guardar en Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter android:label="Guardar en Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/html" />
+            </intent-filter>
+            <intent-filter android:label="Guardar en Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter android:label="Guardar en Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+
+            <intent-filter android:label="Abrir contenido de Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/x-nexo-share" />
+            </intent-filter>
+            <intent-filter android:label="Abrir contenido de Nexo">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/x-nexo-share" />
+            </intent-filter>
+            <!-- Algunos gestores de archivos (incluido Samsung My Files)
+                 publican extensiones personalizadas como application/octet-stream.
+                 Nexo valida después el nombre y el contenido antes de importar. -->
+            <intent-filter android:label="Abrir contenido de Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <intent-filter android:label="Abrir contenido de Nexo">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <intent-filter android:label="Importar calendario en Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/calendar" />
+            </intent-filter>
+            <intent-filter android:label="Importar calendario en Nexo">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="text/calendar" />
+            </intent-filter>
+            <intent-filter android:label="Importar calendario en Nexo">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/ics" />
+            </intent-filter>
+            <intent-filter android:label="Importar calendario en Nexo">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/ics" />
+            </intent-filter>
+        </activity>
+
+
+
+        <service
+            android:name=".recordings.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="microphone"
+            android:stopWithTask="false" />
+
+        <service
+            android:name=".transcription.TranscriptionService"
+            android:exported="false"
+            android:process=":transcription"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <provider
+            android:name=".documents.DocumentProvider"
+            android:authorities="com.jruiz.nexo.documents"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <provider
+            android:name=".recordings.RecordingProvider"
+            android:authorities="com.jruiz.nexo.recordings"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <receiver android:name=".reminders.AlarmReceiver" android:exported="false" />
+        <receiver android:name=".medications.MedicationAlarmReceiver" android:exported="false" />
+        <receiver android:name=".medications.MedicationActionReceiver" android:exported="false" />
+        <receiver android:name=".reminders.BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

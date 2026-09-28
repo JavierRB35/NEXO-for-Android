@@ -1,0 +1,129 @@
+# split	kind	input	expected	note
+blind	TEMP	Recuérdame mañana a las 7:40	2026-08-24|07:40	blind temporal
+blind	TEMP	Tengo revisión pasado mañana a las 16:25	2026-08-25|16:25	blind temporal
+blind	TEMP	Apunta el lunes a las ocho y cuarto	2026-08-24|08:15	blind temporal
+blind	TEMP	Cita el jueves a las nueve y media de la mañana	2026-08-27|09:30	blind temporal
+blind	TEMP	Evento el viernes a las diez de la noche	2026-08-28|22:00	blind temporal
+blind	TEMP	Consulta el sábado a las 11:35	2026-08-29|11:35	blind temporal
+blind	TEMP	Quedamos el próximo domingo a las 13:00	2026-08-30|13:00	blind temporal
+blind	TEMP	Revisión el 24/08/2026 a las 08:00	2026-08-24|08:00	blind temporal
+blind	TEMP	Cita 25-08-26 a las 14:10	2026-08-25|14:10	blind temporal
+blind	TEMP	Evento 26.08.2026 a las 19:45	2026-08-26|19:45	blind temporal
+blind	TEMP	Reunión el veintisiete de agosto a las 12	2026-08-27|12:00	blind temporal
+blind	TEMP	Consulta el veintiocho de agosto a las cinco de la tarde	2026-08-28|17:00	blind temporal
+blind	TEMP	Avísame dentro de seis días a las 10	2026-08-29|10:00	blind temporal
+blind	TEMP	Ponlo en siete días a las 18:30	2026-08-30|18:30	blind temporal
+blind	TEMP	Recuérdame dentro de dos semanas a las 7	2026-09-06|07:00	blind temporal
+blind	TEMP	Cita en tres semanas a las 15:15	2026-09-13|15:15	blind temporal
+blind	TEMP	Evento dentro de dos meses a las 9	2026-10-23|09:00	blind temporal
+blind	TEMP	Hoy a las 18:05	2026-08-23|18:05	blind temporal
+blind	TEMP	A las 21:30	2026-08-23|21:30	blind temporal
+blind	TEMP	A las 16:45	2026-08-24|16:45	blind temporal
+blind	TEMP	Mañana a mediodía	2026-08-24|12:00	blind temporal
+blind	TEMP	Mañana a medianoche	2026-08-24|00:00	blind temporal
+blind	TEMP	Miércoles a las seis y media de la tarde	2026-08-26|18:30	blind temporal
+blind	TEMP	Domingo a las diez y cuarto	2026-08-23|10:15	blind temporal
+blind	TEMP	El 31 de diciembre a las 20:00	2026-12-31|20:00	blind temporal
+blind	TEMP	El 1 de enero a las 9	2027-01-01|09:00	blind temporal
+blind	TEMP	Pasado mañana a las siete de la mañana	2026-08-25|07:00	blind temporal
+blind	TEMP	Hoy a las 23:10	2026-08-23|23:10	blind temporal
+blind	TEMP	Próximo martes a las 17:50	2026-08-25|17:50	blind temporal
+blind	TEMP	Viernes a las 6:05 de la tarde	2026-08-28|18:05	blind temporal
+blind	LOC	Cita en Hospital Quirón Valencia mañana a las 10	Hospital Quirón Valencia	blind location
+blind	LOC	Nos vemos en Aqua Multiespacio a las 18	Aqua Multiespacio	blind location
+blind	LOC	Cena en La Riua el viernes	La Riua	blind location
+blind	LOC	Reunión en sede de la empresa el jueves a las 9	Sede de la empresa	blind location
+blind	LOC	Consulta en Centro Médico Sorolla el martes	Centro Médico Sorolla	blind location
+blind	LOC	Entrega en oficina MRW Ruzafa mañana	Oficina MRW Ruzafa	blind location
+blind	LOC	Clase en aula magna de la facultad el lunes	Aula magna de la facultad	blind location
+blind	LOC	Quedamos en Plaza de Manises a las 12	Plaza de Manises	blind location
+blind	LOC	Visita en IVAM el sábado	IVAM	blind location
+blind	LOC	Comida en El Camerino Ruzafa el domingo	El Camerino Ruzafa	blind location
+blind	LOC	Lugar: Marina de Valencia	Marina de Valencia	blind location
+blind	LOC	Dirección: Calle de la Paz 12, Valencia	Calle de la Paz 12, Valencia	blind location
+blind	LOC	Ubicación: Estación de Metro Colón	Estación de Metro Colón	blind location
+blind	LOC	Recordatorio Centro: Hospital General Dirección: Avenida Tres Cruces 2 Fecha: 01/09/2026 Hora: 09:00	Hospital General, Avenida Tres Cruces 2	blind location
+blind	LOC	Recuérdame en cuatro días revisar la póliza		blind location negative
+blind	LOC	Avísame en veinte minutos		blind location negative
+blind	LOC	Pienso en la comida de mañana		blind location negative
+blind	LOC	Guarda esto en el cuaderno		blind location negative
+blind	LOC	Pon huevos en la lista de compra		blind location negative
+blind	LOC	Reunión en el momento adecuado		blind location negative
+blind	ROUTE	Programa el despertador a las 6	alarm	blind route
+blind	ROUTE	Ponme alarma a las 7:25	alarm	blind route
+blind	ROUTE	Anota un pensamiento sobre la paciencia	journal	blind route
+blind	ROUTE	Guarda una frase que dice todo pasa	journal	blind route
+blind	ROUTE	Tomar Crestor 20 mg a las 22	medication	blind route
+blind	ROUTE	Pastilla Eliquis 5 mg a las 8	medication	blind route
+blind	ROUTE	Añade arroz y atún a la lista de compra	shopping	blind route
+blind	ROUTE	He comprado el pan	shopping	blind route
+blind	ROUTE	He aparcado el coche aquí	parking	blind route
+blind	ROUTE	Aparcado en este sitio	parking	blind route
+blind	ROUTE	Recuérdame pagar el seguro	capture	blind route
+blind	ROUTE	Cita con traumatólogo el lunes	capture	blind route
+blind	CLASS	Cita con traumatólogo mañana	event|Salud	blind class
+blind	CLASS	Consulta de cardiología el jueves	event|Salud	blind class
+blind	CLASS	Cumpleaños de Elena el lunes	event|Cumpleaños	blind class
+blind	CLASS	Recuérdame pagar el recibo del gas	reminder|Finanzas	blind class
+blind	CLASS	Avísame de llevar el coche al taller	reminder|Coche	blind class
+blind	CLASS	Tengo que enviar una carta	task|Tareas	blind class
+blind	CLASS	Comprar arroz	task|Compras	blind class
+blind	CLASS	Renovar la póliza del coche	expiry|Coche	blind class
+blind	CLASS	Caduca el contrato en diciembre	expiry|Documentos	blind class
+blind	CLASS	Reserva de vuelo a Sevilla	note|Viajes	blind class
+blind	CLASS	Comer en bar Central	restaurant|Restaurantes	blind class
+blind	CLASS	Manual de instrucciones del horno	document|Documentos	blind class
+blind	CLASS	Factura del teléfono	document|Documentos	blind class
+blind	CLASS	Pago del IBI	note|Finanzas	blind class
+blind	CLASS	Revisar el frigorífico	note|Casa	blind class
+blind	CLASS	Idea para organizar fotografías	note|Ideas	blind class
+blind	CLASS	ITV en septiembre	note|Coche	blind class
+blind	CLASS	Tomar Crestor 20 mg a las 22	medication|Medicamentos	blind class
+blind	CLASS	Evento familiar el sábado	event|Otros	blind class
+blind	CLASS	Reunión con el administrador el lunes	event|Otros	blind class
+blind	REC	Esto se repite diariamente	daily	blind recurrence
+blind	REC	Hazlo cada semana	weekly	blind recurrence
+blind	REC	Pago mensual todos los meses	monthly	blind recurrence
+blind	REC	Control cada 2 meses	bimonthly	blind recurrence
+blind	REC	Revisión cada tres meses	quarterly	blind recurrence
+blind	REC	Chequeo cada seis meses	semiannual	blind recurrence
+blind	REC	Recordatorio cada año	annual	blind recurrence
+blind	REC	Solo mañana	none	blind recurrence
+blind	REC	Sin periodicidad	none	blind recurrence
+blind	REC	Una vez el jueves	none	blind recurrence
+blind	LIST	Añade leche y mantequilla y huevos	add|leche;mantequilla;huevos	blind list
+blind	LIST	Pon café, azúcar y galletas en la lista de compra	add|café;azúcar;galletas	blind list
+blind	LIST	Apúntame arroz y pollo y tomate	add|arroz;pollo;tomate	blind list
+blind	LIST	Agrégame champú y gel	add|champú;gel	blind list
+blind	LIST	En la lista de la compra añade pan y queso	add|pan;queso	blind list
+blind	LIST	Quita mantequilla y leche	remove|mantequilla;leche	blind list
+blind	LIST	Elimina el café	remove|café	blind list
+blind	LIST	He comprado pan y huevos	check|pan;huevos	blind list
+blind	LIST	Marca como comprado el arroz	check|arroz	blind list
+blind	LIST	No he comprado el azúcar	uncheck|azúcar	blind list
+blind	LIST	Aún no he comprado leche y pan	uncheck|leche;pan	blind list
+blind	LIST	Desmarca el queso	uncheck|queso	blind list
+blind	LIST	Borra lo comprado	clear_checked|	blind list
+blind	LIST	Quita lo comprado	clear_checked|	blind list
+blind	LIST	Añade tres botellas de agua y dos paquetes de pasta	add|tres botellas de agua;dos paquetes de pasta	blind list
+blind	LIST	Añade manzanas y peras y naranjas	add|manzanas;peras;naranjas	blind list
+blind	ALARM	Pon una alarma a las 6:20	true|true|06:20|false	blind alarm
+blind	ALARM	Despertador a las siete y media	true|true|07:30|false	blind alarm
+blind	ALARM	Alarma todos los días a las 8	true|true|08:00|true	blind alarm
+blind	ALARM	Pon alarma de lunes a viernes a las 7	true|true|07:00|true	blind alarm
+blind	ALARM	Despiértame el sábado a las nueve	true|true|09:00|false	blind alarm
+blind	ALARM	Programa alarma a las 23:05	true|true|23:05|false	blind alarm
+blind	ALARM	Recuérdame a las 7 llamar a Pedro	false|false||false	blind alarm
+blind	ALARM	Cita a las 9	false|false||false	blind alarm
+blind	ALARM	Crea una alarma	true|false||false	blind alarm
+blind	ALARM	Pon alarma a mediodía	true|true|12:00|false	blind alarm
+blind	MED	Tomar Losartán 25 mg a las 9	true|Losartán|25 mg	blind med
+blind	MED	Tomarme Eliquis 5 mg a las 21	true|Eliquis|5 mg	blind med
+blind	MED	Debo tomar amoxicilina 500 mg cada 8 horas	true|Amoxicilina|500 mg	blind med
+blind	MED	Medicamento Omeprazol 40 mg a las 8	true|Omeprazol|40 mg	blind med
+blind	MED	Pastilla de Sintrom 4 mg	true|Sintrom|4 mg	blind med
+blind	MED	Una cápsula Vitamina D 1 cápsula a las 10	true|Vitamina D|1 cápsula	blind med
+blind	MED	Tomar café a las 10	false|Café|	blind med negative
+blind	MED	Tomar un té a las 17	false|Un Té|	blind med negative
+blind	MED	Comprar ibuprofeno 600 mg	false|Comprar Ibuprofeno|600 mg	blind med negative
+blind	MED	Tomar agua a las 12	false|Agua|	blind med negative

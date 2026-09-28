@@ -1,0 +1,411 @@
+# split	kind	input	expected	note
+dev	TEMP	mañana a las 10	2026-08-24|10:00	temporal base
+dev	TEMP	Recuérdame mañana a las 10	2026-08-24|10:00	temporal con contexto
+dev	TEMP	mañana a las 8:30	2026-08-24|08:30	temporal base
+dev	TEMP	Tengo cita mañana a las 8:30	2026-08-24|08:30	temporal con contexto
+dev	TEMP	pasado mañana a las 9	2026-08-25|09:00	temporal base
+dev	TEMP	Apunta pasado mañana a las 9	2026-08-25|09:00	temporal con contexto
+dev	TEMP	hoy a las 20:15	2026-08-23|20:15	temporal base
+dev	TEMP	La reunión es hoy a las 20:15	2026-08-23|20:15	temporal con contexto
+dev	TEMP	esta mañana a las 9	2026-08-23|09:00	temporal base
+dev	TEMP	Necesito acordarme esta mañana a las 9	2026-08-23|09:00	temporal con contexto
+dev	TEMP	el lunes a las 11	2026-08-24|11:00	temporal base
+dev	TEMP	Recuérdame el lunes a las 11	2026-08-24|11:00	temporal con contexto
+dev	TEMP	el martes a las cinco de la tarde	2026-08-25|17:00	temporal base
+dev	TEMP	Tengo cita el martes a las cinco de la tarde	2026-08-25|17:00	temporal con contexto
+dev	TEMP	el miércoles a las 8	2026-08-26|08:00	temporal base
+dev	TEMP	Apunta el miércoles a las 8	2026-08-26|08:00	temporal con contexto
+dev	TEMP	el jueves a las 14:20	2026-08-27|14:20	temporal base
+dev	TEMP	La reunión es el jueves a las 14:20	2026-08-27|14:20	temporal con contexto
+dev	TEMP	el viernes a las siete de la tarde	2026-08-28|19:00	temporal base
+dev	TEMP	Necesito acordarme el viernes a las siete de la tarde	2026-08-28|19:00	temporal con contexto
+dev	TEMP	el sábado a las 10:45	2026-08-29|10:45	temporal base
+dev	TEMP	Recuérdame el sábado a las 10:45	2026-08-29|10:45	temporal con contexto
+dev	TEMP	el domingo a las 9	2026-08-23|09:00	temporal base
+dev	TEMP	Tengo cita el domingo a las 9	2026-08-23|09:00	temporal con contexto
+dev	TEMP	próximo domingo a las 9	2026-08-30|09:00	temporal base
+dev	TEMP	Apunta próximo domingo a las 9	2026-08-30|09:00	temporal con contexto
+dev	TEMP	próximo lunes a las 12	2026-08-24|12:00	temporal base
+dev	TEMP	La reunión es próximo lunes a las 12	2026-08-24|12:00	temporal con contexto
+dev	TEMP	siguiente martes a las 18	2026-08-25|18:00	temporal base
+dev	TEMP	Necesito acordarme siguiente martes a las 18	2026-08-25|18:00	temporal con contexto
+dev	TEMP	25/08/2026 a las 08:15	2026-08-25|08:15	temporal base
+dev	TEMP	Recuérdame 25/08/2026 a las 08:15	2026-08-25|08:15	temporal con contexto
+dev	TEMP	26-08-26 a las 9:30	2026-08-26|09:30	temporal base
+dev	TEMP	Tengo cita 26-08-26 a las 9:30	2026-08-26|09:30	temporal con contexto
+dev	TEMP	27.08.2026 a las 18:05	2026-08-27|18:05	temporal base
+dev	TEMP	Apunta 27.08.2026 a las 18:05	2026-08-27|18:05	temporal con contexto
+dev	TEMP	31/12 a las 23:00	2026-12-31|23:00	temporal base
+dev	TEMP	La reunión es 31/12 a las 23:00	2026-12-31|23:00	temporal con contexto
+dev	TEMP	2/1 a las 10	2027-01-02|10:00	temporal base
+dev	TEMP	Necesito acordarme 2/1 a las 10	2027-01-02|10:00	temporal con contexto
+dev	TEMP	25 de agosto a las 8:15	2026-08-25|08:15	temporal base
+dev	TEMP	Recuérdame 25 de agosto a las 8:15	2026-08-25|08:15	temporal con contexto
+dev	TEMP	veintiséis de agosto a las nueve y media	2026-08-26|09:30	temporal base
+dev	TEMP	Tengo cita veintiséis de agosto a las nueve y media	2026-08-26|09:30	temporal con contexto
+dev	TEMP	treinta de agosto a las seis de la tarde	2026-08-30|18:00	temporal base
+dev	TEMP	Apunta treinta de agosto a las seis de la tarde	2026-08-30|18:00	temporal con contexto
+dev	TEMP	1 de septiembre a las 12	2026-09-01|12:00	temporal base
+dev	TEMP	La reunión es 1 de septiembre a las 12	2026-09-01|12:00	temporal con contexto
+dev	TEMP	dentro de 2 días a las 10	2026-08-25|10:00	temporal base
+dev	TEMP	Necesito acordarme dentro de 2 días a las 10	2026-08-25|10:00	temporal con contexto
+dev	TEMP	en tres días a las 11	2026-08-26|11:00	temporal base
+dev	TEMP	Recuérdame en tres días a las 11	2026-08-26|11:00	temporal con contexto
+dev	TEMP	dentro de una semana a las 9	2026-08-30|09:00	temporal base
+dev	TEMP	Tengo cita dentro de una semana a las 9	2026-08-30|09:00	temporal con contexto
+dev	TEMP	en dos semanas a las 9	2026-09-06|09:00	temporal base
+dev	TEMP	Apunta en dos semanas a las 9	2026-09-06|09:00	temporal con contexto
+dev	TEMP	dentro de un mes a las 10	2026-09-23|10:00	temporal base
+dev	TEMP	La reunión es dentro de un mes a las 10	2026-09-23|10:00	temporal con contexto
+dev	TEMP	a las 19:00	2026-08-23|19:00	temporal base
+dev	TEMP	Necesito acordarme a las 19:00	2026-08-23|19:00	temporal con contexto
+dev	TEMP	a las 16:00	2026-08-24|16:00	temporal base
+dev	TEMP	Recuérdame a las 16:00	2026-08-24|16:00	temporal con contexto
+dev	TEMP	a las seis y media de la tarde	2026-08-23|18:30	temporal base
+dev	TEMP	Tengo cita a las seis y media de la tarde	2026-08-23|18:30	temporal con contexto
+dev	TEMP	a las ocho y cuarto de la noche	2026-08-23|20:15	temporal base
+dev	TEMP	Apunta a las ocho y cuarto de la noche	2026-08-23|20:15	temporal con contexto
+dev	TEMP	a las diez menos cuarto de la noche	2026-08-23|21:45	temporal base
+dev	TEMP	La reunión es a las diez menos cuarto de la noche	2026-08-23|21:45	temporal con contexto
+dev	TEMP	a mediodía	2026-08-24|12:00	temporal base
+dev	TEMP	Necesito acordarme a mediodía	2026-08-24|12:00	temporal con contexto
+dev	TEMP	a medianoche	2026-08-24|00:00	temporal base
+dev	TEMP	Recuérdame a medianoche	2026-08-24|00:00	temporal con contexto
+dev	TEMP	hoy durante toda la mañana a las 10	2026-08-23|10:00	temporal base
+dev	TEMP	Tengo cita hoy durante toda la mañana a las 10	2026-08-23|10:00	temporal con contexto
+dev	TEMP	martes veinticinco de agosto a las 8:15 de la mañana	2026-08-25|08:15	temporal base
+holdout	TEMP	Quiero una cita mañana a las once y media	2026-08-24|11:30	temporal holdout
+holdout	TEMP	Anota para pasado mañana a las 18:40	2026-08-25|18:40	temporal holdout
+holdout	TEMP	Nos vemos este jueves a las seis y cuarto de la tarde	2026-08-27|18:15	temporal holdout
+holdout	TEMP	Reserva para el próximo viernes a las 20:30	2026-08-28|20:30	temporal holdout
+holdout	TEMP	Consulta el 29/08/2026 a las 10:10	2026-08-29|10:10	temporal holdout
+holdout	TEMP	Evento 30-08-2026 a las 12:45	2026-08-30|12:45	temporal holdout
+holdout	TEMP	Revisión el 1 de septiembre a las nueve	2026-09-01|09:00	temporal holdout
+holdout	TEMP	Cita el dos de septiembre a las cinco de la tarde	2026-09-02|17:00	temporal holdout
+holdout	TEMP	Avísame dentro de cuatro días a las 8	2026-08-27|08:00	temporal holdout
+holdout	TEMP	Apunta en cinco días a las 21:15	2026-08-28|21:15	temporal holdout
+holdout	TEMP	Recuérdame dentro de tres semanas a las 10	2026-09-13|10:00	temporal holdout
+holdout	TEMP	Evento en dos meses a las 11	2026-10-23|11:00	temporal holdout
+holdout	TEMP	Ponlo hoy a las 22:05	2026-08-23|22:05	temporal holdout
+holdout	TEMP	Ponlo a las 18:00	2026-08-23|18:00	temporal holdout
+holdout	TEMP	Ponlo a las 17:00	2026-08-24|17:00	temporal holdout
+holdout	TEMP	Cita el lunes a las nueve y media de la mañana	2026-08-24|09:30	temporal holdout
+holdout	TEMP	Cita el miércoles a las siete y cuarto de la tarde	2026-08-26|19:15	temporal holdout
+holdout	TEMP	Evento el sábado a mediodía	2026-08-29|12:00	temporal holdout
+holdout	TEMP	Evento el domingo a medianoche	2026-08-23|00:00	temporal holdout
+holdout	TEMP	Hoy a las diez de la mañana	2026-08-23|10:00	temporal holdout
+holdout	TEMP	Mañana por la mañana a las 8:25	2026-08-24|08:25	temporal holdout
+holdout	TEMP	El 31.12.2026 a las 23:59	2026-12-31|23:59	temporal holdout
+holdout	TEMP	El 01/01/27 a las 00:05	2027-01-01|00:05	temporal holdout
+holdout	TEMP	el martes 25 de agosto a las 9	2026-08-25|09:00	temporal holdout
+holdout	TEMP	próximo sábado a las 13:30	2026-08-29|13:30	temporal holdout
+dev	LOC	Cita mañana a las 10 en Vithas Valencia.	Vithas Valencia	ubicación
+dev	LOC	Dentista el martes a las cinco en Clínica Dental Navarro.	Clínica Dental Navarro	ubicación
+dev	LOC	El jueves a las siete he quedado con Carlos en Nuevo Centro.	Nuevo Centro	ubicación
+dev	LOC	Reunión en las oficinas de Sanz el jueves a las 11.	Oficinas de Sanz	ubicación
+dev	LOC	Comer el domingo en Casa Baldo.	Casa Baldo	ubicación
+dev	LOC	Cita en Hospital La Fe, avenida Fernando Abril Martorell.	Hospital La Fe, avenida Fernando Abril Martorell	ubicación
+dev	LOC	Recoger paquete en Punto Pack de Ruzafa mañana.	Punto Pack de Ruzafa	ubicación
+dev	LOC	Lugar: Nuevo Centro.	Nuevo Centro	ubicación
+dev	LOC	Ubicación: Plaza del Ayuntamiento 1.	Plaza del Ayuntamiento 1	ubicación
+dev	LOC	Dirección: Calle Colón 25, Valencia.	Calle Colón 25, Valencia	ubicación
+dev	LOC	Cita mañana en el Hospital Vithas Valencia a las 10.	Hospital Vithas Valencia	ubicación
+dev	LOC	Reunión mañana en Hotel Westin Valencia a las 9.	Hotel Westin Valencia	ubicación
+dev	LOC	Comida en Restaurante Navarro el viernes.	Restaurante Navarro	ubicación
+dev	LOC	Café en Cafetería Lisboa mañana a las 10.	Cafetería Lisboa	ubicación
+dev	LOC	Cita en Centro de Salud Ruzafa el lunes.	Centro de Salud Ruzafa	ubicación
+dev	LOC	Quedamos en Plaza de la Reina a las 12.	Plaza de la Reina	ubicación
+dev	LOC	Nos vemos en Mercado de Colón mañana.	Mercado de Colón	ubicación
+dev	LOC	Reunión en sede central de Grupo Sanz a las 10.	Sede central de Grupo Sanz	ubicación
+dev	LOC	Curso en aula 3 del centro cultural el martes.	Aula 3 del centro cultural	ubicación
+dev	LOC	Evento en Palacio de Congresos de Valencia el viernes.	Palacio de Congresos de Valencia	ubicación
+dev	LOC	Recuérdame en dos días llamar a Juan.		ubicación
+dev	LOC	Avísame en 30 minutos.		ubicación
+dev	LOC	Dímelo en voz alta.		ubicación
+dev	LOC	Guardar en Nexo.		ubicación
+dev	LOC	Pienso en Juan.		ubicación
+dev	LOC	Cita en septiembre.		ubicación
+dev	LOC	Reunión en el momento que puedas.		ubicación
+dev	LOC	Lo haré en casa cuando pueda.		ubicación
+dev	LOC	Guárdalo en el cuaderno.		ubicación
+dev	LOC	Ponlo en la lista de compra.		ubicación
+dev	LOC	Cita Centro: Hospital Vithas Valencia Dirección: Calle Vall de la Ballestera 59 Fecha: 26/08/2026 Hora: 09:30.	Hospital Vithas Valencia, Calle Vall de la Ballestera 59	ubicación
+dev	LOC	Lugar - Calle Xàtiva 24; Valencia	Calle Xàtiva 24	ubicación
+dev	LOC	Ubicación - Estación Joaquín Sorolla; Valencia	Estación Joaquín Sorolla	ubicación
+dev	LOC	Reunión en la sede de la asociación a las 18.	Sede de la asociación	ubicación
+dev	LOC	Quedamos en casa de Ana a las 20.	Casa de Ana	ubicación
+dev	LOC	Visita en museo de Bellas Artes el domingo.	Museo de Bellas Artes	ubicación
+dev	LOC	Partido en Mestalla el sábado.	Mestalla	ubicación
+dev	LOC	Cita en Vithas 9 de Octubre a las 12.	Vithas 9 de Octubre	ubicación
+dev	LOC	Revisión en IMED Valencia el martes.	IMED Valencia	ubicación
+dev	LOC	Comida en La Pepica el domingo.	La Pepica	ubicación
+dev	LOC	Entrega en oficina de Correos Ruzafa mañana.	Oficina de Correos Ruzafa	ubicación
+dev	LOC	Clase en academia Berlitz el jueves.	Academia Berlitz	ubicación
+dev	LOC	Reunión en coworking Wayco a las 9.	Coworking Wayco	ubicación
+dev	LOC	Consulta en clínica Quirón Valencia a las 16.	Clínica Quirón Valencia	ubicación
+dev	LOC	Cita en ambulatorio de Monteolivete a las 8.	Ambulatorio de Monteolivete	ubicación
+dev	LOC	Evento en auditorio Roig Arena el viernes.	Auditorio Roig Arena	ubicación
+dev	LOC	Quedamos en puerta principal del Bioparc a las 10.	Puerta principal del Bioparc	ubicación
+dev	LOC	Recuérdame pensar en el presupuesto.		ubicación
+dev	LOC	En una semana revisar el seguro.		ubicación
+dev	LOC	En vacaciones quiero descansar.		ubicación
+holdout	LOC	Mañana tengo que estar en Vithas Valencia a las nueve.	Vithas Valencia	ubicación holdout
+holdout	LOC	Nos encontramos en Nuevo Centro a las 18:30.	Nuevo Centro	ubicación holdout
+holdout	LOC	La consulta será en Clínica Baviera Valencia el jueves.	Clínica Baviera Valencia	ubicación holdout
+holdout	LOC	La reunión es en las oficinas centrales de Sanz a las once.	Oficinas centrales de Sanz	ubicación holdout
+holdout	LOC	Cena el sábado en Casa Montaña.	Casa Montaña	ubicación holdout
+holdout	LOC	Recoge el coche en Parking Centro Histórico mañana.	Parking Centro Histórico	ubicación holdout
+holdout	LOC	Visita en Oceanogràfic Valencia a las 10.	Oceanogràfic Valencia	ubicación holdout
+holdout	LOC	Curso en Universidad de Valencia, campus Tarongers.	Universidad de Valencia, campus Tarongers	ubicación holdout
+holdout	LOC	Lugar: Hospital General Universitario de Valencia	Hospital General Universitario de Valencia	ubicación holdout
+holdout	LOC	Dirección: Avenida del Cid 90, Valencia	Avenida del Cid 90, Valencia	ubicación holdout
+holdout	LOC	Recuérdame en tres semanas renovar el carnet.		ubicación holdout
+holdout	LOC	Avísame en una hora de apagar el horno.		ubicación holdout
+holdout	LOC	Piensa en la reunión de mañana.		ubicación holdout
+holdout	LOC	Guarda esto en notas.		ubicación holdout
+holdout	LOC	Lo compraré en dos días.		ubicación holdout
+holdout	LOC	Cita en octubre.		ubicación holdout
+holdout	LOC	Hablar en público el viernes.		ubicación holdout
+holdout	LOC	Añade leche en la lista de compra.		ubicación holdout
+holdout	LOC	Recordatorio Centro: Hospital La Fe Dirección: Avenida Fernando Abril Martorell 106 Fecha: 30/08/2026 Hora: 10:00.	Hospital La Fe, Avenida Fernando Abril Martorell 106	ubicación holdout
+holdout	LOC	Nos vemos en estación del Norte a las 8.	Estación del Norte	ubicación holdout
+dev	ROUTE	Pon una alarma a las 7	alarm	enrutado
+dev	ROUTE	Despiértame mañana a las 8	alarm	enrutado
+dev	ROUTE	Programa una alarma a las 6:30	alarm	enrutado
+dev	ROUTE	El despertador a las nueve	alarm	enrutado
+dev	ROUTE	Guarda un pensamiento: hoy ha sido un buen día	journal	enrutado
+dev	ROUTE	Anota una reflexión sobre el tiempo	journal	enrutado
+dev	ROUTE	Apunta una frase que dice vive el presente	journal	enrutado
+dev	ROUTE	Pensamiento aprender a decir no	journal	enrutado
+dev	ROUTE	Tomar Losartán 50 mg a las 8	medication	enrutado
+dev	ROUTE	Medicamento Metformina 850 mg a las 20	medication	enrutado
+dev	ROUTE	Una pastilla de Eliquis 5 mg a las 9	medication	enrutado
+dev	ROUTE	Tomarme antibiótico 500 mg cada 8 horas	medication	enrutado
+dev	ROUTE	Añade leche y huevos a la lista de la compra	shopping	enrutado
+dev	ROUTE	Comprar pan y café	shopping	enrutado
+dev	ROUTE	Quita azúcar de la lista de compra	shopping	enrutado
+dev	ROUTE	Ya he comprado los huevos	shopping	enrutado
+dev	ROUTE	He aparcado aquí	parking	enrutado
+dev	ROUTE	Guardar aparcamiento	parking	enrutado
+dev	ROUTE	Dónde he aparcado	parking	enrutado
+dev	ROUTE	Aparqué el coche aquí	parking	enrutado
+dev	ROUTE	Recuérdame llamar a Juan mañana	capture	enrutado
+dev	ROUTE	Cita con el médico mañana a las 10	capture	enrutado
+dev	ROUTE	Tengo que pagar el agua	capture	enrutado
+dev	ROUTE	Reunión el martes a las 11	capture	enrutado
+dev	ROUTE	Guarda una nota sobre el seguro	capture	enrutado
+dev	ROUTE	Quiero comprar una televisión	capture	enrutado
+dev	ROUTE	Cena en Casa Baldo el viernes	capture	enrutado
+dev	ROUTE	Cumpleaños de Ana el martes	capture	enrutado
+dev	ROUTE	Añade una tarea para revisar el coche	capture	enrutado
+dev	ROUTE	Apunta cita con dentista	capture	enrutado
+holdout	ROUTE	Crea una alarma para las 7:15	alarm	enrutado holdout
+holdout	ROUTE	Ponme una alarma a las ocho	alarm	enrutado holdout
+holdout	ROUTE	Guárdame una reflexión sobre lo aprendido	journal	enrutado holdout
+holdout	ROUTE	Frase: disfruta del camino	journal	enrutado holdout
+holdout	ROUTE	Debo tomar amoxicilina 500 mg cada 8 horas	medication	enrutado holdout
+holdout	ROUTE	Añádeme mantequilla y pan en la lista de compra	shopping	enrutado holdout
+holdout	ROUTE	Borra el café de la lista de la compra	shopping	enrutado holdout
+holdout	ROUTE	Estoy aparcado aquí	parking	enrutado holdout
+holdout	ROUTE	Recuérdame la cita del martes	capture	enrutado holdout
+holdout	ROUTE	Evento en Valencia mañana	capture	enrutado holdout
+dev	CLASS	Cita con el cardiólogo mañana a las 10	event|Salud	clasificación
+dev	CLASS	PET-TAC en Hospital Vithas el martes	event|Salud	clasificación
+dev	CLASS	Analítica de sangre el lunes	event|Salud	clasificación
+dev	CLASS	Dentista el jueves a las 17	event|Salud	clasificación
+dev	CLASS	Cumpleaños de Ana el 3 de septiembre	event|Cumpleaños	clasificación
+dev	CLASS	Cumple de Carlos mañana	event|Cumpleaños	clasificación
+dev	CLASS	Recuérdame llamar a Juan mañana	reminder|Recordatorios	clasificación
+dev	CLASS	Avísame de pagar el recibo mañana	reminder|Finanzas	clasificación
+dev	CLASS	Acuérdate de llevar el coche al taller	reminder|Coche	clasificación
+dev	CLASS	Comprar detergente	task|Compras	clasificación
+dev	CLASS	Tengo que llamar al fontanero	task|Tareas	clasificación
+dev	CLASS	Hay que enviar el documento	task|Documentos	clasificación
+dev	CLASS	Llevar el coche al taller	task|Coche	clasificación
+dev	CLASS	Renovar el seguro del coche	expiry|Coche	clasificación
+dev	CLASS	El seguro vence el 1 de octubre	expiry|Coche	clasificación
+dev	CLASS	Caduca la garantía en noviembre	expiry|Documentos	clasificación
+dev	CLASS	Reserva de hotel en Madrid	note|Viajes	clasificación
+dev	CLASS	Vuelo a Roma el viernes	note|Viajes	clasificación
+dev	CLASS	Comer en Restaurante Navarro	restaurant|Restaurantes	clasificación
+dev	CLASS	Cena en bar Ricardo	restaurant|Restaurantes	clasificación
+dev	CLASS	Factura de electricidad	document|Documentos	clasificación
+dev	CLASS	Contrato de alquiler	document|Documentos	clasificación
+dev	CLASS	Pago del impuesto de circulación	note|Finanzas	clasificación
+dev	CLASS	Ingreso de la pensión	note|Finanzas	clasificación
+dev	CLASS	Revisión de la caldera	note|Casa	clasificación
+dev	CLASS	Cambiar filtro del aire acondicionado	note|Casa	clasificación
+dev	CLASS	Idea para reorganizar el salón	note|Ideas	clasificación
+dev	CLASS	Se me ocurre hacer un viaje	note|Viajes	clasificación
+dev	CLASS	ITV del coche el martes	note|Coche	clasificación
+dev	CLASS	Cambio de aceite del coche	note|Coche	clasificación
+dev	CLASS	Farmacia comprar medicación	task|Compras	clasificación
+dev	CLASS	Tomar Losartán 50 mg a las 8	medication|Medicamentos	clasificación
+dev	CLASS	Medicamento Eliquis 5 mg a las 20	medication|Medicamentos	clasificación
+dev	CLASS	Reunión de trabajo mañana a las 9	event|Otros	clasificación
+dev	CLASS	Consulta en el hospital mañana	event|Salud	clasificación
+dev	CLASS	Evento en el auditorio	event|Otros	clasificación
+dev	CLASS	Comprar billetes para el viaje	task|Viajes	clasificación
+dev	CLASS	Pedir cita al médico	event|Salud	clasificación
+dev	CLASS	Solicitar presupuesto de seguro	task|Coche	clasificación
+dev	CLASS	Documento PDF de la garantía	document|Documentos	clasificación
+dev	CLASS	Manual de la lavadora	document|Documentos	clasificación
+dev	CLASS	Quiero recordar una idea	reminder|Ideas	clasificación
+dev	CLASS	Avisarme por voz de la cita	reminder|Recordatorios	clasificación
+dev	CLASS	Recordatorio hablado para llamar a Ana	reminder|Recordatorios	clasificación
+dev	CLASS	Cita médica en centro de salud	event|Salud	clasificación
+holdout	CLASS	Consulta de medicina nuclear el miércoles	event|Salud	clasificación holdout
+holdout	CLASS	Cita para radiodiagnóstico mañana	event|Salud	clasificación holdout
+holdout	CLASS	Cumpleaños de Marta el domingo	event|Cumpleaños	clasificación holdout
+holdout	CLASS	Recuérdame pagar la hipoteca	reminder|Finanzas	clasificación holdout
+holdout	CLASS	Avísame de la revisión del coche	reminder|Coche	clasificación holdout
+holdout	CLASS	Tengo que recoger un paquete	task|Tareas	clasificación holdout
+holdout	CLASS	Comprar café y azúcar	task|Compras	clasificación holdout
+holdout	CLASS	Renovación del seguro del coche	expiry|Coche	clasificación holdout
+holdout	CLASS	Vencimiento de contrato el mes que viene	expiry|Documentos	clasificación holdout
+holdout	CLASS	Hotel para vacaciones	note|Viajes	clasificación holdout
+holdout	CLASS	Cenar en cafetería Lisboa	restaurant|Restaurantes	clasificación holdout
+holdout	CLASS	Garantía de frigorífico	document|Documentos	clasificación holdout
+holdout	CLASS	Idea para una nueva lista	note|Ideas	clasificación holdout
+holdout	CLASS	Tomarme Metformina 850 mg a las 20	medication|Medicamentos	clasificación holdout
+holdout	CLASS	Reunión con Pedro el jueves	event|Otros	clasificación holdout
+dev	REC	cada día	daily	recurrencia
+dev	REC	todos los días	daily	recurrencia
+dev	REC	diariamente	daily	recurrencia
+dev	REC	periodicidad diaria	daily	recurrencia
+dev	REC	cada semana	weekly	recurrencia
+dev	REC	todas las semanas	weekly	recurrencia
+dev	REC	semanalmente	weekly	recurrencia
+dev	REC	cada mes	monthly	recurrencia
+dev	REC	todos los meses	monthly	recurrencia
+dev	REC	mensualmente	monthly	recurrencia
+dev	REC	cada dos meses	bimonthly	recurrencia
+dev	REC	cada 2 meses	bimonthly	recurrencia
+dev	REC	bimestral	bimonthly	recurrencia
+dev	REC	bimensual	bimonthly	recurrencia
+dev	REC	cada tres meses	quarterly	recurrencia
+dev	REC	cada 3 meses	quarterly	recurrencia
+dev	REC	trimestral	quarterly	recurrencia
+dev	REC	cada seis meses	semiannual	recurrencia
+dev	REC	cada 6 meses	semiannual	recurrencia
+dev	REC	semestral	semiannual	recurrencia
+dev	REC	cada año	annual	recurrencia
+dev	REC	todos los años	annual	recurrencia
+dev	REC	anualmente	annual	recurrencia
+dev	REC	sin repetir	none	recurrencia
+dev	REC	solo una vez	none	recurrencia
+holdout	REC	Recuérdame esto cada día	daily	recurrencia holdout
+holdout	REC	Cita todas las semanas	weekly	recurrencia holdout
+holdout	REC	Pago todos los meses	monthly	recurrencia holdout
+holdout	REC	Revisión bimensual	bimonthly	recurrencia holdout
+holdout	REC	Control trimestral	quarterly	recurrencia holdout
+holdout	REC	Revisión semestral	semiannual	recurrencia holdout
+holdout	REC	Cumpleaños anualmente	annual	recurrencia holdout
+holdout	REC	Evento cada año	annual	recurrencia holdout
+holdout	REC	Nota sin periodicidad	none	recurrencia holdout
+holdout	REC	Una sola vez mañana	none	recurrencia holdout
+dev	LIST	Añade huevos y mantequilla y leche y pan a la lista de la compra	add|huevos;mantequilla;leche;pan	lista compra
+dev	LIST	Añade leche, huevos, pan y café a la lista de compra	add|leche;huevos;pan;café	lista compra
+dev	LIST	Comprar arroz y pasta y tomate	add|arroz;pasta;tomate	lista compra
+dev	LIST	Guárdame en la lista de la compra agua y azúcar y café	add|agua;azúcar;café	lista compra
+dev	LIST	Apúntame pan y jamón y queso	add|pan;jamón;queso	lista compra
+dev	LIST	Pon leche desnatada y huevos camperos y pan integral	add|leche desnatada;huevos camperos;pan integral	lista compra
+dev	LIST	Añade dos botellas de agua y un paquete de arroz	add|dos botellas de agua;un paquete de arroz	lista compra
+dev	LIST	Añade 2 kg de patatas y 1 kg de cebollas	add|2 kg de patatas;1 kg de cebollas	lista compra
+dev	LIST	Añade coca cola y café y yogures	add|coca cola;café;yogures	lista compra
+dev	LIST	Quita azúcar de la lista de compra	remove|azúcar	lista compra
+dev	LIST	Elimina leche y pan	remove|leche;pan	lista compra
+dev	LIST	Borra café y galletas de la lista	remove|café;galletas	lista compra
+dev	LIST	Ya he comprado los huevos	check|huevos	lista compra
+dev	LIST	He comprado leche y pan	check|leche;pan	lista compra
+dev	LIST	Marca como comprado café y azúcar	check|café;azúcar	lista compra
+dev	LIST	Todavía no he comprado el pan	uncheck|pan	lista compra
+dev	LIST	No he comprado leche y huevos	uncheck|leche;huevos	lista compra
+dev	LIST	Desmarca café	uncheck|café	lista compra
+dev	LIST	Cambia leche por leche desnatada	replace|	lista compra
+dev	LIST	Sustituye pan por pan integral	replace|	lista compra
+dev	LIST	Elimina lo comprado	clear_checked|	lista compra
+dev	LIST	Borra los comprados	clear_checked|	lista compra
+dev	LIST	Añade detergente y suavizante y lejía	add|detergente;suavizante;lejía	lista compra
+dev	LIST	Añade champú y gel y desodorante	add|champú;gel;desodorante	lista compra
+dev	LIST	Añade pollo y pescado y carne	add|pollo;pescado;carne	lista compra
+dev	LIST	Añade manzanas y plátanos y naranjas	add|manzanas;plátanos;naranjas	lista compra
+dev	LIST	Añade lentejas y garbanzos y atún	add|lentejas;garbanzos;atún	lista compra
+dev	LIST	Añade harina y sal y aceite	add|harina;sal;aceite	lista compra
+dev	LIST	Necesito comprar leche y huevos	add|leche;huevos	lista compra
+dev	LIST	Quiero comprar pan y queso	add|pan;queso	lista compra
+dev	LIST	Compra arroz y pollo	add|arroz;pollo	lista compra
+dev	LIST	Añádeme yogur y cereales	add|yogur;cereales	lista compra
+dev	LIST	Agrégame tomate y lechuga	add|tomate;lechuga	lista compra
+dev	LIST	Méteme café y azúcar	add|café;azúcar	lista compra
+dev	LIST	Añade a la lista de la compra macarrones y atún	add|macarrones;atún	lista compra
+dev	LIST	En la lista de la compra añade leche y pan	add|leche;pan	lista compra
+dev	LIST	Añade leche y pan para la compra	add|leche;pan	lista compra
+dev	LIST	Quita el azúcar y el café	remove|azúcar;café	lista compra
+holdout	LIST	Añádeme mantequilla y pan y huevos en la lista de compra	add|mantequilla;pan;huevos	lista holdout
+holdout	LIST	Pon en la lista de la compra café y leche y azúcar	add|café;leche;azúcar	lista holdout
+holdout	LIST	Apunta arroz, tomate y atún para la compra	add|arroz;tomate;atún	lista holdout
+holdout	LIST	Necesito comprar detergente y suavizante	add|detergente;suavizante	lista holdout
+holdout	LIST	Quita leche y huevos de la lista de la compra	remove|leche;huevos	lista holdout
+holdout	LIST	Borra el pan de la lista	remove|pan	lista holdout
+holdout	LIST	He comprado arroz y pasta	check|arroz;pasta	lista holdout
+holdout	LIST	Marca comprados huevos y leche	check|huevos;leche	lista holdout
+holdout	LIST	Aún no he comprado el café	uncheck|café	lista holdout
+holdout	LIST	Desmarca pan y queso	uncheck|pan;queso	lista holdout
+holdout	LIST	Quita los comprados	clear_checked|	lista holdout
+holdout	LIST	Añade dos cajas de leche y tres botellas de agua	add|dos cajas de leche;tres botellas de agua	lista holdout
+dev	ALARM	Pon una alarma a las 7	true|true|07:00|false	alarma
+dev	ALARM	Despiértame a las 8:30	true|true|08:30|false	alarma
+dev	ALARM	Programa una alarma a las seis y media	true|true|06:30|false	alarma
+dev	ALARM	Alarma a las 22:15	true|true|22:15|false	alarma
+dev	ALARM	Pon una alarma todos los días a las 7	true|true|07:00|true	alarma
+dev	ALARM	Alarma de lunes a viernes a las 6:45	true|true|06:45|true	alarma
+dev	ALARM	Despertador fin de semana a las 9	true|true|09:00|true	alarma
+dev	ALARM	Pon una alarma los lunes a las 8	true|true|08:00|true	alarma
+dev	ALARM	Pon una alarma los martes y jueves a las 7	true|true|07:00|true	alarma
+dev	ALARM	Crea una alarma a las 10	true|true|10:00|false	alarma
+dev	ALARM	Programa una alarma a mediodía	true|true|12:00|false	alarma
+dev	ALARM	Pon alarma a medianoche	true|true|00:00|false	alarma
+dev	ALARM	Recuérdame llamar a Juan a las 8	false|false||false	alarma
+dev	ALARM	Cita mañana a las 8	false|false||false	alarma
+dev	ALARM	Tengo que levantarme a las 7	false|false||false	alarma
+dev	ALARM	Pon una alarma	true|false||false	alarma
+dev	ALARM	Despertador	true|false||false	alarma
+dev	ALARM	Alarma mañana a las nueve	true|true|09:00|false	alarma
+dev	ALARM	Despiértame el lunes a las 7	true|true|07:00|false	alarma
+dev	ALARM	Pon una alarma cada día a las 6	true|true|06:00|true	alarma
+holdout	ALARM	Ponme una alarma a las 7:20	true|true|07:20|false	alarma holdout
+holdout	ALARM	Crea una alarma de lunes a viernes a las siete	true|true|07:00|true	alarma holdout
+holdout	ALARM	Despiértame todos los días a las 8	true|true|08:00|true	alarma holdout
+holdout	ALARM	Alarma los sábados y domingos a las 9:30	true|true|09:30|true	alarma holdout
+holdout	ALARM	Necesito un recordatorio a las 8	false|false||false	alarma holdout
+holdout	ALARM	Pon una alarma mañana	true|false||false	alarma holdout
+holdout	ALARM	Despertador a las seis y cuarto	true|true|06:15|false	alarma holdout
+holdout	ALARM	Programa alarma a las 18:50	true|true|18:50|false	alarma holdout
+dev	MED	Tomar Losartán 50 mg a las 8	true|Losartán|50 mg	medicación
+dev	MED	Tomarme Metformina 850 mg a las 20	true|Metformina|850 mg	medicación
+dev	MED	Tomar Eliquis 5 mg a las 9	true|Eliquis|5 mg	medicación
+dev	MED	Medicamento Omeprazol 20 mg a las 8	true|Omeprazol|20 mg	medicación
+dev	MED	Tomar amoxicilina 500 mg cada 8 horas	true|Amoxicilina|500 mg	medicación
+dev	MED	Una pastilla Paracetamol 1 g a las 10	true|Paracetamol|1 g	medicación
+dev	MED	Tomar vitamina D 1 cápsula a las 9	true|Vitamina D|1 cápsula	medicación
+dev	MED	Tomar jarabe 10 ml a las 8	true|Jarabe|10 ml	medicación
+dev	MED	Medicacion: Sintrom 4 mg a las 20	true|Sintrom|4 mg	medicación
+dev	MED	Tomar ibuprofeno 600 mg cada 12 horas	true|Ibuprofeno|600 mg	medicación
+dev	MED	Tomar antibiótico 500 mg a las 8	true|Antibiótico|500 mg	medicación
+dev	MED	Una dosis de 5 mg a las 9	true|Una Dosis De|5 mg	medicación
+dev	MED	Comprar Losartán 50 mg	false|Comprar Losartán|50 mg	medicación
+dev	MED	Cita con el médico a las 8	false|Cita Con El Médico|	medicación
+dev	MED	Tomar café a las 8	false|Café|	medicación
+dev	MED	Tomar agua a las 9	false|Agua|	medicación
+dev	MED	Pastilla de Eliquis 5 mg	true|Eliquis|5 mg	medicación
+dev	MED	Medicamento: Crestor 20 mg	true|Crestor|20 mg	medicación
+dev	MED	Dosis 2 comprimidos a las 8	true|Dosis|2 comprimidos	medicación
+dev	MED	Tomar Prednisona 30 mg durante 5 días a las 9	true|Prednisona|30 mg	medicación
+holdout	MED	Debo tomar Losartán 50 mg a las 8	true|Losartán|50 mg	medicación holdout
+holdout	MED	Me toca tomar Eliquis 5 mg a las 20	true|Eliquis|5 mg	medicación holdout
+holdout	MED	Tomarme amoxicilina 500 mg cada ocho horas	true|Amoxicilina|500 mg	medicación holdout
+holdout	MED	Medicamento Metformina 850 mg a las 9	true|Metformina|850 mg	medicación holdout
+holdout	MED	Comprar paracetamol 1 g	false|Comprar Paracetamol|1 g	medicación holdout
+holdout	MED	Tomar un té a las 9	false|Un Té|	medicación holdout
+holdout	MED	Cápsula vitamina D 1 cápsula a las 10	true|Vitamina D|1 cápsula	medicación holdout
