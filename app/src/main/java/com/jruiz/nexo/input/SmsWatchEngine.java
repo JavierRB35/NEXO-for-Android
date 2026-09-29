@@ -17,6 +17,8 @@ import java.util.List;
 
 public final class SmsWatchEngine {
     private static final long WINDOW_MS = 90L * 86400000L;
+    private static final long RECOVERY_MS = 3L * 86400000L;
+    private static final String FILTER_REVISION = "sms-filter-v4:";
 
     private SmsWatchEngine() {}
 
@@ -43,8 +45,15 @@ public final class SmsWatchEngine {
 
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
+            long recoveryFrom = System.currentTimeMillis() - RECOVERY_MS;
             for (SmsSnapshot sms : readInbox(context)) {
-                if (db.hasExternalInput("sms", sms.id)) continue;
+                JSONObject previous = db.getExternalInputState("sms", sms.id);
+                if (previous.length() > 0) {
+                    long oldCapture = previous.optLong("captureId", 0L);
+                    String oldFingerprint = previous.optString("fingerprint", "");
+                    if (oldCapture > 0 || db.inboxCaptureExists("sms:" + sms.id) || oldFingerprint.startsWith(FILTER_REVISION)) continue;
+                    if (sms.date < recoveryFrom) continue;
+                }
 
                 JSONObject classification = RuleClassifier.classify(sms.body).toJson();
                 long captureId = 0L;
@@ -63,7 +72,7 @@ public final class SmsWatchEngine {
                         InboxCandidateNotifier.show(context, captureId, "Nexo · SMS accionable", sms.address, preview);
                     }
                 }
-                db.rememberExternalInput("sms", sms.id, sms.fingerprint(), captureId);
+                db.rememberExternalInput("sms", sms.id, FILTER_REVISION + sms.fingerprint(), captureId);
             }
         } catch (Exception ignored) {
         } finally {
