@@ -1842,3 +1842,10 @@ main{max-width:720px}
   .upcoming-card{grid-template-columns:54px minmax(0,1fr);padding:9px 10px;min-height:82px}
   .date-tile{width:54px;height:61px}
 }
+
+.agenda-week-groups{display:grid;gap:16px}
+.agenda-week-group{display:grid;gap:8px}
+.agenda-week-group>h3{
+  margin:0;padding:0 2px;color:#667085;font-size:.78rem;font-weight:900;
+  letter-spacing:.02em;text-transform:capitalize;
+}
