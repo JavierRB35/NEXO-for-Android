@@ -973,7 +973,7 @@ function openInboxCaptureEditor(capture,incoming=false){
   const raw=String(capture.rawText||capture.text||capture.subject||capture.attachmentName||'').trim();
   let detected=capture.classification&&typeof capture.classification==='object'?capture.classification:{};
   if(!Object.keys(detected).length&&raw)detected=parseNative(NexoNative.classify(raw),{});
-  const allowed=['event','task','reminder','expiry','note','document'];
+  const allowed=['event','task','reminder','expiry','note','document','place','restaurant'];
   const suggested=allowed.includes(detected.type)?detected.type:(capture.attachmentPath?'document':'note');
   state.inboxCaptureId=id;
   state.inboxCaptureOriginal=capture;
