@@ -1,5 +1,22 @@
 # Changelog de Nexo
 
+## 3.5.0-beta3 · versionCode 58 · Nexo Input Hub v0.3
+
+- Nueva arquitectura de entradas desacoplada de las notificaciones.
+- SMS directo: lectura opcional de la bandeja SMS de Android mediante READ_SMS + Calendar-style content watcher.
+- La primera activación de SMS crea una línea base silenciosa para no importar mensajes históricos.
+- Gmail directo: autorización de cuenta Google + Gmail API de solo lectura.
+- Gmail se consulta al abrir Nexo y periódicamente en segundo plano mediante JobScheduler.
+- La primera conexión Gmail crea una línea base de correos recientes para no importar el histórico.
+- Los nuevos SMS/correos se clasifican localmente y solo los candidatos accionables llegan a Inbox.
+- Gmail y SMS directos desactivan su captura por notificación para reducir duplicados.
+- Calendar directo se mantiene como fuente del Input Hub.
+- WhatsApp y Telegram continúan mediante NotificationListener por no existir acceso general a los datos privados de esas apps.
+- Nueva tabla external_watch_items para deduplicar fuentes directas. DB schema 18.
+- Ajustes reorganizados en fuentes directas y fuentes por notificación.
+- Botón "Buscar entradas ahora".
+- APK móvil: /storage/emulated/0/Download/Nexo_Input_Hub_v0_3.apk.
+
 ## 3.5.0-beta2 · versionCode 57 · Calendar → Inbox
 
 - Observación del Calendar Provider de Android mediante JobScheduler + TriggerContentUri.
