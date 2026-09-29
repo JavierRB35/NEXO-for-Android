@@ -1,12 +1,12 @@
-name: Package AndroidIDE ZIP
+name: Validate and Package AndroidIDE ZIP
 
 on:
   push:
     branches:
-      - feature/nexo-inbox-v0.1
+      - feature/nexo-inbox-v0.2-notifications
 
 jobs:
-  package:
+  validate-package:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -14,11 +14,34 @@ jobs:
       - name: Checkout exact branch
         uses: actions/checkout@v4
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare transcription runtime
+        shell: bash
+        run: sh ./prepare-transcription-runtime.sh
+
+      - name: Compile debug APK
+        shell: bash
+        env:
+          JAVA_OPTS: -Xmx1536m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
+        run: sh ./gradlew assembleDebug --no-daemon --max-workers=1
+
+      - name: Verify expected build output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+
       - name: Prepare clean AndroidIDE project
         shell: bash
         run: |
           set -euo pipefail
-          STAGE="$RUNNER_TEMP/Nexo_Inbox_v0_1_AndroidIDE"
+          STAGE="$RUNNER_TEMP/Nexo_Inbox_v0_2_AndroidIDE"
           mkdir -p "$STAGE"
           git archive --format=tar HEAD | tar -x -C "$STAGE"
 
@@ -36,8 +59,8 @@ jobs:
       - name: Upload clean project
         uses: actions/upload-artifact@v4
         with:
-          name: Nexo_Inbox_v0_1_AndroidIDE
-          path: ${{ runner.temp }}/Nexo_Inbox_v0_1_AndroidIDE/
+          name: Nexo_Inbox_v0_2_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_Inbox_v0_2_AndroidIDE/
           include-hidden-files: true
           if-no-files-found: error
           compression-level: 6
