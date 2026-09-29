@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 public final class NotificationCandidateFilter {
     private static final Pattern DATE_PATTERN = Pattern.compile("\\b(?:[0-3]?\\d[/-][01]?\\d(?:[/-]\\d{2,4})?|(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)|(?:hoy|manana|pasado manana))\\b");
-    private static final Pattern TIME_PATTERN = Pattern.compile("\\b(?:[01]?\\d|2[0-3])[:.]?[0-5]\\d\\b");
+    private static final Pattern TIME_PATTERN = Pattern.compile("(?:\\b(?:[01]?\\d|2[0-3])[:.][0-5]\\d\\b|\\b(?:[01]?\\d|2[0-3])\\s*h\\b)");
     private static final Pattern OTP_PATTERN = Pattern.compile("\\b\\d{4,8}\\b");
     private static final String[] ACTION_TERMS = {
             "recuerda","acuerdate","quedamos","quedar","cita","reunion","llama","llamar",
