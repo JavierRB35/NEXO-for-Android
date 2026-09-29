@@ -612,6 +612,10 @@ public class MainActivity extends Activity {
     }
 
     private void applyBundledNexoFamiliaMigration() {
+        applyBundledNexoFamiliaMigration(false);
+    }
+
+    private void applyBundledNexoFamiliaMigration(boolean force) {
         final String assetName = "nexo_familia_seed_v1.json";
         try {
             String raw;
@@ -625,7 +629,9 @@ public class MainActivity extends Activity {
             JSONObject payload = new JSONObject(raw);
             String snapshot = payload.optString("snapshotVersion", "v1");
             SharedPreferences prefs = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
-            if (snapshot.equals(prefs.getString("snapshotVersion", ""))) return;
+            JSONObject beforeAudit = auditBundledNexoFamiliaPayload(payload);
+            if (!force && snapshot.equals(prefs.getString("snapshotVersion", "")) &&
+                    beforeAudit.optBoolean("complete", false)) return;
 
             JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
             int expected = payload.optJSONArray("events") == null ? 0 : payload.optJSONArray("events").length();
@@ -667,6 +673,71 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {
             // La app debe seguir abriendo aunque el snapshot opcional no pueda migrarse.
             // Si falla no se marca como completado y se volverá a intentar en el siguiente arranque.
+        }
+    }
+
+    private JSONObject auditBundledNexoFamiliaPayload(JSONObject payload) {
+        JSONObject out = new JSONObject();
+        JSONArray missingEvents = new JSONArray();
+        JSONArray missingRules = new JSONArray();
+        try {
+            JSONArray events = payload == null ? null : payload.optJSONArray("events");
+            JSONArray rules = payload == null ? null : payload.optJSONArray("reminderRules");
+            if (rules == null && payload != null) rules = payload.optJSONArray("reminder_rules");
+            if (events == null) events = new JSONArray();
+            if (rules == null) rules = new JSONArray();
+
+            int verifiedEvents = 0;
+            for (int i=0;i<events.length();i++) {
+                JSONObject event = events.optJSONObject(i);
+                if (event == null) continue;
+                String sourceId = event.optString("id", "").trim();
+                long localId = sourceId.isEmpty() ? 0L : db.getNexoFamiliaLocalItemId(sourceId);
+                if (localId > 0L && db.getItem(localId).length() > 0) {
+                    verifiedEvents++;
+                } else {
+                    JSONObject miss = new JSONObject();
+                    miss.put("id", sourceId);
+                    miss.put("title", event.optString("title", "Evento sin título"));
+                    missingEvents.put(miss);
+                }
+            }
+
+            int verifiedRules = 0;
+            for (int i=0;i<rules.length();i++) {
+                JSONObject rule = rules.optJSONObject(i);
+                if (rule == null) continue;
+                String ruleId = rule.optString("id", "").trim();
+                if (!ruleId.isEmpty() && db.hasNexoFamiliaReminderMapping(ruleId)) verifiedRules++;
+                else missingRules.put(ruleId);
+            }
+
+            JSONObject stats = db.getNexoFamiliaImportStats();
+            boolean complete = events.length() > 0 &&
+                    verifiedEvents == events.length() &&
+                    verifiedRules == rules.length() &&
+                    stats.optLong("brokenMappings", 0L) == 0L;
+
+            out.put("expectedEvents", events.length());
+            out.put("verifiedEvents", verifiedEvents);
+            out.put("expectedReminderRules", rules.length());
+            out.put("verifiedReminderRules", verifiedRules);
+            out.put("missingEvents", missingEvents);
+            out.put("missingReminderRules", missingRules);
+            out.put("complete", complete);
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    private JSONObject readBundledNexoFamiliaPayload() {
+        try (InputStream in = getAssets().open("nexo_familia_seed_v1.json");
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[16384];
+            int n;
+            while ((n = in.read(buffer)) != -1) if (n > 0) out.write(buffer, 0, n);
+            return new JSONObject(out.toString(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception ignored) {
+            return new JSONObject();
         }
     }
 
@@ -1920,11 +1991,25 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String getToday() { return db.getTodayData().toString(); }
         @JavascriptInterface public String getMoreSummary() { return db.getMoreSummary().toString(); }
         @JavascriptInterface public void chooseNexoFamiliaImport() { MainActivity.this.chooseNexoFamiliaImport(); }
+        @JavascriptInterface public void repairBundledNexoFamiliaMigration() {
+            new Thread(() -> {
+                MainActivity.this.applyBundledNexoFamiliaMigration(true);
+                JSONObject audit = MainActivity.this.auditBundledNexoFamiliaPayload(MainActivity.this.readBundledNexoFamiliaPayload());
+                jsCallbackJson("onNexoFamiliaRepairDone", audit);
+            }, "nexo-familia-repair").start();
+        }
         @JavascriptInterface public String getNexoFamiliaImportStats() {
             JSONObject stats = db.getNexoFamiliaImportStats();
             SharedPreferences p = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
             try {
-                stats.put("expectedEvents", p.getInt("expectedEvents", 0));
+                JSONObject audit = MainActivity.this.auditBundledNexoFamiliaPayload(MainActivity.this.readBundledNexoFamiliaPayload());
+                stats.put("expectedEvents", audit.optInt("expectedEvents", p.getInt("expectedEvents", 0)));
+                stats.put("verifiedEvents", audit.optInt("verifiedEvents", 0));
+                stats.put("expectedReminderRules", audit.optInt("expectedReminderRules", p.getInt("expectedReminderRules", 0)));
+                stats.put("verifiedReminderRules", audit.optInt("verifiedReminderRules", 0));
+                stats.put("missingEvents", audit.optJSONArray("missingEvents"));
+                stats.put("missingReminderRules", audit.optJSONArray("missingReminderRules"));
+                stats.put("complete", audit.optBoolean("complete", false));
                 stats.put("lastPreserved", p.getInt("lastPreserved", 0));
                 stats.put("lastSkipped", p.getInt("lastSkipped", 0));
                 stats.put("lastAttemptAt", p.getLong("lastAttemptAt", 0L));
