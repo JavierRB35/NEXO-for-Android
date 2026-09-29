@@ -7,8 +7,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 public final class NotificationCandidateFilter {
-    private static final Pattern DATE_PATTERN = Pattern.compile("\\b(?:[0-3]?\\d[/-][01]?\\d(?:[/-]\\d{2,4})?|(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)|(?:hoy|manana|pasado manana))\\b");
-    private static final Pattern TIME_PATTERN = Pattern.compile("(?:\\b(?:[01]?\\d|2[0-3])[:.][0-5]\\d\\b|\\b(?:[01]?\\d|2[0-3])\\s*h\\b)");
+    private static final Pattern DATE_PATTERN = Pattern.compile("\\b(?:[0-3]?\\d[/-][01]?\\d(?:[/-]\\d{2,4})?|[0-3]?\\d\\s+de\\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)|(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)|(?:hoy|manana|pasado manana))\\b");
+    private static final Pattern TIME_PATTERN = Pattern.compile("(?:\\b(?:[01]?\\d|2[0-3])[:.]?[0-5]\\d\\s*h?\\b|\\b(?:[01]?\\d|2[0-3])\\s*h(?:\\s*[0-5]\\d)?\\b|\\ba\\s+las\\s+(?:[01]?\\d|2[0-3])(?:[:.]?[0-5]\\d)?\\b)");
     private static final Pattern OTP_PATTERN = Pattern.compile("\\b\\d{4,8}\\b");
     private static final String[] ACTION_TERMS = {
             "recuerda","acuerdate","quedamos","quedar","cita","reunion","llama","llamar",
@@ -16,7 +16,8 @@ public final class NotificationCandidateFilter {
             "caduca","caducidad","restaurante","ubicacion","direccion","te recomiendo",
             "comprar","compra","trae","lleva","entrega","pedido","visita","doctor","medico",
             "hospital","revision","itv","seguro","renovar","pagar","pago",
-            "cumpleanos","birthday","calendario","calendar","invitacion","invitation","evento de calendario"
+            "cumpleanos","birthday","calendario","calendar","invitacion","invitation","evento de calendario",
+            "te esperamos","confirmacion de cita","confirmación de cita","appointment","meeting","save the date","recordatorio de cita"
     };
     private static final String[] NOISE_TERMS = {
             "mensajes nuevos","mensaje nuevo","new messages","new message","esta escribiendo",
