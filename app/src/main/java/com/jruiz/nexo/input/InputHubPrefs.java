@@ -16,6 +16,10 @@ public final class InputHubPrefs {
     public static void setSmsEnabled(Context c, boolean value) { prefs(c).edit().putBoolean("sms_enabled", value).apply(); }
     public static boolean smsBaselined(Context c) { return prefs(c).getBoolean("sms_baselined", false); }
     public static void setSmsBaselined(Context c, boolean value) { prefs(c).edit().putBoolean("sms_baselined", value).apply(); }
+    public static long smsLastSync(Context c) { return prefs(c).getLong("sms_last_sync", 0L); }
+    public static void setSmsLastSync(Context c, long value) { prefs(c).edit().putLong("sms_last_sync", value).apply(); }
+    public static String smsError(Context c) { return prefs(c).getString("sms_error", ""); }
+    public static void setSmsError(Context c, String value) { prefs(c).edit().putString("sms_error", value == null ? "" : value).apply(); }
 
     public static boolean gmailEnabled(Context c) { return prefs(c).getBoolean("gmail_enabled", false); }
     public static void setGmailEnabled(Context c, boolean value) { prefs(c).edit().putBoolean("gmail_enabled", value).apply(); }
