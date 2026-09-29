@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-APP_NAME="Nexo_3_7_0_beta1_DEBUG"
+APP_NAME="Nexo_3_7_0_beta2_DEBUG"
 cd "$(dirname "$0")"
 export JAVA_OPTS="-Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8"
 sh ./gradlew assembleDebug --no-daemon --max-workers=1 -Pandroid.aapt2FromMavenOverride="$HOME/.androidide/aapt2"
