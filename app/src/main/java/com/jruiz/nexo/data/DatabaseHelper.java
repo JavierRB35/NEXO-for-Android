@@ -1270,8 +1270,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     for (String key : keys) if (ov.has(key)) o.put(key, ov.get(key));
                 }
                 long moved = ex.optLong("overrideDueAt",0); if (moved>0) {
+                    long overriddenEnd = o.optLong("endAt",0);
+                    boolean hasExplicitEnd = false;
+                    try {
+                        String rawEnd = ex.optString("overrideJson","");
+                        hasExplicitEnd = !rawEnd.isBlank() && new JSONObject(rawEnd).has("endAt");
+                    } catch(Exception ignored) {}
                     o.put("dueAt",moved);
-                    if (!o.has("endAt") || o.optLong("endAt",0)==baseEnd) o.put("endAt",moved+span);
+                    if (!hasExplicitEnd) o.put("endAt",moved+span);
+                    else if (overriddenEnd < moved) o.put("endAt",moved);
                 }
             }
             return o;
