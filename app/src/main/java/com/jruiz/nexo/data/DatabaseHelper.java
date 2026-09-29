@@ -335,25 +335,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues v = new ContentValues();
         v.put("source_event_id", sourceEventId);
         v.put("local_item_id", localItemId);
-        v.put("family_id", source.optString("family_id", ""));
-        v.put("created_by", source.optString("created_by", ""));
+        v.put("family_id", cleanJsonString(source, "family_id"));
+        v.put("created_by", cleanJsonString(source, "created_by"));
         v.put("participant_ids_json", String.valueOf(source.optJSONArray("participant_ids") == null ? new JSONArray() : source.optJSONArray("participant_ids")));
-        v.put("visibility", source.optString("visibility", ""));
+        v.put("visibility", cleanJsonString(source, "visibility"));
         v.put("shared_with_json", String.valueOf(source.optJSONArray("shared_with") == null ? new JSONArray() : source.optJSONArray("shared_with")));
-        v.put("event_origin", source.optString("event_origin", ""));
-        v.put("social_type", source.optString("social_type", ""));
-        v.put("venue_type", source.optString("venue_type", ""));
-        v.put("maps_url", source.optString("maps_url", ""));
+        v.put("event_origin", cleanJsonString(source, "event_origin"));
+        v.put("social_type", cleanJsonString(source, "social_type"));
+        v.put("venue_type", cleanJsonString(source, "venue_type"));
+        v.put("maps_url", cleanJsonString(source, "maps_url"));
         v.put("guest_count", Math.max(0, source.optInt("guest_count", 0)));
         Object guestDetails = source.opt("guest_details");
         v.put("guest_details_json", guestDetails == null || guestDetails == JSONObject.NULL ? "[]" : String.valueOf(guestDetails));
-        v.put("external_uid", source.optString("external_uid", ""));
-        v.put("external_source", source.optString("external_source", ""));
-        v.put("source_status", source.optString("status", ""));
+        v.put("external_uid", cleanJsonString(source, "external_uid"));
+        v.put("external_source", cleanJsonString(source, "external_source"));
+        v.put("source_status", cleanJsonString(source, "status"));
         v.put("time_zone", nonBlank(source.optString("time_zone"), "Europe/Madrid"));
-        v.put("recurrence_rule", source.optString("recurrence_rule", ""));
-        v.put("start_raw", source.optBoolean("all_day", false) ? source.optString("start_date", "") : source.optString("start_at", ""));
-        v.put("end_raw", source.optBoolean("all_day", false) ? source.optString("end_date", "") : source.optString("end_at", ""));
+        v.put("recurrence_rule", cleanJsonString(source, "recurrence_rule"));
+        v.put("start_raw", source.optBoolean("all_day", false) ? cleanJsonString(source, "start_date") : cleanJsonString(source, "start_at"));
+        v.put("end_raw", source.optBoolean("all_day", false) ? cleanJsonString(source, "end_date") : cleanJsonString(source, "end_at"));
         v.put("raw_json", source.toString());
         v.put("updated_at", now);
         long importedAt = now;
@@ -2053,6 +2053,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
     }
 
+    public JSONObject getExternalWatchDiagnostics() {
+        JSONObject out = new JSONObject();
+        try {
+            out.put("smsSeen", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms'"));
+            out.put("smsCaptured", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms' AND capture_id>0"));
+            out.put("gmailSeen", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail'"));
+            out.put("gmailCaptured", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail' AND capture_id>0"));
+        } catch (Exception ignored) {}
+        return out;
+    }
+
     public boolean inboxCaptureExists(String sourceKey) {
         if (sourceKey == null || sourceKey.isBlank()) return false;
         try (Cursor c = getReadableDatabase().rawQuery(
@@ -2536,5 +2547,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     private static int clamp(int v,int min,int max){return Math.max(min,Math.min(max,v));}
+    private static String cleanJsonString(JSONObject source,String key){
+        if(source==null||key==null||!source.has(key)||source.isNull(key))return "";
+        Object value=source.opt(key);
+        if(value==null||value==JSONObject.NULL)return "";
+        String text=String.valueOf(value).trim();
+        return "null".equalsIgnoreCase(text)?"":text;
+    }
     private static String nonBlank(String s,String fallback){return s==null||s.trim().isEmpty()?fallback:s.trim();}
 }
