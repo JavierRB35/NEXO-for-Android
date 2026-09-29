@@ -1,0 +1,43 @@
+name: Package AndroidIDE ZIP
+
+on:
+  push:
+    branches:
+      - feature/nexo-inbox-v0.1
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+
+      - name: Prepare clean AndroidIDE project
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/Nexo_Inbox_v0_1_AndroidIDE"
+          mkdir -p "$STAGE"
+          git archive --format=tar HEAD | tar -x -C "$STAGE"
+
+          test -f "$STAGE/settings.gradle"
+          test -f "$STAGE/build.gradle"
+          test -f "$STAGE/gradlew"
+          test -f "$STAGE/gradle/wrapper/gradle-wrapper.jar"
+          test -f "$STAGE/gradle/wrapper/gradle-wrapper.properties"
+          test -f "$STAGE/build-on-phone.sh"
+          test -d "$STAGE/app"
+
+          echo "Clean project prepared:"
+          find "$STAGE" -maxdepth 2 -type f | sort
+
+      - name: Upload clean project
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexo_Inbox_v0_1_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_Inbox_v0_1_AndroidIDE/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 6
