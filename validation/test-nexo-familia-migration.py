@@ -82,3 +82,11 @@ for token in ['validatePayload(payload, events, rules)','verifiedEvents','verifi
     assert token in importer, f'Falta verificación de migración: {token}'
 
 print(f'Migración Nexo Familia completa: {len(events)} eventos, {len(rules)} reglas, {len(members)} miembros')
+
+# Regression beta7: Nexo Familia no puede quedar atrapado en la conciliación genérica.
+db_source=db_path.read_text(encoding='utf-8')
+assert "source<>'nexo-familia'" in db_source
+assert "source='nexo-familia'" in db_source
+assert "System.currentTimeMillis()" in db_source
+assert "source_status" in db_source
+print('Estados Nexo Familia separados de la conciliación genérica: OK')
