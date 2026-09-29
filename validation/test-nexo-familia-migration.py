@@ -9,13 +9,15 @@ importer_path=root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImport
 
 payload=json.loads(seed_path.read_text(encoding='utf-8'))
 assert payload.get('format')=='nexo-familia-events-v1'
-assert payload.get('snapshotVersion')=='2026-09-29-v4-repair'
+assert payload.get('snapshotVersion')=='2026-09-29-v5-clean-rebuild'
 events=payload.get('events') or []
 rules=payload.get('reminderRules') or []
 members=payload.get('members') or []
 audit=payload.get('sourceAudit') or {}
 
 assert len(events)==33, f'Esperados 33 eventos, encontrados {len(events)}'
+assert sum(1 for e in events if e.get('visibility')=='family')==17, 'Esperados 17 eventos family'
+assert sum(1 for e in events if e.get('visibility')=='selected')==16, 'Esperados 16 eventos selected'
 assert len(rules)==46, f'Esperadas 46 reglas de aviso, encontradas {len(rules)}'
 assert len(members)==4, f'Esperados 4 miembros, encontrados {len(members)}'
 assert audit.get('familyEventCount')==33
@@ -62,16 +64,20 @@ assert 'DB_VERSION = 20' in db
 assert 'getNexoFamiliaMetadataForLocalItem' in db
 assert 'metadataComplete' in db and 'brokenMappings' in db
 assert 'hasNexoFamiliaReminderMapping' in db
+assert 'resetNexoFamiliaImportedData' in db
 
 main=main_path.read_text(encoding='utf-8')
 assert 'applyBundledNexoFamiliaMigration();' in main
 assert 'nexo_familia_seed_v1.json' in main
 assert 'auditBundledNexoFamiliaPayload' in main
 assert 'repairBundledNexoFamiliaMigration' in main
+assert 'cleanRebuildVersion' in main
+assert 'verifiedSelected' in main and 'verifiedFamily' in main
 
 importer=importer_path.read_text(encoding='utf-8')
 for key in ['endAt','allDay','timeZone','mapsUrl','recurrenceRule','participantsText']:
     assert f'local.put("{key}"' in importer, f'El importador no preserva {key}'
+assert 'sourceStartMillis' in importer
 for token in ['validatePayload(payload, events, rules)','verifiedEvents','verifiedReminderRules','brokenMappings','metadataComplete']:
     assert token in importer, f'Falta verificación de migración: {token}'
 
