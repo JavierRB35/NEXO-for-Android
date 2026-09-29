@@ -26,7 +26,7 @@ assert 'findRecentEquivalentInboxCapture' in gmail
 assert 'classification.optLong("dueAt", 0L)' in filter_java
 assert 'candidateReason' in filter_java
 assert 'OTP_PATTERN' in filter_java
-assert 'DATE_PATTERN' in filter_java and 'septiembre' in filter_java and '\\\\d{1,2}' in filter_java
+assert 'DATE_PATTERN' in filter_java and 'septiembre' in filter_java and 'dueDate' in filter_java
 
 for job in (sms_job,cal_job):
     assert 'scheduleContentWatcher(this);' in job
