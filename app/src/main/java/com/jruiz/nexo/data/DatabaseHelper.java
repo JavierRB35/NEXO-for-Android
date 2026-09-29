@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 19;
+    private static final int DB_VERSION = 20;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -41,7 +41,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "subcategory TEXT NOT NULL DEFAULT ''," +
                 "tags TEXT NOT NULL DEFAULT ''," +
                 "due_at INTEGER NOT NULL DEFAULT 0," +
+                "end_at INTEGER NOT NULL DEFAULT 0," +
                 "has_time INTEGER NOT NULL DEFAULT 0," +
+                "all_day INTEGER NOT NULL DEFAULT 0," +
+                "time_zone TEXT NOT NULL DEFAULT 'Europe/Madrid'," +
+                "maps_url TEXT NOT NULL DEFAULT ''," +
+                "recurrence_rule TEXT NOT NULL DEFAULT ''," +
+                "participants_text TEXT NOT NULL DEFAULT ''," +
                 "deleted_at INTEGER NOT NULL DEFAULT 0," +
                 "lat REAL," +
                 "lon REAL," +
@@ -203,6 +209,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         if (oldVersion < 19) {
             createNexoFamiliaCompatibilityTables(db);
+        }
+        if (oldVersion < 20) {
+            db.execSQL("ALTER TABLE items ADD COLUMN end_at INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE items ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE items ADD COLUMN time_zone TEXT NOT NULL DEFAULT 'Europe/Madrid'");
+            db.execSQL("ALTER TABLE items ADD COLUMN maps_url TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE items ADD COLUMN recurrence_rule TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE items ADD COLUMN participants_text TEXT NOT NULL DEFAULT ''");
+            db.execSQL("UPDATE items SET end_at=CASE WHEN duration_minutes>0 THEN due_at+(duration_minutes*60000) ELSE due_at END WHERE due_at>0 AND end_at=0");
+            db.execSQL("UPDATE items SET all_day=1 WHERE due_at>0 AND has_time=0 AND type IN ('event','task','reminder','expiry')");
         }
     }
 
@@ -565,8 +581,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("category", nonBlank(in.optString("category"), "Otros"));
         v.put("subcategory", in.optString("subcategory", ""));
         v.put("tags", in.optString("tags", ""));
-        v.put("due_at", Math.max(0, in.optLong("dueAt", 0)));
-        v.put("has_time", in.optBoolean("hasTime", false) ? 1 : 0);
+        long dueAt = Math.max(0, in.optLong("dueAt", 0));
+        boolean hasTime = in.optBoolean("hasTime", false);
+        int durationMinutes = Math.max(0, in.optInt("durationMinutes", 0));
+        long endAt = Math.max(0, in.optLong("endAt", 0));
+        if (endAt <= 0 && dueAt > 0) endAt = durationMinutes > 0 ? dueAt + durationMinutes * 60000L : dueAt;
+        boolean allDay = in.has("allDay") ? in.optBoolean("allDay") :
+                (dueAt > 0 && !hasTime && isAppointmentTypeForStatus(itemType));
+        v.put("due_at", dueAt);
+        v.put("end_at", endAt);
+        v.put("has_time", hasTime ? 1 : 0);
+        v.put("all_day", allDay ? 1 : 0);
+        v.put("time_zone", nonBlank(in.optString("timeZone"), "Europe/Madrid"));
+        v.put("maps_url", in.optString("mapsUrl", ""));
+        v.put("recurrence_rule", in.optString("recurrenceRule", ""));
+        v.put("participants_text", in.optString("participantsText", ""));
         v.put("deleted_at", 0);
         if (in.has("lat") && !in.isNull("lat")) v.put("lat", in.optDouble("lat"));
         if (in.has("lon") && !in.isNull("lon")) v.put("lon", in.optDouble("lon"));
@@ -582,7 +611,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("needs_review", in.optBoolean("needsReview", false) ? 1 : 0);
         v.put("recurrence", RecurrenceEngine.normalize(in.optString("recurrence", RecurrenceEngine.NONE)));
         v.put("recurrence_until", Math.max(0, in.optLong("recurrenceUntil", 0)));
-        v.put("duration_minutes", Math.max(0, in.optInt("durationMinutes", 0)));
+        v.put("duration_minutes", durationMinutes);
         v.put("voice_enabled", in.optBoolean("voiceEnabled", false) ? 1 : 0);
         v.put("note_title_manual", in.has("noteTitleManual") ? (in.optBoolean("noteTitleManual") ? 1 : 0) : ("note".equals(itemType) ? 1 : 0));
         v.put("created_at", now);
@@ -614,7 +643,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         }
         if (in.has("dueAt")) v.put("due_at", Math.max(0, in.optLong("dueAt", 0)));
+        if (in.has("endAt")) v.put("end_at", Math.max(0, in.optLong("endAt", 0)));
         if (in.has("hasTime")) v.put("has_time", in.optBoolean("hasTime") ? 1 : 0);
+        if (in.has("allDay")) v.put("all_day", in.optBoolean("allDay") ? 1 : 0);
+        if (in.has("timeZone")) v.put("time_zone", nonBlank(in.optString("timeZone"), "Europe/Madrid"));
+        if (in.has("mapsUrl")) v.put("maps_url", in.optString("mapsUrl", ""));
+        if (in.has("recurrenceRule")) v.put("recurrence_rule", in.optString("recurrenceRule", ""));
+        if (in.has("participantsText")) v.put("participants_text", in.optString("participantsText", ""));
         if (in.has("locationText")) v.put("location_text", in.optString("locationText", ""));
         if (in.has("priority")) v.put("priority", clamp(in.optInt("priority", 1), 1, 3));
         if (in.has("favorite")) v.put("favorite", in.optBoolean("favorite") ? 1 : 0);
@@ -656,7 +691,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db=getWritableDatabase();
         long start=LocalDate.now(ZoneId.systemDefault()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
         ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",System.currentTimeMillis());
-        db.update("items",done,"deleted_at=0 AND due_at>0 AND due_at<? AND recurrence='none' AND type IN ('event','task','reminder','expiry') AND status IN ('active','pending','postponed')",new String[]{String.valueOf(start)});
+        db.update("items",done,"deleted_at=0 AND due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<? AND recurrence='none' AND type IN ('event','task','reminder','expiry') AND status IN ('active','pending','postponed')",new String[]{String.valueOf(start)});
+        ContentValues reopenFamily=new ContentValues();reopenFamily.put("status","pending");reopenFamily.put("updated_at",System.currentTimeMillis());
+        db.update("items",reopenFamily,"deleted_at=0 AND source='nexo-familia' AND status='done' AND ((recurrence<>'none') OR (due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=?))",new String[]{String.valueOf(start)});
         // Los cumpleaños se evalúan contra la aparición del año actual. Hoy todavía queda pendiente.
         try(Cursor c=db.rawQuery("SELECT id,due_at,status,recurrence,recurrence_until FROM items WHERE deleted_at=0 AND due_at>0 AND lower(category) IN ('cumpleanos','cumpleaños','cumple')",null)){
             ZoneId zone=ZoneId.systemDefault();LocalDate today=LocalDate.now(zone);
@@ -1048,8 +1085,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
 
         // Elementos no recurrentes.
-        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at BETWEEN ? AND ? AND recurrence='none' ORDER BY due_at ASC",
-                new String[]{String.valueOf(start), String.valueOf(end)})) {
+        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND due_at<=? AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=? AND recurrence='none' ORDER BY due_at ASC",
+                new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
                 JSONObject o = itemJson(c);
                 o.put("recurring", false); o.put("seriesId", o.optLong("id")); o.put("occurrenceAt", o.optLong("dueAt")); o.put("occurrenceStatus", o.optString("status", "active"));
@@ -1065,13 +1102,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long seriesId = base.optLong("id");
                 HashMap<Long, JSONObject> exceptions = recurrenceExceptions(seriesId, start, end);
                 HashSet<Long> emitted = new HashSet<>();
-                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), start, end, ZoneId.systemDefault(), 5000);
+                long spanMillis = Math.max(0L, base.optLong("endAt",0) - base.optLong("dueAt",0));
+                if (spanMillis <= 0 && base.optInt("durationMinutes",0) > 0) spanMillis = base.optInt("durationMinutes",0) * 60000L;
+                long expansionStart = Math.max(0L, start - spanMillis);
+                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), expansionStart, end, ZoneId.systemDefault(), 5000);
                 for (long occurrenceAt : occurrences) {
                     JSONObject ex = exceptions.get(occurrenceAt);
                     JSONObject occ = buildOccurrence(base, occurrenceAt, ex);
                     if (occ == null) continue;
                     long actual = occ.optLong("dueAt", occurrenceAt);
-                    if (actual < start || actual > end) continue;
+                    long actualEnd = occ.optLong("endAt", actual);
+                    if (actual > end || actualEnd < start) continue;
                     rows.add(occ); emitted.add(occurrenceAt);
                 }
                 // Excepciones movidas desde otra fecha hacia el rango actual.
@@ -1205,17 +1246,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             String state = ex == null ? "active" : ex.optString("state", "active");
             if ("deleted".equals(state)) return null;
             JSONObject o = new JSONObject(base.toString());
+            long baseStart=base.optLong("dueAt",0),baseEnd=base.optLong("endAt",0);
+            long span=Math.max(0L,baseEnd-baseStart);
+            if(span<=0&&base.optInt("durationMinutes",0)>0)span=base.optInt("durationMinutes",0)*60000L;
             o.put("recurring", true); o.put("seriesId", base.optLong("id")); o.put("occurrenceAt", occurrenceAt); o.put("dueAt", occurrenceAt);
+            o.put("endAt", occurrenceAt + span);
             o.put("occurrenceStatus", state);
             if ("done".equals(state) || "postponed".equals(state)) o.put("status", state);
             if (ex != null) {
                 String raw = ex.optString("overrideJson", "");
                 if (!raw.isBlank()) {
                     JSONObject ov = new JSONObject(raw);
-                    String[] keys = {"title","body","category","type","dueAt","hasTime","durationMinutes","locationText","priority","favorite","status","needsReview"};
+                    String[] keys = {"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","durationMinutes","locationText","priority","favorite","status","needsReview"};
                     for (String key : keys) if (ov.has(key)) o.put(key, ov.get(key));
                 }
-                long moved = ex.optLong("overrideDueAt",0); if (moved>0) o.put("dueAt",moved);
+                long moved = ex.optLong("overrideDueAt",0); if (moved>0) {
+                    o.put("dueAt",moved);
+                    if (!o.has("endAt") || o.optLong("endAt",0)==baseEnd) o.put("endAt",moved+span);
+                }
             }
             return o;
         } catch (Exception e) { return null; }
@@ -2427,7 +2475,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("subcategory",c.getString(c.getColumnIndexOrThrow("subcategory")));
             o.put("tags",c.getString(c.getColumnIndexOrThrow("tags")));
             o.put("dueAt",c.getLong(c.getColumnIndexOrThrow("due_at")));
+            int endIndex=c.getColumnIndex("end_at");o.put("endAt",endIndex>=0?c.getLong(endIndex):0L);
             o.put("hasTime",c.getInt(c.getColumnIndexOrThrow("has_time"))==1);
+            int allDayIndex=c.getColumnIndex("all_day");o.put("allDay",allDayIndex>=0&&c.getInt(allDayIndex)==1);
+            int tzIndex=c.getColumnIndex("time_zone");o.put("timeZone",tzIndex>=0?c.getString(tzIndex):"Europe/Madrid");
+            int mapsIndex=c.getColumnIndex("maps_url");o.put("mapsUrl",mapsIndex>=0?c.getString(mapsIndex):"");
+            int ruleIndex=c.getColumnIndex("recurrence_rule");o.put("recurrenceRule",ruleIndex>=0?c.getString(ruleIndex):"");
+            int participantsIndex=c.getColumnIndex("participants_text");o.put("participantsText",participantsIndex>=0?c.getString(participantsIndex):"");
             o.put("deletedAt",c.getLong(c.getColumnIndexOrThrow("deleted_at")));
             int li=c.getColumnIndexOrThrow("lat"),lo=c.getColumnIndexOrThrow("lon");
             if (!c.isNull(li)) o.put("lat",c.getDouble(li)); else o.put("lat",JSONObject.NULL);
