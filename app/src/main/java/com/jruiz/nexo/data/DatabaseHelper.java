@@ -704,7 +704,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues reopenFamily=new ContentValues();reopenFamily.put("status","pending");reopenFamily.put("updated_at",System.currentTimeMillis());
         db.update("items",reopenFamily,"deleted_at=0 AND source='nexo-familia' AND status='done' AND ((recurrence<>'none') OR (due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=?))",new String[]{String.valueOf(start)});
         // Los cumpleaños se evalúan contra la aparición del año actual. Hoy todavía queda pendiente.
-        try(Cursor c=db.rawQuery("SELECT id,due_at,status,recurrence,recurrence_until FROM items WHERE deleted_at=0 AND due_at>0 AND lower(category) IN ('cumpleanos','cumpleaños','cumple')",null)){
+        try(Cursor c=db.rawQuery("SELECT id,due_at,status,recurrence,recurrence_until FROM items WHERE deleted_at=0 AND due_at>0 AND status<>'cancelled' AND lower(category) IN ('cumpleanos','cumpleaños','cumple')",null)){
             ZoneId zone=ZoneId.systemDefault();LocalDate today=LocalDate.now(zone);
             long yearStart=LocalDate.of(today.getYear(),1,1).atStartOfDay(zone).toInstant().toEpochMilli();
             long yearEnd=LocalDate.of(today.getYear()+1,1,1).atStartOfDay(zone).toInstant().toEpochMilli()-1;
