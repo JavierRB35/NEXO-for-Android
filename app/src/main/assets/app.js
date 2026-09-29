@@ -1312,9 +1312,11 @@ function renderBackupPanel(){
       verifiedRules=Number(familyStats.verifiedReminderRules||0),expectedRules=Number(familyStats.expectedReminderRules||0),
       verifiedFamily=Number(familyStats.verifiedFamily||0),expectedFamily=Number(familyStats.expectedFamily||0),
       verifiedSelected=Number(familyStats.verifiedSelected||0),expectedSelected=Number(familyStats.expectedSelected||0),
+      familyPending=Number(familyStats.familyPending||0),familyDone=Number(familyStats.familyDone||0),
+      selectedPending=Number(familyStats.selectedPending||0),selectedDone=Number(familyStats.selectedDone||0),
       complete=!!familyStats.complete;
     familyStatsEl.textContent=expected
-      ? `${complete?'Migración íntegra · ':'Migración incompleta · '}${verified}/${expected} eventos · family ${verifiedFamily}/${expectedFamily} · selected ${verifiedSelected}/${expectedSelected} · ${verifiedRules}/${expectedRules} avisos`
+      ? `${complete?'Migración íntegra · ':'Migración incompleta · '}${verified}/${expected} eventos · family ${verifiedFamily}/${expectedFamily} (pend. ${familyPending}, fin. ${familyDone}) · selected ${verifiedSelected}/${expectedSelected} (pend. ${selectedPending}, fin. ${selectedDone}) · ${verifiedRules}/${expectedRules} avisos`
       : 'Todavía no hay una instantánea de Nexo Familia auditada.';
     const missing=Array.isArray(familyStats.missingEvents)?familyStats.missingEvents:[];
     const missingEl=$('#nexoFamiliaMissing');
