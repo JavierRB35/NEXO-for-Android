@@ -122,6 +122,20 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
+        <service
+            android:name=".communications.NexoNotificationListener"
+            android:label="Nexo Inbox"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".communications.InboxNotificationReceiver"
+            android:exported="false" />
+
         <provider
             android:name=".documents.DocumentProvider"
             android:authorities="com.jruiz.nexo.documents"
