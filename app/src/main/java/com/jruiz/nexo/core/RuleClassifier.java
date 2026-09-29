@@ -19,7 +19,7 @@ public final class RuleClassifier {
     public static final class Result {
         public String title = "Nota rápida";
         public String type = "note";
-        public String category = "Otros";
+        public String category = "Otro";
         public String subcategory = "";
         public String tags = "";
         public long dueAt = 0L;
@@ -63,29 +63,29 @@ public final class RuleClassifier {
 
         boolean medicationLike = MedicationParser.looksLikeMedication(text);
         if (medicationLike) {
-            r.category = "Medicamentos"; r.type = "medication"; r.confidence = .94; r.reason = "Detectada pauta de medicamento · requiere confirmación";
+            r.category = "Salud / Médico"; r.type = "medication"; r.confidence = .94; r.reason = "Detectada pauta de medicamento · requiere confirmación";
         } else if (containsAny(n, "itv", "seguro", "neumatic", "cambio de aceite", "aceite motor", "revision coche", "revision del coche", "revisar el coche", "matricula", "repost", "taller")) {
-            r.category = "Coche"; r.confidence = .92; r.reason = "Detectado contenido del coche";
+            r.category = "Vehículos / ITV"; r.confidence = .92; r.reason = "Detectado contenido del coche";
         } else if (containsAny(n, "restaurante", "cenar", "comer en ", "bar ", "cafeteria")) {
-            r.category = "Restaurantes"; r.type = "restaurant"; r.confidence = .88; r.reason = "Detectado restaurante";
+            r.category = "Ocio / Social"; r.type = "restaurant"; r.confidence = .88; r.reason = "Detectado restaurante";
         } else if (containsAny(n, "hotel", "vuelo", "reserva", "viaje", "aeropuerto", "ryanair", "booking")) {
-            r.category = "Viajes"; r.confidence = .87; r.reason = "Detectado viaje o reserva";
+            r.category = "Viaje"; r.confidence = .87; r.reason = "Detectado viaje o reserva";
         } else if (containsAny(n, "factura", "manual", "contrato", "garantia", "pdf", "documento")) {
-            r.category = "Documentos"; r.type = "document"; r.confidence = .87; r.reason = "Detectado documento";
+            r.category = "Trámites"; r.type = "document"; r.confidence = .87; r.reason = "Detectado documento";
         } else if (containsAny(n, "comprar", "compra", "supermercado", "mercadona", "carrefour")) {
             r.category = "Compras"; r.confidence = .90; r.reason = "Detectada compra";
         } else if (containsAny(n, "cumpleanos", "cumple de ", "birthday")) {
             r.category = "Cumpleaños"; r.type = "event"; r.recurrence = RecurrenceEngine.ANNUAL; r.confidence = .93; r.reason = "Detectado cumpleaños · periodicidad anual";
         } else if (containsAny(n, "medico", "hospital", "salud", "farmacia", "medicacion", "dentista", "cardiologo", "cardiologia", "traumatologo", "oftalmologo", "analitica", "centro de salud", "ambulatorio", "pet-tac", "pet tac", "medicina nuclear", "radiodiagnostico", "tarjeta aseguradora")) {
-            r.category = "Salud"; r.confidence = .96; r.reason = "Detectado contenido de salud";
+            r.category = "Salud / Médico"; r.confidence = .96; r.reason = "Detectado contenido de salud";
         } else if (containsAny(n, "hipoteca", "banco", "pago", "pagar", "recibo", "finanza", "ingreso", "impuesto")) {
-            r.category = "Finanzas"; r.confidence = .80; r.reason = "Detectado contenido financiero";
+            r.category = "Trámites"; r.confidence = .80; r.reason = "Detectado contenido financiero";
         } else if (containsAny(n, "casa", "hogar", "caldera", "aire acondicionado", "frigorifico", "lavadora")) {
             r.category = "Casa"; r.confidence = .78; r.reason = "Detectado contenido del hogar";
         } else if (containsAny(n, "idea", "se me ocurre", "podria hacer")) {
-            r.category = "Ideas"; r.confidence = .82; r.reason = "Detectada idea";
+            r.category = "Otro"; r.confidence = .82; r.reason = "Detectada idea";
         } else if (containsAny(n, "maps.app", "google.com/maps", "goo.gl/maps")) {
-            r.category = "Lugares"; r.type = "place"; r.confidence = .90; r.reason = "Detectado enlace de mapas";
+            r.category = "Ocio / Social"; r.type = "place"; r.confidence = .90; r.reason = "Detectado enlace de mapas";
         }
 
         boolean ideaExpression = n.startsWith("idea ") || n.startsWith("se me ocurre") || n.startsWith("podria hacer");
@@ -103,11 +103,11 @@ public final class RuleClassifier {
             r.type = "event"; r.confidence = Math.max(r.confidence, .84); r.reason = "Detectada cita o evento";
         }
         if (taskVerb && !eventLike && !medicationLike) {
-            r.type = "task"; if (r.category.equals("Otros")) r.category = "Tareas";
+            r.type = "task"; if (r.category.equals("Otro")) r.category = "Tarea / Recado";
             r.confidence = Math.max(r.confidence, .84); r.reason = "Detectada acción pendiente";
         }
         if ((reminderVerb || explicitSpokenReminder) && !medicationLike) {
-            r.type = "reminder"; if (r.category.equals("Otros") || r.category.equals("Tareas")) r.category = "Recordatorios";
+            r.type = "reminder"; if (r.category.equals("Otro") || r.category.equals("Tarea / Recado")) r.category = "Recordatorio";
             r.reminderRequested = true; r.confidence = Math.max(r.confidence, .90); r.reason = "Detectada petición de recordatorio";
         }
         if (expiry && !medicationLike) {
