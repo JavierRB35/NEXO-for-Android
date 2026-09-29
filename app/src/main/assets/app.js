@@ -482,6 +482,7 @@ function renderJournalPrompt(forceNew=false){
   const j=parseNative(NexoNative.getJournalDailyPick(day,!!forceNew),{});
   state.journalPick=j&&j.id?j:null;
   const box=$('#journalPrompt');
+  if(!box)return;
   if(!state.journalPick){box.classList.add('hidden');return;}
   const text=journalPromptText(state.journalPick);
   if(!text){box.classList.add('hidden');return;}
@@ -851,6 +852,7 @@ function renderRecordingsPanel(){
 }
 
 function renderTodaySummary(){
+  if(!$('#todaySummary'))return;
   const all=state.todaySummaryLines||[],shown=state.todaySummaryExpanded?all:all.slice(0,3);
   $('#todaySummary').innerHTML=shown.map(x=>`<div class="summary-item ${x.kind}"><span class="summary-dot"></span><span>${esc(x.text)}</span></div>`).join('');
   const more=$('#todaySummaryMore');
@@ -1181,24 +1183,24 @@ function commitCapture() {
 
 function runSearch(query=''){
   const q=(query||$('#searchInput').value).trim(),filter=$('#searchFilter').value||'all';state.searchFilter=filter;$('#searchInput').value=q;
-  if(!q&&filter!=='recordings'){$('#searchResults').innerHTML='';$('#searchStatus').textContent='Escribe una palabra para buscar en tus contenidos.';return;}
-  let results=q?parseNative(NexoNative.search(q),[]):[],meds=q?parseNative(NexoNative.getMedications(q,'all'),[]):[],journal=q?parseNative(NexoNative.getJournalEntries(q,'',false),[]):[];
-  const tokens=normVoiceText(q).split(' ').filter(Boolean);
-  let recordings=parseNative(NexoNative.getRecordings(),[]).filter(r=>tokens.every(t=>normVoiceText(r.title||'').includes(t)));
+  if(!q){$('#searchResults').innerHTML='';$('#searchStatus').textContent='Escribe una palabra para buscar en tus contenidos.';return;}
+  buildFamilyStyleSearchIndex();
+  let results=familyStyleSearch(q,!!state.searchHistorical);
   if(filter!=='all'){
-    results=results.filter(r=>filter==='lists'?r.resultKind==='list':filter==='appointments'?isAppointmentType(r.type):filter==='places'?['place','restaurant'].includes(r.type):filter==='document'?(r.type==='document'||!!r.attachmentPath):r.type===filter);
-    if(filter!=='medications')meds=[];if(filter!=='journal')journal=[];if(filter!=='recordings')recordings=[];
+    const accept=x=>filter==='lists'?x.kind==='list':
+      filter==='appointments'?(x.kind==='item'&&isAppointmentType(x.raw?.type)):
+      filter==='places'?(x.kind==='item'&&isPlaceType(x.raw?.type)):
+      filter==='document'?(x.kind==='item'&&x.raw?.type==='document'):
+      filter==='medications'?x.kind==='medication':
+      filter==='recordings'?x.kind==='recording':
+      filter==='journal'?x.kind==='journal':
+      filter==='note'?(x.kind==='item'&&x.raw?.type==='note'):true;
+    results=results.filter(accept);
   }
-  const total=results.length+meds.length+journal.length+recordings.length;
-  $('#searchStatus').textContent=total?`${total} resultado${total===1?'':'s'}`:'No hay resultados con esta búsqueda y este filtro.';
-  let html='';
-  if(results.length)html+=`<div class="search-section-label">Contenido</div>${results.map(r=>r.resultKind==='list'?listSearchCard(r):itemCard(r)).join('')}`;
-  if(meds.length)html+=`<div class="search-section-label">Medicación</div>${meds.map(medicationCard).join('')}`;
-  if(journal.length)html+=`<div class="search-section-label">Cuaderno</div>${journal.map(journalCard).join('')}`;
-  if(recordings.length)html+=`<div class="search-section-label">Grabaciones</div>${recordings.map(recordingCard).join('')}`;
-  $('#searchResults').innerHTML=html||'<div class="empty-state">Prueba otra palabra o selecciona Todo Nexo.</div>';
-  const root=$('#searchResults');bindItemButtons(root);bindMedicationButtons(root);bindJournalButtons(root);bindRecordingButtons(root);
-  root.querySelectorAll('[data-open-list]').forEach(b=>b.addEventListener('click',()=>openList(Number(b.dataset.openList))));
+  state.homeSearchResults=results;
+  $('#searchStatus').textContent=results.length?results.length+' resultado'+(results.length===1?'':'s'):'No hay resultados con esta búsqueda y este filtro.';
+  $('#searchResults').innerHTML=results.length?results.map((x,i)=>familySearchCard(x,i,false)).join(''):'<div class="empty-state">Prueba otra palabra o selecciona Todo Nexo.</div>';
+  $$('[data-family-search-home="0"]').forEach(b=>b.addEventListener('click',()=>openFamilySearchResult(state.homeSearchResults[Number(b.dataset.familySearchResult)])));
 }
 
 function listSearchCard(l){return `<div class="item-card"><div class="item-title">${esc(l.title)}</div><div class="item-meta"><span class="pill">Lista</span><span class="meta-tag">${esc(l.category||'General')}</span></div><div class="item-actions"><button class="mini-button" data-open-list="${l.id}">Abrir lista</button></div></div>`;}
@@ -1354,6 +1356,7 @@ function renderMedicationMessageSettings(){
 
 function openPanel(panel,options={}){
   if(panel==='tasks'||panel==='reminders')panel='appointments';
+  if(panel==='appointments'&&!options.keepWindow)state.appointmentsWindow='';
   stopRecordingPolling();
   if(panel==='calendar'){navigate('calendar',options);return;}
   if(panel==='journal'||panel==='quotes')state.journalFilter='all';
@@ -1518,7 +1521,17 @@ function renderBackupPanel(){
 
 
 function renderAppointmentsPanel(){
-  const rows=parseNative(NexoNative.getAppointments(),[]),today=new Date();today.setHours(0,0,0,0);
+  const today=new Date();today.setHours(0,0,0,0);
+  if(state.appointmentsWindow==='week'){
+    const end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7).getTime()-1;
+    const rows=parseNative(NexoNative.getCalendar(today.getTime(),end),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='done'&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted').sort((a,b)=>(a.dueAt||0)-(b.dueAt||0));
+    $('#panelTitle').textContent='Próximos 7 días';$('#panelSubtitle').textContent='Hoy y los 6 días siguientes';
+    $('#panelAction').innerHTML='<button id="weekShowAll" class="secondary-button" type="button">Agenda completa</button>';
+    $('#weekShowAll').addEventListener('click',()=>{state.appointmentsWindow='';renderAppointmentsPanel();});
+    $('#panelContent').innerHTML=rows.length?'<div class="stack">'+rows.map(i=>agendaCard(i,true)).join('')+'</div>':'<div class="empty-state">No hay eventos en los próximos 7 días.</div>';
+    bindItemButtons($('#panelContent'));return;
+  }
+  const rows=parseNative(NexoNative.getAppointments(),[]);
   const items=rows.map(original=>{
     if(!original.recurrence||original.recurrence==='none')return original;
     const next=Number(NexoNative.getNextOccurrence(original.id,today.getTime()-1));
@@ -1527,16 +1540,11 @@ function renderAppointmentsPanel(){
     return occurrence.id?occurrence:{...original,occurrenceAt:next,dueAt:next,recurring:true};
   });
   const done=i=>i.status==='done'||i.occurrenceStatus==='done',cancelled=i=>i.status==='cancelled',closed=i=>done(i)||cancelled(i);
-  const filter=state.appointmentsFilter,shown=items.filter(i=>{
-    if(filter==='all')return true;
-    if(filter==='done')return done(i);
-    if(filter==='undated')return !i.dueAt&&!closed(i);
-    return !closed(i);
-  });
+  const filter=state.appointmentsFilter,shown=items.filter(i=>{if(filter==='all')return true;if(filter==='done')return done(i);if(filter==='undated')return !i.dueAt&&!closed(i);return !closed(i);});
   const group=i=>!i.dueAt?2:i.dueAt>=today.getTime()?0:1;
   shown.sort((a,b)=>group(a)-group(b)||(group(a)===1?(b.dueAt||0)-(a.dueAt||0):(a.dueAt||0)-(b.dueAt||0))||(b.createdAt||0)-(a.createdAt||0));
-  $('#panelAction').innerHTML='';
-  $('#panelContent').innerHTML=`<div class="appointment-filters">${[['pending','Pendientes'],['undated','Sin fecha'],['done','Completadas'],['all','Todas']].map(([key,label])=>`<button type="button" class="${key===filter?'active':''}" aria-pressed="${key===filter}" data-appointment-filter="${key}">${label}</button>`).join('')}</div><div id="appointmentList" class="stack">${shown.length?shown.map(i=>agendaCard(i,true)).join(''):'<div class="empty-state">No hay citas en esta vista. Pulsa + Cita para añadir una.</div>'}</div>`;
+  $('#panelTitle').textContent='Agenda';$('#panelSubtitle').textContent='Citas, tareas y compromisos · con fecha o sin ella';$('#panelAction').innerHTML='';
+  $('#panelContent').innerHTML='<div class="appointment-filters">'+[['pending','Pendientes'],['undated','Sin fecha'],['done','Completadas'],['all','Todas']].map(([key,label])=>'<button type="button" class="'+(key===filter?'active':'')+'" aria-pressed="'+(key===filter)+'" data-appointment-filter="'+key+'">'+label+'</button>').join('')+'</div><div id="appointmentList" class="stack">'+(shown.length?shown.map(i=>agendaCard(i,true)).join(''):'<div class="empty-state">No hay citas en esta vista. Pulsa + Cita para añadir una.</div>')+'</div>';
   $$('[data-appointment-filter]').forEach(b=>b.addEventListener('click',()=>{state.appointmentsFilter=b.dataset.appointmentFilter;renderAppointmentsPanel();}));
   bindItemButtons($('#appointmentList'));
 }
@@ -1957,7 +1965,7 @@ window.NexoUI={
   },
   onSharedImportDone(raw){const r=parseNative(raw,{});closeModal();toast(`${r.title||'Contenido'} añadido a Nexo`,'',null,5000);if(r.entity==='list'&&r.id){openPanel('lists');setTimeout(()=>openList(Number(r.id)),80);}else if(r.entity==='journal'&&r.id){const j=parseNative(NexoNative.getJournal(Number(r.id)),{});openPanel(j.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(Number(r.id)),80);}else if(r.entity==='item'&&r.id){refreshCurrent();setTimeout(()=>openItem(Number(r.id)),80);}else refreshCurrent();},
   onSharedImportError(msg){closeModal();toast(msg||'No se pudo importar el contenido.','',null,6000);},
-  onRecordingStateChanged(raw){if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
+  onRecordingStateChanged(raw){if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();if(state.screen==='today')renderToday();},
   onRecordingError(msg){toast(msg||'No se pudo completar la acción de grabación.','',null,5500);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   onRecordingPlaybackStarted(id){state.playingRecordingId=String(id||'');refreshRecordingSurface();setTimeout(startRecordingPlaybackPolling,80);},
   onRecordingPlaybackStopped(id){stopRecordingPlaybackPolling();if(!id||state.playingRecordingId===String(id))state.playingRecordingId='';refreshRecordingSurface();},
@@ -2051,6 +2059,17 @@ function init(){
   setInterpretationStatus('idle','Interpretación local preparada');
   $$('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
+  $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
+  $('#homeTodayCard')?.addEventListener('click',openHomeToday);
+  $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
+  $('#homeInboxPulseCard')?.addEventListener('click',()=>openPanel('inbox'));
+  $('#homeRecordCard')?.addEventListener('click',()=>{
+    const status=parseNative(NexoNative.getRecordingStatus(),{});
+    if(status.active){openPanel('recordings');return;}
+    state.playingRecordingId='';NexoNative.stopRecordingPlayback();NexoNative.startRecording();toast('Iniciando grabación…');openPanel('recordings');
+  });
+  $('#homeAgendaLink')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});
+  $('#searchHistorical')?.addEventListener('change',e=>{state.searchHistorical=!!e.target.checked;if($('#searchInput').value.trim())runSearch();});
   $('#globalVoiceFab').addEventListener('click',runFloatingVoice);
   $('#calendarAddFab').addEventListener('click',()=>prepareCaptureForDate(state.calendarSelected||isoDateLocal(new Date())));
   $('#captureBackBtn').addEventListener('click',()=>navigateBack());
@@ -2101,10 +2120,10 @@ function init(){
   $('#voiceCaptureBtn')?.addEventListener('click',()=>startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'}));
   $('#saveCaptureBtn').addEventListener('click',saveCapture);$('#clearCaptureBtn').addEventListener('click',()=>clearCapture());$('#chooseFileBtn').addEventListener('click',()=>NexoNative.chooseFile());
   $('#searchBtn').addEventListener('click',()=>runSearch());$('#searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});$$('.query-chips button').forEach(b=>b.addEventListener('click',()=>runSearch(b.textContent)));
-  $('#todaySummaryMore').addEventListener('click',()=>{state.todaySummaryExpanded=!state.todaySummaryExpanded;renderTodaySummary();});
+  $('#todaySummaryMore')?.addEventListener('click',()=>{state.todaySummaryExpanded=!state.todaySummaryExpanded;renderTodaySummary();});
 
-  $('#journalPromptOpen').addEventListener('click',()=>{if(state.journalPick?.id)openJournal(Number(state.journalPick.id));});
-  $('#journalPromptFavorite').addEventListener('click',e=>{
+  $('#journalPromptOpen')?.addEventListener('click',()=>{if(state.journalPick?.id)openJournal(Number(state.journalPick.id));});
+  $('#journalPromptFavorite')?.addEventListener('click',e=>{
     e.stopPropagation();
     if(!state.journalPick?.id)return;
     const favorite=!state.journalPick.favorite;
@@ -2115,7 +2134,7 @@ function init(){
     toast(favorite?'Añadido a favoritos':'Quitado de favoritos');
     if(state.screen==='panel'&&(state.lastPanel==='journal'||state.lastPanel==='quotes'))renderJournalPanel();
   });
-  $('#journalPromptNext').addEventListener('click',e=>{e.stopPropagation();renderJournalPrompt(true);});
+  $('#journalPromptNext')?.addEventListener('click',e=>{e.stopPropagation();renderJournalPrompt(true);});
   $$('[data-display-mode]').forEach(b=>b.addEventListener('click',()=>applyDisplayMode(b.dataset.displayMode,true)));
 
   $('#calendarPrev').addEventListener('click',()=>changeCalendarMonth(-1));
