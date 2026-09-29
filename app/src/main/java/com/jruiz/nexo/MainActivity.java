@@ -424,6 +424,7 @@ public class MainActivity extends Activity {
                 InputHubPrefs.setSmsEnabled(this, false);
                 InputHubPrefs.setSmsBaselined(this, false);
                 SmsWatchScheduler.cancel(this);
+                CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
                 jsCallback("onInputHubChanged", "sms");
                 return;
             }
@@ -458,6 +459,7 @@ public class MainActivity extends Activity {
             InputHubPrefs.setGmailEnabled(this, false);
             InputHubPrefs.setGmailBaselined(this, false);
             GmailWatchScheduler.cancel(this);
+            CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
             jsCallback("onInputHubChanged", "gmail");
             return;
         }
@@ -908,6 +910,7 @@ public class MainActivity extends Activity {
                 }, "nexo-gmail-baseline").start();
             } catch (Exception e) {
                 InputHubPrefs.setGmailEnabled(this, false);
+                CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
                 InputHubPrefs.setGmailError(this, "No se pudo autorizar Gmail. Revisa la configuración OAuth de Nexo.");
                 jsCallback("onInputHubChanged", "gmail");
             }
@@ -1259,6 +1262,7 @@ public class MainActivity extends Activity {
             } else {
                 InputHubPrefs.setSmsEnabled(this, false);
                 SmsWatchScheduler.cancel(this);
+                CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
                 jsCallback("onInputHubChanged", "sms");
                 Toast.makeText(this, "Nexo necesita permiso de SMS para leer directamente los mensajes recibidos.", Toast.LENGTH_LONG).show();
             }
