@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.5.0-beta7 · versionCode 62 · Agenda, Frases y Cuaderno separados
+
+- El módulo principal antes llamado "Citas" pasa a llamarse "Agenda".
+- Se añade un acceso principal "Frases" para citas textuales, autores y referencias.
+- "Cuaderno" queda orientado a pensamientos y reflexiones.
+- Frases y Cuaderno usan vistas separadas aunque compartan almacenamiento interno.
+- Cada sección conserva búsqueda, favoritas y Releer.
+- El buscador general denomina "Agenda" a los compromisos y "Cuaderno / Frases" al contenido textual.
+- No se migran ni duplican datos existentes.
+
+
 ## 3.5.0-beta6 · versionCode 61 · Citas/frases simplificadas
 
 - Citas del Cuaderno separadas claramente de las citas de agenda.
