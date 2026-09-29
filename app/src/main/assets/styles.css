@@ -345,6 +345,12 @@ main{max-width:760px;margin:auto}.screen{padding:20px 14px 24px}.screen[data-scr
 .nav-item.active{color:var(--blue);background:var(--blue-soft)}.nav-item small{font-size:.75rem;font-weight:600;letter-spacing:0}.nav-item>.ui-icon{width:22px;height:22px}
 .settings-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px;display:grid;gap:18px}
 .settings-card label{display:grid;gap:8px;font-size:.9375rem}.settings-card h2{font-size:1.1rem;margin:0}.settings-card p{margin:0;font-size:.875rem}
+.toggle-row{grid-template-columns:minmax(0,1fr) auto!important;align-items:center;gap:12px!important;padding:10px 0;border-top:1px solid var(--line)}
+.toggle-row:first-child{border-top:0}.toggle-row>span{display:grid;gap:3px}.toggle-row small{color:var(--muted);font-size:.8125rem;line-height:1.35}
+.toggle-row input[type="checkbox"]{width:24px;height:24px;accent-color:var(--blue)}
+.communication-apps{display:grid;gap:0}.notification-access-status{display:grid;gap:3px;padding:12px;border-radius:12px;background:#f6f8fb;border:1px solid var(--line);font-size:.875rem}
+.notification-access-status span{color:var(--muted);line-height:1.4}.notification-access-status.enabled{background:#eefaf1;border-color:#cfe9d6}.notification-access-status.enabled strong{color:#166534}
+.notification-access-status.disabled{background:#fff7ed;border-color:#fed7aa}.notification-access-status.disabled strong{color:#9a3412}
 .display-mode-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}.display-mode-row button{min-height:48px;padding:9px 6px;border:1px solid var(--line);border-radius:12px;font-size:.875rem;background:#fff;color:var(--text)}
 .display-mode-row button.active{background:var(--blue);color:#fff;border-color:var(--blue)}.version-info{font-size:.875rem;color:var(--muted);text-align:center;margin:22px 0}
 .menu-row{min-height:72px;padding:14px;border-radius:16px}.menu-row strong{font-size:1rem}.menu-row small{font-size:.8125rem}.menu-row>span{gap:12px}.menu-row svg{color:var(--blue)}
