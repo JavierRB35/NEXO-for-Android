@@ -1405,7 +1405,13 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String saveCapture(String json) {
             try {
-                JSONObject result = service.saveCapture(new JSONObject(json));
+                JSONObject input = new JSONObject(json);
+                JSONObject result = service.saveCapture(input);
+                if (result.optBoolean("ok", false)) {
+                    long captureId = input.optLong("inboxCaptureId", 0);
+                    long createdId = result.optLong("id", 0);
+                    if (captureId > 0 && createdId > 0) db.markInboxCaptureConverted(captureId, "item", createdId);
+                }
                 if (result.has("reminderId") || (result.optJSONArray("reminderIds") != null && result.optJSONArray("reminderIds").length()>0)) ensureNotificationPermission();
                 return result.toString();
             } catch (Exception e) { return "{\"ok\":false,\"error\":\"Datos no válidos\"}"; }
