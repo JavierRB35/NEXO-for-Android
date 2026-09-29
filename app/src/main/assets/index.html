@@ -224,6 +224,12 @@
 <label class="toggle-row"><span><strong>Captura automática</strong><small>Solo se guardan candidatos que parezcan accionables.</small></span><input id="communicationCaptureEnabled" type="checkbox"></label>
 <div id="communicationApps" class="communication-apps"></div>
 <p class="small muted">WhatsApp, Gmail, Telegram y SMS. Nexo no lee conversaciones completas: solo el contenido que Android muestra en las notificaciones.</p>
+<div class="calendar-capture-section">
+  <div class="search-section-label">Calendario Android</div>
+  <label class="toggle-row"><span><strong>Detectar eventos nuevos de Calendar</strong><small>Observa los eventos almacenados en el calendario del teléfono y los lleva a Inbox para revisión.</small></span><input id="calendarCaptureEnabled" type="checkbox"></label>
+  <div id="calendarAccessStatus" class="small muted"></div>
+  <p class="small muted">Al activarlo por primera vez, Nexo registra los eventos existentes como referencia y no los importa. Después detecta altas y cambios.</p>
+</div>
 </div>
 <div class="settings-card medication-message-settings">
 <h2>Mensajes de medicación</h2>
