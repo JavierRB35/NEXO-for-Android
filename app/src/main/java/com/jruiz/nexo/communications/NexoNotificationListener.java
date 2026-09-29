@@ -6,6 +6,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.ComponentName;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,6 +26,23 @@ import java.security.MessageDigest;
 import java.util.List;
 
 public class NexoNotificationListener extends NotificationListenerService {
+    @Override public void onListenerConnected() {
+        super.onListenerConnected();
+        try {
+            StatusBarNotification[] active = getActiveNotifications();
+            if (active != null) {
+                for (StatusBarNotification sbn : active) onNotificationPosted(sbn);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    @Override public void onListenerDisconnected() {
+        super.onListenerDisconnected();
+        try {
+            requestRebind(new ComponentName(this, NexoNotificationListener.class));
+        } catch (Exception ignored) {}
+    }
+
     public static final String ACTION_REVIEW = "com.jruiz.nexo.REVIEW_INBOX_CAPTURE";
     private static final String CHANNEL_ID = "nexo_inbox_candidates";
 
