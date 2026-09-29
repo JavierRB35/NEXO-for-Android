@@ -11,7 +11,7 @@ const state = {
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, todaySummaryExpanded:false, todaySummaryLines:[],
-  journalFilter:'all', journalSearch:'', journalPick:null, voiceMode:'capture', journalVoiceBase:'', medicationVoiceBase:'',
+  journalFilter:'all', journalSearch:'', journalPick:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', medicationVoiceBase:'',
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
   placeFilter:'all', placeSearch:'', places:[],
   documentFilter:'all', documentSearch:'', documents:[], documentEditor:null, documentRequest:0,
@@ -217,7 +217,7 @@ function renderJournalPrompt(forceNew=false){
   $('#journalPromptText').textContent=text;
   const sourceEl=$('#journalPromptSource');
   const isBundledSource=String(state.journalPick.source||'').startsWith('seed-journal-v294-');
-  const sourceText=isBundledSource?String(state.journalPick.summary||'').trim():'';
+  const sourceText=(state.journalPick.kind==='quote'||isBundledSource)?String(state.journalPick.summary||'').trim():'';
   if(sourceEl){sourceEl.textContent=sourceText;sourceEl.classList.toggle('hidden',!sourceText);}
   refreshJournalPromptFavorite();
   box.classList.remove('hidden');
@@ -241,45 +241,93 @@ function bindJournalButtons(root=document){
   root.querySelectorAll('[data-open-journal]').forEach(b=>b.addEventListener('click',()=>openJournal(Number(b.dataset.openJournal))));
 }
 
-function startJournalVoice(base=''){
-  startManagedDictation('journal',{base:String(base||'').trim(),title:'DICTAR EN CUADERNO',hint:'Habla con libertad. Pulsa TERMINAR cuando hayas acabado.'});
+function startJournalVoice(base='',kind=''){
+  state.journalVoiceKind=kind==='quote'?'quote':'';
+  startManagedDictation('journal',{
+    base:String(base||'').trim(),
+    title:kind==='quote'?'DICTAR CITA':'DICTAR EN CUADERNO',
+    hint:kind==='quote'?'Di únicamente el texto de la cita. Después podrás poner título y autor o referencia.':'Habla con libertad. Pulsa TERMINAR cuando hayas acabado.'
+  });
 }
 
-function openJournalComposer(prefill=''){
+function openJournalComposer(prefill='',forcedKind=''){
+  const quoteMode=forcedKind==='quote';
   state.voiceMode='journal';
+  state.journalVoiceKind=quoteMode?'quote':'';
   const initial=parseNative(NexoNative.synthesizeJournal(prefill||''),{});
-  openModal('Nuevo en Cuaderno',`<div class="journal-compose modal-form"><div class="modal-actions" style="margin-top:0"><button id="journalVoiceBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Hablar</button></div><label>Escribe o pega tu pensamiento, reflexión o frase<textarea id="journalBody" rows="7" placeholder="Escribe con libertad. Nexo lo ordenará localmente.">${esc(prefill||'')}</textarea></label><div id="journalAutoPreview" class="journal-preview ${prefill?'':'hidden'}"><span class="small muted">NEXO PROPONE</span><strong id="journalAutoTitle">${esc(initial.title||'')}</strong><div id="journalAutoSummary" class="journal-preview-summary small">${esc(initial.summary||'')}</div><div id="journalAutoTags" class="small muted">${esc(initial.tags||'')}</div></div><div class="form-grid"><label>Tipo<select id="journalKind"><option value="thought">Pensamiento</option><option value="quote">Cita / frase</option></select></label><label>Favorito<span class="switch-row"><input id="journalFavorite" type="checkbox"><span>Marcar como favorito</span></span></label><label class="form-span-2">Título<input id="journalTitle" type="text" value="${escAttr(initial.title||'')}"></label><label class="form-span-2">Resumen<textarea id="journalSummary" rows="3">${esc(initial.summary||'')}</textarea></label><label class="form-span-2">Etiquetas<input id="journalTags" type="text" value="${escAttr(initial.tags||'')}" placeholder="Vida · Familia · Tiempo"></label></div><div class="small muted">La fecha y la hora se guardan automáticamente. Esta entrada no aparecerá en el calendario.</div></div><div class="modal-actions"><button id="journalSave" class="primary-button">Guardar en Cuaderno</button></div>`);
+
+  if(quoteMode){
+    openModal('Nueva cita',`<div class="journal-compose modal-form">
+      <div class="modal-actions" style="margin-top:0"><button id="journalVoiceBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Dictar cita</button></div>
+      <label>Texto de la cita<textarea id="journalBody" rows="7" placeholder="Escribe o dicta la frase que quieres guardar.">${esc(prefill||'')}</textarea></label>
+      <label>Título<input id="journalTitle" type="text" value="${escAttr(initial.title||'')}" placeholder="Un título breve para identificarla"></label>
+      <label>Autor / referencia<input id="journalSummary" type="text" value="" placeholder="Autor, filósofo, canción, libro, película…"></label>
+      <label>Favorito<span class="switch-row"><input id="journalFavorite" type="checkbox"><span>Marcar como favorita</span></span></label>
+      <div class="small muted">Las citas no llevan fecha, hora, recordatorios ni recurrencia. Podrán aparecer en Inicio junto con el resto de frases del Cuaderno.</div>
+    </div><div class="modal-actions"><button id="journalSave" class="primary-button">Guardar cita</button></div>`);
+    $('#journalVoiceBtn').addEventListener('click',()=>{const base=$('#journalBody').value.trim();closeModal();startJournalVoice(base,'quote');});
+    $('#journalSave').addEventListener('click',()=>{
+      const body=$('#journalBody').value.trim(),title=$('#journalTitle').value.trim(),reference=$('#journalSummary').value.trim();
+      if(!body){toast('Escribe o dicta el texto de la cita');return;}
+      if(!title){toast('Pon un título a la cita');$('#journalTitle').focus();return;}
+      const id=NexoNative.saveJournal(JSON.stringify({body,kind:'quote',title,summary:reference,tags:'',favorite:$('#journalFavorite').checked,source:'manual'}));
+      if(Number(id)>0){closeModal();toast('Cita guardada');if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
+      else toast('No se pudo guardar la cita');
+    });
+    setTimeout(()=>$('#journalBody')?.focus(),80);
+    return;
+  }
+
+  openModal('Nuevo en Cuaderno',`<div class="journal-compose modal-form"><div class="modal-actions" style="margin-top:0"><button id="journalVoiceBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Hablar</button></div><label>Escribe o pega tu pensamiento o reflexión<textarea id="journalBody" rows="7" placeholder="Escribe con libertad. Nexo lo ordenará localmente.">${esc(prefill||'')}</textarea></label><div id="journalAutoPreview" class="journal-preview ${prefill?'':'hidden'}"><span class="small muted">NEXO PROPONE</span><strong id="journalAutoTitle">${esc(initial.title||'')}</strong><div id="journalAutoSummary" class="journal-preview-summary small">${esc(initial.summary||'')}</div><div id="journalAutoTags" class="small muted">${esc(initial.tags||'')}</div></div><div class="form-grid"><label>Tipo<select id="journalKind"><option value="thought">Pensamiento</option><option value="quote">Cita / frase</option></select></label><label>Favorito<span class="switch-row"><input id="journalFavorite" type="checkbox"><span>Marcar como favorito</span></span></label><label class="form-span-2">Título<input id="journalTitle" type="text" value="${escAttr(initial.title||'')}"></label><label class="form-span-2">Resumen<textarea id="journalSummary" rows="3">${esc(initial.summary||'')}</textarea></label><label class="form-span-2">Etiquetas<input id="journalTags" type="text" value="${escAttr(initial.tags||'')}" placeholder="Vida · Familia · Tiempo"></label></div><div class="small muted">La fecha y la hora de creación se guardan solo como metadato interno. Esta entrada no aparecerá en el calendario.</div></div><div class="modal-actions"><button id="journalSave" class="primary-button">Guardar en Cuaderno</button></div>`);
   if(initial.kind)$('#journalKind').value=initial.kind;
   let manual=false,timer=null;
   ['journalTitle','journalSummary','journalTags','journalKind'].forEach(id=>$('#'+id).addEventListener('input',()=>manual=true));
   const analyze=()=>{const body=$('#journalBody').value.trim();if(!body){$('#journalAutoPreview').classList.add('hidden');return;}const a=parseNative(NexoNative.synthesizeJournal(body),{});$('#journalAutoPreview').classList.remove('hidden');$('#journalAutoTitle').textContent=a.title||'';$('#journalAutoSummary').textContent=a.summary||'';$('#journalAutoTags').textContent=a.tags||'';if(!manual){$('#journalKind').value=a.kind||'thought';$('#journalTitle').value=a.title||'';$('#journalSummary').value=a.summary||'';$('#journalTags').value=a.tags||'';}};
   $('#journalBody').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(analyze,250);});
-  $('#journalVoiceBtn').addEventListener('click',()=>{const base=$('#journalBody').value.trim();closeModal();startJournalVoice(base);});
-  $('#journalSave').addEventListener('click',()=>{const body=$('#journalBody').value.trim();if(!body){toast('Escribe o dicta algo antes de guardar');return;}if(!$('#journalTitle').value.trim())analyze();const id=NexoNative.saveJournal(JSON.stringify({body,kind:$('#journalKind').value,title:$('#journalTitle').value.trim(),summary:$('#journalSummary').value.trim(),tags:$('#journalTags').value.trim(),favorite:$('#journalFavorite').checked,source:'manual'}));if(Number(id)>0){closeModal();toast('Guardado en Cuaderno');if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}else toast('No se pudo guardar en Cuaderno');});
+  $('#journalVoiceBtn').addEventListener('click',()=>{const base=$('#journalBody').value.trim();closeModal();startJournalVoice(base,'');});
+  $('#journalSave').addEventListener('click',()=>{
+    const body=$('#journalBody').value.trim();if(!body){toast('Escribe o dicta algo antes de guardar');return;}
+    if($('#journalKind').value==='quote'){closeModal();openJournalComposer(body,'quote');return;}
+    if(!$('#journalTitle').value.trim())analyze();
+    const id=NexoNative.saveJournal(JSON.stringify({body,kind:'thought',title:$('#journalTitle').value.trim(),summary:$('#journalSummary').value.trim(),tags:$('#journalTags').value.trim(),favorite:$('#journalFavorite').checked,source:'manual'}));
+    if(Number(id)>0){closeModal();toast('Guardado en Cuaderno');if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}else toast('No se pudo guardar en Cuaderno');
+  });
   setTimeout(()=>$('#journalBody')?.focus(),80);
 }
 
 function openJournal(id){
   const j=parseNative(NexoNative.getJournal(id),{});if(!j.id)return;
+  const isQuote=j.kind==='quote';
   const firstTag=String(j.tags||'').split('·').map(x=>x.trim()).filter(Boolean)[0]||'';
-  const related=firstTag?parseNative(NexoNative.getJournalEntries(firstTag,'',false),[]).filter(x=>Number(x.id)!==Number(j.id)).slice(0,3):[];
-  openModal(j.kind==='quote'?'Cita / frase':'Pensamiento',`<div class="modal-form"><div class="journal-date-badge">${esc(fmtDate(j.createdAt,true))}</div><label>Título<input id="journalEditTitle" type="text" value="${escAttr(j.title||'')}"></label><label>Resumen<textarea id="journalEditSummary" rows="3">${esc(j.summary||'')}</textarea></label><label>Texto original<textarea id="journalEditBody" class="journal-original" rows="8">${esc(j.body||'')}</textarea></label><div class="form-grid"><label>Tipo<select id="journalEditKind"><option value="thought">Pensamiento</option><option value="quote">Cita / frase</option></select></label><label>Favorito<span class="switch-row"><input id="journalEditFavorite" type="checkbox" ${j.favorite?'checked':''}><span>Favorito</span></span></label><label class="form-span-2">Etiquetas<input id="journalEditTags" type="text" value="${escAttr(j.tags||'')}"></label></div>${related.length?`<div class="details-box"><strong class="small">TAMBIÉN ESCRIBISTE SOBRE ESTO</strong><div class="stack compact" style="margin-top:8px">${related.map(x=>`<button class="mini-button" data-related-journal="${x.id}" style="text-align:left">${esc(x.title)}</button>`).join('')}</div></div>`:''}</div><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalUpdate" class="primary-button">Guardar cambios</button></div>`);
-  $('#journalEditKind').value=j.kind||'thought';
-  $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
-  $$('[data-related-journal]').forEach(b=>b.addEventListener('click',()=>{const rid=Number(b.dataset.relatedJournal);closeModal();setTimeout(()=>openJournal(rid),80);}));
-  $('#journalUpdate').addEventListener('click',()=>{const ok=NexoNative.updateJournal(JSON.stringify({id:j.id,title:$('#journalEditTitle').value.trim(),summary:$('#journalEditSummary').value.trim(),body:$('#journalEditBody').value.trim(),kind:$('#journalEditKind').value,tags:$('#journalEditTags').value.trim(),favorite:$('#journalEditFavorite').checked}));if(ok){closeModal();toast('Cuaderno actualizado');refreshCurrent();renderJournalPrompt(false);}else toast('No se pudo guardar');});
-  $('#journalDelete').addEventListener('click',()=>{closeModal();$('#confirmTitle').textContent='Eliminar del Cuaderno';$('#confirmText').textContent='Se eliminará esta entrada. Esta acción no afecta al calendario.';$('#confirmModal').classList.remove('hidden');state.confirmAction=()=>{const ok=NexoNative.deleteJournal(j.id);$('#confirmModal').classList.add('hidden');toast(ok?'Entrada eliminada':'No se pudo eliminar');refreshCurrent();renderJournalPrompt(false);};});
+  const related=!isQuote&&firstTag?parseNative(NexoNative.getJournalEntries(firstTag,'',false),[]).filter(x=>Number(x.id)!==Number(j.id)).slice(0,3):[];
+  if(isQuote){
+    openModal('Cita / frase',`<div class="modal-form"><div class="journal-date-badge">Guardada ${esc(fmtDate(j.createdAt,true))}</div><label>Título<input id="journalEditTitle" type="text" value="${escAttr(j.title||'')}"></label><label>Autor / referencia<input id="journalEditSummary" type="text" value="${escAttr(j.summary||'')}" placeholder="Autor, canción, libro, filósofo…"></label><label>Texto de la cita<textarea id="journalEditBody" class="journal-original" rows="8">${esc(j.body||'')}</textarea></label><label>Favorito<span class="switch-row"><input id="journalEditFavorite" type="checkbox" ${j.favorite?'checked':''}><span>Favorita</span></span></label></div><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalUpdate" class="primary-button">Guardar cambios</button></div>`);
+    $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
+    $('#journalUpdate').addEventListener('click',()=>{
+      const body=$('#journalEditBody').value.trim(),title=$('#journalEditTitle').value.trim();
+      if(!body){toast('La cita necesita texto');return;}if(!title){toast('Pon un título a la cita');return;}
+      const ok=NexoNative.updateJournal(JSON.stringify({id:j.id,title,summary:$('#journalEditSummary').value.trim(),body,kind:'quote',tags:'',favorite:$('#journalEditFavorite').checked}));
+      if(ok){closeModal();toast('Cita actualizada');refreshCurrent();renderJournalPrompt(false);}else toast('No se pudo guardar');
+    });
+  }else{
+    openModal('Pensamiento',`<div class="modal-form"><div class="journal-date-badge">${esc(fmtDate(j.createdAt,true))}</div><label>Título<input id="journalEditTitle" type="text" value="${escAttr(j.title||'')}"></label><label>Resumen<textarea id="journalEditSummary" rows="3">${esc(j.summary||'')}</textarea></label><label>Texto original<textarea id="journalEditBody" class="journal-original" rows="8">${esc(j.body||'')}</textarea></label><div class="form-grid"><label>Favorito<span class="switch-row"><input id="journalEditFavorite" type="checkbox" ${j.favorite?'checked':''}><span>Favorito</span></span></label><label class="form-span-2">Etiquetas<input id="journalEditTags" type="text" value="${escAttr(j.tags||'')}"></label></div>${related.length?`<div class="details-box"><strong class="small">TAMBIÉN ESCRIBISTE SOBRE ESTO</strong><div class="stack compact" style="margin-top:8px">${related.map(x=>`<button class="mini-button" data-related-journal="${x.id}" style="text-align:left">${esc(x.title)}</button>`).join('')}</div></div>`:''}</div><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalUpdate" class="primary-button">Guardar cambios</button></div>`);
+    $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
+    $$('[data-related-journal]').forEach(b=>b.addEventListener('click',()=>{const rid=Number(b.dataset.relatedJournal);closeModal();setTimeout(()=>openJournal(rid),80);}));
+    $('#journalUpdate').addEventListener('click',()=>{const ok=NexoNative.updateJournal(JSON.stringify({id:j.id,title:$('#journalEditTitle').value.trim(),summary:$('#journalEditSummary').value.trim(),body:$('#journalEditBody').value.trim(),kind:'thought',tags:$('#journalEditTags').value.trim(),favorite:$('#journalEditFavorite').checked}));if(ok){closeModal();toast('Cuaderno actualizado');refreshCurrent();renderJournalPrompt(false);}else toast('No se pudo guardar');});
+  }
+  $('#journalDelete').addEventListener('click',()=>{closeModal();$('#confirmTitle').textContent=isQuote?'Eliminar cita':'Eliminar del Cuaderno';$('#confirmText').textContent='Se eliminará esta entrada. Esta acción no afecta al calendario.';$('#confirmModal').classList.remove('hidden');state.confirmAction=()=>{const ok=NexoNative.deleteJournal(j.id);$('#confirmModal').classList.add('hidden');toast(ok?'Entrada eliminada':'No se pudo eliminar');refreshCurrent();renderJournalPrompt(false);};});
 }
 
 function renderJournalPanel(){
-  $('#panelAction').innerHTML='<button id="journalAddTop" class="secondary-button">+ Escribir</button>';
-  $('#journalAddTop').addEventListener('click',()=>openJournalComposer());
+  const quoteMode=state.journalFilter==='quote';
+  $('#panelAction').innerHTML=`<button id="journalAddTop" class="secondary-button">${quoteMode?'+ Nueva cita':'+ Escribir'}</button>`;
+  $('#journalAddTop').addEventListener('click',()=>openJournalComposer('',quoteMode?'quote':''));
   const q=state.journalSearch||'',kind=state.journalFilter==='thought'?'thought':state.journalFilter==='quote'?'quote':'',fav=state.journalFilter==='favorite';
   let rows=parseNative(NexoNative.getJournalEntries(q,kind,fav),[]);
   if(state.journalFilter==='revisit'){const cutoff=Date.now()-7*24*60*60*1000;rows=rows.filter(x=>Number(x.createdAt||0)<cutoff).sort((a,b)=>((Number(a.id)*1103515245+12345)>>>0)-((Number(b.id)*1103515245+12345)>>>0)).slice(0,12);}
-  $('#panelContent').innerHTML=`<div class="journal-toolbar"><input id="journalSearch" type="search" placeholder="Buscar en tus pensamientos…" value="${escAttr(q)}"><button id="journalVoice" class="secondary-button journal-voice"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button><button id="journalAdd" class="primary-button journal-add">+ Escribir</button></div><div class="journal-filter-row"><button data-journal-filter="all" class="${state.journalFilter==='all'?'active':''}">Todo</button><button data-journal-filter="thought" class="${state.journalFilter==='thought'?'active':''}">Pensamientos</button><button data-journal-filter="quote" class="${state.journalFilter==='quote'?'active':''}">Citas</button><button data-journal-filter="favorite" class="${state.journalFilter==='favorite'?'active':''}">★ Favoritos</button><button data-journal-filter="revisit" class="${state.journalFilter==='revisit'?'active':''}">↺ Releer</button></div><div id="journalList" class="stack">${journalGroupHtml(rows)}</div>`;
+  $('#panelContent').innerHTML=`<div class="journal-toolbar"><input id="journalSearch" type="search" placeholder="${quoteMode?'Buscar en tus citas…':'Buscar en tus pensamientos…'}" value="${escAttr(q)}"><button id="journalVoice" class="secondary-button journal-voice"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button><button id="journalAdd" class="primary-button journal-add">${quoteMode?'+ Nueva cita':'+ Escribir'}</button></div><div class="journal-filter-row"><button data-journal-filter="all" class="${state.journalFilter==='all'?'active':''}">Todo</button><button data-journal-filter="thought" class="${state.journalFilter==='thought'?'active':''}">Pensamientos</button><button data-journal-filter="quote" class="${state.journalFilter==='quote'?'active':''}">Citas</button><button data-journal-filter="favorite" class="${state.journalFilter==='favorite'?'active':''}">★ Favoritos</button><button data-journal-filter="revisit" class="${state.journalFilter==='revisit'?'active':''}">↺ Releer</button></div><div id="journalList" class="stack">${journalGroupHtml(rows)}</div>`;
   bindJournalButtons($('#journalList'));
-  $('#journalVoice').addEventListener('click',()=>startJournalVoice());$('#journalAdd').addEventListener('click',()=>openJournalComposer());
+  $('#journalVoice').addEventListener('click',()=>startJournalVoice('',quoteMode?'quote':''));$('#journalAdd').addEventListener('click',()=>openJournalComposer('',quoteMode?'quote':''));
   $('#journalSearch').addEventListener('input',e=>{state.journalSearch=e.target.value;clearTimeout(renderJournalPanel._t);renderJournalPanel._t=setTimeout(renderJournalPanel,220);});
   $$('[data-journal-filter]').forEach(b=>b.addEventListener('click',()=>{state.journalFilter=b.dataset.journalFilter;renderJournalPanel();}));
 }
@@ -1393,10 +1441,10 @@ function mergeVoiceSegments(parts){
 function managedVoiceFullText(includePartial=false){const parts=[state.managedVoiceBase,...state.managedVoiceSegments];if(includePartial&&state.managedVoicePartial)parts.push(state.managedVoicePartial);return mergeVoiceSegments(parts);}
 function updateManagedVoiceTranscript(){const text=managedVoiceFullText(true);$('#managedVoiceTranscript').textContent=text||'Te escucho…';}
 function stopManagedDictation(){if($('#voiceOverlay').classList.contains('hidden'))return;$('#managedVoiceStop').disabled=true;$('#managedVoiceStop').textContent='Terminando…';$('#managedVoiceStatus').textContent='GUARDANDO LO QUE HAS DICHO…';NexoNative.stopManagedVoice();}
-function resetManagedVoice(){state.managedVoiceTarget='';state.managedVoiceBase='';state.managedVoiceSegments=[];state.managedVoicePartial='';state.managedVoiceListId=0;state.managedVoiceShopping=false;state.voiceMode='capture';state.journalVoiceBase='';state.medicationVoiceBase='';$('#voiceOverlay').classList.add('hidden');}
+function resetManagedVoice(){state.managedVoiceTarget='';state.managedVoiceBase='';state.managedVoiceSegments=[];state.managedVoicePartial='';state.managedVoiceListId=0;state.managedVoiceShopping=false;state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';$('#voiceOverlay').classList.add('hidden');}
 function finalizeManagedDictation(){
-  let text=managedVoiceFullText(true);const target=state.managedVoiceTarget,listId=state.managedVoiceListId,shopping=state.managedVoiceShopping,noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual;resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;if(!text){toast('No he podido recoger ninguna frase. Inténtalo de nuevo.');return;}
-  if(target==='universal')routeUniversalVoice(text);else if(target==='list')handleListVoice(text,listId,shopping);else if(target==='journal')openJournalComposer(text);else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);else if(target==='medication')openMedicationComposer(text);else{navigate('save');clearCapture();$('#captureText').value=text;analyzeCapture({immediate:true});}
+  let text=managedVoiceFullText(true);const target=state.managedVoiceTarget,listId=state.managedVoiceListId,shopping=state.managedVoiceShopping,noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,journalKind=state.journalVoiceKind;resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;if(!text){toast('No he podido recoger ninguna frase. Inténtalo de nuevo.');return;}
+  if(target==='universal')routeUniversalVoice(text);else if(target==='list')handleListVoice(text,listId,shopping);else if(target==='journal')openJournalComposer(text,journalKind);else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);else if(target==='medication')openMedicationComposer(text);else{navigate('save');clearCapture();$('#captureText').value=text;analyzeCapture({immediate:true});}
 }
 function stripJournalVoicePrefix(text){return String(text||'').replace(/^\s*(?:guarda|apunta|anota)\s+(?:un\s+)?(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]?\s*/i,'').replace(/^\s*(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]\s*/i,'').trim();}
 function looksLikeShoppingVoice(text){const n=normVoiceText(text),product=/(leche|huevos?|pan|agua|azucar|mantequilla|cafe|detergente|jamon|queso|yogur|papel|arroz|pasta|pollo|carne|pescado|tomate|lechuga|patata|cebolla|manzana|platano|aceite|harina|galleta|cereal)/.test(n);return /lista (?:de la )?compra|a la compra|en la compra/.test(n)||/^(?:comprar|compra|anade|añade|agrega|apunta|pon|mete)\b/.test(n)&&product||/^(?:quita|elimina|borra|saca|cambia|sustituye|reemplaza)\b/.test(n)&&product||/(?:ya he comprado|he comprado|todavia no|aun no|no he comprado)/.test(n)&&product||/(?:elimina|borra|quita|vacia) (?:lo|los) comprad/.test(n);}
@@ -1549,11 +1597,11 @@ window.NexoUI={
     $('#voiceOverlay').classList.add('hidden');
     if(state.voiceMode==='universal'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();routeUniversalVoice(combined);return;}
     if(state.voiceMode==='list'){const id=state.managedVoiceListId||state.currentList,shopping=state.managedVoiceShopping,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();handleListVoice(combined,id,shopping);return;}
-    if(state.voiceMode==='journal'){const combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined);return;}
+    if(state.voiceMode==='journal'){const kind=state.journalVoiceKind,combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined,kind);return;}
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}
     if(state.voiceMode==='medication'){const combined=[managedBase||state.medicationVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openMedicationComposer(combined);return;}
     const pinned=state.voicePinnedDate,type=state.voicePinnedType,base=state.voiceBaseText||'';navigate('save');if(pinned){state.capturePinnedDate=pinned;state.capturePinnedType=type||'';state.captureReturn='today';clearCapture(true);$('#captureDate').value=pinned;if(type)$('#captureType').value=type;refreshCaptureAlertEditor();}else if(!base) clearCapture();state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';const combined=[base,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();$('#captureText').value=combined;setInterpretationStatus('working',base?'Dictado añadido · interpretando localmente…':'Voz transcrita · interpretando localmente…');analyzeCapture({immediate:true});toast('Voz transcrita. Revisa lo que Nexo ha entendido.');},
-  onVoiceError(msg){$('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.medicationVoiceBase='';state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');toast(msg);},
+  onVoiceError(msg){$('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');toast(msg);},
   onManagedVoiceFallback(msg){$('#voiceOverlay').classList.add('hidden');toast(msg||'Usando el dictado estándar de Android.');},
   onManagedVoiceState(kind){if($('#voiceOverlay').classList.contains('hidden'))return;const label=kind==='processing'?'PROCESANDO UNA PAUSA…':kind==='starting'?'PREPARANDO MICRÓFONO…':'ESCUCHANDO…';$('#managedVoiceStatus').textContent=label;},
   onManagedVoicePartial(text){state.managedVoicePartial=String(text||'').trim();updateManagedVoiceTranscript();},
