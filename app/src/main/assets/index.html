@@ -181,10 +181,12 @@
 <div class="form-grid capture-basics">
 <label>Título<input id="captureTitle" type="text"></label>
               <label class="form-span-2">Descripción <span class="optional">(solo detalles relevantes)</span><textarea id="captureDescription" rows="3" placeholder="Detalle completo de lo que necesitas hacer. Puedes editarlo o ampliarlo."></textarea></label>
-              <label>Fecha<div class="date-wrap"><input id="captureDate" type="date"></div></label>
-              <label>Hora <span class="optional">(vacío = todo el día)</span><div class="date-wrap"><input id="captureTime" type="time"></div></label>
+              <label>Fecha inicio<div class="date-wrap"><input id="captureDate" type="date"></div></label>
+              <label>Fecha fin<div class="date-wrap"><input id="captureEndDate" type="date"></div></label>
+              <label class="switch-row form-span-2 event-all-day-row"><input id="captureAllDay" type="checkbox"><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
+              <label id="captureStartTimeLabel">Hora inicio<div class="date-wrap"><input id="captureTime" type="time"></div></label>
+              <label id="captureEndTimeLabel">Hora fin<div class="date-wrap"><input id="captureEndTime" type="time"></div></label>
               <label class="form-span-2">Ubicación <span class="optional">(opcional)</span><input id="captureLocation" type="text" placeholder="Ej.: Clínica, Valencia"></label>
-              <label>Hora fin <span class="optional">(opcional · al compartir: 1 h si queda vacía)</span><div class="date-wrap"><input id="captureEndTime" type="time"></div></label>
               </div>
 <div id="captureAlertsSection" class="alert-editor hidden">
               <div class="alert-editor-head">
@@ -212,6 +214,8 @@
 <option value="semiannual">Semestral</option>
 <option value="annual">Anual</option></select></label>
               <label id="captureRecurrenceUntilLabel" class="hidden">Repetir hasta<div class="date-wrap"><input id="captureRecurrenceUntil" type="date"></div></label>
+              <label class="form-span-2">Enlace de Google Maps <span class="optional">(opcional)</span><input id="captureMapsUrl" type="text" inputmode="url" placeholder="https://maps.app.goo.gl/…"></label>
+              <label class="form-span-2">Zona horaria <span class="optional">(normalmente no hace falta cambiarla)</span><input id="captureTimeZone" type="text" value="Europe/Madrid"></label>
             </div>
             </details>
 
