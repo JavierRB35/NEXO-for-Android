@@ -1019,6 +1019,17 @@ function openCalendar(returnScreen='today',selectedDate=''){
   navigate('calendar');
 }
 
+function itemEffectiveEndAt(item){
+  if(!item?.dueAt)return 0;
+  const end=Number(item.endAt)||((Number(item.durationMinutes)||0)?Number(item.dueAt)+Number(item.durationMinutes)*60000:Number(item.dueAt));
+  return Math.max(Number(item.dueAt),end);
+}
+function itemCoversIsoDate(item,iso){
+  if(!item?.dueAt||!iso)return false;
+  const start=isoDateLocal(new Date(item.dueAt)),end=isoDateLocal(new Date(itemEffectiveEndAt(item)));
+  return iso>=start&&iso<=end;
+}
+
 function renderCalendar(direction=0){
   const m=state.calendarMonth,first=new Date(m.getFullYear(),m.getMonth(),1);
   const leading=(first.getDay()+6)%7,days=new Date(m.getFullYear(),m.getMonth()+1,0).getDate(),cells=Math.ceil((leading+days)/7)*7;
@@ -1028,7 +1039,14 @@ function renderCalendar(direction=0){
   $('#calendarMonthTitle').textContent=monthName.replace(/^./,c=>c.toUpperCase());
   $('#calendarMonthPickerBtn').setAttribute('aria-label',monthName+'. Elegir mes y año');
   const today=isoDateLocal(new Date()),byDay={};
-  items.forEach(i=>{const key=isoDateLocal(new Date(i.dueAt));(byDay[key]||(byDay[key]=[])).push(i);});
+  items.forEach(i=>{
+    if(!i.dueAt)return;
+    const startDay=new Date(isoDateLocal(new Date(i.dueAt))+'T12:00:00');
+    const endDay=new Date(isoDateLocal(new Date(itemEffectiveEndAt(i)))+'T12:00:00');
+    for(let d=new Date(startDay),guard=0;d<=endDay&&guard<730;d.setDate(d.getDate()+1),guard++){
+      const key=isoDateLocal(d);(byDay[key]||(byDay[key]=[])).push(i);
+    }
+  });
   let html='';
   for(let cell=0;cell<cells;cell++){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],selected=iso===state.calendarSelected;
@@ -1053,7 +1071,7 @@ function renderCalendar(direction=0){
 
 function renderCalendarDay(){
   const iso=state.calendarSelected||isoDateLocal(new Date()),d=new Date(iso+'T12:00:00');
-  const items=(state.calendarItems||[]).filter(i=>isoDateLocal(new Date(i.dueAt))===iso).sort((a,b)=>{if(a.hasTime===false&&b.hasTime!==false)return -1;if(a.hasTime!==false&&b.hasTime===false)return 1;return (a.dueAt||0)-(b.dueAt||0);});
+  const items=(state.calendarItems||[]).filter(i=>itemCoversIsoDate(i,iso)).sort((a,b)=>{if((a.allDay===true||a.hasTime===false)&&(b.allDay!==true&&b.hasTime!==false))return -1;if((a.allDay!==true&&a.hasTime!==false)&&(b.allDay===true||b.hasTime===false))return 1;return (a.dueAt||0)-(b.dueAt||0);});
   const label=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(d);
   $('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());
   $('#calendarSelectedMeta').textContent=items.length?`${items.length} cita${items.length===1?'':'s'}`:'Sin citas';
