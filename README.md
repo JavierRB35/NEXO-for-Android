@@ -1,10 +1,10 @@
-# Nexo Input Hub v0.3 · AndroidIDE
+# Nexo 3.7.0-beta4 · AndroidIDE
 
-Rama de compilación: `feature/nexo-input-hub-v0.3`.
+Rama de trabajo: `fix/input-hub-reliability-and-familia-migration`.
 
-Identidad de esta versión:
-- Nexo **3.7.0-beta3**
-- `versionCode 68`
+Identidad:
+- Nexo **3.7.0-beta4**
+- `versionCode 69`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -22,62 +22,53 @@ No actualizar estas versiones salvo necesidad.
 
 ## Compilar en el teléfono
 
-Descomprime el ZIP de la rama directamente como una única carpeta de proyecto dentro de Download, por ejemplo:
+Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta3/
+/storage/emulated/0/Download/Nexo_3_7_0_beta4/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta3"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta4"
 sh build-on-phone.sh
 ```
 
-No uses `./build-on-phone.sh` ni `./gradlew` desde Download.
+No uses `./gradlew` desde Download.
 
-El script:
-1. descarga y verifica `sherpa-onnx 1.13.7` si falta;
-2. prepara/restaura la firma Release permanente;
-3. compila con `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE;
-4. verifica la firma con Build Tools 34.0.4;
-5. copia el APK final directamente a:
+El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta3.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta4.apk
 ```
 
-La primera compilación necesita Internet para descargar dependencias que aún no estén en caché y el AAR de sherpa-onnx.
+## Input Hub beta4
 
-## Qué incorpora V0.3
-
-- Calendar Provider directo.
-- SMS Provider directo mediante permiso opcional `READ_SMS`.
-- Línea base inicial para no importar el histórico de SMS.
-- Gmail API en modo solo lectura.
-- Consulta Gmail al abrir Nexo y periódicamente en segundo plano.
-- Clasificación local antes de incorporar candidatos al Inbox.
-- Deduplicación mediante `external_watch_items`.
-- Las fuentes directas Gmail/SMS evitan su captura duplicada por notificación.
+- Calendar Provider directo con observador de cambios y escaneo periódico de respaldo.
+- SMS Provider directo + respaldo por NotificationListener.
+- Gmail API de solo lectura + respaldo por NotificationListener.
+- Gmail revisa correo recibido reciente aunque haya sido archivado automáticamente.
+- Lectura de cuerpo completo y partes MIME de texto/calendario, incluidas partes servidas mediante `attachmentId`.
+- Clasificación local de alta sensibilidad: ante una señal razonable, el contenido llega a Inbox para decisión humana.
+- Deduplicación entre vía directa y notificación.
+- Errores transitorios no consolidan un mensaje como descartado.
+- Diagnóstico por fuente: vistos, candidatos, descartados y errores.
 - WhatsApp y Telegram continúan mediante NotificationListener.
-- Botón **Buscar entradas ahora**.
-- Ninguna captura crea una cita/tarea automáticamente sin confirmación del usuario.
+- Ninguna captura crea automáticamente una cita/tarea definitiva sin revisión.
 
-### Requisito externo para Gmail
+## Migración Nexo Familia
 
-Para activar Gmail directo debe existir una configuración OAuth válida en Google Cloud para:
-- paquete `com.jruiz.nexo`;
-- SHA-1 de la firma Release;
-- Gmail API habilitada;
-- consentimiento OAuth;
-- scope `gmail.readonly`.
+La snapshot incluida se ha regenerado directamente desde el Supabase de Nexo Familia y contiene:
 
-Este requisito no impide compilar ni instalar la aplicación; solo condiciona la conexión de Gmail.
+- **33 eventos** de la familia Ruiz-Villena.
+- **46 reglas de aviso**.
+- **4 miembros**.
+- Todos los campos originales disponibles en la tabla `events` y las reglas originales.
+
+La importación es idempotente por UUID y verifica al finalizar 33/33 eventos y 46/46 reglas. Los campos que son realmente `null` en Supabase no se inventan; se preserva además el JSON original completo en la capa de compatibilidad.
 
 ## Validación
-
-Antes de compilar puede ejecutarse:
 
 ```sh
 sh validation/validate-project.sh
