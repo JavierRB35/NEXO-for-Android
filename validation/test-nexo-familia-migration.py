@@ -90,3 +90,11 @@ assert "source='nexo-familia'" in db_source
 assert "System.currentTimeMillis()" in db_source
 assert "source_status" in db_source
 print('Estados Nexo Familia separados de la conciliación genérica: OK')
+
+# Regression beta8: Agenda/Calendario normalizan Nexo Familia al leer, aunque SQLite arrastre done.
+db_source=db_path.read_text(encoding='utf-8')
+assert 'normalizeNexoFamiliaStatusForRead' in db_source
+assert 'queryItems' in db_source and 'normalizeNexoFamiliaStatusForRead(itemJson(c))' in db_source
+assert 'SELECT source_status FROM nexo_familia_events WHERE local_item_id=? LIMIT 1' in db_source
+assert 'effectiveEnd < System.currentTimeMillis()' in db_source
+print('Lectura tolerante a estados heredados de Nexo Familia: OK')
