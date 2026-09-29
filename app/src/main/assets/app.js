@@ -324,8 +324,14 @@ function updateFloatingActions(){
   if(!voice||!add)return;
   const panelVoice=state.screen==='panel'&&(['journal','quotes','medications'].includes(state.lastPanel)||(state.lastPanel==='lists'&&!!state.currentList));
   const voiceVisible=['today','calendar','search','tools','save'].includes(state.screen)||panelVoice;
+  const eventContext=state.screen==='today'||state.screen==='calendar'||(state.screen==='panel'&&state.lastPanel==='appointments');
   voice.classList.toggle('hidden',!voiceVisible);
-  add.classList.toggle('hidden',state.screen!=='calendar');
+  add.classList.toggle('hidden',!eventContext);
+}
+function runEventAddFab(){
+  const today=isoDateLocal(new Date());
+  const date=state.screen==='calendar'?(state.calendarSelected||today):today;
+  prepareCaptureForDate(date);
 }
 function runFloatingVoice(){
   if(state.screen==='save'){
@@ -2086,7 +2092,7 @@ function init(){
   $('#homeAgendaLink')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});
   $('#searchHistorical')?.addEventListener('change',e=>{state.searchHistorical=!!e.target.checked;if($('#searchInput').value.trim())runSearch();});
   $('#globalVoiceFab').addEventListener('click',runFloatingVoice);
-  $('#calendarAddFab').addEventListener('click',()=>prepareCaptureForDate(state.calendarSelected||isoDateLocal(new Date())));
+  $('#calendarAddFab').addEventListener('click',runEventAddFab);
   $('#captureBackBtn').addEventListener('click',()=>navigateBack());
   $('#startScreen').addEventListener('change',()=>{NexoNative.setStartScreen($('#startScreen').value);toast('Pantalla de apertura actualizada');});
   $('#preferredShoppingList').addEventListener('change',()=>{NexoNative.setPreferredShoppingList(Number($('#preferredShoppingList').value));toast('Acceso a la compra actualizado');});
