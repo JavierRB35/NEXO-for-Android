@@ -9,7 +9,7 @@ importer_path=root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImport
 
 payload=json.loads(seed_path.read_text(encoding='utf-8'))
 assert payload.get('format')=='nexo-familia-events-v1'
-assert payload.get('snapshotVersion')=='2026-09-29-v3-complete'
+assert payload.get('snapshotVersion')=='2026-09-29-v4-repair'
 events=payload.get('events') or []
 rules=payload.get('reminderRules') or []
 members=payload.get('members') or []
@@ -66,6 +66,8 @@ assert 'hasNexoFamiliaReminderMapping' in db
 main=main_path.read_text(encoding='utf-8')
 assert 'applyBundledNexoFamiliaMigration();' in main
 assert 'nexo_familia_seed_v1.json' in main
+assert 'auditBundledNexoFamiliaPayload' in main
+assert 'repairBundledNexoFamiliaMigration' in main
 
 importer=importer_path.read_text(encoding='utf-8')
 for key in ['endAt','allDay','timeZone','mapsUrl','recurrenceRule','participantsText']:
