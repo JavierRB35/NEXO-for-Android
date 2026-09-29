@@ -13,12 +13,11 @@ public class SmsWatchJob extends JobService {
                 if (!stopped && SmsWatchScheduler.canRun(this)) SmsWatchEngine.scan(this);
             } finally {
                 if (!stopped) {
-                    if (params.getJobId() == SmsWatchScheduler.CONTENT_JOB_ID) {
-                        SmsWatchScheduler.scheduleContentWatcher(this);
-                    }
-                    // onStartJob() devolvió true: el job actual debe finalizar
-                    // siempre, también cuando rearmamos el TriggerContentUri.
+                    boolean contentJob = params.getJobId() == SmsWatchScheduler.CONTENT_JOB_ID;
+                    // onStartJob() devolvió true: cerramos siempre el job actual.
                     jobFinished(params, false);
+                    // Después de finalizarlo, rearmamos un nuevo TriggerContentUri.
+                    if (contentJob) SmsWatchScheduler.scheduleContentWatcher(this);
                 }
             }
         }, "nexo-sms-watch").start();
@@ -27,6 +26,6 @@ public class SmsWatchJob extends JobService {
 
     @Override public boolean onStopJob(JobParameters params) {
         stopped = true;
-        return false;
+        return true;
     }
 }
