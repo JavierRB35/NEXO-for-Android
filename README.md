@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta6 · AndroidIDE
+# Nexo 3.7.0-beta7 · AndroidIDE
 
-Rama de trabajo: `feature/nexo-input-hub-v0.6`.
+Rama de trabajo: `feature/nexo-input-hub-v0.7`.
 
 Identidad:
-- Nexo **3.7.0-beta6**
-- `versionCode 71`
+- Nexo **3.7.0-beta7**
+- `versionCode 72`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta6/
+/storage/emulated/0/Download/Nexo_3_7_0_beta7/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta6"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta7"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta6.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta7.apk
 ```
 
 ## Input Hub beta4
@@ -66,7 +66,7 @@ La snapshot incluida se ha regenerado directamente desde el Supabase de Nexo Fam
 - **4 miembros**.
 - Todos los campos originales disponibles en la tabla `events` y las reglas originales.
 
-Beta6 reconstruye desde cero únicamente las copias procedentes de Nexo Familia y verifica al finalizar 33/33 eventos: 17/17 con visibilidad `family` y 16/16 con visibilidad `selected`, además de 46/46 reglas. La auditoría local está disponible desde Copia de seguridad > Nexo Familia. Los campos que son realmente `null` en Supabase no se inventan; se preserva además el JSON original completo en la capa de compatibilidad.
+Beta7 conserva la reconstrucción completa 33/33 y corrige además los estados locales: los eventos `selected` futuros ya no quedan marcados como `done`; se respetan los estados de Supabase y el tiempo real del evento. La auditoría local está disponible desde Copia de seguridad > Nexo Familia. Los campos que son realmente `null` en Supabase no se inventan; se preserva además el JSON original completo en la capa de compatibilidad.
 
 ## Validación
 
