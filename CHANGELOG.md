@@ -1,5 +1,19 @@
 # Changelog de Nexo
 
+## 3.7.0-beta2 · versionCode 67 · Eventos Nexo Familia y migración automática
+
+- Migración automática inicial de los 33 eventos actuales de Nexo Familia (familia Ruiz-Villena) al almacenamiento local de Nexo Android.
+- Importación idempotente por UUID: una segunda ejecución actualiza el registro asociado y no duplica eventos.
+- Se migran también las 46 reglas de aviso existentes y se programan localmente cuando siguen pendientes.
+- Modelo local de eventos ampliado a esquema 20 con fecha/hora de inicio, fecha/hora de fin, todo el día, zona horaria, enlace de Maps, RRULE original y participantes legibles.
+- Los eventos de varios días aparecen en cada día que cubren dentro del calendario.
+- Estado temporal alineado con Nexo Familia: los no recurrentes se completan al quedar su final en el pasado; los recurrentes continúan pendientes; los cancelados permanecen cancelados.
+- Recurrencias sin fecha final pasan a ser realmente indefinidas, como en Nexo Familia.
+- Formularios de creación y edición muestran inicio, fin y Todo el día de forma explícita.
+- Se conservan en la capa de compatibilidad el UUID y el JSON original de Supabase, incluidos datos familiares que no tiene sentido mostrar en la interfaz local.
+- Se mantienen intactos los datos locales existentes de Nexo Android.
+
+
 ## 3.7.0-beta1 · versionCode 66 · Navegación Nexo Familia y compatibilidad de migración
 
 - Inicio simplificado con Inbox visible y resumen de lo importante.
