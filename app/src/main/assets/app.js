@@ -159,7 +159,7 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
 function updateFloatingActions(){
   const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
   if(!voice||!add)return;
-  const panelVoice=state.screen==='panel'&&['journal','quotes','medications'].includes(state.lastPanel);
+  const panelVoice=state.screen==='panel'&&(['journal','quotes','medications'].includes(state.lastPanel)||(state.lastPanel==='lists'&&!!state.currentList));
   const voiceVisible=['today','calendar','search','tools','save'].includes(state.screen)||panelVoice;
   voice.classList.toggle('hidden',!voiceVisible);
   add.classList.toggle('hidden',state.screen!=='calendar');
@@ -172,6 +172,12 @@ function runFloatingVoice(){
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
+  if(state.screen==='panel'&&state.lastPanel==='lists'&&state.currentList){
+    const l=parseNative(NexoNative.getList(state.currentList),{}),shopping=(l.kind||'').toLowerCase()==='compra';
+    const hint=shopping?'Di los productos que quieres añadir, quitar o marcar como comprados.':'Di los elementos que quieres añadir a la lista.';
+    startManagedDictation('list',{listId:state.currentList,shopping,title:shopping?'LISTA DE LA COMPRA':'AÑADIR A LA LISTA',hint});
+    return;
+  }
   startManagedDictation('universal',{title:'Habla con Nexo',hint:'Di qué quieres guardar o recordar. Nexo preparará la entrada para que la revises.'});
 }
 
@@ -1309,8 +1315,7 @@ function openList(id,options={}){
   $('#shareListBtn').addEventListener('click',()=>NexoNative.shareNexoList(id));
   $('#manageListBtn').addEventListener('click',()=>openListManagement(id));
   const voiceHint=shopping?'Para varios productos, sepáralos con «y»: “huevos y mantequilla y leche y pan”. También puedes decir “quita el azúcar” o “ya he comprado los huevos”.':'Para varios elementos, sepáralos con «y»: “pasaporte y cargador y medicamentos”.';
-  $('#panelContent').innerHTML=`<div class="list-voice-box"><button id="listVoiceBtn" class="list-voice-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Añadir hablando</button><div class="list-voice-hint">${esc(voiceHint)}</div></div><div class="add-inline"><input id="listQuickInput" type="text" placeholder="${shopping?'O escribe productos…':'O escribe un elemento…'}"><button id="listAddBtn" class="primary-button">Añadir</button></div><div>${entries.length?entries.map(e=>`<div class="list-entry ${e.checked?'checked':''}"><input type="checkbox" data-entry-toggle="${e.id}" ${e.checked?'checked':''} aria-label="${e.checked?'Desmarcar':'Marcar'} ${escAttr(e.text)}"><button type="button" class="entry-text entry-text-button" data-entry-text-toggle="${e.id}" data-entry-checked="${e.checked?'1':'0'}">${esc(e.text)}</button>${e.category?`<span class="entry-cat">${esc(e.category)}</span>`:''}<button class="entry-delete" aria-label="Eliminar ${escAttr(e.text)}" data-entry-delete="${e.id}"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-close"></use></svg></button></div>`).join(''):'<div class="empty-state">Lista vacía. Pulsa “Añadir hablando” y di lo que necesitas.</div>'}</div>`;
-  $('#listVoiceBtn').addEventListener('click',()=>startManagedDictation('list',{listId:id,shopping,title:shopping?'LISTA DE LA COMPRA':'AÑADIR A LA LISTA',hint:voiceHint}));
+  $('#panelContent').innerHTML=`<div class="list-voice-hint list-voice-hint--fab">${esc(voiceHint)} Usa el botón flotante del micrófono para dictar.</div><div class="add-inline"><input id="listQuickInput" type="text" placeholder="${shopping?'Escribe productos…':'Escribe un elemento…'}"><button id="listAddBtn" class="primary-button">Añadir</button></div><div>${entries.length?entries.map(e=>`<div class="list-entry ${e.checked?'checked':''}"><input type="checkbox" data-entry-toggle="${e.id}" ${e.checked?'checked':''} aria-label="${e.checked?'Desmarcar':'Marcar'} ${escAttr(e.text)}"><button type="button" class="entry-text entry-text-button" data-entry-text-toggle="${e.id}" data-entry-checked="${e.checked?'1':'0'}">${esc(e.text)}</button>${e.category?`<span class="entry-cat">${esc(e.category)}</span>`:''}<button class="entry-delete" aria-label="Eliminar ${escAttr(e.text)}" data-entry-delete="${e.id}"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-close"></use></svg></button></div>`).join(''):'<div class="empty-state">Lista vacía. Escribe un elemento o usa el micrófono flotante.</div>'}</div>`;
   $('#listAddBtn').addEventListener('click',()=>{const v=$('#listQuickInput').value.trim();if(!v)return;NexoNative.addListItems(id,v,shopping);openList(id);});
   $('#listQuickInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#listAddBtn').click();});
   $$('[data-entry-toggle]').forEach(c=>c.addEventListener('change',()=>{updateListCheck(Number(c.dataset.entryToggle),c.checked,c.closest('.list-entry'));}));
