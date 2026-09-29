@@ -30,6 +30,17 @@ public final class NexoFamiliaImporter {
             if (rules == null) rules = payload.optJSONArray("reminder_rules");
             if (rules == null) rules = new JSONArray();
 
+            Map<String,String> memberNames = new HashMap<>();
+            JSONArray members = payload.optJSONArray("members");
+            if (members != null) {
+                for (int i=0;i<members.length();i++) {
+                    JSONObject member=members.optJSONObject(i); if(member==null)continue;
+                    String userId=member.optString("user_id","").trim();
+                    String fullName=member.optString("full_name","").trim();
+                    if(!userId.isEmpty()&&!fullName.isEmpty())memberNames.put(userId,fullName);
+                }
+            }
+
             Map<String, List<JSONObject>> rulesByEvent = new HashMap<>();
             for (int i=0;i<rules.length();i++) {
                 JSONObject rule=rules.optJSONObject(i); if(rule==null)continue;
@@ -43,7 +54,7 @@ public final class NexoFamiliaImporter {
                 String sourceId=event.optString("id","").trim();
                 if(sourceId.isEmpty()){errors.put("Evento sin id en la posición "+i);skipped++;continue;}
                 try {
-                    JSONObject local=toLocalEvent(event);
+                    JSONObject local=toLocalEvent(event,memberNames);
                     long existing=db.getNexoFamiliaLocalItemId(sourceId);
                     long localId;
                     if(existing>0 && db.getItem(existing).length()>0) {
@@ -99,12 +110,13 @@ public final class NexoFamiliaImporter {
         return out;
     }
 
-    private static JSONObject toLocalEvent(JSONObject event) throws Exception {
+    private static JSONObject toLocalEvent(JSONObject event, Map<String,String> memberNames) throws Exception {
         boolean allDay=event.optBoolean("all_day",false);
         ZoneId zone=safeZone(event.optString("time_zone","Europe/Madrid"));
         long start=allDay ? parseDate(event.optString("start_date",""),zone) : parseTimestamp(event.optString("start_at",""),zone);
         long end=allDay ? parseDate(event.optString("end_date",""),zone) : parseTimestamp(event.optString("end_at",""),zone);
         if(start<=0)throw new IllegalArgumentException("Falta fecha de inicio válida");
+        if(end<=0)end=start;
 
         int duration=0;
         if(end>start) duration=(int)Math.min(Integer.MAX_VALUE,Math.max(0,(end-start)/60000L));
@@ -126,9 +138,15 @@ public final class NexoFamiliaImporter {
         local.put("originalText","");
         local.put("category",canonicalCategory(event.optString("category","Otro")));
         local.put("dueAt",start);
+        local.put("endAt",end);
         local.put("hasTime",!allDay);
+        local.put("allDay",allDay);
+        local.put("timeZone",zone.getId());
         local.put("durationMinutes",duration);
         local.put("locationText",event.optString("location",""));
+        local.put("mapsUrl",event.optString("maps_url",""));
+        local.put("recurrenceRule",event.optString("recurrence_rule",""));
+        local.put("participantsText",participantNames(event.optJSONArray("participant_ids"),memberNames));
         local.put("priority",1);
         local.put("favorite",false);
         local.put("source","nexo-familia");
@@ -215,8 +233,20 @@ public final class NexoFamiliaImporter {
     }
 
     private static String mapStatus(String source) {
-        if("completed".equalsIgnoreCase(source)||"cancelled".equalsIgnoreCase(source))return "done";
+        if("cancelled".equalsIgnoreCase(source))return "cancelled";
+        if("completed".equalsIgnoreCase(source))return "done";
         return "pending";
+    }
+
+    private static String participantNames(JSONArray ids, Map<String,String> memberNames) {
+        if(ids==null||ids.length()==0)return "";
+        LinkedHashSet<String> names=new LinkedHashSet<>();
+        for(int i=0;i<ids.length();i++) {
+            String id=ids.optString(i,"").trim();
+            String name=memberNames==null?null:memberNames.get(id);
+            if(name!=null&&!name.isBlank())names.add(name);
+        }
+        return String.join(", ",names);
     }
 
     private static String canonicalCategory(String raw) {
