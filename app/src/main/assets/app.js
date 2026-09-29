@@ -6,7 +6,7 @@ const RECURRENCE_LABEL = {none:'No se repite',daily:'Diaria',weekly:'Semanal',mo
 const PLACE_LABELS = ['Quiero ir','He estado','Restaurante','Lugar bonito','Cafetería','Naturaleza','Playa','Mirador','Alojamiento','Otros'];
 const DOCUMENT_LABELS = ['Identificación','Salud','Factura','Contrato','Seguro','Garantía','Manual','Certificado','Justificante','Otros'];
 const state = {
-  screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, lastPanel:null, currentList:null,
+  screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, calendarUpdateItemId:0, lastPanel:null, currentList:null,
   userAdjusted:false, pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
@@ -767,7 +767,7 @@ function resetAnalysis() {
 
 function clearCapture(keepPinned=false) {
   clearTimeout(state.pendingSaveTimer);
-  state.pendingSave=false; state.attachment=null; state.userAdjusted=false; state.inboxCaptureId=0; state.inboxCaptureOriginal=null;
+  state.pendingSave=false; state.attachment=null; state.userAdjusted=false; state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
@@ -799,13 +799,21 @@ function commitCapture() {
     dueAt, hasTime:!!(date&&time), durationMinutes, locationText:$('#captureLocation').value.trim(), priority:Number($('#capturePriority').value||1),
     recurrence:$('#captureRecurrence').value||'none', recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
-    needsReview:false, source:state.inboxCaptureId?'android-share':'manual', inboxCaptureId:state.inboxCaptureId||0
+    needsReview:false,
+    source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
+    inboxCaptureId:state.inboxCaptureId||0,
+    updateItemId:state.calendarUpdateItemId||0
   };
   if(payload.recurrence!=='none'){if(!date){toast('Indica la fecha de inicio de la serie.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}if(!payload.recurrenceUntil){toast('Indica hasta cuándo se repite.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}if(payload.recurrenceUntil<dueAt){toast('La fecha final debe ser posterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}}
   if(state.attachment){ payload.attachmentPath=state.attachment.path||'';payload.attachmentName=state.attachment.name||'';payload.attachmentMime=state.attachment.mime||''; }
   const res=parseNative(NexoNative.saveCapture(JSON.stringify(payload)),{});
   $('#saveCaptureBtn').disabled=false; $('#saveCaptureBtn').textContent='Guardar en Nexo';
-  if(res.ok){ const avisos=alerts.length?` · ${alerts.length} aviso${alerts.length===1?'':'s'}`:''; toast(conflicts.length?`Guardado${avisos} · ya había ${conflicts.length} elemento${conflicts.length===1?'':'s'} a esa hora`:`Guardado en Nexo${avisos}`); clearCapture();navigateBack(); }
+  if(res.ok){
+    const avisos=alerts.length?` · ${alerts.length} aviso${alerts.length===1?'':'s'}`:'';
+    const updated=!!state.calendarUpdateItemId;
+    toast(updated?'Actualizado desde Calendar':(conflicts.length?`Guardado${avisos} · ya había ${conflicts.length} elemento${conflicts.length===1?'':'s'} a esa hora`:`Guardado en Nexo${avisos}`));
+    clearCapture();navigateBack();
+  }
   else toast(res.error||'No se pudo guardar.');
 }
 
@@ -899,7 +907,7 @@ function renderMore(){
 }
 
 function renderCommunicationCaptureSettings(){
-  const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{enabled:true,apps:[]});
+  const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{enabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false});
   const access=!!NexoNative.hasNotificationAccess();
   const status=$('#notificationAccessStatus'),master=$('#communicationCaptureEnabled'),apps=$('#communicationApps');
   if(status){
@@ -912,6 +920,14 @@ function renderCommunicationCaptureSettings(){
     apps.querySelectorAll('[data-communication-app]').forEach(el=>el.addEventListener('change',()=>{NexoNative.setCommunicationAppEnabled(el.dataset.communicationApp,el.checked);toast(`${el.checked?'Activada':'Desactivada'} captura de ${el.closest('label')?.querySelector('strong')?.textContent||'la aplicación'}`);}));
   }
   const btn=$('#notificationAccessBtn');if(btn)btn.textContent=access?'Revisar acceso a notificaciones':'Activar acceso a notificaciones';
+  const calendar=$('#calendarCaptureEnabled'),calendarStatus=$('#calendarAccessStatus');
+  if(calendar)calendar.checked=!!settings.calendarEnabled;
+  if(calendarStatus){
+    if(settings.calendarEnabled&&settings.calendarPermission&&settings.calendarBaselined)calendarStatus.textContent='Activo · Nexo está observando nuevos eventos y cambios de Calendar.';
+    else if(settings.calendarEnabled&&settings.calendarPermission)calendarStatus.textContent='Preparando la referencia inicial del calendario…';
+    else if(settings.calendarEnabled&&!settings.calendarPermission)calendarStatus.textContent='Falta conceder permiso de calendario.';
+    else calendarStatus.textContent='Desactivado.';
+  }
 }
 
 function medicationOffsetLabel(offset){return offset<0?`${Math.abs(offset)} min antes`:offset===0?'Hora exacta':`+${offset} min`;}
@@ -949,6 +965,10 @@ function openPanel(panel,options={}){
 function renderItemsPanel(items,empty){ $('#panelContent').innerHTML=items.length?`<div class="stack">${items.map(itemCard).join('')}</div>`:`<div class="empty-state">${esc(empty)}</div>`;bindItemButtons($('#panelContent')); }
 
 function inboxSourceLabel(capture){
+  if(capture.source==='calendar'){
+    const change=capture.classification?.calendarChangeType==='updated'?'cambio':'nuevo';
+    return `Calendar · ${change}`;
+  }
   const pkg=String(capture.sourcePackage||'');
   const app=pkg==='com.whatsapp'||pkg==='com.whatsapp.w4b'?'WhatsApp':pkg==='com.google.android.gm'?'Gmail':pkg.startsWith('org.telegram.messenger')?'Telegram':pkg.includes('messaging')||pkg==='com.android.mms'?'SMS':capture.source==='notification'?'Comunicación':'Compartido';
   const sender=String(capture.sender||capture.subject||'').trim();
@@ -1002,10 +1022,11 @@ function openInboxCaptureEditor(capture,incoming=false){
   const suggested=allowed.includes(detected.type)?detected.type:(capture.attachmentPath?'document':'note');
   state.inboxCaptureId=id;
   state.inboxCaptureOriginal=capture;
+  state.calendarUpdateItemId=Number(detected.existingItemId||0);
   state.capturePinnedType=suggested;
   state.capturePinnedDate='';
   state.attachment=capture.attachmentPath?{path:capture.attachmentPath,name:capture.attachmentName||'archivo',mime:capture.attachmentMime||capture.mime||''}:null;
-  $('#captureHeading').textContent='Revisar captura';
+  $('#captureHeading').textContent=state.calendarUpdateItemId?'Actualizar desde Calendar':(capture.source==='calendar'?'Revisar evento de Calendar':'Revisar captura');
   $('#captureText').value=raw;
   if(state.attachment){$('#attachmentChip').textContent=`Adjunto: ${state.attachment.name}`;$('#attachmentChip').classList.remove('hidden');}
   if(Object.keys(detected).length){
@@ -1017,7 +1038,7 @@ function openInboxCaptureEditor(capture,incoming=false){
     $('#captureTitle').value=capture.attachmentName||capture.subject||'Contenido recibido';
     setInterpretationStatus('idle','Contenido conservado · revisa antes de guardar');
   }
-  if(incoming)toast('Contenido guardado en Inbox. Revisa lo que Nexo ha entendido.');
+  if(incoming)toast(capture.source==='calendar'?'Evento de Calendar guardado en Inbox para revisión.':'Contenido guardado en Inbox. Revisa lo que Nexo ha entendido.');
 }
 
 function reviewInboxCapture(id){
@@ -1462,6 +1483,10 @@ window.NexoUI={
   onNotificationAccessChanged(){
     if(state.screen==='more')renderCommunicationCaptureSettings();
   },
+  onCalendarAccessChanged(){
+    if(state.screen==='more')renderCommunicationCaptureSettings();
+    if(state.screen==='today')renderToday();
+  },
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
   onDocumentFileChosen(raw){
     const result=parseNative(raw,{}),editor=state.documentEditor;
@@ -1532,6 +1557,12 @@ function init(){
   $('#preferredShoppingList').addEventListener('change',()=>{NexoNative.setPreferredShoppingList(Number($('#preferredShoppingList').value));toast('Acceso a la compra actualizado');});
   $('#notificationAccessBtn')?.addEventListener('click',()=>NexoNative.openNotificationAccessSettings());
   $('#communicationCaptureEnabled')?.addEventListener('change',()=>{NexoNative.setCommunicationCaptureEnabled($('#communicationCaptureEnabled').checked);renderCommunicationCaptureSettings();toast($('#communicationCaptureEnabled').checked?'Captura automática activada':'Captura automática pausada');});
+  $('#calendarCaptureEnabled')?.addEventListener('change',()=>{
+    const enabled=$('#calendarCaptureEnabled').checked;
+    NexoNative.setCalendarCaptureEnabled(enabled);
+    toast(enabled?'Activando escucha de Calendar…':'Escucha de Calendar desactivada');
+    setTimeout(renderCommunicationCaptureSettings,500);
+  });
   $('#resetMedicationMessages')?.addEventListener('click',()=>{NexoNative.resetMedicationMessages();renderMedicationMessageSettings();toast('Frases restauradas');});
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
   $('#searchFilter').addEventListener('change',()=>runSearch());
