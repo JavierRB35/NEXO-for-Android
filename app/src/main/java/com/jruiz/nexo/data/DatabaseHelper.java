@@ -1034,6 +1034,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public boolean isAttachmentReferenced(String path) {
         // Include soft-deleted items because the user may still undo their deletion.
         try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM items WHERE attachment_path=? LIMIT 1",new String[]{path})) {
+            if(c.moveToFirst()) return true;
+        }
+        // Una captura pendiente también es propietaria del adjunto hasta convertirse o descartarse.
+        try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM inbox_captures WHERE attachment_path=? AND status IN ('new','reviewing') LIMIT 1",new String[]{path})) {
             return c.moveToFirst();
         }
     }
@@ -1598,6 +1602,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("attachments", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND attachment_path<>''"));
             o.put("journal", scalar("SELECT COUNT(*) FROM journal_entries"));
             o.put("medications", scalar("SELECT COUNT(*) FROM medications"));
+            o.put("inboxCaptures", scalar("SELECT COUNT(*) FROM inbox_captures WHERE status IN ('new','reviewing')"));
         } catch(Exception ignored){}
         return o;
     }
@@ -1617,6 +1622,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 if(candidate.exists()) {
                     ContentValues v=new ContentValues();v.put("attachment_path",candidate.getAbsolutePath());
                     sql.update("items",v,"id=?",new String[]{String.valueOf(id)});
+                }
+            }
+        } catch(Exception ignored){}
+        try (Cursor c=sql.rawQuery("SELECT id,attachment_path,attachment_name FROM inbox_captures WHERE attachment_path<>''",null)) {
+            while(c.moveToNext()) {
+                long id=c.getLong(0); String old=c.getString(1), name=c.getString(2);
+                String base="";
+                if(old!=null&&!old.isBlank()) base=new java.io.File(old).getName();
+                if(base.isBlank()&&name!=null) base=name;
+                if(base.isBlank()) continue;
+                java.io.File candidate=new java.io.File(attachmentsDir,base);
+                if(candidate.exists()) {
+                    ContentValues v=new ContentValues();v.put("attachment_path",candidate.getAbsolutePath());
+                    sql.update("inbox_captures",v,"id=?",new String[]{String.valueOf(id)});
                 }
             }
         } catch(Exception ignored){}
