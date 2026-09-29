@@ -797,7 +797,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",now);
         db.update("items",done,
                 "deleted_at=0 AND source<>'nexo-familia' AND due_at>0 " +
-                "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<? " +
+                "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) " +
                 "AND recurrence='none' AND type IN ('event','task','reminder','expiry') " +
                 "AND status IN ('active','pending','postponed')",
                 new String[]{String.valueOf(start)});
@@ -811,7 +811,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     "UPDATE items SET status=CASE " +
                     "WHEN lower(COALESCE((SELECT nf.source_status FROM nexo_familia_events nf WHERE nf.local_item_id=items.id LIMIT 1),''))='cancelled' THEN 'cancelled' " +
                     "WHEN lower(COALESCE((SELECT nf.source_status FROM nexo_familia_events nf WHERE nf.local_item_id=items.id LIMIT 1),''))='completed' THEN 'done' " +
-                    "WHEN recurrence='none' AND due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<? THEN 'done' " +
+                    "WHEN recurrence='none' AND due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) THEN 'done' " +
                     "ELSE 'pending' END, updated_at=? " +
                     "WHERE deleted_at=0 AND source='nexo-familia'",
                     new Object[]{now,now});
