@@ -1,5 +1,15 @@
 # Changelog de Nexo
 
+## 3.7.0-beta5 · versionCode 70 · Reparación verificable de Nexo Familia
+
+- Fuerza una nueva snapshot de reparación aunque una instalación anterior hubiera quedado marcada como migrada.
+- Auditoría local por UUID: compara la BD Android contra los 33 eventos y 46 reglas empaquetados.
+- La pantalla Copia de seguridad > Nexo Familia muestra eventos y avisos verificados y enumera títulos faltantes.
+- Nuevo botón “Comprobar y reparar” que reimporta idempotentemente la snapshot incluida sin duplicar los eventos existentes.
+- La migración ya no confía solo en la marca de SharedPreferences: si el snapshot coincide pero la auditoría local no está completa, vuelve a ejecutar la importación.
+- Caso verificado: “Medicina digestiva”, 30/10/2026, 09:30 Europe/Madrid, está presente en Supabase y en la snapshot empaquetada y debe materializarse en Android tras la reparación.
+- Baseline AndroidIDE sin cambios: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta4 · versionCode 69 · Input Hub fiable y migración Nexo Familia verificada
 
 - SMS y Calendar finalizan correctamente los jobs disparados por cambios de contenido y vuelven a armar sus observadores.
