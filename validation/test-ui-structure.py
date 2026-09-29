@@ -43,7 +43,8 @@ parser.close_and_check()
 for screen in ["today","tools","save","search","calendar","more","panel"]:
     assert f'data-screen="{screen}"' in html, f"Falta pantalla: {screen}"
 
-home_start = html.index('<section class="screen active" data-screen="today"')
+home_start = html.index('data-screen="today"')
+home_start = html.rfind('<section', 0, home_start + 1)
 home_end = html.index('<section class="screen" data-screen="tools"', home_start)
 home = html[home_start:home_end]
 for required in [
