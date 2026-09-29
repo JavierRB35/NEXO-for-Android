@@ -119,9 +119,9 @@ public class MainActivity extends Activity {
                 db.reconcileTemporalStatuses();
                 JSONArray meds=db.getMedications("","active");
                 for(int i=0;i<meds.length();i++){JSONObject m=meds.optJSONObject(i);if(m!=null)MedicationScheduler.scheduleNext(this,db,m.optLong("id"),System.currentTimeMillis()-1);}
-                
             } catch(Exception ignored) {}
         }
+        if (pageReady) jsCallback("onNotificationAccessChanged", isNotificationAccessEnabled() ? "1" : "0");
     }
 
     @Override protected void onNewIntent(Intent intent) {
