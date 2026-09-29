@@ -6,7 +6,7 @@ const RECURRENCE_LABEL = {none:'No se repite',daily:'Diaria',weekly:'Semanal',mo
 const PLACE_LABELS = ['Quiero ir','He estado','Restaurante','Lugar bonito','Cafetería','Naturaleza','Playa','Mirador','Alojamiento','Otros'];
 const DOCUMENT_LABELS = ['Identificación','Salud','Factura','Contrato','Seguro','Garantía','Manual','Certificado','Justificante','Otros'];
 const state = {
-  screen:'today', classification:null, attachment:null, lastPanel:null, currentList:null,
+  screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, lastPanel:null, currentList:null,
   userAdjusted:false, pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
@@ -767,7 +767,7 @@ function resetAnalysis() {
 
 function clearCapture(keepPinned=false) {
   clearTimeout(state.pendingSaveTimer);
-  state.pendingSave=false; state.attachment=null; state.userAdjusted=false;
+  state.pendingSave=false; state.attachment=null; state.userAdjusted=false; state.inboxCaptureId=0; state.inboxCaptureOriginal=null;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
@@ -799,7 +799,7 @@ function commitCapture() {
     dueAt, hasTime:!!(date&&time), durationMinutes, locationText:$('#captureLocation').value.trim(), priority:Number($('#capturePriority').value||1),
     recurrence:$('#captureRecurrence').value||'none', recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
-    needsReview:false, source:'manual'
+    needsReview:false, source:state.inboxCaptureId?'android-share':'manual', inboxCaptureId:state.inboxCaptureId||0
   };
   if(payload.recurrence!=='none'){if(!date){toast('Indica la fecha de inicio de la serie.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}if(!payload.recurrenceUntil){toast('Indica hasta cuándo se repite.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}if(payload.recurrenceUntil<dueAt){toast('La fecha final debe ser posterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}}
   if(state.attachment){ payload.attachmentPath=state.attachment.path||'';payload.attachmentName=state.attachment.name||'';payload.attachmentMime=state.attachment.mime||''; }
@@ -912,13 +912,13 @@ function openPanel(panel,options={}){
   navigate('panel',{...options,panel,list:null});
   const cfg={
     appointments:['Citas','Todo lo que tienes que hacer, con fecha o sin ella'],lists:['Listas','Listas rápidas y reutilizables'],
-    inbox:['Pendiente de organizar','Contenido que requiere revisión'],history:['Historial','Actividad reciente'],
+    inbox:['Inbox','Contenido recibido que todavía no has organizado'],history:['Historial','Actividad reciente'],
     backup:['Copia de seguridad','Datos y adjuntos · audios por separado'],medications:['Medicamentos','Tratamientos, próximas tomas e historial'],journal:['Cuaderno','Pensamientos, citas y reflexiones · fuera del calendario'],notes:['Notas','Anotaciones locales · más recientes primero'],recordings:['Grabaciones','Audio local · reuniones y conversaciones autorizadas']
   }[panel]||['Más',''];
   $('#panelTitle').textContent=cfg[0];$('#panelSubtitle').textContent=cfg[1];$('#panelAction').innerHTML='';
   if(panel==='appointments')renderAppointmentsPanel();
   else if(panel==='lists') renderListsPanel();
-  else if(panel==='inbox') renderItemsPanel(parseNative(NexoNative.getInbox(),[]),'No hay nada pendiente de organizar.');
+  else if(panel==='inbox') renderInboxPanel();
   else if(panel==='history') renderHistoryPanel();
   else if(panel==='backup') renderBackupPanel();
   else if(panel==='medications') renderMedicationsPanel();
@@ -930,6 +930,76 @@ function openPanel(panel,options={}){
   else if(panel==='parking') renderParkingPanel();
 }
 function renderItemsPanel(items,empty){ $('#panelContent').innerHTML=items.length?`<div class="stack">${items.map(itemCard).join('')}</div>`:`<div class="empty-state">${esc(empty)}</div>`;bindItemButtons($('#panelContent')); }
+
+function inboxCaptureCard(capture){
+  const raw=String(capture.rawText||capture.subject||capture.attachmentName||'Contenido recibido').trim();
+  const title=String(capture.detectedTitle||capture.classification?.title||capture.subject||capture.attachmentName||raw.split(/\n/)[0]||'Contenido recibido').trim();
+  const type=String(capture.detectedType||capture.classification?.type||'').trim();
+  const preview=raw.length>220?`${raw.slice(0,217)}…`:raw;
+  const attachment=capture.attachmentName?`<div class="item-location">${uiIcon('file')} ${esc(capture.attachmentName)}</div>`:'';
+  return `<div class="item-card inbox-capture-card">
+    <div class="item-top"><div class="item-title">${esc(title)}</div></div>
+    <div class="item-meta"><span class="pill">Recibido</span>${type?`<span class="meta-tag">${esc(typeLabel(type))}</span>`:''}<span class="meta-tag">${esc(fmtDate(capture.createdAt,true))}</span></div>
+    ${preview?`<div class="item-body">${esc(preview)}</div>`:''}
+    ${attachment}
+    <div class="item-actions"><button class="mini-button primary" data-review-capture="${Number(capture.id)}">Revisar</button><button class="mini-button" data-discard-capture="${Number(capture.id)}">Descartar</button></div>
+  </div>`;
+}
+
+function renderInboxPanel(){
+  const captures=parseNative(NexoNative.getInboxCaptures(),[]);
+  const legacy=parseNative(NexoNative.getInbox(),[]);
+  let html='';
+  if(captures.length)html+=`<div class="search-section-label">Capturas recibidas</div><div class="stack">${captures.map(inboxCaptureCard).join('')}</div>`;
+  if(legacy.length)html+=`<div class="search-section-label">Elementos pendientes de revisión</div><div class="stack">${legacy.map(itemCard).join('')}</div>`;
+  $('#panelContent').innerHTML=html||'<div class="empty-state">No hay nada pendiente de organizar.</div>';
+  const root=$('#panelContent');
+  bindItemButtons(root);
+  root.querySelectorAll('[data-review-capture]').forEach(b=>b.addEventListener('click',()=>reviewInboxCapture(Number(b.dataset.reviewCapture))));
+  root.querySelectorAll('[data-discard-capture]').forEach(b=>b.addEventListener('click',()=>{
+    const id=Number(b.dataset.discardCapture);
+    confirmGeneric('Descartar captura','La captura dejará de aparecer en Inbox. El contenido definitivo de Nexo no se verá afectado.',()=>{
+      if(NexoNative.discardInboxCapture(id)){toast('Captura descartada');renderInboxPanel();renderToday();}
+      else toast('No se pudo descartar la captura.');
+    });
+  }));
+}
+
+function openInboxCaptureEditor(capture,incoming=false){
+  if(!capture)return;
+  navigate('save');
+  clearCapture();
+  const id=Number(capture.id||capture.captureId||0);
+  const raw=String(capture.rawText||capture.text||capture.subject||capture.attachmentName||'').trim();
+  let detected=capture.classification&&typeof capture.classification==='object'?capture.classification:{};
+  if(!Object.keys(detected).length&&raw)detected=parseNative(NexoNative.classify(raw),{});
+  const allowed=['event','task','reminder','expiry','note','document'];
+  const suggested=allowed.includes(detected.type)?detected.type:(capture.attachmentPath?'document':'note');
+  state.inboxCaptureId=id;
+  state.inboxCaptureOriginal=capture;
+  state.capturePinnedType=suggested;
+  state.capturePinnedDate='';
+  state.attachment=capture.attachmentPath?{path:capture.attachmentPath,name:capture.attachmentName||'archivo',mime:capture.attachmentMime||capture.mime||''}:null;
+  $('#captureHeading').textContent='Revisar captura';
+  $('#captureText').value=raw;
+  if(state.attachment){$('#attachmentChip').textContent=`Adjunto: ${state.attachment.name}`;$('#attachmentChip').classList.remove('hidden');}
+  if(Object.keys(detected).length){
+    detected={...detected,type:suggested};
+    renderClassification(detected,true);
+    if(id)NexoNative.updateInboxCaptureClassification(id,JSON.stringify(detected));
+  }else{
+    $('#captureType').value=suggested;
+    $('#captureTitle').value=capture.attachmentName||capture.subject||'Contenido recibido';
+    setInterpretationStatus('idle','Contenido conservado · revisa antes de guardar');
+  }
+  if(incoming)toast('Contenido guardado en Inbox. Revisa lo que Nexo ha entendido.');
+}
+
+function reviewInboxCapture(id){
+  const capture=parseNative(NexoNative.getInboxCapture(id),{});
+  if(!capture.id){toast('La captura ya no está disponible.');renderInboxPanel();return;}
+  openInboxCaptureEditor(capture,false);
+}
 
 function backupStatLine(stats){
   const parts=[];if(Number(stats.items||0))parts.push(`${stats.items} elementos`);if(Number(stats.journal||0))parts.push(`${stats.journal} en Cuaderno`);if(Number(stats.lists||0))parts.push(`${stats.lists} listas`);if(Number(stats.attachments||0))parts.push(`${stats.attachments} adjuntos`);return parts.length?parts.join(' · '):'Sin datos guardados todavía';
@@ -1359,12 +1429,7 @@ window.NexoUI={
   onTranscriptionError(msg){toast(msg||'No se pudo iniciar la transcripción.','',null,7000);},
   receiveShare(raw){
     const p=parseNative(raw,{});
-    if(p.attachmentPath){openPanel('documents');openDocumentEditor(0,{description:p.text||p.subject||p.attachmentName||'',path:p.attachmentPath,name:p.attachmentName,mime:p.attachmentMime});return;}
-    navigate('save');clearCapture();
-    state.attachment=p.attachmentPath?{path:p.attachmentPath,name:p.attachmentName,mime:p.attachmentMime}:null;
-    $('#captureText').value=(p.text||p.subject||p.attachmentName||'').trim();
-    if(state.attachment){$('#attachmentChip').textContent=`Adjunto: ${state.attachment.name}`;$('#attachmentChip').classList.remove('hidden');}
-    analyzeCapture({immediate:true});toast('Contenido recibido. Nexo lo está interpretando.');
+    openInboxCaptureEditor(p,true);
   },
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
   onDocumentFileChosen(raw){
