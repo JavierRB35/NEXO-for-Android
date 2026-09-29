@@ -28,9 +28,14 @@ public final class GmailWatchEngine {
     public static final String GMAIL_READONLY = "https://www.googleapis.com/auth/gmail.readonly";
     public static final Scope GMAIL_SCOPE = new Scope(GMAIL_READONLY);
     private static final String API = "https://gmail.googleapis.com/gmail/v1/users/me";
-    private static final String QUERY = "in:inbox newer_than:30d";
-    private static final String RECOVERY_QUERY = "in:inbox newer_than:2d";
-    private static final String FILTER_REVISION = "gmail-filter-v5:";
+
+    // No se limita a INBOX: un filtro/regla de Gmail puede archivar automáticamente
+    // un correo relevante. Se excluyen enviados y borradores, no el correo recibido.
+    private static final String QUERY = "newer_than:30d -in:sent -in:drafts";
+    private static final String RECOVERY_QUERY = "newer_than:7d -in:sent -in:drafts";
+    private static final String FILTER_REVISION = "gmail-filter-v6:";
+    private static final long DEDUPE_WINDOW_MS = 45L * 60L * 1000L;
+    private static final int MAX_TEXT_ATTACHMENT_BYTES = 256 * 1024;
 
     private GmailWatchEngine() {}
 
@@ -62,7 +67,11 @@ public final class GmailWatchEngine {
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
             String token = GoogleAuthUtil.getToken(context, account.getAccount(), "oauth2:" + GMAIL_READONLY);
-            for (String id : listMessageIds(token, QUERY)) db.rememberExternalInput("gmail", id, "gmail-baseline:" + id, 0L);
+            for (String id : listMessageIds(token, QUERY)) {
+                if (!db.hasExternalInput("gmail", id)) {
+                    db.rememberExternalInput("gmail", id, "gmail-baseline:" + id, 0L);
+                }
+            }
             recoverRecentIgnored(token, db, context);
             InputHubPrefs.setGmailEmail(context, account.getEmail());
             InputHubPrefs.setGmailBaselined(context, true);
@@ -92,22 +101,28 @@ public final class GmailWatchEngine {
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
             String token = GoogleAuthUtil.getToken(context, account.getAccount(), "oauth2:" + GMAIL_READONLY);
+            boolean hadProcessingError = false;
+
             for (String id : listMessageIds(token, QUERY)) {
                 JSONObject previous = db.getExternalInputState("gmail", id);
                 if (previous.length() > 0) {
                     long captureId = previous.optLong("captureId", 0L);
                     String fingerprint = previous.optString("fingerprint", "");
-                    if (captureId > 0 || db.inboxCaptureExists("gmail:" + id) || fingerprint.startsWith(FILTER_REVISION)) continue;
-                    // Los mensajes ya vistos pero descartados se recuperan únicamente
-                    // mediante RECOVERY_QUERY para evitar reprocesar 30 días de correo.
+                    if (captureId > 0 || db.inboxCaptureExists("gmail:" + id) ||
+                            fingerprint.startsWith(FILTER_REVISION)) {
+                        continue;
+                    }
+                    // Baselines, descartes de revisiones anteriores y errores se
+                    // recuperan por la ventana reciente para evitar releer 30 días.
                     continue;
                 }
-                processMessage(token, db, context, id);
+                if (!processMessage(token, db, context, id)) hadProcessingError = true;
             }
-            recoverRecentIgnored(token, db, context);
+
+            if (!recoverRecentIgnored(token, db, context)) hadProcessingError = true;
             InputHubPrefs.setGmailEmail(context, account.getEmail());
             InputHubPrefs.setGmailLastSync(context, System.currentTimeMillis());
-            InputHubPrefs.setGmailError(context, "");
+            if (!hadProcessingError) InputHubPrefs.setGmailError(context, "");
         } catch (Exception e) {
             InputHubPrefs.setGmailError(context, readableError(e));
         } finally {
@@ -122,63 +137,96 @@ public final class GmailWatchEngine {
         do {
             String url = API + "/messages?q=" +
                     URLEncoder.encode(query, StandardCharsets.UTF_8.name()) +
-                    "&maxResults=100&fields=messages/id,nextPageToken";
-            if (!page.isBlank()) url += "&pageToken=" + URLEncoder.encode(page, StandardCharsets.UTF_8.name());
+                    "&maxResults=500&fields=messages/id,nextPageToken";
+            if (!page.isBlank()) {
+                url += "&pageToken=" + URLEncoder.encode(page, StandardCharsets.UTF_8.name());
+            }
             JSONObject json = getJson(url, token);
             JSONArray messages = json.optJSONArray("messages");
             if (messages != null) {
-                for (int i=0;i<messages.length();i++) {
-                    String id = messages.optJSONObject(i) == null ? "" : messages.optJSONObject(i).optString("id", "");
+                for (int i = 0; i < messages.length(); i++) {
+                    JSONObject m = messages.optJSONObject(i);
+                    String id = m == null ? "" : m.optString("id", "");
                     if (!id.isBlank()) ids.add(id);
                 }
             }
             page = json.optString("nextPageToken", "");
             pages++;
-        } while (!page.isBlank() && pages < 3);
+        } while (!page.isBlank() && pages < 4);
         return ids;
     }
 
-    private static void recoverRecentIgnored(String token, DatabaseHelper db, Context context) throws Exception {
+    private static boolean recoverRecentIgnored(String token, DatabaseHelper db, Context context) throws Exception {
+        boolean ok = true;
         for (String id : listMessageIds(token, RECOVERY_QUERY)) {
             JSONObject previous = db.getExternalInputState("gmail", id);
-            if (previous.length() == 0) {
-                processMessage(token, db, context, id);
-                continue;
-            }
-            long captureId = previous.optLong("captureId", 0L);
-            String fingerprint = previous.optString("fingerprint", "");
-            if (captureId > 0 || db.inboxCaptureExists("gmail:" + id) || fingerprint.startsWith(FILTER_REVISION)) continue;
-            processMessage(token, db, context, id);
-        }
-    }
-
-    private static void processMessage(String token, DatabaseHelper db, Context context, String id) throws Exception {
-        GmailMessage message = fetchMessage(token, id);
-        long captureId = 0L;
-        if (message != null) {
-            String text = message.analysisText();
-            JSONObject classification = RuleClassifier.classify(text).toJson();
-            if (NotificationCandidateFilter.shouldCapture(text, classification)) {
-                JSONObject in = new JSONObject();
-                in.put("source", "gmail-api");
-                in.put("mime", "message/rfc822");
-                in.put("subject", message.subject);
-                in.put("text", text);
-                in.put("sourcePackage", "gmail-api");
-                in.put("sender", message.from);
-                in.put("sourceKey", "gmail:" + id);
-                captureId = db.insertInboxCapture(in, classification);
-                if (captureId > 0) {
-                    String preview = message.subject;
-                    if (!message.snippet.isBlank()) preview += " · " + message.snippet;
-                    if (preview.length() > 180) preview = preview.substring(0, 177) + "…";
-                    InboxCandidateNotifier.show(
-                            context, captureId, "Nexo · correo accionable", message.from, preview
-                    );
+            if (previous.length() > 0) {
+                long captureId = previous.optLong("captureId", 0L);
+                String fingerprint = previous.optString("fingerprint", "");
+                if (captureId > 0 || db.inboxCaptureExists("gmail:" + id) ||
+                        fingerprint.startsWith(FILTER_REVISION)) {
+                    continue;
                 }
             }
+            if (!processMessage(token, db, context, id)) ok = false;
         }
-        db.rememberExternalInput("gmail", id, FILTER_REVISION + id, captureId);
+        return ok;
+    }
+
+    private static boolean processMessage(
+            String token,
+            DatabaseHelper db,
+            Context context,
+            String id
+    ) {
+        try {
+            GmailMessage message = fetchMessage(token, id);
+            long captureId = 0L;
+            boolean candidate = false;
+
+            if (message != null) {
+                String text = message.analysisText();
+                JSONObject classification = RuleClassifier.classify(text).toJson();
+                candidate = NotificationCandidateFilter.shouldCapture(text, classification);
+
+                if (candidate) {
+                    // Gmail puede haber llegado primero por NotificationListener.
+                    captureId = db.findRecentEquivalentInboxCapture(
+                            "gmail", message.from, text, DEDUPE_WINDOW_MS
+                    );
+                    if (captureId <= 0L) {
+                        JSONObject in = new JSONObject();
+                        in.put("source", "gmail-api");
+                        in.put("mime", "message/rfc822");
+                        in.put("subject", message.subject);
+                        in.put("text", text);
+                        in.put("sourcePackage", "gmail-api");
+                        in.put("sender", message.from);
+                        in.put("sourceKey", "gmail:" + id);
+                        captureId = db.insertInboxCapture(in, classification);
+
+                        if (captureId > 0) {
+                            String preview = message.subject;
+                            if (!message.snippet.isBlank()) preview += " · " + message.snippet;
+                            if (preview.length() > 180) preview = preview.substring(0, 177) + "…";
+                            InboxCandidateNotifier.show(
+                                    context, captureId, "Nexo · correo para revisar", message.from, preview
+                            );
+                        }
+                    }
+                }
+            }
+
+            String decision = captureId > 0L ? "captured:" : "rejected:";
+            db.rememberExternalInput("gmail", id, FILTER_REVISION + decision + id, captureId);
+            return true;
+        } catch (Exception e) {
+            // No consolidamos un fallo de red/parsing como descarte. La siguiente
+            // consulta podrá reintentar el mismo mensaje.
+            db.rememberExternalInput("gmail", id, "gmail-error:" + id, 0L);
+            InputHubPrefs.setGmailError(context, readableError(e));
+            return false;
+        }
     }
 
     private static GmailMessage fetchMessage(String token, String id) throws Exception {
@@ -189,7 +237,7 @@ public final class GmailWatchEngine {
         JSONObject payload = json.optJSONObject("payload");
         JSONArray headers = payload == null ? null : payload.optJSONArray("headers");
         if (headers != null) {
-            for (int i=0;i<headers.length();i++) {
+            for (int i = 0; i < headers.length(); i++) {
                 JSONObject h = headers.optJSONObject(i);
                 if (h == null) continue;
                 String name = h.optString("name", "");
@@ -197,16 +245,19 @@ public final class GmailWatchEngine {
                 else if ("From".equalsIgnoreCase(name)) from = h.optString("value", "");
             }
         }
+
         String snippet = json.optString("snippet", "");
-        String bodyText = extractReadableBody(payload);
+        String bodyText = extractReadableBody(payload, token, id);
         long internalDate = 0L;
-        try { internalDate = Long.parseLong(json.optString("internalDate", "0")); } catch (Exception ignored) {}
+        try { internalDate = Long.parseLong(json.optString("internalDate", "0")); }
+        catch (Exception ignored) {}
+
         return new GmailMessage(id, from, subject, snippet, bodyText, internalDate);
     }
 
-    private static String extractReadableBody(JSONObject payload) {
+    private static String extractReadableBody(JSONObject payload, String token, String messageId) {
         StringBuilder out = new StringBuilder();
-        collectPartText(payload, out, 0);
+        collectPartText(payload, out, 0, token, messageId);
         String text = out.toString()
                 .replaceAll("(?is)<style[^>]*>.*?</style>", " ")
                 .replaceAll("(?is)<script[^>]*>.*?</script>", " ")
@@ -222,23 +273,61 @@ public final class GmailWatchEngine {
         return text;
     }
 
-    private static void collectPartText(JSONObject part, StringBuilder out, int depth) {
-        if (part == null || depth > 8) return;
+    private static void collectPartText(
+            JSONObject part,
+            StringBuilder out,
+            int depth,
+            String token,
+            String messageId
+    ) {
+        if (part == null || depth > 8 || out.length() > 14000) return;
         String mime = part.optString("mimeType", "").toLowerCase(java.util.Locale.ROOT);
+        boolean readable = mime.startsWith("text/plain") || mime.startsWith("text/html") ||
+                mime.startsWith("text/calendar") || mime.isBlank();
+
         JSONObject body = part.optJSONObject("body");
         String data = body == null ? "" : body.optString("data", "");
-        if (!data.isBlank() && (mime.startsWith("text/plain") || mime.startsWith("text/html") || mime.startsWith("text/calendar") || mime.isBlank())) {
+        String attachmentId = body == null ? "" : body.optString("attachmentId", "");
+        int size = body == null ? 0 : body.optInt("size", 0);
+
+        if (readable && data.isBlank() && !attachmentId.isBlank() &&
+                (size <= 0 || size <= MAX_TEXT_ATTACHMENT_BYTES)) {
             try {
-                byte[] decoded = android.util.Base64.decode(data, android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP);
-                String text = new String(decoded, StandardCharsets.UTF_8);
-                if (!text.isBlank()) {
-                    if (out.length() > 0) out.append("\n");
-                    out.append(text);
+                String url = API + "/messages/" +
+                        URLEncoder.encode(messageId, StandardCharsets.UTF_8.name()) +
+                        "/attachments/" +
+                        URLEncoder.encode(attachmentId, StandardCharsets.UTF_8.name()) +
+                        "?fields=data,size";
+                JSONObject attachment = getJson(url, token);
+                data = attachment.optString("data", "");
+            } catch (Exception ignored) {
+                // El asunto/snippet y otras partes siguen disponibles aunque falle una parte.
+            }
+        }
+
+        if (readable && !data.isBlank()) {
+            try {
+                byte[] decoded = android.util.Base64.decode(
+                        data,
+                        android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP
+                );
+                if (decoded.length <= MAX_TEXT_ATTACHMENT_BYTES) {
+                    String text = new String(decoded, StandardCharsets.UTF_8);
+                    if (!text.isBlank()) {
+                        if (out.length() > 0) out.append("\n");
+                        out.append(text);
+                    }
                 }
             } catch (Exception ignored) {}
         }
+
         JSONArray parts = part.optJSONArray("parts");
-        if (parts != null) for (int i=0;i<parts.length();i++) collectPartText(parts.optJSONObject(i), out, depth+1);
+        if (parts != null) {
+            for (int i = 0; i < parts.length(); i++) {
+                collectPartText(parts.optJSONObject(i), out, depth + 1, token, messageId);
+                if (out.length() > 14000) break;
+            }
+        }
     }
 
     private static JSONObject getJson(String endpoint, String token) throws Exception {
@@ -271,10 +360,16 @@ public final class GmailWatchEngine {
     private static final class GmailMessage {
         final String id, from, subject, snippet, bodyText;
         final long internalDate;
+
         GmailMessage(String id, String from, String subject, String snippet, String bodyText, long internalDate) {
-            this.id=id;this.from=from==null?"":from;this.subject=subject==null?"":subject;
-            this.snippet=snippet==null?"":snippet;this.bodyText=bodyText==null?"":bodyText;this.internalDate=internalDate;
+            this.id = id;
+            this.from = from == null ? "" : from;
+            this.subject = subject == null ? "" : subject;
+            this.snippet = snippet == null ? "" : snippet;
+            this.bodyText = bodyText == null ? "" : bodyText;
+            this.internalDate = internalDate;
         }
+
         String analysisText() {
             StringBuilder b = new StringBuilder();
             if (!subject.isBlank()) b.append(subject);
@@ -286,8 +381,8 @@ public final class GmailWatchEngine {
                 if (b.length() > 0) b.append("\n");
                 b.append(bodyText);
             }
-            String text=b.toString();
-            return text.length()>14000?text.substring(0,14000):text;
+            String text = b.toString();
+            return text.length() > 14000 ? text.substring(0, 14000) : text;
         }
     }
 }
