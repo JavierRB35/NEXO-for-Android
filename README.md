@@ -3,10 +3,10 @@
 Rama de compilación: `feature/nexo-input-hub-v0.3`.
 
 Identidad de esta versión:
-- Nexo **3.7.0-beta1**
-- `versionCode 66`
+- Nexo **3.7.0-beta2**
+- `versionCode 67`
 - `applicationId com.jruiz.nexo`
-- Base de datos `nexo.db`, esquema **18**
+- Base de datos `nexo.db`, esquema **20**
 
 ## Entorno AndroidIDE validado
 
@@ -25,7 +25,7 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el ZIP de la rama directamente como una única carpeta de proyecto dentro de Download, por ejemplo:
 
 ```text
-/storage/emulated/0/Download/Nexo_Input_Hub_v0_3/
+/storage/emulated/0/Download/Nexo_3_7_0_beta2/
 ```
 
 Después:
@@ -45,7 +45,7 @@ El script:
 5. copia el APK final directamente a:
 
 ```text
-/storage/emulated/0/Download/Nexo_Input_Hub_v0_3.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta2.apk
 ```
 
 La primera compilación necesita Internet para descargar dependencias que aún no estén en caché y el AAR de sherpa-onnx.
