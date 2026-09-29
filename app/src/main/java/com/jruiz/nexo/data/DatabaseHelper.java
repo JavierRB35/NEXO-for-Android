@@ -642,7 +642,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 v.put("status", "task".equals(newType) ? "pending" : "active");
             }
         }
-        if (in.has("dueAt")) v.put("due_at", Math.max(0, in.optLong("dueAt", 0)));
+        if (in.has("dueAt")) {
+            long newDue=Math.max(0,in.optLong("dueAt",0));
+            v.put("due_at",newDue);
+            if(!in.has("endAt")) {
+                long oldDue=old.optLong("dueAt",0),oldEnd=old.optLong("endAt",0);
+                long span=Math.max(0L,oldEnd-oldDue);
+                if(span<=0&&old.optInt("durationMinutes",0)>0)span=old.optInt("durationMinutes",0)*60000L;
+                v.put("end_at",newDue>0?newDue+span:0L);
+            }
+        }
         if (in.has("endAt")) v.put("end_at", Math.max(0, in.optLong("endAt", 0)));
         if (in.has("hasTime")) v.put("has_time", in.optBoolean("hasTime") ? 1 : 0);
         if (in.has("allDay")) v.put("all_day", in.optBoolean("allDay") ? 1 : 0);
@@ -755,7 +764,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 JSONObject o=past.optJSONObject(i); if(o==null)continue;
                 String type = o.optString("type");
                 if (("event".equals(type) || "task".equals(type) || "reminder".equals(type) || "expiry".equals(type))
-                        && !"done".equals(o.optString("status")) && !"deleted".equals(o.optString("occurrenceStatus"))) overdue.put(o);
+                        && !"done".equals(o.optString("status")) && !"cancelled".equals(o.optString("status")) && !"deleted".equals(o.optString("occurrenceStatus"))) overdue.put(o);
             }
             out.put("overdueTasks", overdue);
 
@@ -763,13 +772,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             for (int i=0;i<future.length() && upcoming.length()<20;i++) {
                 JSONObject o=future.optJSONObject(i); if(o==null)continue;
                 String status=o.optString("status","active");
-                if (!"done".equals(status) && !"deleted".equals(o.optString("occurrenceStatus"))) upcoming.put(o);
+                if (!"done".equals(status) && !"cancelled".equals(status) && !"deleted".equals(o.optString("occurrenceStatus"))) upcoming.put(o);
             }
             out.put("upcoming", upcoming);
             out.put("important", queryItems("priority=3 AND (status='active' OR status='pending')", null, "due_at ASC, updated_at DESC", 8));
             out.put("recent", queryItems("type<>'parking'", null, "created_at DESC", 6));
             out.put("reminders", queryReminders(System.currentTimeMillis(), next7, 12));
-            out.put("pendingTasks", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type IN ('event','task','reminder','expiry') AND status<>'done'"));
+            out.put("pendingTasks", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type IN ('event','task','reminder','expiry') AND status NOT IN ('done','cancelled')"));
             out.put("inboxCount", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1"));
             out.put("lastParking", getLastParking());
         } catch (Exception ignored) {}
@@ -849,7 +858,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONArray getAppointments() {
         reconcileTemporalStatuses();
         return queryItems("type IN ('event','task','reminder','expiry')", null,
-                "CASE WHEN status='done' THEN 1 ELSE 0 END, CASE WHEN due_at=0 THEN 1 ELSE 0 END, due_at ASC, created_at DESC", -1);
+                "CASE WHEN status IN ('done','cancelled') THEN 1 ELSE 0 END, CASE WHEN due_at=0 THEN 1 ELSE 0 END, due_at ASC, created_at DESC", -1);
     }
 
     public boolean setTaskStatus(long id, String status) {
@@ -1192,7 +1201,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     /** Devuelve la clave original de la próxima aparición efectiva posterior a afterMillis. */
     public long findNextOccurrence(long seriesId, long afterMillis) {
         JSONObject base = getItem(seriesId); if (base.length() == 0 || base.optLong("dueAt",0)<=0) return 0;
-        if ("done".equals(base.optString("status")) || PlaceEntry.isPlace(base.optString("type")) || "document".equals(base.optString("type"))) return 0;
+        if ("done".equals(base.optString("status")) || "cancelled".equals(base.optString("status")) || PlaceEntry.isPlace(base.optString("type")) || "document".equals(base.optString("type"))) return 0;
         String recurrence = base.optString("recurrence", RecurrenceEngine.NONE);
         if (!RecurrenceEngine.isRecurring(recurrence)) return base.optLong("dueAt") > afterMillis ? base.optLong("dueAt") : 0;
 
@@ -1331,7 +1340,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         boolean genericPending = q.equals("pendiente") || q.equals("pendientes") || q.contains("que tengo pendiente") || q.contains("tengo pendiente") || q.contains("pendiente esta semana") || q.contains("pendientes esta semana");
         if (pending && (q.contains("tarea") || (!domainPending && genericPending))) {
             long limit = week ? endOfCurrentWeekMillis() : Long.MAX_VALUE;
-            JSONArray a = queryItems("type IN ('event','task','reminder','expiry') AND status<>'done' AND (due_at=0 OR due_at<=?)",
+            JSONArray a = queryItems("type IN ('event','task','reminder','expiry') AND status NOT IN ('done','cancelled') AND (due_at=0 OR due_at<=?)",
                     new String[]{String.valueOf(limit)}, "priority DESC, due_at ASC", 200);
             for (int i=0;i<a.length();i++) out.put(withResultKind(a.optJSONObject(i), "item"));
             return out;
