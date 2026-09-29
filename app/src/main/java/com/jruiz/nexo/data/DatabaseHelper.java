@@ -1212,7 +1212,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
 
         // Elementos no recurrentes.
-        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND due_at<=? AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=? AND recurrence='none' ORDER BY due_at ASC",
+        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND due_at<=CAST(? AS INTEGER) AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=CAST(? AS INTEGER) AND recurrence='none' ORDER BY due_at ASC",
                 new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
                 JSONObject o = normalizeNexoFamiliaStatusForRead(itemJson(c));
