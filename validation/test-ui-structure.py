@@ -83,7 +83,9 @@ for dest in ["today","calendar","search","tools"]:
     assert f'data-nav="{dest}"' in nav, f"Falta navegación principal: {dest}"
 
 assert 'id="globalVoiceFab"' in html, "Falta FAB de voz"
-assert 'id="calendarAddFab"' in html, "Falta FAB de añadir cita"
+assert 'id="calendarAddFab"' in html, "Falta FAB contextual de añadir evento"
+assert "eventContext=state.screen==='today'||state.screen==='calendar'||(state.screen==='panel'&&state.lastPanel==='appointments')" in app_js, "El FAB de evento debe aparecer solo en Inicio, Calendario y Agenda"
+assert "function runEventAddFab()" in app_js and "$('#calendarAddFab').addEventListener('click',runEventAddFab);" in app_js, "El FAB contextual no está conectado a la creación de eventos"
 assert "$$('.screen').forEach" in app_js, "La navegación debe iterar todas las pantallas"
 assert "$$('.nav-item').forEach" in app_js, "La navegación debe iterar todos los botones inferiores"
 import re
