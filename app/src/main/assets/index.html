@@ -216,6 +216,15 @@
 <button data-display-mode="normal">Normal</button><button data-display-mode="comfortable">Cómoda</button><button data-display-mode="large">Muy grande</button>
 </div>
 </div>
+<div class="settings-card communication-capture-settings">
+<h2>Inbox automático</h2>
+<p class="muted">Nexo puede detectar información útil en notificaciones de comunicaciones. El análisis se realiza localmente.</p>
+<div id="notificationAccessStatus" class="notification-access-status"></div>
+<div class="modal-actions"><button id="notificationAccessBtn" class="secondary-button" type="button">Configurar acceso a notificaciones</button></div>
+<label class="toggle-row"><span><strong>Captura automática</strong><small>Solo se guardan candidatos que parezcan accionables.</small></span><input id="communicationCaptureEnabled" type="checkbox"></label>
+<div id="communicationApps" class="communication-apps"></div>
+<p class="small muted">WhatsApp, Gmail, Telegram y SMS. Nexo no lee conversaciones completas: solo el contenido que Android muestra en las notificaciones.</p>
+</div>
 <div class="settings-card medication-message-settings">
 <h2>Mensajes de medicación</h2>
 <p class="muted">Personaliza los seis avisos. Usa <code>{medicacion}</code> para nombre y dosis y <code>{hora}</code> para la hora prevista.</p>
