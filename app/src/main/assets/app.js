@@ -109,6 +109,7 @@ function familySearchCandidateForItem(item,todayStart){
 }
 function buildFamilyStyleSearchIndex(){
   const data=parseNative(NexoNative.getFamilyStyleSearchIndex(),{}),today=new Date();today.setHours(0,0,0,0);const start=today.getTime(),out=[];
+  (parseNative(NexoNative.getNexoFamiliaMembers(),[])||[]).forEach(m=>out.push({kind:'member',id:String(m.user_id||''),type:'Persona',title:String(m.full_name||'Persona'),detail:m.role==='admin'?'Administrador':'Miembro',searchText:[m.full_name,m.role].filter(Boolean).join(' '),historical:false,raw:m}));
   (data.items||[]).forEach(i=>out.push(familySearchCandidateForItem(i,start)));
   (data.lists||[]).forEach(x=>out.push({kind:'list',id:Number(x.id),type:'Lista',title:String(x.title||'Lista'),detail:String(x.kind||''),searchText:[x.title,x.kind,x.entriesText].filter(Boolean).join(' '),historical:false,raw:x}));
   (data.medications||[]).forEach(x=>out.push({kind:'medication',id:Number(x.id),type:'Medicación',title:String(x.name||x.title||'Medicamento'),detail:[x.dose,x.scheduleText,x.instructions,x.active===false?'Historial':''].filter(Boolean).join(' · '),searchText:[x.name,x.title,x.dose,x.instructions,x.notes,x.scheduleText,x.times].filter(Boolean).join(' '),historical:false,raw:x}));
@@ -150,6 +151,7 @@ function familySearchCard(item,index,home=false){
 }
 function openFamilySearchResult(item){
   if(!item)return;
+  if(item.kind==='member'){navigate('more');return;}
   if(item.kind==='list'){openPanel('lists');setTimeout(()=>openList(Number(item.id)),40);return;}
   if(item.kind==='medication'){openPanel('medications');setTimeout(()=>openMedicationComposer('',item.raw),40);return;}
   if(item.kind==='journal'){openPanel(item.raw?.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(Number(item.id)),40);return;}
