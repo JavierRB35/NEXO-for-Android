@@ -223,6 +223,13 @@ public class MainActivity extends Activity {
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        String uiAssetVersion = BuildConfig.VERSION_NAME;
+        android.content.SharedPreferences uiPrefs = getSharedPreferences("nexo-ui-assets", MODE_PRIVATE);
+        if (!uiAssetVersion.equals(uiPrefs.getString("version", ""))) {
+            webView.clearCache(true);
+            uiPrefs.edit().putString("version", uiAssetVersion).apply();
+        }
         // La WebView no realiza cargas de red: la lógica de Nexo permanece local.
         s.setBlockNetworkLoads(true);
         webView.setWebViewClient(new WebViewClient() {
