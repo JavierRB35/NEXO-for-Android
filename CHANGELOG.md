@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.0-beta6 · versionCode 71 · Reconstrucción limpia de Nexo Familia
+
+- Sustituye la reparación incremental por una reconstrucción limpia de los datos importados desde Nexo Familia.
+- Elimina únicamente las copias locales cuyo origen es `nexo-familia`, junto con sus avisos y mapeos; no toca eventos manuales ni otras fuentes.
+- Reimporta los 33 eventos de la snapshot completa.
+- Verifica por UUID, título y fecha/hora que cada evento existe realmente en la BD Android.
+- Verifica por separado **17/17 eventos `family`** y **16/16 eventos `selected`**.
+- Verifica las **46/46 reglas de aviso**.
+- Si falta un solo evento o regla, la migración no se marca como completada.
+- La pantalla de Nexo Familia muestra el desglose family/selected y enumera títulos faltantes.
+- Caso de control: “Medicina digestiva” del 30/10/2026 debe quedar materializado como evento `selected`.
+- Baseline AndroidIDE sin cambios: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta5 · versionCode 70 · Reparación verificable de Nexo Familia
 
 - Fuerza una nueva snapshot de reparación aunque una instalación anterior hubiera quedado marcada como migrada.
