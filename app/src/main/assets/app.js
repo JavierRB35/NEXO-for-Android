@@ -33,7 +33,9 @@ const state = {
   placeFilter:'all', placeSearch:'', places:[],
   documentFilter:'all', documentSearch:'', documents:[], documentEditor:null, documentRequest:0,
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
-  displayMode:'comfortable', appointmentsFilter:'pending', captureReturnRoute:null, searchFilter:'all', modalReturnFocus:null, managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
+  displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
+  homeSearchIndex:[], homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
+  managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
 };
 
 const $ = s => document.querySelector(s);
@@ -43,6 +45,123 @@ const esc = s => String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;',
 const escAttr = s => esc(s).replace(/`/g,'&#96;');
 const typeLabel = t => TYPE_LABEL[t] || 'Elemento';
 
+const FAMILY_CATEGORY_THEMES={
+  'familia':['#7B1FA2','#F6E8FA','#D9A7E5'],
+  'cumpleanos':['#F57C00','#FFF0D8','#F7BE73'],
+  'santo / onomastica':['#C51162','#FFE5F0','#F18AB9'],
+  'salud / medico':['#D32F2F','#FFE7E7','#F49A9A'],
+  'colegio / estudios':['#1976D2','#E5F1FF','#8FC2F5'],
+  'trabajo':['#263238','#ECEFF1','#A9B4B9'],
+  'viaje':['#00695C','#DDF5F0','#76C8BA'],
+  'vacaciones':['#00838F','#DFF7FA','#75D1D9'],
+  'casa':['#6D4C41','#F4E8E3','#C9A89D'],
+  'vehiculos / itv':['#283593','#E7E9FA','#9BA3E1'],
+  'seguros':['#1B5E20','#E5F4E6','#91C494'],
+  'tramites':['#827717','#F4F1D8','#C9C071'],
+  'tarea / recado':['#A66A00','#FFF0C9','#E4BE62'],
+  'compras':['#E64A19','#FFE8DF','#F3A083'],
+  'ocio / social':['#689F38','#EDF6DF','#AFD17D'],
+  'deporte':['#008856','#DFF5EA','#72C69F'],
+  'recordatorio':['#546E7A','#E8EEF1','#A5B6BE'],
+  'otro':['#64748B','#F1F5F9','#CBD5E1']
+};
+function familyNorm(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();}
+function familyCategoryTheme(category){return FAMILY_CATEGORY_THEMES[familyNorm(categoryLabel(category))]||FAMILY_CATEGORY_THEMES.otro;}
+function familyCategoryIcon(category){
+  const n=familyNorm(categoryLabel(category));
+  if(/salud|medic|dent/.test(n))return 'heart-pulse';
+  if(/cumple/.test(n))return 'cake';
+  if(/viaje|vacacion/.test(n))return 'plane';
+  if(/trabajo/.test(n))return 'briefcase';
+  if(/colegio|estudio/.test(n))return 'graduation';
+  if(/casa|hogar/.test(n))return 'home';
+  if(/vehiculo|itv/.test(n))return 'car';
+  if(/seguro/.test(n))return 'shield';
+  if(/tramit|tarea|recado/.test(n))return 'clipboard';
+  if(/compra/.test(n))return 'cart';
+  if(/ocio|social/.test(n))return 'party';
+  if(/deporte/.test(n))return 'dumbbell';
+  if(/recordatorio/.test(n))return 'bell';
+  if(/familia/.test(n))return 'users';
+  return 'calendar';
+}
+function localDateKeyFromMs(ms){return ms?isoDateLocal(new Date(Number(ms))):'';}
+function familySearchNormalize(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();}
+const FAMILY_SEARCH_STOPWORDS=new Set(['a','al','de','del','el','la','los','las','para','por','un','una']);
+function familySearchTokens(query){return familySearchNormalize(query).split(/[^a-z0-9ñ]+/i).filter(t=>t&&!FAMILY_SEARCH_STOPWORDS.has(t));}
+function nextOccurrenceForSearch(item,todayStart){
+  if(!item?.dueAt)return 0;
+  if(!item.recurrence||item.recurrence==='none')return Number(item.dueAt)||0;
+  return Number(NexoNative.getNextOccurrence(Number(item.seriesId||item.id),todayStart-1))||0;
+}
+function familySearchCandidateForItem(item,todayStart){
+  const recurring=!!item.recurrence&&item.recurrence!=='none';
+  const next=nextOccurrenceForSearch(item,todayStart);
+  const eventLike=isAppointmentType(item.type);
+  const eventDate=next?localDateKeyFromMs(next):localDateKeyFromMs(item.dueAt);
+  const historical=eventLike?(recurring?!next:(item.status==='done'||(eventDate&&eventDate<isoDateLocal(new Date())))):false;
+  const type=item.type==='note'?'Nota':eventLike?'Evento':item.type==='document'?'Documento':isPlaceType(item.type)?'Lugar':typeLabel(item.type);
+  const assigned=item.participantsText?'Asignado a '+item.participantsText:'';
+  const detail=[categoryLabel(item.category),assigned,item.locationText,eventDate,historical?'Finalizado':''].filter(Boolean).join(' · ');
+  return {kind:'item',id:Number(item.seriesId||item.id),occurrenceAt:recurring?next:0,recurring,type,title:String(item.title||type),detail,
+    searchText:[item.title,item.body,item.originalText,item.category,item.subcategory,item.tags,item.locationText,item.participantsText,item.attachmentName,'agenda','asignado'].filter(Boolean).join(' '),
+    sortDate:eventDate||'',historical,raw:item};
+}
+function buildFamilyStyleSearchIndex(){
+  const data=parseNative(NexoNative.getFamilyStyleSearchIndex(),{}),today=new Date();today.setHours(0,0,0,0);const start=today.getTime(),out=[];
+  (data.items||[]).forEach(i=>out.push(familySearchCandidateForItem(i,start)));
+  (data.lists||[]).forEach(x=>out.push({kind:'list',id:Number(x.id),type:'Lista',title:String(x.title||'Lista'),detail:String(x.kind||''),searchText:[x.title,x.kind,x.entriesText].filter(Boolean).join(' '),historical:false,raw:x}));
+  (data.medications||[]).forEach(x=>out.push({kind:'medication',id:Number(x.id),type:'Medicación',title:String(x.name||x.title||'Medicamento'),detail:[x.dose,x.scheduleText,x.instructions,x.active===false?'Historial':''].filter(Boolean).join(' · '),searchText:[x.name,x.title,x.dose,x.instructions,x.notes,x.scheduleText,x.times].filter(Boolean).join(' '),historical:false,raw:x}));
+  (data.journal||[]).forEach(x=>out.push({kind:'journal',id:Number(x.id),type:x.kind==='quote'?'Frase':'Cuaderno',title:String(x.title||'Entrada'),detail:[x.summary,x.tags].filter(Boolean).join(' · '),searchText:[x.title,x.body,x.summary,x.tags].filter(Boolean).join(' '),historical:false,raw:x}));
+  (data.inbox||[]).forEach(x=>out.push({kind:'inbox',id:Number(x.id),type:'Inbox',title:String(x.detectedTitle||x.subject||x.attachmentName||String(x.rawText||'').split(/\n/)[0]||'Entrada'),detail:[x.source,x.sender].filter(Boolean).join(' · '),searchText:[x.detectedTitle,x.subject,x.rawText,x.sender,x.source,x.sourcePackage,x.attachmentName].filter(Boolean).join(' '),historical:false,raw:x}));
+  (data.recordings||[]).forEach(x=>{let transcription='';try{if(NexoNative.hasTranscription(String(x.id)))transcription=String(NexoNative.getTranscription(String(x.id))||'');}catch(_){}
+    out.push({kind:'recording',id:String(x.id||''),type:'Grabación',title:String(x.title||'Grabación'),detail:x.createdAt?fmtDate(Number(x.createdAt),true):'',searchText:[x.title,transcription].filter(Boolean).join(' '),historical:false,raw:x});});
+  state.homeSearchIndex=out;return out;
+}
+function familyStyleSearch(query,includeHistorical=false){
+  const items=state.homeSearchIndex.length?state.homeSearchIndex:buildFamilyStyleSearchIndex(),normalizedQuery=familySearchNormalize(query);
+  const candidates=includeHistorical?items:items.filter(i=>!i.historical);
+  if(!normalizedQuery)return candidates;
+  const tokens=familySearchTokens(query);
+  return candidates.map((item,index)=>{
+    const title=familySearchNormalize(item.title),detail=familySearchNormalize(item.detail),searchText=familySearchNormalize(item.searchText),type=familySearchNormalize(item.type),haystack=[type,title,detail,searchText].join(' ');
+    if(!tokens.every(t=>haystack.includes(t)))return null;
+    let score=0;
+    if(title===normalizedQuery)score+=120;else if(title.startsWith(normalizedQuery))score+=80;else if(title.includes(normalizedQuery))score+=55;
+    if(detail.includes(normalizedQuery))score+=35;
+    if(detail.includes('asignado a '+normalizedQuery))score+=70;
+    if(searchText.includes(normalizedQuery))score+=20;
+    if(type.includes(normalizedQuery))score+=12;
+    tokens.forEach(t=>{if(title.includes(t))score+=12;if(detail.includes(t))score+=7;if(detail.includes('asignado a '+t))score+=28;if(searchText.includes(t))score+=4;});
+    return {item,score,index};
+  }).filter(Boolean).sort((a,b)=>{
+    const relevance=b.score-a.score;if(relevance!==0)return relevance;
+    if(a.item.sortDate&&b.item.sortDate){
+      const today=new Date();today.setHours(12,0,0,0);
+      const ad=new Date(a.item.sortDate+'T12:00:00'),bd=new Date(b.item.sortDate+'T12:00:00');
+      const da=Math.abs(ad-today),db=Math.abs(bd-today);if(da!==db)return da-db;
+      const ap=ad<today,bp=bd<today;if(ap!==bp)return ap?1:-1;
+    }
+    return a.index-b.index||String(a.item.title).localeCompare(String(b.item.title),'es');
+  }).map(x=>x.item);
+}
+function familySearchCard(item,index,home=false){
+  return '<button type="button" class="family-result-card" data-family-search-result="'+index+'" data-family-search-home="'+(home?'1':'0')+'"><span class="family-result-main"><span class="pill">'+esc(item.type)+'</span><strong>'+esc(item.title)+'</strong>'+(item.detail?'<span>'+esc(item.detail)+'</span>':'')+'</span>'+uiIcon('right')+'</button>';
+}
+function openFamilySearchResult(item){
+  if(!item)return;
+  if(item.kind==='list'){openPanel('lists');setTimeout(()=>openList(Number(item.id)),40);return;}
+  if(item.kind==='medication'){openPanel('medications');setTimeout(()=>openMedicationComposer('',item.raw),40);return;}
+  if(item.kind==='journal'){openPanel(item.raw?.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(Number(item.id)),40);return;}
+  if(item.kind==='recording'){openPanel('recordings');setTimeout(()=>openRecordingActions(String(item.id)),40);return;}
+  if(item.kind==='inbox'){openPanel('inbox');setTimeout(()=>reviewInboxCapture(Number(item.id)),40);return;}
+  const raw=item.raw||{};
+  if(raw.type==='note'){openPanel('notes');setTimeout(()=>openNoteComposer(Number(raw.id)),40);return;}
+  if(raw.type==='document'){openPanel('documents');setTimeout(()=>openDocumentEditor(Number(raw.id)),40);return;}
+  if(isPlaceType(raw.type)){openPanel('places');setTimeout(()=>openPlaceEditor(Number(raw.id)),40);return;}
+  if(item.recurring&&item.occurrenceAt){openOccurrence(Number(item.id),Number(item.occurrenceAt));return;}
+  openItem(Number(item.id));
+}
 
 function isAppointmentType(type){return ['event','task','reminder','expiry'].includes(type);}
 function isPlaceType(type){return type==='place'||type==='restaurant';}
