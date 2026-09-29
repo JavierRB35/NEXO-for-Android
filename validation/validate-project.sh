@@ -33,6 +33,7 @@ python validation/test-input-hub-reliability.py
 python validation/test-nexo-familia-migration.py
 python validation/test-release-config.py
 python validation/test-calendar-swipe.py
+python validation/test-calendar-nonrecurring-range.py
 node validation/test-calendar-swipe-runtime.js
 if [ -n "${NEXO_QA_MODULES:-}" ]; then
     node validation/test-ui-runtime.cjs
