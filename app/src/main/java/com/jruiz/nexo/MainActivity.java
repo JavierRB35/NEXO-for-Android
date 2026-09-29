@@ -127,6 +127,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         db = new DatabaseHelper(getApplicationContext());
         service = new NexoService(this, db);
+        applyBundledNexoFamiliaMigration();
         setupWebView();
         handleIncomingIntent(getIntent());
     }
@@ -608,6 +609,40 @@ public class MainActivity extends Activity {
                 jsCallback("onDocumentActionResult","No se pudo guardar la copia del documento. Comprueba el destino y el espacio disponible.");
             }
         },"nexo-document-export").start();
+    }
+
+    private void applyBundledNexoFamiliaMigration() {
+        final String assetName = "nexo_familia_seed_v1.json";
+        try {
+            String raw;
+            try (InputStream in = getAssets().open(assetName);
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[16384];
+                int n;
+                while ((n = in.read(buffer)) != -1) if (n > 0) out.write(buffer, 0, n);
+                raw = out.toString(java.nio.charset.StandardCharsets.UTF_8);
+            }
+            JSONObject payload = new JSONObject(raw);
+            String snapshot = payload.optString("snapshotVersion", "v1");
+            SharedPreferences prefs = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
+            if (snapshot.equals(prefs.getString("snapshotVersion", ""))) return;
+
+            JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
+            int expected = payload.optJSONArray("events") == null ? 0 : payload.optJSONArray("events").length();
+            int preserved = result.optInt("preserved", 0);
+            int skipped = result.optInt("skipped", 0);
+            if (expected > 0 && preserved == expected && skipped == 0) {
+                prefs.edit()
+                        .putString("snapshotVersion", snapshot)
+                        .putInt("events", preserved)
+                        .putLong("importedAt", System.currentTimeMillis())
+                        .apply();
+                db.reconcileTemporalStatuses();
+            }
+        } catch (Exception ignored) {
+            // La app debe seguir abriendo aunque el snapshot opcional no pueda migrarse.
+            // Si falla no se marca como completado y se volverá a intentar en el siguiente arranque.
+        }
     }
 
     private void chooseNexoFamiliaImport() {
