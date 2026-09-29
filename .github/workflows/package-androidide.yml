@@ -30,6 +30,12 @@ jobs:
         shell: bash
         run: sh ./prepare-transcription-runtime.sh
 
+      - name: Validate UI structure
+        shell: bash
+        run: |
+          python3 validation/test-ui-structure.py
+          python3 validation/test-version-identity.py
+
       - name: Compile debug APK
         shell: bash
         env:
