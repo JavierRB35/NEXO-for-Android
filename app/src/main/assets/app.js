@@ -225,7 +225,7 @@ function renderJournalPrompt(forceNew=false){
 
 function journalCard(j){
   const tags=String(j.tags||'').split('·').map(x=>x.trim()).filter(Boolean).slice(0,4);
-  return `<div class="journal-card"><div class="journal-card-top"><div><div class="journal-card-title">${esc(j.title||'Pensamiento')}</div><div class="journal-card-meta">${j.kind==='quote'?'CITA / FRASE':'PENSAMIENTO'} · ${esc(fmtDate(j.createdAt,true))}</div></div>${j.favorite?'<span aria-label="Favorito">★</span>':''}</div>${j.summary?`<div class="journal-card-summary">${esc(j.summary)}</div>`:''}${tags.length?`<div class="journal-tags">${tags.map(t=>`<span class="journal-tag">${esc(t)}</span>`).join('')}</div>`:''}<div class="item-actions"><button class="mini-button" data-open-journal="${j.id}">Abrir</button></div></div>`;
+  return `<div class="journal-card"><div class="journal-card-top"><div><div class="journal-card-title">${esc(j.title||'Pensamiento')}</div><div class="journal-card-meta">${j.kind==='quote'?'CITA / FRASE':`PENSAMIENTO · ${esc(fmtDate(j.createdAt,true))}`}</div></div>${j.favorite?'<span aria-label="Favorito">★</span>':''}</div>${j.summary?`<div class="journal-card-summary">${esc(j.summary)}</div>`:''}${tags.length?`<div class="journal-tags">${tags.map(t=>`<span class="journal-tag">${esc(t)}</span>`).join('')}</div>`:''}<div class="item-actions"><button class="mini-button" data-open-journal="${j.id}">Abrir</button></div></div>`;
 }
 
 
@@ -301,7 +301,7 @@ function openJournal(id){
   const firstTag=String(j.tags||'').split('·').map(x=>x.trim()).filter(Boolean)[0]||'';
   const related=!isQuote&&firstTag?parseNative(NexoNative.getJournalEntries(firstTag,'',false),[]).filter(x=>Number(x.id)!==Number(j.id)).slice(0,3):[];
   if(isQuote){
-    openModal('Cita / frase',`<div class="modal-form"><div class="journal-date-badge">Guardada ${esc(fmtDate(j.createdAt,true))}</div><label>Título<input id="journalEditTitle" type="text" value="${escAttr(j.title||'')}"></label><label>Autor / referencia<input id="journalEditSummary" type="text" value="${escAttr(j.summary||'')}" placeholder="Autor, canción, libro, filósofo…"></label><label>Texto de la cita<textarea id="journalEditBody" class="journal-original" rows="8">${esc(j.body||'')}</textarea></label><label>Favorito<span class="switch-row"><input id="journalEditFavorite" type="checkbox" ${j.favorite?'checked':''}><span>Favorita</span></span></label></div><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalUpdate" class="primary-button">Guardar cambios</button></div>`);
+    openModal('Cita / frase',`<div class="modal-form"><label>Título<input id="journalEditTitle" type="text" value="${escAttr(j.title||'')}"></label><label>Autor / referencia<input id="journalEditSummary" type="text" value="${escAttr(j.summary||'')}" placeholder="Autor, canción, libro, filósofo…"></label><label>Texto de la cita<textarea id="journalEditBody" class="journal-original" rows="8">${esc(j.body||'')}</textarea></label><label>Favorito<span class="switch-row"><input id="journalEditFavorite" type="checkbox" ${j.favorite?'checked':''}><span>Favorita</span></span></label></div><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalUpdate" class="primary-button">Guardar cambios</button></div>`);
     $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
     $('#journalUpdate').addEventListener('click',()=>{
       const body=$('#journalEditBody').value.trim(),title=$('#journalEditTitle').value.trim();
@@ -1456,10 +1456,21 @@ function openAlarmConfirmation(alarm){
   openModal('Crear alarma',`<div class="alarm-preview"><div class="alarm-icon">⏰</div><div class="search-section-label">ALARMA DEL TELÉFONO</div><div class="alarm-time">${esc(alarm.time||'')}</div><div class="alarm-date">${esc(when||'')}</div><div class="alarm-repeat">${esc(alarm.repeatLabel||'No se repite')}</div>${warnings.length?`<div class="restore-warning"><strong>Revisa esto</strong><p>${warnings.map(esc).join('<br>')}</p></div>`:''}<p class="small muted">Nexo la enviará al sistema de alarmas del teléfono. Después podrás ajustar tono, vibración o repetición desde allí.</p></div><div class="modal-actions"><button id="alarmCancel" class="secondary-button">Cancelar</button><button id="alarmCreate" class="primary-button">${alarm.systemDateSafe===false?'Abrir alarmas y revisar':'Crear alarma'}</button></div>`);
   $('#alarmCancel').addEventListener('click',closeModal);$('#alarmCreate').addEventListener('click',()=>{const b=$('#alarmCreate');b.disabled=true;b.textContent='Abriendo alarmas…';NexoNative.createSystemAlarm(JSON.stringify(alarm));});
 }
+function looksLikeJournalQuoteVoice(text){
+  const n=normVoiceText(text);
+  if(/^(?:guarda|apunta|anota)\s+(?:una\s+)?frase\b/.test(n)||/^frase\s*[:,-]/.test(n))return true;
+  if(/^(?:guarda|apunta|anota)\s+(?:una\s+)?cita\b/.test(n)||/^cita\s*[:,-]/.test(n)){
+    const sourceCue=/(?:\bde\b|\bautor\b|\bfilosofo\b|\bcancion\b|\blibro\b|\bpelicula\b|\bpoema\b)/.test(n);
+    const agendaCue=/(?:\bhoy\b|\bmanana\b|\bpasado manana\b|\blunes\b|\bmartes\b|\bmiercoles\b|\bjueves\b|\bviernes\b|\bsabado\b|\bdomingo\b|\ba las\b|\bmedico\b|\bdentista\b|\breunion\b|\bconsulta\b)/.test(n);
+    return sourceCue&&!agendaCue;
+  }
+  return false;
+}
 function routeUniversalVoice(text){
-  if(!String(text||'').trim())return;
+  const raw=String(text||'').trim();if(!raw)return;
+  if(looksLikeJournalQuoteVoice(raw)){openJournalComposer(stripJournalVoicePrefix(raw),'quote');return;}
   prepareQuickNoteForType('event');
-  $('#captureText').value=String(text).trim();analyzeCapture({immediate:true});
+  $('#captureText').value=raw;analyzeCapture({immediate:true});
 }
 
 function listMatch(entries,spoken){const q=normVoiceText(spoken).replace(/^(?:el|la|los|las)\s+/,'');if(!q)return null;return entries.find(e=>{const x=normVoiceText(e.text).replace(/^(?:el|la|los|las)\s+/,'');return x===q||x.includes(q)||q.includes(x);})||null;}
