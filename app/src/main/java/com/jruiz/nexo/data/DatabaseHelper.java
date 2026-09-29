@@ -412,6 +412,40 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         getWritableDatabase().insertWithOnConflict("nexo_familia_reminders", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
+    /**
+     * Elimina únicamente los datos locales creados por la migración de Nexo Familia.
+     * No toca eventos manuales ni otras fuentes. Devuelve los IDs de avisos eliminados
+     * para cancelar sus alarmas del sistema.
+     */
+    public JSONArray resetNexoFamiliaImportedData() {
+        JSONArray reminderIds = new JSONArray();
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            String targetItems = "item_id IN (SELECT local_item_id FROM nexo_familia_events) " +
+                    "OR item_id IN (SELECT id FROM items WHERE source='nexo-familia')";
+            try (Cursor c = db.rawQuery(
+                    "SELECT id FROM reminders WHERE " + targetItems,
+                    null)) {
+                while (c.moveToNext()) reminderIds.put(c.getLong(0));
+            }
+
+            db.delete("reminders", targetItems, null);
+            db.execSQL("DELETE FROM recurrence_exceptions WHERE series_id IN (SELECT local_item_id FROM nexo_familia_events) " +
+                    "OR series_id IN (SELECT id FROM items WHERE source='nexo-familia')");
+            db.execSQL("DELETE FROM history WHERE entity_id IN (SELECT local_item_id FROM nexo_familia_events) " +
+                    "OR entity_id IN (SELECT id FROM items WHERE source='nexo-familia')");
+            db.execSQL("DELETE FROM items WHERE id IN (SELECT local_item_id FROM nexo_familia_events) OR source='nexo-familia'");
+            db.delete("nexo_familia_reminders", null, null);
+            db.delete("nexo_familia_events", null, null);
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return reminderIds;
+    }
+
     public boolean hasNexoFamiliaReminderMapping(String sourceRuleId) {
         if (sourceRuleId == null || sourceRuleId.isBlank()) return false;
         try (Cursor c = getReadableDatabase().rawQuery(
