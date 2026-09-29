@@ -3,8 +3,8 @@
 Rama de compilación: `feature/nexo-input-hub-v0.3`.
 
 Identidad de esta versión:
-- Nexo **3.5.0-beta7**
-- `versionCode 62`
+- Nexo **3.6.0-beta1**
+- `versionCode 63`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **18**
 
