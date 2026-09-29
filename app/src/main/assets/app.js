@@ -1310,9 +1310,11 @@ function renderBackupPanel(){
   if(familyStatsEl){
     const verified=Number(familyStats.verifiedEvents||0),expected=Number(familyStats.expectedEvents||0),
       verifiedRules=Number(familyStats.verifiedReminderRules||0),expectedRules=Number(familyStats.expectedReminderRules||0),
+      verifiedFamily=Number(familyStats.verifiedFamily||0),expectedFamily=Number(familyStats.expectedFamily||0),
+      verifiedSelected=Number(familyStats.verifiedSelected||0),expectedSelected=Number(familyStats.expectedSelected||0),
       complete=!!familyStats.complete;
     familyStatsEl.textContent=expected
-      ? `${complete?'Migración íntegra · ':'Migración incompleta · '}${verified}/${expected} eventos · ${verifiedRules}/${expectedRules} avisos`
+      ? `${complete?'Migración íntegra · ':'Migración incompleta · '}${verified}/${expected} eventos · family ${verifiedFamily}/${expectedFamily} · selected ${verifiedSelected}/${expectedSelected} · ${verifiedRules}/${expectedRules} avisos`
       : 'Todavía no hay una instantánea de Nexo Familia auditada.';
     const missing=Array.isArray(familyStats.missingEvents)?familyStats.missingEvents:[];
     const missingEl=$('#nexoFamiliaMissing');
@@ -1823,7 +1825,7 @@ window.NexoUI={
   onSystemAlarmCreated(msg){closeModal();toast(msg||'Alarma enviada al sistema del teléfono.','',null,5000);},
   onSystemAlarmError(msg){if($('#alarmCreate')){$('#alarmCreate').disabled=false;$('#alarmCreate').textContent='Intentar de nuevo';}toast(msg||'No se pudo crear la alarma.','',null,6000);},
   onNexoFamiliaImportDone(raw){const r=parseNative(raw,{}),n=Number(r.preserved||0),rem=Number(r.reminders||0),skipped=Number(r.skipped||0);toast(`Nexo Familia: ${n} evento${n===1?'':'s'} importado${n===1?'':'s'}${rem?` · ${rem} aviso${rem===1?'':'s'}`:''}${skipped?` · ${skipped} con revisión`:''}.`,'',null,6500);refreshCurrent();if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();},
-  onNexoFamiliaRepairDone(raw){const r=parseNative(raw,{}),ok=!!r.complete,v=Number(r.verifiedEvents||0),e=Number(r.expectedEvents||0),vr=Number(r.verifiedReminderRules||0),er=Number(r.expectedReminderRules||0);toast(ok?`Migración reparada y verificada: ${v}/${e} eventos · ${vr}/${er} avisos.`:`La reparación sigue incompleta: ${v}/${e} eventos · ${vr}/${er} avisos.`,'',null,7000);refreshCurrent();if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();},
+  onNexoFamiliaRepairDone(raw){const r=parseNative(raw,{}),ok=!!r.complete,v=Number(r.verifiedEvents||0),e=Number(r.expectedEvents||0),vf=Number(r.verifiedFamily||0),ef=Number(r.expectedFamily||0),vs=Number(r.verifiedSelected||0),es=Number(r.expectedSelected||0),vr=Number(r.verifiedReminderRules||0),er=Number(r.expectedReminderRules||0);toast(ok?`Migración reparada: ${v}/${e} eventos · family ${vf}/${ef} · selected ${vs}/${es} · ${vr}/${er} avisos.`:`Reparación incompleta: ${v}/${e} · family ${vf}/${ef} · selected ${vs}/${es} · avisos ${vr}/${er}.`,'',null,8000);refreshCurrent();if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();},
   onNexoFamiliaImportError(msg){toast(msg||'No se pudo importar Nexo Familia.','',null,7000);},
   onBackupExported(raw){const r=parseNative(raw,{});toast('Copia de seguridad creada correctamente.', '', null, 4500);if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();renderMore();},
   onBackupRestorePreview(raw){
