@@ -2059,10 +2059,74 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             out.put("smsSeen", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms'"));
             out.put("smsCaptured", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms' AND capture_id>0"));
+            out.put("smsRejected", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms' AND fingerprint LIKE 'sms-filter-v6:rejected:%'"));
+            out.put("smsErrors", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms' AND fingerprint LIKE 'sms-error:%'"));
             out.put("gmailSeen", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail'"));
             out.put("gmailCaptured", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail' AND capture_id>0"));
+            out.put("gmailRejected", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail' AND fingerprint LIKE 'gmail-filter-v6:rejected:%'"));
+            out.put("gmailErrors", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail' AND fingerprint LIKE 'gmail-error:%'"));
         } catch (Exception ignored) {}
         return out;
+    }
+
+    /**
+     * Evita duplicar una misma comunicación cuando llega primero por notificación
+     * y después por el proveedor directo (o al revés).
+     */
+    public long findRecentEquivalentInboxCapture(String sourceFamily, String sender, String text, long windowMs) {
+        String target = normalizeInboxText(text);
+        if (target.isBlank()) return 0L;
+        String targetSender = normalizeInboxText(sender);
+        long cutoff = System.currentTimeMillis() - Math.max(60_000L, windowMs);
+        String sql = "SELECT id,source,source_package,sender,raw_text FROM inbox_captures " +
+                "WHERE created_at>=? AND status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 120";
+        try (Cursor c = getReadableDatabase().rawQuery(sql, new String[]{String.valueOf(cutoff)})) {
+            while (c.moveToNext()) {
+                String source = c.isNull(1) ? "" : c.getString(1);
+                String pkg = c.isNull(2) ? "" : c.getString(2);
+                if (!sameInboxSourceFamily(sourceFamily, source, pkg)) continue;
+
+                String candidateSender = normalizeInboxText(c.isNull(3) ? "" : c.getString(3));
+                String candidate = normalizeInboxText(c.isNull(4) ? "" : c.getString(4));
+                if (candidate.isBlank()) continue;
+
+                boolean textMatch = candidate.equals(target);
+                int shorter = Math.min(candidate.length(), target.length());
+                if (!textMatch && shorter >= 20) {
+                    textMatch = candidate.contains(target) || target.contains(candidate);
+                }
+                if (!textMatch) continue;
+
+                boolean senderMatch = targetSender.isBlank() || candidateSender.isBlank() ||
+                        candidateSender.equals(targetSender) ||
+                        candidateSender.contains(targetSender) || targetSender.contains(candidateSender);
+                if (senderMatch) return c.getLong(0);
+            }
+        } catch (Exception ignored) {}
+        return 0L;
+    }
+
+    private static boolean sameInboxSourceFamily(String wanted, String source, String pkg) {
+        String family = wanted == null ? "" : wanted.trim().toLowerCase(Locale.ROOT);
+        if (family.isBlank()) return true;
+        String s = source == null ? "" : source.toLowerCase(Locale.ROOT);
+        String p = pkg == null ? "" : pkg.toLowerCase(Locale.ROOT);
+        if ("gmail".equals(family)) {
+            return "gmail-api".equals(s) || "com.google.android.gm".equals(p);
+        }
+        if ("sms".equals(family)) {
+            return "sms-provider".equals(s) || p.contains("messaging") || p.contains("mms") ||
+                    p.contains("message") || "android.sms".equals(p);
+        }
+        return true;
+    }
+
+    private static String normalizeInboxText(String value) {
+        return java.text.Normalizer.normalize(value == null ? "" : value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     public boolean inboxCaptureExists(String sourceKey) {
