@@ -1230,11 +1230,19 @@ function inboxCaptureCard(capture){
 function renderInboxPanel(){
   const captures=parseNative(NexoNative.getInboxCaptures(),[]);
   const legacy=parseNative(NexoNative.getInbox(),[]);
-  let html='';
+  const sourceState=parseNative(NexoNative.getCommunicationCaptureSettings(),{});
+  const smsReady=!!sourceState.smsDirectEnabled&&!!sourceState.smsPermission&&!!sourceState.smsBaselined;
+  const gmailReady=!!sourceState.gmailDirectEnabled&&!!sourceState.gmailAuthorized&&!!sourceState.gmailBaselined;
+  let html=`<div class="inbox-source-health">
+    <div><strong>Fuentes directas</strong><small><span class="${smsReady?'source-ok':'source-off'}">SMS ${smsReady?'activo':'no activo'}</span> · <span class="${gmailReady?'source-ok':'source-off'}">Gmail ${gmailReady?'activo':'no activo'}</span></small></div>
+    <button id="inboxScanNowBtn" class="mini-button" type="button">Buscar ahora</button>
+  </div>`;
   if(captures.length)html+=`<div class="search-section-label">Capturas recibidas</div><div class="stack">${captures.map(inboxCaptureCard).join('')}</div>`;
   if(legacy.length)html+=`<div class="search-section-label">Elementos pendientes de revisión</div><div class="stack">${legacy.map(itemCard).join('')}</div>`;
-  $('#panelContent').innerHTML=html||'<div class="empty-state">No hay nada pendiente de organizar.</div>';
+  if(!captures.length&&!legacy.length)html+='<div class="empty-state">No hay nada pendiente de organizar.</div>';
+  $('#panelContent').innerHTML=html;
   const root=$('#panelContent');
+  $('#inboxScanNowBtn')?.addEventListener('click',()=>{NexoNative.scanInputHubNow();toast('Buscando SMS, Gmail y Calendar…');setTimeout(renderInboxPanel,1200);});
   bindItemButtons(root);
   root.querySelectorAll('[data-review-capture]').forEach(b=>b.addEventListener('click',()=>reviewInboxCapture(Number(b.dataset.reviewCapture))));
   root.querySelectorAll('[data-discard-capture]').forEach(b=>b.addEventListener('click',()=>{
@@ -1299,7 +1307,12 @@ function renderBackupPanel(){
   $('#backupRestoreBtn').addEventListener('click',()=>{toast('Selecciona una copia .nexo para revisarla antes de restaurar.');NexoNative.chooseBackupRestore();});
   const familyStats=parseNative(NexoNative.getNexoFamiliaImportStats(),{});
   const familyStatsEl=$('#nexoFamiliaImportStats');
-  if(familyStatsEl)familyStatsEl.textContent=Number(familyStats.events||0)?`${Number(familyStats.events)} eventos de Nexo Familia ya vinculados localmente.`:'Preparado para la migración desde Nexo Familia.';
+  if(familyStatsEl){
+    const linked=Number(familyStats.events||0),expected=Number(familyStats.expectedEvents||0),skipped=Number(familyStats.lastSkipped||0);
+    familyStatsEl.textContent=expected
+      ? `${linked} de ${expected} eventos vinculados localmente${skipped?` · ${skipped} pendientes de revisar`:''}.`
+      : linked?`${linked} eventos de Nexo Familia ya vinculados localmente.`:'Preparado para la migración desde Nexo Familia.';
+  }
   $('#nexoFamiliaImportBtn').addEventListener('click',()=>{toast('Selecciona el archivo JSON de migración de Nexo Familia.');NexoNative.chooseNexoFamiliaImport();});
 }
 
