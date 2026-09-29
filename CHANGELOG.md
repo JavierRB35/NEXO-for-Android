@@ -1,5 +1,20 @@
 # Changelog de Nexo
 
+## 3.6.0-beta2 · versionCode 64 · Rediseño visual claramente perceptible
+
+- Inicio reconstruido con una jerarquía nueva: título de contexto, bloque de captura rápida y herramientas separadas.
+- Accesos principales en rejilla compacta de 3 columnas con iconos grandes y menor sensación de botones/cajas.
+- Blanco y neutros claros dominan; verde, amarillo y rojo se usan como acentos de identidad.
+- Formularios de Agenda divididos visualmente en bloques funcionales en lugar de una única tarjeta extensa.
+- Cabeceras de panel más limpias y editoriales.
+- Listas y tarjetas con mayor densidad y menos borde visual.
+- Frases/Cuaderno con tratamiento visual más editorial.
+- Navegación inferior refinada con indicador activo más claro.
+- Se elimina la versión técnica de la cabecera principal; permanece disponible en Ajustes.
+- La WebView invalida la caché de assets al cambiar de versión para garantizar que el CSS/JS empaquetado nuevo se muestre tras actualizar.
+- Sin cambios en lógica de negocio ni baseline AndroidIDE.
+
+
 ## 3.6.0-beta1 · versionCode 63 · Rediseño visual global
 
 - Nuevo sistema visual común documentado en DESIGN_SYSTEM.md.
