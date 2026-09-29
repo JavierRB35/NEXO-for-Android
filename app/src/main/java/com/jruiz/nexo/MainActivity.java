@@ -631,6 +631,12 @@ public class MainActivity extends Activity {
             int expected = payload.optJSONArray("events") == null ? 0 : payload.optJSONArray("events").length();
             int preserved = result.optInt("preserved", 0);
             int skipped = result.optInt("skipped", 0);
+            prefs.edit()
+                    .putInt("expectedEvents", expected)
+                    .putInt("lastPreserved", preserved)
+                    .putInt("lastSkipped", skipped)
+                    .putLong("lastAttemptAt", System.currentTimeMillis())
+                    .apply();
             if (expected > 0 && preserved == expected && skipped == 0) {
                 prefs.edit()
                         .putString("snapshotVersion", snapshot)
@@ -1883,7 +1889,18 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String getToday() { return db.getTodayData().toString(); }
         @JavascriptInterface public String getMoreSummary() { return db.getMoreSummary().toString(); }
         @JavascriptInterface public void chooseNexoFamiliaImport() { MainActivity.this.chooseNexoFamiliaImport(); }
-        @JavascriptInterface public String getNexoFamiliaImportStats() { return db.getNexoFamiliaImportStats().toString(); }
+        @JavascriptInterface public String getNexoFamiliaImportStats() {
+            JSONObject stats = db.getNexoFamiliaImportStats();
+            SharedPreferences p = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
+            try {
+                stats.put("expectedEvents", p.getInt("expectedEvents", 0));
+                stats.put("lastPreserved", p.getInt("lastPreserved", 0));
+                stats.put("lastSkipped", p.getInt("lastSkipped", 0));
+                stats.put("lastAttemptAt", p.getLong("lastAttemptAt", 0L));
+                stats.put("snapshotVersion", p.getString("snapshotVersion", ""));
+            } catch (Exception ignored) {}
+            return stats.toString();
+        }
         @JavascriptInterface public String search(String q) { return db.search(q).toString(); }
         @JavascriptInterface public String synthesizeJournal(String text) { return db.synthesizeJournal(text).toString(); }
         @JavascriptInterface public long saveJournal(String json) { try { return db.insertJournalEntry(new JSONObject(json)); } catch(Exception e) { return 0; } }
