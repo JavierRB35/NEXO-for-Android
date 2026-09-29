@@ -415,7 +415,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONObject getNexoFamiliaImportStats() {
         JSONObject out = new JSONObject();
         try {
-            out.put("events", scalar("SELECT COUNT(*) FROM nexo_familia_events"));
+            out.put("events", scalar("SELECT COUNT(*) FROM nexo_familia_events nf JOIN items i ON i.id=nf.local_item_id WHERE i.deleted_at=0"));
+            out.put("mappings", scalar("SELECT COUNT(*) FROM nexo_familia_events"));
             out.put("reminders", scalar("SELECT COUNT(*) FROM nexo_familia_reminders"));
         } catch (Exception ignored) {}
         return out;
