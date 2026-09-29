@@ -187,8 +187,7 @@ public class NexoService {
             if (RecurrenceEngine.isRecurring(recurrence)) {
                 if (in.optLong("dueAt",0) <= 0) return out.put("ok",false).put("error","Una periodicidad necesita una fecha de inicio");
                 long until = Math.max(0, in.optLong("recurrenceUntil",0));
-                if (until <= 0) until = defaultRecurrenceUntil(in.optLong("dueAt",0));
-                if (until < in.optLong("dueAt",0)) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
+                if (until > 0 && until < in.optLong("dueAt",0)) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
                 in.put("recurrenceUntil", until);
             } else in.put("recurrenceUntil", 0);
 
@@ -224,8 +223,7 @@ public class NexoService {
             long until = in.has("recurrenceUntil") ? in.optLong("recurrenceUntil", 0) : existing.optLong("recurrenceUntil", 0);
             if (RecurrenceEngine.isRecurring(recurrence)) {
                 if (due <= 0) return out.put("ok", false).put("error", "Una periodicidad necesita una fecha de inicio");
-                if (until <= 0) until = defaultRecurrenceUntil(due);
-                if (until < due) return out.put("ok", false).put("error", "La fecha final debe ser posterior al inicio");
+                if (until > 0 && until < due) return out.put("ok", false).put("error", "La fecha final debe ser posterior al inicio");
                 in.put("recurrenceUntil", until);
             } else if (in.has("recurrence")) in.put("recurrenceUntil", 0);
             boolean ok = db.updateItem(in);
@@ -261,8 +259,7 @@ public class NexoService {
                 long nextUntil=in.has("recurrenceUntil")?in.optLong("recurrenceUntil",base.optLong("recurrenceUntil",0)):base.optLong("recurrenceUntil",0);
                 if(RecurrenceEngine.isRecurring(nextRecurrence)){
                     if(nextDue<=0) return out.put("ok",false).put("error","La serie necesita fecha de inicio");
-                    if(nextUntil<=0) nextUntil=defaultRecurrenceUntil(nextDue);
-                    if(nextUntil<nextDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
+                    if(nextUntil>0 && nextUntil<nextDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
                 } else nextUntil=0;
                 JSONArray reminders=db.getActiveRemindersForItem(seriesId);
                 long oldUntil=base.optLong("recurrenceUntil",0);
@@ -314,8 +311,7 @@ public class NexoService {
             long allUntil=in.has("recurrenceUntil")?Math.max(0,in.optLong("recurrenceUntil")):base.optLong("recurrenceUntil",0);
             if(RecurrenceEngine.isRecurring(allRecurrence)){
                 if(allDue<=0) return out.put("ok",false).put("error","La serie necesita fecha de inicio");
-                if(allUntil<=0) allUntil=defaultRecurrenceUntil(allDue);
-                if(allUntil<allDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
+                if(allUntil>0 && allUntil<allDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
             } else allUntil=0;
             if(in.has("recurrence")) payload.put("recurrence",allRecurrence);
             if(in.has("recurrenceUntil")||in.has("recurrence")) payload.put("recurrenceUntil",allUntil);
