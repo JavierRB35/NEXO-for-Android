@@ -15,9 +15,10 @@ public class SmsWatchJob extends JobService {
                 if (!stopped) {
                     if (params.getJobId() == SmsWatchScheduler.CONTENT_JOB_ID) {
                         SmsWatchScheduler.scheduleContentWatcher(this);
-                    } else {
-                        jobFinished(params, false);
                     }
+                    // onStartJob() devolvió true: el job actual debe finalizar
+                    // siempre, también cuando rearmamos el TriggerContentUri.
+                    jobFinished(params, false);
                 }
             }
         }, "nexo-sms-watch").start();
