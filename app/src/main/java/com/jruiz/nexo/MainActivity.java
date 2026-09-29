@@ -653,7 +653,7 @@ public class MainActivity extends Activity {
                 if (total > maxBytes) throw new IOException("Archivo demasiado grande");
                 out.write(buffer, 0, n);
             }
-            return out.toString(java.nio.charset.StandardCharsets.UTF_8);
+            return new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
         }
     }
 
