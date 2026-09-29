@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el ZIP de la rama directamente como una única carpeta de proyecto dentro de Download, por ejemplo:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta2/
+/storage/emulated/0/Download/Nexo_3_7_0_beta3/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_Input_Hub_v0_3"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta3"
 sh build-on-phone.sh
 ```
 
@@ -45,7 +45,7 @@ El script:
 5. copia el APK final directamente a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta2.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta3.apk
 ```
 
 La primera compilación necesita Internet para descargar dependencias que aún no estén en caché y el AAR de sherpa-onnx.
