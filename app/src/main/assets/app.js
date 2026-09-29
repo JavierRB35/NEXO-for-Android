@@ -1099,8 +1099,8 @@ function renderMore(){
 function renderCommunicationCaptureSettings(){
   const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{
     enabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false,
-    smsDirectEnabled:false,smsPermission:false,smsBaselined:false,smsLastSync:0,smsError:'',smsSeen:0,smsCaptured:0,
-    gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:'',gmailSeen:0,gmailCaptured:0
+    smsDirectEnabled:false,smsPermission:false,smsBaselined:false,smsLastSync:0,smsError:'',smsSeen:0,smsCaptured:0,smsRejected:0,smsErrors:0,
+    gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:'',gmailSeen:0,gmailCaptured:0,gmailRejected:0,gmailErrors:0
   });
   const access=!!NexoNative.hasNotificationAccess();
   const status=$('#notificationAccessStatus'),master=$('#communicationCaptureEnabled'),apps=$('#communicationApps');
@@ -1121,7 +1121,7 @@ function renderCommunicationCaptureSettings(){
   if(smsStatus){
     if(settings.smsDirectEnabled&&settings.smsPermission&&settings.smsBaselined){
       const last=settings.smsLastSync?(' · última consulta '+fmtDate(Number(settings.smsLastSync),true)):'';
-      smsStatus.textContent='Activo · lectura directa de SMS'+last+' · '+Number(settings.smsCaptured||0)+' capturados';
+      smsStatus.textContent='Activo · lectura directa + respaldo por notificación'+last+' · '+Number(settings.smsSeen||0)+' vistos · '+Number(settings.smsCaptured||0)+' candidatos · '+Number(settings.smsRejected||0)+' descartados'+(Number(settings.smsErrors||0)?' · '+Number(settings.smsErrors||0)+' con error':'');
     }else if(settings.smsError)smsStatus.textContent=String(settings.smsError);
     else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent='Preparando referencia inicial de SMS…';
     else if(settings.smsDirectEnabled&&!settings.smsPermission)smsStatus.textContent='Falta conceder permiso para leer SMS.';
@@ -1133,7 +1133,7 @@ function renderCommunicationCaptureSettings(){
   if(gmailStatus){
     const account=settings.gmailEmail?String(settings.gmailEmail):'';
     if(settings.gmailDirectEnabled&&settings.gmailAuthorized&&settings.gmailBaselined){
-      gmailStatus.textContent=`Activo${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''} · ${Number(settings.gmailCaptured||0)} capturados`;
+      gmailStatus.textContent=`Activo · API + respaldo por notificación${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''} · ${Number(settings.gmailSeen||0)} vistos · ${Number(settings.gmailCaptured||0)} candidatos · ${Number(settings.gmailRejected||0)} descartados${Number(settings.gmailErrors||0)?' · '+Number(settings.gmailErrors||0)+' con error':''}`;
     }else if(settings.gmailDirectEnabled&&settings.gmailAuthorized){
       gmailStatus.textContent=`Cuenta autorizada${account?' · '+account:''} · preparando referencia inicial…`;
     }else if(settings.gmailError){
