@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = ROOT / "app/src/main/assets/index.html"
+APP_JS = ROOT / "app/src/main/assets/app.js"
 
 class StrictStructureParser(HTMLParser):
     VOID = {"area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"}
@@ -32,26 +33,56 @@ class StrictStructureParser(HTMLParser):
             raise AssertionError(f"Etiquetas sin cerrar: {self.stack[-10:]}")
 
 html = HTML.read_text(encoding="utf-8")
+app_js = APP_JS.read_text(encoding="utf-8")
 assert "\\n" not in html, "Hay un literal \\n visible en index.html"
+
 parser = StrictStructureParser()
 parser.feed(html)
 parser.close_and_check()
 
+for screen in ["today","tools","save","search","calendar","more","panel"]:
+    assert f'data-screen="{screen}"' in html, f"Falta pantalla: {screen}"
+
 home_start = html.index('<section class="screen active" data-screen="today"')
-home_end = html.index('</section><section class="screen" data-screen="save">', home_start)
+home_end = html.index('<section class="screen" data-screen="tools"', home_start)
 home = html[home_start:home_end]
 for required in [
-    'id="homeCreateBtn"',
-    'id="homeTalkBtn"',
     'data-panel="inbox"',
     'id="inboxCount"',
-    'data-panel="calendar"',
-    'data-panel="appointments"',
-    'data-panel="quotes"',
+    'id="inboxHomeText"',
+    'id="todaySummary"',
+    'id="medicationToday"',
+    'id="parkingHomeCard"',
+    'id="journalPrompt"',
 ]:
     assert required in home, f"Falta en Inicio: {required}"
 
-for screen in ["today","save","search","calendar","more","panel"]:
-    assert f'data-screen="{screen}"' in html, f"Falta pantalla: {screen}"
+for forbidden in [
+    'id="homeCreateBtn"',
+    'id="homeShoppingBtn"',
+    'data-panel="history"',
+    'data-panel="appointments"',
+]:
+    assert forbidden not in home, f"Acceso redundante en Inicio: {forbidden}"
+
+tools_start = html.index('<section class="screen" data-screen="tools"')
+tools_end = html.index('<section class="screen" data-screen="save"', tools_start)
+tools = html[tools_start:tools_end]
+for panel in ["lists","notes","journal","quotes","medications","recordings","places","parking","documents","backup"]:
+    assert f'data-panel="{panel}"' in tools, f"Falta herramienta: {panel}"
+
+nav_start = html.index('<nav class="bottom-nav"')
+nav_end = html.index('</nav>', nav_start)
+nav = html[nav_start:nav_end]
+for dest in ["today","calendar","search","tools"]:
+    assert f'data-nav="{dest}"' in nav, f"Falta navegación principal: {dest}"
+
+assert 'id="globalVoiceFab"' in html, "Falta FAB de voz"
+assert 'id="calendarAddFab"' in html, "Falta FAB de añadir cita"
+assert "$$('screen-placeholder')" not in app_js
+assert "$$('.screen').forEach" in app_js, "La navegación debe iterar todas las pantallas"
+assert "$$('.nav-item').forEach" in app_js, "La navegación debe iterar todos los botones inferiores"
+assert "$('.screen').forEach" not in app_js, "Selector simple incorrecto para pantallas"
+assert "$('.nav-item').forEach" not in app_js, "Selector simple incorrecto para navegación"
 
 print("Estructura UI Nexo: OK")

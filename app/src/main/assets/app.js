@@ -190,14 +190,14 @@ function navigate(screen, options={}) {
   if(screen!=='panel'||route.panel!=='recordings')stopRecordingPolling();
   state.screen=screen;
   if(screen==='panel'){state.lastPanel=route.panel;state.currentList=route.list;}
-  $('.screen').forEach(el=>el.classList.toggle('active',el.dataset.screen===screen));
+  $$('.screen').forEach(el=>el.classList.toggle('active',el.dataset.screen===screen));
   const active=screen==='panel'
     ? (route.panel==='inbox'?'today':'tools')
     : screen==='save'
       ? (state.captureReturnRoute?.screen==='calendar'?'calendar':state.captureReturnRoute?.screen==='tools'?'tools':'today')
       : screen==='more'?'tools'
       : screen;
-  $('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
+  $$('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
   if(screen==='today')renderToday();
   else if(screen==='more')renderMore();
   else if(screen==='calendar')renderCalendar();
