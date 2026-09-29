@@ -27,6 +27,9 @@ import com.jruiz.nexo.core.NexoService;
 import com.jruiz.nexo.core.PlaceEntry;
 import com.jruiz.nexo.calendar.CalendarExporter;
 import com.jruiz.nexo.calendar.CalendarImporter;
+import com.jruiz.nexo.calendar.CalendarCapturePrefs;
+import com.jruiz.nexo.calendar.CalendarWatchEngine;
+import com.jruiz.nexo.calendar.CalendarWatchScheduler;
 import com.jruiz.nexo.exchange.NexoExchangeManager;
 import com.jruiz.nexo.backup.NexoBackupManager;
 import com.jruiz.nexo.data.DatabaseHelper;
@@ -70,6 +73,7 @@ public class MainActivity extends Activity {
     private static final int REQ_RECORDING_EXPORT = 109;
     private static final int REQ_DOCUMENT_FILE = 110;
     private static final int REQ_DOCUMENT_EXPORT = 111;
+    private static final int REQ_CALENDAR = 112;
     private String pendingDocumentRequest = "";
     private String pendingDocumentExportPath = "";
 
@@ -121,7 +125,19 @@ public class MainActivity extends Activity {
                 for(int i=0;i<meds.length();i++){JSONObject m=meds.optJSONObject(i);if(m!=null)MedicationScheduler.scheduleNext(this,db,m.optLong("id"),System.currentTimeMillis()-1);}
             } catch(Exception ignored) {}
         }
-        if (pageReady) jsCallback("onNotificationAccessChanged", isNotificationAccessEnabled() ? "1" : "0");
+        if (CalendarCapturePrefs.isEnabled(this) &&
+                checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
+            if (!CalendarCapturePrefs.isBaselined(this)) {
+                new Thread(() -> CalendarWatchEngine.initializeBaseline(getApplicationContext()), "nexo-calendar-baseline").start();
+            } else {
+                CalendarWatchScheduler.schedule(this);
+            }
+        }
+        if (pageReady) {
+            jsCallback("onNotificationAccessChanged", isNotificationAccessEnabled() ? "1" : "0");
+            jsCallback("onCalendarAccessChanged",
+                    checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED ? "1" : "0");
+        }
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -327,6 +343,33 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 Toast.makeText(this, "No se pudo abrir el acceso a notificaciones", Toast.LENGTH_LONG).show();
             }
+        });
+    }
+
+    private boolean hasCalendarPermission() {
+        return checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void setCalendarCaptureEnabled(boolean enabled) {
+        runOnUiThread(() -> {
+            if (!enabled) {
+                CalendarCapturePrefs.setEnabled(this, false);
+                CalendarWatchScheduler.cancel(this);
+                jsCallback("onCalendarAccessChanged", "0");
+                return;
+            }
+
+            CalendarCapturePrefs.setEnabled(this, true);
+            if (!hasCalendarPermission()) {
+                requestPermissions(new String[]{Manifest.permission.READ_CALENDAR}, REQ_CALENDAR);
+                return;
+            }
+
+            ensureNotificationPermission();
+            new Thread(() -> {
+                CalendarWatchEngine.initializeBaseline(getApplicationContext());
+                jsCallback("onCalendarAccessChanged", "1");
+            }, "nexo-calendar-baseline").start();
         });
     }
 
@@ -1040,6 +1083,21 @@ public class MainActivity extends Activity {
             boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (ok) startManagedVoiceInternal();
             else jsCallback("onManagedVoiceError", "Necesito permiso de micrófono para poder escucharte.");
+        } else if (requestCode == REQ_CALENDAR) {
+            boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (ok) {
+                CalendarCapturePrefs.setEnabled(this, true);
+                ensureNotificationPermission();
+                new Thread(() -> {
+                    CalendarWatchEngine.initializeBaseline(getApplicationContext());
+                    jsCallback("onCalendarAccessChanged", "1");
+                }, "nexo-calendar-baseline").start();
+            } else {
+                CalendarCapturePrefs.setEnabled(this, false);
+                CalendarWatchScheduler.cancel(this);
+                jsCallback("onCalendarAccessChanged", "0");
+                Toast.makeText(this, "Nexo necesita permiso de calendario para detectar eventos nuevos.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -1417,13 +1475,22 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean hasNotificationAccess() { return MainActivity.this.isNotificationAccessEnabled(); }
         @JavascriptInterface public void openNotificationAccessSettings() { MainActivity.this.openNotificationAccessSettings(); }
         @JavascriptInterface public String getCommunicationCaptureSettings() {
-            return CommunicationCapturePrefs.toJson(MainActivity.this).toString();
+            JSONObject o = CommunicationCapturePrefs.toJson(MainActivity.this);
+            try {
+                o.put("calendarEnabled", CalendarCapturePrefs.isEnabled(MainActivity.this));
+                o.put("calendarPermission", MainActivity.this.hasCalendarPermission());
+                o.put("calendarBaselined", CalendarCapturePrefs.isBaselined(MainActivity.this));
+            } catch (Exception ignored) {}
+            return o.toString();
         }
         @JavascriptInterface public void setCommunicationCaptureEnabled(boolean enabled) {
             CommunicationCapturePrefs.setEnabled(MainActivity.this, enabled);
         }
         @JavascriptInterface public void setCommunicationAppEnabled(String key, boolean enabled) {
             CommunicationCapturePrefs.setAppEnabled(MainActivity.this, key, enabled);
+        }
+        @JavascriptInterface public void setCalendarCaptureEnabled(boolean enabled) {
+            MainActivity.this.setCalendarCaptureEnabled(enabled);
         }
         @JavascriptInterface public String getMedicationMessages() {
             JSONArray a=new JSONArray();
@@ -1460,13 +1527,25 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String saveCapture(String json) {
             try {
                 JSONObject input = new JSONObject(json);
-                JSONObject result = service.saveCapture(input);
+                long updateItemId = input.optLong("updateItemId", 0L);
+                JSONObject result;
+                if (updateItemId > 0L) {
+                    input.put("id", updateItemId);
+                    result = service.updateItem(input);
+                    if (result.optBoolean("ok", false)) result.put("id", updateItemId);
+                } else {
+                    result = service.saveCapture(input);
+                }
                 if (result.optBoolean("ok", false)) {
                     long captureId = input.optLong("inboxCaptureId", 0);
                     long createdId = result.optLong("id", 0);
                     if (captureId > 0 && createdId > 0) db.markInboxCaptureConverted(captureId, "item", createdId);
                 }
-                if (result.has("reminderId") || (result.optJSONArray("reminderIds") != null && result.optJSONArray("reminderIds").length()>0)) ensureNotificationPermission();
+                if (result.has("reminderId") ||
+                        (result.optJSONArray("reminderIds") != null && result.optJSONArray("reminderIds").length()>0) ||
+                        (result.optJSONArray("rescheduled") != null && result.optJSONArray("rescheduled").length()>0)) {
+                    ensureNotificationPermission();
+                }
                 return result.toString();
             } catch (Exception e) { return "{\"ok\":false,\"error\":\"Datos no válidos\"}"; }
         }
