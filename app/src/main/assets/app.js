@@ -1418,7 +1418,7 @@ function openItem(id){
   if(i.type==='document'){openDocumentEditor(id);return;}
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
-  const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
+  const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
   openModal(i.title,`<div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     <details class="details-box" open><summary>Editar</summary><div class="detail-grid">
@@ -1426,33 +1426,49 @@ function openItem(id){
       <label>Descripción<textarea id="editBody" rows="4">${esc(i.body||'')}</textarea></label>
       ${i.originalText&&i.originalText!==i.body?`<details class="original-capture"><summary>Ver texto original capturado</summary><div>${esc(i.originalText)}</div></details>`:''}
       <div class="form-grid"><label>Categoría<select id="editCategory">${CATEGORIES.map(c=>`<option ${c===categoryLabel(i.category)?'selected':''}>${esc(c)}</option>`).join('')}</select></label>${itemTypeControl('editType',i.type)}</div>
-      <div class="form-grid"><label>Fecha<div class="date-wrap"><input id="editDate" type="date" value="${i.dueAt?escAttr(iso.date):''}"></div></label><label>Hora <span class="optional">(vacío = todo el día)</span><div class="date-wrap"><input id="editTime" type="time" value="${i.dueAt&&i.hasTime!==false?escAttr(iso.time):''}"></div></label></div>
-      <div class="form-grid"><label>Hora fin <span class="optional">(opcional · al compartir: 1 h si queda vacía)</span><div class="date-wrap"><input id="editEndTime" type="time" value="${escAttr(endTime)}"></div></label><label>Ubicación <span class="optional">(opcional)</span><input id="editLocation" type="text" value="${escAttr(i.locationText||'')}"></label></div>
+      <div class="form-grid"><label>Fecha inicio<div class="date-wrap"><input id="editDate" type="date" value="${i.dueAt?escAttr(iso.date):''}"></div></label><label>Fecha fin<div class="date-wrap"><input id="editEndDate" type="date" value="${endAt?escAttr(endIso.date):''}"></div></label></div>
+      <label class="switch-row event-all-day-row"><input id="editAllDay" type="checkbox" ${allDay?'checked':''}><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
+      <div class="form-grid"><label id="editStartTimeLabel">Hora inicio<div class="date-wrap"><input id="editTime" type="time" value="${!allDay&&i.dueAt?escAttr(iso.time):''}"></div></label><label id="editEndTimeLabel">Hora fin<div class="date-wrap"><input id="editEndTime" type="time" value="${!allDay?escAttr(endTime):''}"></div></label></div>
+      <label>Ubicación <span class="optional">(opcional)</span><input id="editLocation" type="text" value="${escAttr(i.locationText||'')}"></label>
+      <label>Enlace de Google Maps <span class="optional">(opcional)</span><input id="editMapsUrl" type="text" inputmode="url" value="${escAttr(i.mapsUrl||'')}"></label>
+      <label>Zona horaria<input id="editTimeZone" type="text" value="${escAttr(i.timeZone||'Europe/Madrid')}"></label>
+      ${i.participantsText?`<div class="details-box"><strong>Participantes</strong><div class="small muted">${esc(i.participantsText)}</div></div>`:''}
       <div class="form-grid"><label>Periodicidad<select id="editRecurrence">${recurrenceOptions(i.recurrence||'none')}</select></label><label id="editUntilLabel" class="${i.recurrence&&i.recurrence!=='none'?'':'hidden'}">Repetir hasta<div class="date-wrap"><input id="editUntil" type="date" value="${i.recurrenceUntil?escAttr(isoFromMs(i.recurrenceUntil).date):''}"></div></label></div>
       <div id="editAlertsSection" class="alert-editor ${i.dueAt?'':'hidden'}"><div class="alert-editor-head"><div><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-bell"></use></svg> Avisos</strong><div class="small muted">Se mostrarán en Nexo y se incluyen al compartir el evento como .ics.</div></div><button id="addEditAlert" type="button" class="mini-button primary">+ Añadir aviso</button></div><div id="editAlertList" class="alert-list"></div></div>
       ${isAppointmentType(i.type)?`<label class="switch-row voice-reminder-row"><input id="editVoiceEnabled" type="checkbox" ${i.voiceEnabled?'checked':''}><span><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg> Aviso por voz</strong><small>Lee en voz alta cada aviso configurado.</small></span></label>`:''}
-      ${isAppointmentType(i.type)?`<label>Estado<select id="editStatus"><option value="pending" ${i.status!=='done'&&i.status!=='postponed'?'selected':''}>Pendiente</option><option value="done" ${i.status==='done'?'selected':''}>Completada</option><option value="postponed" ${i.status==='postponed'?'selected':''}>Pospuesta</option></select></label>`:''}
+      ${isAppointmentType(i.type)?`<label>Estado<select id="editStatus"><option value="pending" ${i.status!=='done'&&i.status!=='postponed'?'selected':''}>Pendiente</option><option value="done" ${i.status==='done'?'selected':''}>Completada</option><option value="postponed" ${i.status==='postponed'?'selected':''}>Pospuesta</option><option value="cancelled" ${i.status==='cancelled'?'selected':''}>Cancelada</option></select></label>`:''}
       
     </div></details>
     <div class="modal-actions wrap-actions"><button id="saveEditBtn" class="primary-button">Guardar cambios</button>${i.locationText?'<button id="goItemLocationBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg> Ir</button>':''}<button id="shareItemBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button>${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>
     <button id="deleteItemBtn" class="danger-link">Eliminar este elemento</button>`);
 
+  const syncEditAllDay=()=>{
+    const checked=!!$('#editAllDay').checked;
+    $('#editStartTimeLabel').classList.toggle('hidden',checked);$('#editEndTimeLabel').classList.toggle('hidden',checked);
+    if(checked){$('#editTime').value='';$('#editEndTime').value='';}
+    else{if(!$('#editTime').value)$('#editTime').value='09:00';if(!$('#editEndTime').value)$('#editEndTime').value=addOneHourTime($('#editTime').value);}
+  };
+  syncEditAllDay();
+  $('#editAllDay').addEventListener('change',syncEditAllDay);
+  $('#editDate').addEventListener('change',()=>{if($('#editDate').value&&(!$('#editEndDate').value||$('#editEndDate').value<$('#editDate').value))$('#editEndDate').value=$('#editDate').value;});
+  $('#editTime').addEventListener('change',()=>{if($('#editTime').value&&!$('#editEndTime').value)$('#editEndTime').value=addOneHourTime($('#editTime').value);});
   const renderEditAlerts=()=>renderAlertList('#editAlertList',editAlerts,next=>{editAlerts=normalizeAlertMinutes(next);renderEditAlerts();});renderEditAlerts();
   $('#addEditAlert').addEventListener('click',()=>openAddAlertOverlay(v=>{editAlerts=normalizeAlertMinutes([...editAlerts,v]);renderEditAlerts();}));
   if($('#editVoiceEnabled'))$('#editVoiceEnabled').addEventListener('change',()=>{if($('#editVoiceEnabled').checked&&!editAlerts.length){editAlerts=[0];renderEditAlerts();toast('Se ha añadido un aviso en el momento para poder leerlo por voz.');}});
   $('#editDate').addEventListener('change',()=>{$('#editAlertsSection').classList.toggle('hidden',!$('#editDate').value);if(!$('#editDate').value)editAlerts=[];renderEditAlerts();});
   $('#editRecurrence').addEventListener('change',()=>{const recurring=$('#editRecurrence').value!=='none';$('#editUntilLabel').classList.toggle('hidden',!recurring);if(recurring&&!$('#editUntil').value)$('#editUntil').value='2040-12-31';});
   $('#saveEditBtn').addEventListener('click',()=>{
-    const date=$('#editDate').value,time=$('#editTime').value,rec=$('#editRecurrence').value,dueAt=dateTimeToMs(date,time),durationMinutes=durationMinutesFromTimes(time,$('#editEndTime').value);
+    const date=$('#editDate').value,allDay=!!$('#editAllDay').checked,time=allDay?'':$('#editTime').value,endDate=$('#editEndDate').value||date,endTime=allDay?'':$('#editEndTime').value,rec=$('#editRecurrence').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
+    if(date&&endDate&&endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');return;}
     if(rec!=='none'&&!date){toast('Una periodicidad necesita fecha de inicio.');return;}
     if(rec!=='none'&&!$('#editUntil').value){toast('Indica hasta cuándo se repite.');return;}
     const selectedType=$('#editType').value,statusPayload=(isAppointmentType(i.type)&&isAppointmentType(selectedType)&&$('#editStatus'))?{status:$('#editStatus').value}:{};
     const conflicts=(date&&time)?overlappingItems(dueAt,durationMinutes,id):[];
     if(editAlerts.length&&!date){toast('Los avisos necesitan una fecha.');return;}
-    const res=parseNative(NexoNative.updateItem(JSON.stringify({id,title:$('#editTitle').value.trim(),body:$('#editBody').value,category:$('#editCategory').value,type:selectedType,dueAt,hasTime:!!(date&&time),durationMinutes,locationText:$('#editLocation').value.trim(),recurrence:rec,recurrenceUntil:rec!=='none'?endOfDayMs($('#editUntil').value):0,voiceEnabled:$('#editVoiceEnabled')?$('#editVoiceEnabled').checked:false,needsReview:false,...statusPayload})),{});
+    const res=parseNative(NexoNative.updateItem(JSON.stringify({id,title:$('#editTitle').value.trim(),body:$('#editBody').value,category:$('#editCategory').value,type:selectedType,dueAt,endAt,hasTime:!!(date&&time&&!allDay),allDay,durationMinutes,locationText:$('#editLocation').value.trim(),mapsUrl:$('#editMapsUrl').value.trim(),timeZone:$('#editTimeZone').value.trim()||'Europe/Madrid',recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'?endOfDayMs($('#editUntil').value):0,voiceEnabled:$('#editVoiceEnabled')?$('#editVoiceEnabled').checked:false,needsReview:false,...statusPayload})),{});
     if(res.ok){let alertsOk=true;if(!sameAlerts(editAlerts,originalAlerts)){const ar=parseNative(NexoNative.replaceItemReminders(id,JSON.stringify(editAlerts)),{});alertsOk=!!ar.ok;}closeModal();toast(!alertsOk?'Cambios guardados, pero no se pudieron actualizar los avisos':conflicts.length?`Cambios guardados · coincide con ${conflicts.length} elemento${conflicts.length===1?'':'s'}`:'Cambios guardados');refreshCurrent();}else toast(res.error||'No se pudieron guardar los cambios.');
   });
-  if($('#goItemLocationBtn'))$('#goItemLocationBtn').addEventListener('click',()=>{const place=$('#editLocation').value.trim();if(place)NexoNative.openLocationDirections(place);else toast('Este elemento no tiene ubicación.');});
+  if($('#goItemLocationBtn'))$('#goItemLocationBtn').addEventListener('click',()=>{const maps=$('#editMapsUrl').value.trim(),place=$('#editLocation').value.trim();if(maps)NexoNative.openExternal(maps);else if(place)NexoNative.openLocationDirections(place);else toast('Este elemento no tiene ubicación.');});
   if($('#shareItemBtn'))$('#shareItemBtn').addEventListener('click',()=>openItemShareMenu(i.id,i.dueAt||0,false,!!i.dueAt));
   if($('#postponeItemBtn'))$('#postponeItemBtn').addEventListener('click',()=>{closeModal();openPostponeSheet(i.id,i.dueAt,false);});
   if(url)$('#openUrlBtn').addEventListener('click',()=>NexoNative.openExternal(url));
