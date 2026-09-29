@@ -907,7 +907,11 @@ function renderMore(){
 }
 
 function renderCommunicationCaptureSettings(){
-  const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{enabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false});
+  const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{
+    enabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false,
+    smsDirectEnabled:false,smsPermission:false,smsBaselined:false,
+    gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:''
+  });
   const access=!!NexoNative.hasNotificationAccess();
   const status=$('#notificationAccessStatus'),master=$('#communicationCaptureEnabled'),apps=$('#communicationApps');
   if(status){
@@ -916,14 +920,41 @@ function renderCommunicationCaptureSettings(){
   }
   if(master){master.checked=settings.enabled!==false;master.disabled=false;}
   if(apps){
-    apps.innerHTML=(settings.apps||[]).map(a=>`<label class="toggle-row"><span><strong>${esc(a.label)}</strong><small>${a.key==='whatsapp'?'Mensajes de WhatsApp':a.key==='gmail'?'Correos mostrados por Gmail':a.key==='telegram'?'Mensajes de Telegram':'Mensajes SMS'}</small></span><input type="checkbox" data-communication-app="${escAttr(a.key)}" ${a.enabled!==false?'checked':''} ${settings.enabled===false?'disabled':''}></label>`).join('');
+    const notificationOnly=(settings.apps||[]).filter(a=>a.key==='whatsapp'||a.key==='telegram');
+    apps.innerHTML=notificationOnly.map(a=>`<label class="toggle-row"><span><strong>${esc(a.label)}</strong><small>${a.key==='whatsapp'?'Mensajes de WhatsApp':'Mensajes de Telegram'}</small></span><input type="checkbox" data-communication-app="${escAttr(a.key)}" ${a.enabled!==false?'checked':''} ${settings.enabled===false?'disabled':''}></label>`).join('');
     apps.querySelectorAll('[data-communication-app]').forEach(el=>el.addEventListener('change',()=>{NexoNative.setCommunicationAppEnabled(el.dataset.communicationApp,el.checked);toast(`${el.checked?'Activada':'Desactivada'} captura de ${el.closest('label')?.querySelector('strong')?.textContent||'la aplicación'}`);}));
   }
   const btn=$('#notificationAccessBtn');if(btn)btn.textContent=access?'Revisar acceso a notificaciones':'Activar acceso a notificaciones';
+
+  const sms=$('#smsDirectEnabled'),smsStatus=$('#smsDirectStatus');
+  if(sms)sms.checked=!!settings.smsDirectEnabled;
+  if(smsStatus){
+    if(settings.smsDirectEnabled&&settings.smsPermission&&settings.smsBaselined)smsStatus.textContent='Activo · lectura directa de SMS recibidos.';
+    else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent='Preparando referencia inicial de SMS…';
+    else if(settings.smsDirectEnabled&&!settings.smsPermission)smsStatus.textContent='Falta conceder permiso para leer SMS.';
+    else smsStatus.textContent='Desactivado.';
+  }
+
+  const gmail=$('#gmailDirectEnabled'),gmailStatus=$('#gmailDirectStatus'),gmailBtn=$('#gmailConnectBtn');
+  if(gmail)gmail.checked=!!settings.gmailDirectEnabled;
+  if(gmailStatus){
+    const account=settings.gmailEmail?String(settings.gmailEmail):'';
+    if(settings.gmailDirectEnabled&&settings.gmailAuthorized&&settings.gmailBaselined){
+      gmailStatus.textContent=`Activo${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''}`;
+    }else if(settings.gmailDirectEnabled&&settings.gmailAuthorized){
+      gmailStatus.textContent=`Cuenta autorizada${account?' · '+account:''} · preparando referencia inicial…`;
+    }else if(settings.gmailError){
+      gmailStatus.textContent=String(settings.gmailError);
+    }else{
+      gmailStatus.textContent=settings.gmailDirectEnabled?'Falta autorizar una cuenta de Gmail.':'Desactivado.';
+    }
+  }
+  if(gmailBtn)gmailBtn.textContent=settings.gmailAuthorized?(settings.gmailEmail?`Cambiar cuenta (${settings.gmailEmail})`:'Cambiar cuenta'):'Conectar Gmail';
+
   const calendar=$('#calendarCaptureEnabled'),calendarStatus=$('#calendarAccessStatus');
   if(calendar)calendar.checked=!!settings.calendarEnabled;
   if(calendarStatus){
-    if(settings.calendarEnabled&&settings.calendarPermission&&settings.calendarBaselined)calendarStatus.textContent='Activo · Nexo está observando nuevos eventos y cambios de Calendar.';
+    if(settings.calendarEnabled&&settings.calendarPermission&&settings.calendarBaselined)calendarStatus.textContent='Activo · observando nuevos eventos y cambios de Calendar.';
     else if(settings.calendarEnabled&&settings.calendarPermission)calendarStatus.textContent='Preparando la referencia inicial del calendario…';
     else if(settings.calendarEnabled&&!settings.calendarPermission)calendarStatus.textContent='Falta conceder permiso de calendario.';
     else calendarStatus.textContent='Desactivado.';
@@ -968,6 +999,14 @@ function inboxSourceLabel(capture){
   if(capture.source==='calendar'){
     const change=capture.classification?.calendarChangeType==='updated'?'cambio':'nuevo';
     return `Calendar · ${change}`;
+  }
+  if(capture.source==='sms-provider'){
+    const sender=String(capture.sender||capture.subject||'').trim();
+    return sender?`SMS · ${sender}`:'SMS';
+  }
+  if(capture.source==='gmail-api'){
+    const sender=String(capture.sender||capture.subject||'').trim();
+    return sender?`Gmail · ${sender}`:'Gmail';
   }
   const pkg=String(capture.sourcePackage||'');
   const app=pkg==='com.whatsapp'||pkg==='com.whatsapp.w4b'?'WhatsApp':pkg==='com.google.android.gm'?'Gmail':pkg.startsWith('org.telegram.messenger')?'Telegram':pkg.includes('messaging')||pkg==='com.android.mms'?'SMS':capture.source==='notification'?'Comunicación':'Compartido';
@@ -1487,6 +1526,11 @@ window.NexoUI={
     if(state.screen==='more')renderCommunicationCaptureSettings();
     if(state.screen==='today')renderToday();
   },
+  onInputHubChanged(){
+    if(state.screen==='more')renderCommunicationCaptureSettings();
+    renderToday();
+    if(state.screen==='panel'&&state.lastPanel==='inbox')renderInboxPanel();
+  },
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
   onDocumentFileChosen(raw){
     const result=parseNative(raw,{}),editor=state.documentEditor;
@@ -1557,11 +1601,29 @@ function init(){
   $('#preferredShoppingList').addEventListener('change',()=>{NexoNative.setPreferredShoppingList(Number($('#preferredShoppingList').value));toast('Acceso a la compra actualizado');});
   $('#notificationAccessBtn')?.addEventListener('click',()=>NexoNative.openNotificationAccessSettings());
   $('#communicationCaptureEnabled')?.addEventListener('change',()=>{NexoNative.setCommunicationCaptureEnabled($('#communicationCaptureEnabled').checked);renderCommunicationCaptureSettings();toast($('#communicationCaptureEnabled').checked?'Captura automática activada':'Captura automática pausada');});
+  $('#smsDirectEnabled')?.addEventListener('change',()=>{
+    const enabled=$('#smsDirectEnabled').checked;
+    NexoNative.setSmsCaptureEnabled(enabled);
+    toast(enabled?'Activando lectura directa de SMS…':'Lectura directa de SMS desactivada');
+    setTimeout(renderCommunicationCaptureSettings,500);
+  });
+  $('#gmailDirectEnabled')?.addEventListener('change',()=>{
+    const enabled=$('#gmailDirectEnabled').checked;
+    NexoNative.setGmailCaptureEnabled(enabled);
+    toast(enabled?'Activando Gmail directo…':'Consulta directa de Gmail desactivada');
+    setTimeout(renderCommunicationCaptureSettings,700);
+  });
+  $('#gmailConnectBtn')?.addEventListener('click',()=>NexoNative.connectGmail());
   $('#calendarCaptureEnabled')?.addEventListener('change',()=>{
     const enabled=$('#calendarCaptureEnabled').checked;
     NexoNative.setCalendarCaptureEnabled(enabled);
     toast(enabled?'Activando escucha de Calendar…':'Escucha de Calendar desactivada');
     setTimeout(renderCommunicationCaptureSettings,500);
+  });
+  $('#inputHubScanBtn')?.addEventListener('click',()=>{
+    NexoNative.scanInputHubNow();
+    toast('Buscando nuevas entradas…');
+    setTimeout(renderCommunicationCaptureSettings,900);
   });
   $('#resetMedicationMessages')?.addEventListener('click',()=>{NexoNative.resetMedicationMessages();renderMedicationMessageSettings();toast('Frases restauradas');});
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
