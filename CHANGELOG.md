@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.6.0-beta3 · versionCode 65 · Corrección de navegación del rediseño
+
+- Corrige un cierre HTML sobrante introducido en beta2 que desplazaba Inbox/Historial/Mi compra fuera de Inicio y rompía la presentación de Buscar y Calendario.
+- Elimina un literal `\\n` visible en la parte superior de la interfaz.
+- Restaura Inbox dentro de Inicio sin cambiar su lógica ni sus datos.
+- Añade validación automática estricta de estructura HTML y presencia de pantallas/accesos antes de compilar.
+- Mantiene el rediseño visual de beta2 y la invalidación de caché de WebView.
+
+
 ## 3.6.0-beta2 · versionCode 64 · Rediseño visual claramente perceptible
 
 - Inicio reconstruido con una jerarquía nueva: título de contexto, bloque de captura rápida y herramientas separadas.
