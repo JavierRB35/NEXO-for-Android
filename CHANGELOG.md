@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.5.0-beta2 · versionCode 57 · Calendar → Inbox
+
+- Observación del Calendar Provider de Android mediante JobScheduler + TriggerContentUri.
+- Permiso READ_CALENDAR solicitado solo al activar la función.
+- Primera activación crea una línea base silenciosa para no importar todo el calendario existente.
+- Eventos nuevos de Calendar se incorporan a Nexo Inbox con título, descripción, fecha, hora, duración y ubicación.
+- Cambios posteriores en un evento ya vinculado se reconocen por su Calendar event ID.
+- Si el evento ya fue convertido a una cita Nexo, la revisión propone actualizar ese mismo elemento en vez de duplicarlo.
+- Persistencia de fingerprints y vínculos Calendar ↔ Nexo en DB schema 17.
+- Notificación Nexo con Revisar / Ignorar cuando se detecta un evento nuevo o modificado.
+- El seguimiento funciona sobre el Calendar Provider del dispositivo, independientemente de qué app haya creado el evento.
+- No se importan ni eliminan eventos automáticamente sin revisión humana.
+
 ## 3.5.0-beta1 · versionCode 56 · Nexo Inbox v0.2
 
 - Captura automática opcional de información útil desde notificaciones.
