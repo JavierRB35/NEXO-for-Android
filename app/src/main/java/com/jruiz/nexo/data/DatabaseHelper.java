@@ -2153,6 +2153,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 }
                 if (!textMatch) continue;
 
+                // Texto exactamente igual es suficiente: la notificación puede mostrar
+                // el nombre del contacto mientras el proveedor SMS entrega el teléfono.
+                if (candidate.equals(target)) return c.getLong(0);
+
                 boolean senderMatch = targetSender.isBlank() || candidateSender.isBlank() ||
                         candidateSender.equals(targetSender) ||
                         candidateSender.contains(targetSender) || targetSender.contains(candidateSender);
