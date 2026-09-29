@@ -24,8 +24,8 @@ android {
         applicationId 'com.jruiz.nexo'
         minSdk 26
         targetSdk 34
-        versionCode 64
-        versionName '3.6.0-beta2'
+        versionCode 65
+        versionName '3.6.0-beta3'
         ndk { abiFilters 'arm64-v8a' }
     }
 
