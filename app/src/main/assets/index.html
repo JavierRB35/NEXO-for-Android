@@ -127,6 +127,13 @@
         <button class="module-tile" data-panel="documents"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg><span><strong>Documentos</strong><small>Archivos y referencias</small></span></button>
       </div>
     </section>
+
+    <section class="tool-group">
+      <div class="section-heading"><div><p class="section-kicker">Sistema</p><h2>Datos</h2></div></div>
+      <div class="module-grid tools-grid tools-grid--system">
+        <button class="module-tile" data-panel="backup"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg><span><strong>Copia de seguridad</strong><small>Exportar o restaurar Nexo</small></span></button>
+      </div>
+    </section>
   </section><section class="screen" data-screen="save">
         <div class="screen-heading">
 <div>
@@ -139,9 +146,8 @@
         <div class="capture-card">
           <div class="capture-mode-row">
             <div>
-<strong>Captura rápida</strong><div class="small muted">No necesitas rellenar un formulario.</div>
+<strong>Captura rápida</strong><div class="small muted">Escribe o usa el micrófono flotante para dictar.</div>
 </div>
-            <button id="voiceCaptureBtn" class="voice-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Hablar</button>
           </div>
 
           <textarea id="captureText" rows="3" placeholder="Ej. Llamar al seguro el viernes a las 18 h y avisarme una hora antes" aria-label="Describe lo que quieres guardar" class="capture-text"></textarea>
