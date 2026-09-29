@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 15;
+    private static final int DB_VERSION = 16;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -185,6 +185,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 15) {
             createInboxTables(db);
         }
+        if (oldVersion < 16) {
+            db.execSQL("ALTER TABLE inbox_captures ADD COLUMN source_package TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE inbox_captures ADD COLUMN sender TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE inbox_captures ADD COLUMN source_key TEXT NOT NULL DEFAULT ''");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_key ON inbox_captures(source_key)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_package ON inbox_captures(source_package,status)");
+        }
     }
 
 
@@ -205,10 +212,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "converted_entity TEXT NOT NULL DEFAULT ''," +
                 "converted_id INTEGER NOT NULL DEFAULT 0," +
                 "created_at INTEGER NOT NULL," +
-                "updated_at INTEGER NOT NULL" +
+                "updated_at INTEGER NOT NULL," +
+                "source_package TEXT NOT NULL DEFAULT ''," +
+                "sender TEXT NOT NULL DEFAULT ''," +
+                "source_key TEXT NOT NULL DEFAULT ''" +
                 ")");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_status_created ON inbox_captures(status,created_at DESC)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_converted ON inbox_captures(converted_entity,converted_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_key ON inbox_captures(source_key)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_package ON inbox_captures(source_package,status)");
     }
 
 
@@ -1664,7 +1676,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("converted_id", 0);
         v.put("created_at", now);
         v.put("updated_at", now);
+        v.put("source_package", in.optString("sourcePackage", ""));
+        v.put("sender", in.optString("sender", ""));
+        v.put("source_key", in.optString("sourceKey", ""));
         return getWritableDatabase().insert("inbox_captures", null, v);
+    }
+
+    public boolean inboxCaptureExists(String sourceKey) {
+        if (sourceKey == null || sourceKey.isBlank()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM inbox_captures WHERE source_key=? LIMIT 1",
+                new String[]{sourceKey})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     public long getPendingInboxCaptureCount() {
@@ -1673,7 +1699,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public JSONArray getInboxCaptures() {
         JSONArray out = new JSONArray();
-        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at FROM inbox_captures WHERE status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 200";
+        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at,source_package,sender,source_key FROM inbox_captures WHERE status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 200";
         try (Cursor c = getReadableDatabase().rawQuery(sql, null)) {
             while (c.moveToNext()) out.put(inboxCaptureJson(c));
         } catch (Exception ignored) {}
@@ -1681,7 +1707,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public JSONObject getInboxCapture(long id) {
-        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at FROM inbox_captures WHERE id=? LIMIT 1";
+        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at,source_package,sender,source_key FROM inbox_captures WHERE id=? LIMIT 1";
         try (Cursor c = getReadableDatabase().rawQuery(sql, new String[]{String.valueOf(id)})) {
             if (c.moveToFirst()) return inboxCaptureJson(c);
         } catch (Exception ignored) {}
@@ -1738,6 +1764,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("convertedId", c.getLong(13));
             o.put("createdAt", c.getLong(14));
             o.put("updatedAt", c.getLong(15));
+            o.put("sourcePackage", c.getString(16));
+            o.put("sender", c.getString(17));
+            o.put("sourceKey", c.getString(18));
         } catch (Exception ignored) {}
         return o;
     }
