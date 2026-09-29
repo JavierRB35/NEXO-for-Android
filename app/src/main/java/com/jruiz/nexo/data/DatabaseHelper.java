@@ -787,20 +787,49 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     /** Concilia estados dependientes de la fecha sin tocar cancelados/omitidos. */
     public synchronized void reconcileTemporalStatuses() {
         SQLiteDatabase db=getWritableDatabase();
+        long now=System.currentTimeMillis();
         long start=LocalDate.now(ZoneId.systemDefault()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",System.currentTimeMillis());
-        db.update("items",done,"deleted_at=0 AND due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<? AND recurrence='none' AND type IN ('event','task','reminder','expiry') AND status IN ('active','pending','postponed')",new String[]{String.valueOf(start)});
-        ContentValues reopenFamily=new ContentValues();reopenFamily.put("status","pending");reopenFamily.put("updated_at",System.currentTimeMillis());
-        db.update("items",reopenFamily,"deleted_at=0 AND source='nexo-familia' AND status='done' AND ((recurrence<>'none') OR (due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=?))",new String[]{String.valueOf(start)});
-        // Los cumpleaños se evalúan contra la aparición del año actual. Hoy todavía queda pendiente.
-        try(Cursor c=db.rawQuery("SELECT id,due_at,status,recurrence,recurrence_until FROM items WHERE deleted_at=0 AND due_at>0 AND status<>'cancelled' AND lower(category) IN ('cumpleanos','cumpleaños','cumple')",null)){
+
+        // Los elementos locales normales conservan la regla histórica: un evento se
+        // completa al quedar su día anterior en el pasado. Los eventos importados
+        // desde Nexo Familia se excluyen de esta actualización genérica porque su
+        // estado se reconstruye a partir del estado fuente y del epoch real.
+        ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",now);
+        db.update("items",done,
+                "deleted_at=0 AND source<>'nexo-familia' AND due_at>0 " +
+                "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<? " +
+                "AND recurrence='none' AND type IN ('event','task','reminder','expiry') " +
+                "AND status IN ('active','pending','postponed')",
+                new String[]{String.valueOf(start)});
+
+        // Nexo Familia: nunca se deduce el estado por visibility. Se respeta
+        // cancelled/completed de Supabase; los demás quedan pending mientras su
+        // final real no haya pasado. Esto evita que los eventos selected futuros
+        // desaparezcan de Agenda al ser marcados como done por una conciliación local.
+        try {
+            db.execSQL(
+                    "UPDATE items SET status=CASE " +
+                    "WHEN lower(COALESCE((SELECT nf.source_status FROM nexo_familia_events nf WHERE nf.local_item_id=items.id LIMIT 1),''))='cancelled' THEN 'cancelled' " +
+                    "WHEN lower(COALESCE((SELECT nf.source_status FROM nexo_familia_events nf WHERE nf.local_item_id=items.id LIMIT 1),''))='completed' THEN 'done' " +
+                    "WHEN recurrence='none' AND due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<? THEN 'done' " +
+                    "ELSE 'pending' END, updated_at=? " +
+                    "WHERE deleted_at=0 AND source='nexo-familia'",
+                    new Object[]{now,now});
+        } catch (Exception ignored) {}
+
+        // Los cumpleaños locales (no procedentes de Nexo Familia) se evalúan contra
+        // la aparición del año actual. Hoy todavía queda pendiente.
+        try(Cursor c=db.rawQuery(
+                "SELECT id,due_at,status,recurrence,recurrence_until FROM items " +
+                "WHERE deleted_at=0 AND source<>'nexo-familia' AND due_at>0 " +
+                "AND status<>'cancelled' AND lower(category) IN ('cumpleanos','cumpleaños','cumple')",
+                null)){
             ZoneId zone=ZoneId.systemDefault();LocalDate today=LocalDate.now(zone);
             long yearStart=LocalDate.of(today.getYear(),1,1).atStartOfDay(zone).toInstant().toEpochMilli();
             long yearEnd=LocalDate.of(today.getYear()+1,1,1).atStartOfDay(zone).toInstant().toEpochMilli()-1;
             while(c.moveToNext()){
                 long id=c.getLong(0),at=c.getLong(1),until=c.getLong(4);String status=c.getString(2),recurrence=c.getString(3);
                 if(RecurrenceEngine.isRecurring(recurrence)){
-                    // La serie debe seguir abierta; el completado pertenece solo al cumpleaños de este año.
                     if("done".equals(status)){
                         ContentValues baseOpen=new ContentValues();baseOpen.put("status","pending");baseOpen.put("updated_at",System.currentTimeMillis());
                         db.update("items",baseOpen,"id=?",new String[]{String.valueOf(id)});
