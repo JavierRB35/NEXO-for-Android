@@ -1195,7 +1195,7 @@ function renderAppointmentsPanel(){
   });
   const group=i=>!i.dueAt?2:i.dueAt>=today.getTime()?0:1;
   shown.sort((a,b)=>group(a)-group(b)||(group(a)===1?(b.dueAt||0)-(a.dueAt||0):(a.dueAt||0)-(b.dueAt||0))||(b.createdAt||0)-(a.createdAt||0));
-  $('#panelAction').innerHTML=`<div class="panel-multi-action"><button id="appointmentDictate" class="secondary-button">${uiIcon('mic')} Dictar</button><button id="panelAddAppointment" class="primary-button">${uiIcon('plus')} Cita</button></div>`;
+  $('#panelAction').innerHTML=`<div class="panel-multi-action"><button id="appointmentDictate" class="secondary-button">${uiIcon('mic')} Dictar</button><button id="panelAddAppointment" class="primary-button">${uiIcon('plus')} Nueva cita</button></div>`;
   $('#panelAddAppointment').addEventListener('click',()=>prepareQuickNoteForType('event'));
   $('#appointmentDictate').addEventListener('click',()=>startManagedDictation('universal',{title:'Dictar cita',hint:'Di qué necesitas hacer, fecha, hora, lugar y avisos si los quieres.'}));
   $('#panelContent').innerHTML=`<div class="appointment-filters">${[['pending','Pendientes'],['undated','Sin fecha'],['done','Completadas'],['all','Todas']].map(([key,label])=>`<button type="button" class="${key===filter?'active':''}" aria-pressed="${key===filter}" data-appointment-filter="${key}">${label}</button>`).join('')}</div><div id="appointmentList" class="stack">${shown.length?shown.map(i=>agendaCard(i,true)).join(''):'<div class="empty-state">No hay citas en esta vista. Pulsa + Cita para añadir una.</div>'}</div>`;
