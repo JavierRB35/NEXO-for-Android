@@ -15,7 +15,8 @@ public final class NotificationCandidateFilter {
             "reserva","reservado","vuelo","tren","factura","presupuesto","poliza","vence",
             "caduca","caducidad","restaurante","ubicacion","direccion","te recomiendo",
             "comprar","compra","trae","lleva","entrega","pedido","visita","doctor","medico",
-            "hospital","revision","itv","seguro","renovar","pagar","pago"
+            "hospital","revision","itv","seguro","renovar","pagar","pago",
+            "cumpleanos","birthday","calendario","calendar","invitacion","invitation","evento de calendario"
     };
     private static final String[] NOISE_TERMS = {
             "mensajes nuevos","mensaje nuevo","new messages","new message","esta escribiendo",
