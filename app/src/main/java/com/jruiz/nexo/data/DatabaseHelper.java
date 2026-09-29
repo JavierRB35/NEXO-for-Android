@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 16;
+    private static final int DB_VERSION = 17;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -128,6 +128,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 ")");
 
         createInboxTables(db);
+        createCalendarWatchTables(db);
         createJournalTables(db);
         seedJournalBiblicalLibrary(db);
         createMedicationTables(db);
@@ -192,6 +193,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_key ON inbox_captures(source_key)");
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_package ON inbox_captures(source_package,status)");
         }
+        if (oldVersion < 17) {
+            createCalendarWatchTables(db);
+        }
     }
 
 
@@ -221,6 +225,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_converted ON inbox_captures(converted_entity,converted_id)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_key ON inbox_captures(source_key)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_package ON inbox_captures(source_package,status)");
+    }
+
+
+    private static void createCalendarWatchTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS calendar_watch_events (" +
+                "event_id INTEGER PRIMARY KEY," +
+                "fingerprint TEXT NOT NULL DEFAULT ''," +
+                "capture_id INTEGER NOT NULL DEFAULT 0," +
+                "linked_item_id INTEGER NOT NULL DEFAULT 0," +
+                "last_seen_at INTEGER NOT NULL DEFAULT 0" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_calendar_watch_capture ON calendar_watch_events(capture_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_calendar_watch_linked_item ON calendar_watch_events(linked_item_id)");
     }
 
 
@@ -1682,6 +1699,89 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return getWritableDatabase().insert("inbox_captures", null, v);
     }
 
+    public boolean replaceInboxCapture(long id, JSONObject in, JSONObject classification) {
+        if (id <= 0 || in == null) return false;
+        JSONObject detected = classification == null ? new JSONObject() : classification;
+        ContentValues v = new ContentValues();
+        v.put("source", nonBlank(in.optString("source"), "calendar"));
+        v.put("mime", in.optString("mime", ""));
+        v.put("subject", in.optString("subject", ""));
+        v.put("raw_text", in.optString("text", ""));
+        v.put("detected_type", detected.optString("type", ""));
+        v.put("detected_title", detected.optString("title", ""));
+        v.put("classification_json", detected.toString());
+        v.put("source_package", in.optString("sourcePackage", ""));
+        v.put("sender", in.optString("sender", ""));
+        v.put("source_key", in.optString("sourceKey", ""));
+        v.put("status", "new");
+        v.put("updated_at", System.currentTimeMillis());
+        return getWritableDatabase().update(
+                "inbox_captures",
+                v,
+                "id=? AND status IN ('new','reviewing')",
+                new String[]{String.valueOf(id)}
+        ) > 0;
+    }
+
+    public boolean isInboxCapturePending(long id) {
+        if (id <= 0) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM inbox_captures WHERE id=? AND status IN ('new','reviewing') LIMIT 1",
+                new String[]{String.valueOf(id)})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public JSONObject getCalendarWatchState(long eventId) {
+        JSONObject out = new JSONObject();
+        if (eventId <= 0) return out;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT event_id,fingerprint,capture_id,linked_item_id,last_seen_at FROM calendar_watch_events WHERE event_id=? LIMIT 1",
+                new String[]{String.valueOf(eventId)})) {
+            if (c.moveToFirst()) {
+                out.put("eventId", c.getLong(0));
+                out.put("fingerprint", c.getString(1));
+                out.put("captureId", c.getLong(2));
+                out.put("linkedItemId", c.getLong(3));
+                out.put("lastSeenAt", c.getLong(4));
+            }
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public void rememberCalendarEvent(long eventId, String fingerprint, long captureId, long linkedItemId) {
+        if (eventId <= 0) return;
+        SQLiteDatabase db = getWritableDatabase();
+        JSONObject existing = getCalendarWatchState(eventId);
+        long keepLinked = linkedItemId >= 0 ? linkedItemId : existing.optLong("linkedItemId", 0L);
+        long keepCapture = captureId >= 0 ? captureId : existing.optLong("captureId", 0L);
+        ContentValues v = new ContentValues();
+        v.put("event_id", eventId);
+        v.put("fingerprint", fingerprint == null ? "" : fingerprint);
+        v.put("capture_id", keepCapture);
+        v.put("linked_item_id", keepLinked);
+        v.put("last_seen_at", System.currentTimeMillis());
+        db.insertWithOnConflict("calendar_watch_events", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public void touchCalendarEvent(long eventId) {
+        if (eventId <= 0) return;
+        ContentValues v = new ContentValues();
+        v.put("last_seen_at", System.currentTimeMillis());
+        getWritableDatabase().update("calendar_watch_events", v, "event_id=?", new String[]{String.valueOf(eventId)});
+    }
+
+    private void linkCalendarCaptureToItem(long captureId, long itemId) {
+        if (captureId <= 0 || itemId <= 0) return;
+        ContentValues v = new ContentValues();
+        v.put("linked_item_id", itemId);
+        v.put("capture_id", captureId);
+        v.put("last_seen_at", System.currentTimeMillis());
+        getWritableDatabase().update("calendar_watch_events", v, "capture_id=?", new String[]{String.valueOf(captureId)});
+    }
+
     public boolean inboxCaptureExists(String sourceKey) {
         if (sourceKey == null || sourceKey.isBlank()) return false;
         try (Cursor c = getReadableDatabase().rawQuery(
@@ -1732,7 +1832,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("converted_entity", nonBlank(entity, "item"));
         v.put("converted_id", convertedId);
         v.put("updated_at", System.currentTimeMillis());
-        return getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+        boolean ok = getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+        if (ok) linkCalendarCaptureToItem(id, convertedId);
+        return ok;
     }
 
     public boolean discardInboxCapture(long id) {
