@@ -47,13 +47,17 @@ home_start = html.index('<section class="screen active" data-screen="today"')
 home_end = html.index('<section class="screen" data-screen="tools"', home_start)
 home = html[home_start:home_end]
 for required in [
-    'data-panel="inbox"',
-    'id="inboxCount"',
-    'id="inboxHomeText"',
-    'id="todaySummary"',
-    'id="medicationToday"',
-    'id="parkingHomeCard"',
-    'id="journalPrompt"',
+    'id="homeSearchInput"',
+    'id="homeTodayCard"',
+    'id="homeWeekCard"',
+    'id="homeInboxPulseCard"',
+    'id="homeRecordCard"',
+    'data-panel="notes"',
+    'data-panel="medications"',
+    'data-panel="lists"',
+    'data-panel="documents"',
+    'id="homeUpcomingList"',
+    'id="homeAgendaLink"',
 ]:
     assert required in home, f"Falta en Inicio: {required}"
 
