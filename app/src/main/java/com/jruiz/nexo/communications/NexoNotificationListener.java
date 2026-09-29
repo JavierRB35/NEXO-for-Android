@@ -60,6 +60,17 @@ public class NexoNotificationListener extends NotificationListenerService {
             JSONObject classification = RuleClassifier.classify(payload.text).toJson();
             if (!NotificationCandidateFilter.shouldCapture(payload.text, classification)) return;
 
+            // Gmail y SMS mantienen NotificationListener como vía de respaldo aunque
+            // su proveedor directo esté activo. Evitamos duplicar la misma comunicación.
+            String appKey = CommunicationCapturePrefs.keyForPackage(pkg);
+            String sourceFamily = "gmail".equals(appKey) ? "gmail" : ("sms".equals(appKey) ? "sms" : "");
+            if (!sourceFamily.isBlank()) {
+                long equivalent = db.findRecentEquivalentInboxCapture(
+                        sourceFamily, payload.sender, payload.text, 45L * 60L * 1000L
+                );
+                if (equivalent > 0L) return;
+            }
+
             String sourceKey = fingerprint(pkg, payload.sender, payload.text, sbn.getPostTime());
             if (db.inboxCaptureExists(sourceKey)) return;
 
