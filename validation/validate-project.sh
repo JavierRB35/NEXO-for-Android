@@ -29,6 +29,8 @@ python validation/test-medication-repeat-integration.py
 python validation/test-transcription-integration.py
 python validation/test-temporal-status.py
 python validation/test-version-identity.py
+python validation/test-input-hub-reliability.py
+python validation/test-nexo-familia-migration.py
 python validation/test-release-config.py
 python validation/test-calendar-swipe.py
 node validation/test-calendar-swipe-runtime.js
