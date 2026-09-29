@@ -740,12 +740,12 @@ function renderHomeCalendar(){if(state.screen==='calendar')renderCalendar();}
 function renderHomeAgenda(){if(state.screen==='calendar')renderCalendarDay();}
 
 function agendaCard(i,showDate=false){
-  const recurring=!!i.recurring||(i.recurrence&&i.recurrence!=='none'),done=i.status==='done'||i.occurrenceStatus==='done';
+  const recurring=!!i.recurring||(i.recurrence&&i.recurrence!=='none'),done=i.status==='done'||i.occurrenceStatus==='done',cancelled=i.status==='cancelled';
   const id=Number(i.seriesId||i.id),occ=Number(i.occurrenceAt||i.dueAt||0),tone=calendarDotClass(i);
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`;
   const when=i.seriesEnded?'Serie sin próximas fechas':!i.dueAt?'Sin fecha':showDate?fmtDueItem(i):fmtAgendaTime(i);
   const description=String(i.body||'').trim(),title=String(i.title||'Cita');
-  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><button type="button" class="agenda-options" aria-label="Opciones de ${escAttr(title)}" data-agenda-options="${id}" data-agenda-occurrence="${occ}" data-agenda-recurring="${recurring?'1':'0'}">${uiIcon('more')}</button></div>`;
+  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><button type="button" class="agenda-options" aria-label="Opciones de ${escAttr(title)}" data-agenda-options="${id}" data-agenda-occurrence="${occ}" data-agenda-recurring="${recurring?'1':'0'}">${uiIcon('more')}</button></div>`;
 }
 
 function prepareHomeCapture(type='',text=''){
@@ -759,10 +759,10 @@ function itemCard(i) {
   const due=fmtDueItem(i), recurring=!!i.recurring || (i.recurrence&&i.recurrence!=='none');
   const id=i.seriesId||i.id,occ=i.occurrenceAt||i.dueAt||0;
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${i.id}"`;
-  const done=(i.status==='done'||i.occurrenceStatus==='done');
+  const done=(i.status==='done'||i.occurrenceStatus==='done'),cancelled=i.status==='cancelled';
   return `<div class="item-card ${done?'item-done':''}">
     <div class="item-top"><div class="item-title">${esc(i.title)}</div></div>
-    <div class="item-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag">${esc(due)}</span>`:''}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
+    <div class="item-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag">${esc(due)}</span>`:''}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':cancelled?'<span class="meta-tag done-tag">Cancelada</span>':''}</div>
     ${i.body&&i.body!==i.title?`<div class="item-body">${esc(i.body)}</div>`:''}
     ${i.locationText?`<div class="item-location"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> ${esc(i.locationText)}</div>`:''}
     <div class="item-actions"><button class="mini-button" ${open}>Ver / editar</button>${i.locationText?`<button class="mini-button" data-go-location="${escAttr(i.locationText)}"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg> Ir</button>`:''}<button class="mini-button" data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button>${isAppointmentType(i.type)&&!done&&i.dueAt?`<button class="mini-button" data-postpone-event="${id}" data-postpone-occurrence="${occ}" data-postpone-recurring="${recurring?'1':'0'}">Posponer</button>`:''}</div>
@@ -1310,18 +1310,16 @@ function renderAppointmentsPanel(){
     const occurrence=parseNative(NexoNative.getOccurrence(original.id,next),{});
     return occurrence.id?occurrence:{...original,occurrenceAt:next,dueAt:next,recurring:true};
   });
-  const done=i=>i.status==='done'||i.occurrenceStatus==='done';
+  const done=i=>i.status==='done'||i.occurrenceStatus==='done',cancelled=i=>i.status==='cancelled',closed=i=>done(i)||cancelled(i);
   const filter=state.appointmentsFilter,shown=items.filter(i=>{
     if(filter==='all')return true;
     if(filter==='done')return done(i);
-    if(filter==='undated')return !i.dueAt&&!done(i);
-    return !done(i);
+    if(filter==='undated')return !i.dueAt&&!closed(i);
+    return !closed(i);
   });
   const group=i=>!i.dueAt?2:i.dueAt>=today.getTime()?0:1;
   shown.sort((a,b)=>group(a)-group(b)||(group(a)===1?(b.dueAt||0)-(a.dueAt||0):(a.dueAt||0)-(b.dueAt||0))||(b.createdAt||0)-(a.createdAt||0));
-  $('#panelAction').innerHTML=`<div class="panel-multi-action"><button id="appointmentDictate" class="secondary-button">${uiIcon('mic')} Dictar</button><button id="panelAddAppointment" class="primary-button">${uiIcon('plus')} Nueva cita</button></div>`;
-  $('#panelAddAppointment').addEventListener('click',()=>prepareQuickNoteForType('event'));
-  $('#appointmentDictate').addEventListener('click',()=>startManagedDictation('universal',{title:'Dictar cita',hint:'Di qué necesitas hacer, fecha, hora, lugar y avisos si los quieres.'}));
+  $('#panelAction').innerHTML='';
   $('#panelContent').innerHTML=`<div class="appointment-filters">${[['pending','Pendientes'],['undated','Sin fecha'],['done','Completadas'],['all','Todas']].map(([key,label])=>`<button type="button" class="${key===filter?'active':''}" aria-pressed="${key===filter}" data-appointment-filter="${key}">${label}</button>`).join('')}</div><div id="appointmentList" class="stack">${shown.length?shown.map(i=>agendaCard(i,true)).join(''):'<div class="empty-state">No hay citas en esta vista. Pulsa + Cita para añadir una.</div>'}</div>`;
   $$('[data-appointment-filter]').forEach(b=>b.addEventListener('click',()=>{state.appointmentsFilter=b.dataset.appointmentFilter;renderAppointmentsPanel();}));
   bindItemButtons($('#appointmentList'));
