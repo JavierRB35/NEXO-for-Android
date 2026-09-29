@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 17;
+    private static final int DB_VERSION = 18;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -129,6 +129,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         createInboxTables(db);
         createCalendarWatchTables(db);
+        createExternalWatchTables(db);
         createJournalTables(db);
         seedJournalBiblicalLibrary(db);
         createMedicationTables(db);
@@ -196,6 +197,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 17) {
             createCalendarWatchTables(db);
         }
+        if (oldVersion < 18) {
+            createExternalWatchTables(db);
+        }
     }
 
 
@@ -238,6 +242,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 ")");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_calendar_watch_capture ON calendar_watch_events(capture_id)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_calendar_watch_linked_item ON calendar_watch_events(linked_item_id)");
+    }
+
+
+    private static void createExternalWatchTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS external_watch_items (" +
+                "source TEXT NOT NULL," +
+                "external_id TEXT NOT NULL," +
+                "fingerprint TEXT NOT NULL DEFAULT ''," +
+                "capture_id INTEGER NOT NULL DEFAULT 0," +
+                "last_seen_at INTEGER NOT NULL DEFAULT 0," +
+                "PRIMARY KEY(source,external_id)" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_external_watch_capture ON external_watch_items(capture_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_external_watch_seen ON external_watch_items(source,last_seen_at)");
     }
 
 
@@ -1780,6 +1798,48 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("capture_id", captureId);
         v.put("last_seen_at", System.currentTimeMillis());
         getWritableDatabase().update("calendar_watch_events", v, "capture_id=?", new String[]{String.valueOf(captureId)});
+    }
+
+    public boolean hasExternalInput(String source, String externalId) {
+        if (source == null || source.isBlank() || externalId == null || externalId.isBlank()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM external_watch_items WHERE source=? AND external_id=? LIMIT 1",
+                new String[]{source, externalId})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public JSONObject getExternalInputState(String source, String externalId) {
+        JSONObject out = new JSONObject();
+        if (source == null || source.isBlank() || externalId == null || externalId.isBlank()) return out;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT source,external_id,fingerprint,capture_id,last_seen_at FROM external_watch_items WHERE source=? AND external_id=? LIMIT 1",
+                new String[]{source, externalId})) {
+            if (c.moveToFirst()) {
+                out.put("source", c.getString(0));
+                out.put("externalId", c.getString(1));
+                out.put("fingerprint", c.getString(2));
+                out.put("captureId", c.getLong(3));
+                out.put("lastSeenAt", c.getLong(4));
+            }
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public void rememberExternalInput(String source, String externalId, String fingerprint, long captureId) {
+        if (source == null || source.isBlank() || externalId == null || externalId.isBlank()) return;
+        JSONObject existing = getExternalInputState(source, externalId);
+        ContentValues v = new ContentValues();
+        v.put("source", source);
+        v.put("external_id", externalId);
+        v.put("fingerprint", fingerprint == null ? "" : fingerprint);
+        v.put("capture_id", captureId >= 0 ? captureId : existing.optLong("captureId", 0L));
+        v.put("last_seen_at", System.currentTimeMillis());
+        getWritableDatabase().insertWithOnConflict(
+                "external_watch_items", null, v, SQLiteDatabase.CONFLICT_REPLACE
+        );
     }
 
     public boolean inboxCaptureExists(String sourceKey) {
