@@ -9,6 +9,7 @@ on:
       - feature/nexo-input-hub-v0.6
       - feature/nexo-input-hub-v0.7
       - feature/nexo-input-hub-v0.8
+      - feature/nexo-home-familia-v0.9
       - fix/input-hub-reliability-and-familia-migration
 
 jobs:
@@ -44,6 +45,7 @@ jobs:
           python3 validation/test-input-hub-reliability.py
           python3 validation/test-nexo-familia-migration.py
           python3 validation/test-calendar-nonrecurring-range.py
+          python3 validation/test-home-familia-parity.py
           node --check app/src/main/assets/app.js
 
       - name: Compile debug APK
@@ -63,7 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          STAGE="$RUNNER_TEMP/Nexo_3_7_0_beta8_AndroidIDE"
+          STAGE="$RUNNER_TEMP/Nexo_3_7_0_beta9_AndroidIDE"
           mkdir -p "$STAGE"
           git archive --format=tar HEAD | tar -x -C "$STAGE"
 
@@ -81,8 +83,8 @@ jobs:
       - name: Upload clean project
         uses: actions/upload-artifact@v4
         with:
-          name: Nexo_3_7_0_beta8_AndroidIDE
-          path: ${{ runner.temp }}/Nexo_3_7_0_beta8_AndroidIDE/
+          name: Nexo_3_7_0_beta9_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_3_7_0_beta9_AndroidIDE/
           include-hidden-files: true
           if-no-files-found: error
           compression-level: 6
