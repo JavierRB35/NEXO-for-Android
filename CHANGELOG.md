@@ -1,5 +1,20 @@
 # Changelog de Nexo
 
+## 3.5.0-beta1 · versionCode 56 · Nexo Inbox v0.2
+
+- Captura automática opcional de información útil desde notificaciones.
+- Fuentes iniciales: WhatsApp, Gmail, Telegram y SMS.
+- Acceso explícito del usuario mediante el permiso especial de acceso a notificaciones de Android.
+- Lista blanca configurable por aplicación desde Ajustes.
+- Filtro local para conservar candidatos accionables y descartar ruido habitual.
+- Exclusión de códigos OTP/verificación detectables para evitar almacenar información sensible de autenticación.
+- Persistencia en Inbox con aplicación de origen y remitente.
+- Notificación propia de Nexo con acciones Revisar e Ignorar.
+- La acción Revisar abre directamente la captura en el formulario existente.
+- Ninguna cita, tarea o recordatorio se crea sin confirmación humana.
+- Esquema de base de datos 16.
+- APK de prueba copiado directamente a /storage/emulated/0/Download/Nexo_Inbox_v0_2.apk.
+
 ## 3.4.9 · versionCode 55
 
 - Conciliación automática de citas/tareas con fechas pasadas.
