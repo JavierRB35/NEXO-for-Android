@@ -15,12 +15,11 @@ public class CalendarWatchJob extends JobService {
                 }
             } finally {
                 if (!stopped) {
-                    if (params.getJobId() == CalendarWatchScheduler.CONTENT_JOB_ID) {
-                        CalendarWatchScheduler.scheduleContentWatcher(this);
-                    }
-                    // onStartJob() devolvió true: el job actual debe finalizar
-                    // siempre, también cuando rearmamos el TriggerContentUri.
+                    boolean contentJob = params.getJobId() == CalendarWatchScheduler.CONTENT_JOB_ID;
+                    // onStartJob() devolvió true: cerramos siempre el job actual.
                     jobFinished(params, false);
+                    // Después de finalizarlo, rearmamos un nuevo TriggerContentUri.
+                    if (contentJob) CalendarWatchScheduler.scheduleContentWatcher(this);
                 }
             }
         }, "nexo-calendar-watch").start();
@@ -29,6 +28,6 @@ public class CalendarWatchJob extends JobService {
 
     @Override public boolean onStopJob(JobParameters params) {
         stopped = true;
-        return false;
+        return true;
     }
 }
