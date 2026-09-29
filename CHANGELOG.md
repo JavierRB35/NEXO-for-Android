@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.5.0-beta6 · versionCode 61 · Citas/frases simplificadas
+
+- Citas del Cuaderno separadas claramente de las citas de agenda.
+- Nueva cita: solo texto, título, autor/referencia y favorito.
+- Sin fecha, hora, recordatorios, recurrencia ni campos de agenda.
+- El dictado dentro de Cuaderno > Citas mantiene siempre el tipo cita/frase.
+- La referencia/autor de las citas manuales se muestra también en Inicio.
+- Las citas siguen participando en la selección aleatoria de Inicio.
+- El dictado general distingue frases/citas de autor de las citas de agenda cuando hay señales claras de contexto.
+
+
 ## 3.5.0-beta5 · versionCode 60 · Input Hub reliability audit
 
 - Corrige Calendar y SMS: los trabajos con `TriggerContentUri` ya no usan `setPersisted(true)`, combinación incompatible en Android.
