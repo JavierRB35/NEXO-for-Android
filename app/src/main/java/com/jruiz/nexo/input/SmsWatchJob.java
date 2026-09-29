@@ -13,8 +13,11 @@ public class SmsWatchJob extends JobService {
                 if (!stopped && SmsWatchScheduler.canRun(this)) SmsWatchEngine.scan(this);
             } finally {
                 if (!stopped) {
-                    jobFinished(params, false);
-                    SmsWatchScheduler.schedule(this);
+                    if (params.getJobId() == SmsWatchScheduler.CONTENT_JOB_ID) {
+                        SmsWatchScheduler.scheduleContentWatcher(this);
+                    } else {
+                        jobFinished(params, false);
+                    }
                 }
             }
         }, "nexo-sms-watch").start();
@@ -23,6 +26,6 @@ public class SmsWatchJob extends JobService {
 
     @Override public boolean onStopJob(JobParameters params) {
         stopped = true;
-        return true;
+        return false;
     }
 }
