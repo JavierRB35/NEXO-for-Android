@@ -70,7 +70,16 @@ function fmtDate(ms, withTime=true) {
   const d=new Date(ms);
   return new Intl.DateTimeFormat('es-ES', withTime ? {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'} : {day:'2-digit',month:'short',year:'numeric'}).format(d);
 }
-function fmtDueItem(item) { if(!item?.dueAt)return ''; if(item.hasTime===false)return `${fmtDate(item.dueAt,false)} · Todo el día`; const base=fmtDate(item.dueAt,true); return item.durationMinutes?`${base}–${fmtTime(item.dueAt+Number(item.durationMinutes)*60000)}`:base; }
+function fmtDueItem(item) {
+  if(!item?.dueAt)return '';
+  const end=Number(item.endAt)||((Number(item.durationMinutes)||0)?item.dueAt+Number(item.durationMinutes)*60000:item.dueAt);
+  const sameDay=isoDateLocal(new Date(item.dueAt))===isoDateLocal(new Date(end));
+  if(item.allDay===true||item.hasTime===false){
+    return sameDay?`${fmtDate(item.dueAt,false)} · Todo el día`:`${fmtDate(item.dueAt,false)} → ${fmtDate(end,false)} · Todo el día`;
+  }
+  const base=fmtDate(item.dueAt,true);
+  return end>item.dueAt?(sameDay?`${base}–${fmtTime(end)}`:`${base} → ${fmtDate(end,true)}`):base;
+}
 function fmtShort(ms) { return ms ? new Intl.DateTimeFormat('es-ES',{day:'2-digit',month:'short'}).format(new Date(ms)) : ''; }
 function fmtTime(ms) { return ms ? new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit'}).format(new Date(ms)) : ''; }
 function isoFromMs(ms) {
@@ -137,16 +146,38 @@ function durationMinutesFromTimes(start,end){
   if(diff<=0)diff+=24*60;
   return Math.min(diff,24*60);
 }
+function recurrenceRuleFor(value){
+  return ({daily:'FREQ=DAILY',weekly:'FREQ=WEEKLY',monthly:'FREQ=MONTHLY',bimonthly:'FREQ=MONTHLY;INTERVAL=2',quarterly:'FREQ=MONTHLY;INTERVAL=3',semiannual:'FREQ=MONTHLY;INTERVAL=6',annual:'FREQ=YEARLY'})[value]||'';
+}
+function addOneHourTime(value){
+  if(!value)return '10:00';
+  const [h,m]=value.split(':').map(Number),minutes=((h*60+m)+60)%(24*60);
+  return `${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;
+}
+function eventEndFromFields(startDate,startTime,endDate,endTime,allDay){
+  if(!startDate)return 0;
+  const start=dateTimeToMs(startDate,allDay?'':startTime);
+  if(!start)return 0;
+  const finishDate=endDate||startDate;
+  if(allDay)return dateTimeToMs(finishDate,'');
+  if(!startTime)return start;
+  if(!endTime)return start+60*60000;
+  let finish=dateTimeToMs(finishDate,endTime);
+  if(finishDate===startDate&&finish<=start)finish+=24*60*60000;
+  return Math.max(start,finish);
+}
+function durationMinutesBetween(start,end){return start>0&&end>start?Math.min(5256000,Math.round((end-start)/60000)):0;}
 function endTimeForItem(item){
-  if(!item?.dueAt||!item.hasTime||!item.durationMinutes)return '';
-  const d=new Date(item.dueAt+Number(item.durationMinutes)*60000),pad=n=>String(n).padStart(2,'0');
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if(!item?.dueAt||item.hasTime===false)return '';
+  const end=Number(item.endAt)||((Number(item.durationMinutes)||0)?item.dueAt+Number(item.durationMinutes)*60000:0);
+  if(!end||end<=item.dueAt)return '';
+  return fmtTime(end);
 }
 function fmtAgendaTime(item){
   if(!item?.dueAt)return '';
-  if(item.hasTime===false)return 'Todo el día';
-  const start=fmtTime(item.dueAt),end=item.durationMinutes?fmtTime(item.dueAt+Number(item.durationMinutes)*60000):'';
-  return end?`${start}–${end}`:start;
+  if(item.allDay===true||item.hasTime===false)return 'Todo el día';
+  const start=fmtTime(item.dueAt),end=Number(item.endAt)||((Number(item.durationMinutes)||0)?item.dueAt+Number(item.durationMinutes)*60000:0);
+  return end>item.dueAt?`${start}–${fmtTime(end)}`:start;
 }
 function dayBounds(iso){const start=new Date(`${iso}T00:00:00`).getTime(),end=new Date(`${iso}T23:59:59.999`).getTime();return {start,end};}
 function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
