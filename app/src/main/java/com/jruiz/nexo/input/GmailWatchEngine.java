@@ -30,7 +30,7 @@ public final class GmailWatchEngine {
     private static final String API = "https://gmail.googleapis.com/gmail/v1/users/me";
     private static final String QUERY = "in:inbox newer_than:30d";
     private static final String RECOVERY_QUERY = "in:inbox newer_than:2d";
-    private static final String FILTER_REVISION = "gmail-filter-v3:";
+    private static final String FILTER_REVISION = "gmail-filter-v5:";
 
     private GmailWatchEngine() {}
 
@@ -183,8 +183,7 @@ public final class GmailWatchEngine {
 
     private static GmailMessage fetchMessage(String token, String id) throws Exception {
         String url = API + "/messages/" + URLEncoder.encode(id, StandardCharsets.UTF_8.name()) +
-                "?format=metadata&metadataHeaders=Subject&metadataHeaders=From" +
-                "&fields=id,internalDate,snippet,payload/headers";
+                "?format=full&fields=id,internalDate,snippet,payload";
         JSONObject json = getJson(url, token);
         String subject = "", from = "";
         JSONObject payload = json.optJSONObject("payload");
@@ -199,9 +198,47 @@ public final class GmailWatchEngine {
             }
         }
         String snippet = json.optString("snippet", "");
+        String bodyText = extractReadableBody(payload);
         long internalDate = 0L;
         try { internalDate = Long.parseLong(json.optString("internalDate", "0")); } catch (Exception ignored) {}
-        return new GmailMessage(id, from, subject, snippet, internalDate);
+        return new GmailMessage(id, from, subject, snippet, bodyText, internalDate);
+    }
+
+    private static String extractReadableBody(JSONObject payload) {
+        StringBuilder out = new StringBuilder();
+        collectPartText(payload, out, 0);
+        String text = out.toString()
+                .replaceAll("(?is)<style[^>]*>.*?</style>", " ")
+                .replaceAll("(?is)<script[^>]*>.*?</script>", " ")
+                .replaceAll("(?s)<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replaceAll("[\\t\\x0B\\f\\r ]+", " ")
+                .replaceAll("\\n{3,}", "\\n\\n")
+                .trim();
+        if (text.length() > 12000) text = text.substring(0, 12000);
+        return text;
+    }
+
+    private static void collectPartText(JSONObject part, StringBuilder out, int depth) {
+        if (part == null || depth > 8) return;
+        String mime = part.optString("mimeType", "").toLowerCase(java.util.Locale.ROOT);
+        JSONObject body = part.optJSONObject("body");
+        String data = body == null ? "" : body.optString("data", "");
+        if (!data.isBlank() && (mime.startsWith("text/plain") || mime.startsWith("text/html") || mime.startsWith("text/calendar") || mime.isBlank())) {
+            try {
+                byte[] decoded = android.util.Base64.decode(data, android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP);
+                String text = new String(decoded, StandardCharsets.UTF_8);
+                if (!text.isBlank()) {
+                    if (out.length() > 0) out.append("\n");
+                    out.append(text);
+                }
+            } catch (Exception ignored) {}
+        }
+        JSONArray parts = part.optJSONArray("parts");
+        if (parts != null) for (int i=0;i<parts.length();i++) collectPartText(parts.optJSONObject(i), out, depth+1);
     }
 
     private static JSONObject getJson(String endpoint, String token) throws Exception {
@@ -232,11 +269,11 @@ public final class GmailWatchEngine {
     }
 
     private static final class GmailMessage {
-        final String id, from, subject, snippet;
+        final String id, from, subject, snippet, bodyText;
         final long internalDate;
-        GmailMessage(String id, String from, String subject, String snippet, long internalDate) {
+        GmailMessage(String id, String from, String subject, String snippet, String bodyText, long internalDate) {
             this.id=id;this.from=from==null?"":from;this.subject=subject==null?"":subject;
-            this.snippet=snippet==null?"":snippet;this.internalDate=internalDate;
+            this.snippet=snippet==null?"":snippet;this.bodyText=bodyText==null?"":bodyText;this.internalDate=internalDate;
         }
         String analysisText() {
             StringBuilder b = new StringBuilder();
@@ -245,7 +282,12 @@ public final class GmailWatchEngine {
                 if (b.length() > 0) b.append("\n");
                 b.append(snippet);
             }
-            return b.toString();
+            if (!bodyText.isBlank()) {
+                if (b.length() > 0) b.append("\n");
+                b.append(bodyText);
+            }
+            String text=b.toString();
+            return text.length()>14000?text.substring(0,14000):text;
         }
     }
 }
