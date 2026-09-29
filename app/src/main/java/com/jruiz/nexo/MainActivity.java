@@ -633,7 +633,12 @@ public class MainActivity extends Activity {
             boolean cleanRebuildDone = snapshot.equals(prefs.getString("cleanRebuildVersion", ""));
             if (!force && cleanRebuildDone &&
                     snapshot.equals(prefs.getString("snapshotVersion", "")) &&
-                    beforeAudit.optBoolean("complete", false)) return;
+                    beforeAudit.optBoolean("complete", false)) {
+                // Aunque los 33 UUID ya estén presentes, una versión anterior pudo
+                // dejar estados temporales incorrectos. Se concilian antes de abrir UI.
+                db.reconcileTemporalStatuses();
+                return;
+            }
 
             // Beta6: no intentamos reparar sobre una migración dudosa. Reconstruimos
             // únicamente las copias procedentes de Nexo Familia y mantenemos intactos
@@ -706,8 +711,8 @@ public class MainActivity extends Activity {
             if (rules == null) rules = new JSONArray();
 
             int verifiedEvents = 0;
-            int expectedFamily = 0, verifiedFamily = 0;
-            int expectedSelected = 0, verifiedSelected = 0;
+            int expectedFamily = 0, verifiedFamily = 0, familyPending = 0, familyDone = 0;
+            int expectedSelected = 0, verifiedSelected = 0, selectedPending = 0, selectedDone = 0;
 
             for (int i=0;i<events.length();i++) {
                 JSONObject event = events.optJSONObject(i);
@@ -729,8 +734,15 @@ public class MainActivity extends Activity {
 
                 if (valid) {
                     verifiedEvents++;
-                    if ("family".equals(visibility)) verifiedFamily++;
-                    if ("selected".equals(visibility)) verifiedSelected++;
+                    String localStatus = local.optString("status", "");
+                    if ("family".equals(visibility)) {
+                        verifiedFamily++;
+                        if ("done".equals(localStatus)) familyDone++; else if ("pending".equals(localStatus) || "active".equals(localStatus) || "postponed".equals(localStatus)) familyPending++;
+                    }
+                    if ("selected".equals(visibility)) {
+                        verifiedSelected++;
+                        if ("done".equals(localStatus)) selectedDone++; else if ("pending".equals(localStatus) || "active".equals(localStatus) || "postponed".equals(localStatus)) selectedPending++;
+                    }
                 } else {
                     JSONObject miss = new JSONObject();
                     miss.put("id", sourceId);
@@ -766,6 +778,10 @@ public class MainActivity extends Activity {
             out.put("verifiedFamily", verifiedFamily);
             out.put("expectedSelected", expectedSelected);
             out.put("verifiedSelected", verifiedSelected);
+            out.put("familyPending", familyPending);
+            out.put("familyDone", familyDone);
+            out.put("selectedPending", selectedPending);
+            out.put("selectedDone", selectedDone);
             out.put("expectedReminderRules", rules.length());
             out.put("verifiedReminderRules", verifiedRules);
             out.put("missingEvents", missingEvents);
@@ -2055,6 +2071,10 @@ public class MainActivity extends Activity {
                 stats.put("verifiedFamily", audit.optInt("verifiedFamily", 0));
                 stats.put("expectedSelected", audit.optInt("expectedSelected", 0));
                 stats.put("verifiedSelected", audit.optInt("verifiedSelected", 0));
+                stats.put("familyPending", audit.optInt("familyPending", 0));
+                stats.put("familyDone", audit.optInt("familyDone", 0));
+                stats.put("selectedPending", audit.optInt("selectedPending", 0));
+                stats.put("selectedDone", audit.optInt("selectedDone", 0));
                 stats.put("expectedReminderRules", audit.optInt("expectedReminderRules", p.getInt("expectedReminderRules", 0)));
                 stats.put("verifiedReminderRules", audit.optInt("verifiedReminderRules", 0));
                 stats.put("missingEvents", audit.optJSONArray("missingEvents"));
