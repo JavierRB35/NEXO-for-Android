@@ -1232,10 +1232,15 @@ function renderBackupPanel(){
   $('#panelContent').innerHTML=`<div class="backup-stack">
     <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div><div class="backup-copy"><strong>Exportar copia</strong><p>Guarda la base de datos, listas, avisos y adjuntos en un archivo <b>.nexo</b>. <strong>Las grabaciones no se incluyen.</strong> Expórtalas por separado desde Grabaciones.</p><div class="small muted">${last?`Última copia: ${esc(fmtDate(last,true))}`:'Aún no has creado ninguna copia.'}</div><div class="small muted">${esc(backupStatLine(stats))}</div></div><button id="backupExportBtn" class="primary-button">Exportar copia</button></div>
     <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg></div><div class="backup-copy"><strong>Restaurar copia</strong><p>Selecciona un archivo <b>.nexo</b> desde el teléfono, la nube, USB u otra ubicación disponible.</p><div class="small muted">${restored?`Última restauración: ${esc(fmtDate(restored,true))}`:'La restauración sustituye el contenido actual por el de la copia.'}</div></div><button id="backupRestoreBtn" class="secondary-button">Restaurar copia</button></div>
+    <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></div><div class="backup-copy"><strong>Importar Nexo Familia</strong><p>Importa eventos exportados desde Supabase sin borrar lo que ya tengas en Nexo. Conserva también los identificadores y metadatos familiares para futuras migraciones o sincronización.</p><div id="nexoFamiliaImportStats" class="small muted"></div></div><button id="nexoFamiliaImportBtn" class="secondary-button">Importar eventos</button></div>
     <div class="backup-security"><strong>Cómo funciona</strong><p>Nexo comprueba la integridad del archivo antes de restaurarlo. Justo antes de sustituir tus datos crea además una copia interna de seguridad del estado actual.</p></div>
   </div>`;
   $('#backupExportBtn').addEventListener('click',()=>{toast('Elige dónde guardar la copia.');NexoNative.exportBackup();});
   $('#backupRestoreBtn').addEventListener('click',()=>{toast('Selecciona una copia .nexo para revisarla antes de restaurar.');NexoNative.chooseBackupRestore();});
+  const familyStats=parseNative(NexoNative.getNexoFamiliaImportStats(),{});
+  const familyStatsEl=$('#nexoFamiliaImportStats');
+  if(familyStatsEl)familyStatsEl.textContent=Number(familyStats.events||0)?`${Number(familyStats.events)} eventos de Nexo Familia ya vinculados localmente.`:'Preparado para la migración desde Nexo Familia.';
+  $('#nexoFamiliaImportBtn').addEventListener('click',()=>{toast('Selecciona el archivo JSON de migración de Nexo Familia.');NexoNative.chooseNexoFamiliaImport();});
 }
 
 
@@ -1709,6 +1714,8 @@ window.NexoUI={
   onManagedVoiceError(msg){$('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;toast(msg||'No se pudo continuar el dictado.');},
   onSystemAlarmCreated(msg){closeModal();toast(msg||'Alarma enviada al sistema del teléfono.','',null,5000);},
   onSystemAlarmError(msg){if($('#alarmCreate')){$('#alarmCreate').disabled=false;$('#alarmCreate').textContent='Intentar de nuevo';}toast(msg||'No se pudo crear la alarma.','',null,6000);},
+  onNexoFamiliaImportDone(raw){const r=parseNative(raw,{}),n=Number(r.preserved||0),rem=Number(r.reminders||0),skipped=Number(r.skipped||0);toast(`Nexo Familia: ${n} evento${n===1?'':'s'} importado${n===1?'':'s'}${rem?` · ${rem} aviso${rem===1?'':'s'}`:''}${skipped?` · ${skipped} con revisión`:''}.`,'',null,6500);refreshCurrent();if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();},
+  onNexoFamiliaImportError(msg){toast(msg||'No se pudo importar Nexo Familia.','',null,7000);},
   onBackupExported(raw){const r=parseNative(raw,{});toast('Copia de seguridad creada correctamente.', '', null, 4500);if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();renderMore();},
   onBackupRestorePreview(raw){
     const p=parseNative(raw,{}),st=p.stats||{},when=Number(p.createdAt||0);

@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 18;
+    private static final int DB_VERSION = 19;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -130,6 +130,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         createInboxTables(db);
         createCalendarWatchTables(db);
         createExternalWatchTables(db);
+        createNexoFamiliaCompatibilityTables(db);
         createJournalTables(db);
         seedJournalBiblicalLibrary(db);
         createMedicationTables(db);
@@ -200,6 +201,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 18) {
             createExternalWatchTables(db);
         }
+        if (oldVersion < 19) {
+            createNexoFamiliaCompatibilityTables(db);
+        }
     }
 
 
@@ -256,6 +260,149 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 ")");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_external_watch_capture ON external_watch_items(capture_id)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_external_watch_seen ON external_watch_items(source,last_seen_at)");
+    }
+
+
+    private static void createNexoFamiliaCompatibilityTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS nexo_familia_events (" +
+                "source_event_id TEXT PRIMARY KEY," +
+                "local_item_id INTEGER NOT NULL DEFAULT 0," +
+                "family_id TEXT NOT NULL DEFAULT ''," +
+                "created_by TEXT NOT NULL DEFAULT ''," +
+                "participant_ids_json TEXT NOT NULL DEFAULT '[]'," +
+                "visibility TEXT NOT NULL DEFAULT ''," +
+                "shared_with_json TEXT NOT NULL DEFAULT '[]'," +
+                "event_origin TEXT NOT NULL DEFAULT ''," +
+                "social_type TEXT NOT NULL DEFAULT ''," +
+                "venue_type TEXT NOT NULL DEFAULT ''," +
+                "maps_url TEXT NOT NULL DEFAULT ''," +
+                "guest_count INTEGER NOT NULL DEFAULT 0," +
+                "guest_details_json TEXT NOT NULL DEFAULT '[]'," +
+                "external_uid TEXT NOT NULL DEFAULT ''," +
+                "external_source TEXT NOT NULL DEFAULT ''," +
+                "source_status TEXT NOT NULL DEFAULT ''," +
+                "time_zone TEXT NOT NULL DEFAULT 'Europe/Madrid'," +
+                "recurrence_rule TEXT NOT NULL DEFAULT ''," +
+                "start_raw TEXT NOT NULL DEFAULT ''," +
+                "end_raw TEXT NOT NULL DEFAULT ''," +
+                "raw_json TEXT NOT NULL DEFAULT '{}'," +
+                "imported_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_nexo_familia_local_item ON nexo_familia_events(local_item_id)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS nexo_familia_reminders (" +
+                "source_rule_id TEXT PRIMARY KEY," +
+                "source_event_id TEXT NOT NULL DEFAULT ''," +
+                "local_item_id INTEGER NOT NULL DEFAULT 0," +
+                "local_reminder_id INTEGER NOT NULL DEFAULT 0," +
+                "minutes_before INTEGER NOT NULL DEFAULT 0," +
+                "source_status TEXT NOT NULL DEFAULT ''," +
+                "raw_json TEXT NOT NULL DEFAULT '{}'," +
+                "imported_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_nexo_familia_reminder_event ON nexo_familia_reminders(source_event_id)");
+    }
+
+    public long getNexoFamiliaLocalItemId(String sourceEventId) {
+        if (sourceEventId == null || sourceEventId.isBlank()) return 0L;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT local_item_id FROM nexo_familia_events WHERE source_event_id=?",
+                new String[]{sourceEventId})) {
+            return c.moveToFirst() ? c.getLong(0) : 0L;
+        } catch (Exception ignored) { return 0L; }
+    }
+
+    public void rememberNexoFamiliaEvent(String sourceEventId, long localItemId, JSONObject source) {
+        if (sourceEventId == null || sourceEventId.isBlank() || localItemId <= 0 || source == null) return;
+        long now = System.currentTimeMillis();
+        ContentValues v = new ContentValues();
+        v.put("source_event_id", sourceEventId);
+        v.put("local_item_id", localItemId);
+        v.put("family_id", source.optString("family_id", ""));
+        v.put("created_by", source.optString("created_by", ""));
+        v.put("participant_ids_json", String.valueOf(source.optJSONArray("participant_ids") == null ? new JSONArray() : source.optJSONArray("participant_ids")));
+        v.put("visibility", source.optString("visibility", ""));
+        v.put("shared_with_json", String.valueOf(source.optJSONArray("shared_with") == null ? new JSONArray() : source.optJSONArray("shared_with")));
+        v.put("event_origin", source.optString("event_origin", ""));
+        v.put("social_type", source.optString("social_type", ""));
+        v.put("venue_type", source.optString("venue_type", ""));
+        v.put("maps_url", source.optString("maps_url", ""));
+        v.put("guest_count", Math.max(0, source.optInt("guest_count", 0)));
+        Object guestDetails = source.opt("guest_details");
+        v.put("guest_details_json", guestDetails == null || guestDetails == JSONObject.NULL ? "[]" : String.valueOf(guestDetails));
+        v.put("external_uid", source.optString("external_uid", ""));
+        v.put("external_source", source.optString("external_source", ""));
+        v.put("source_status", source.optString("status", ""));
+        v.put("time_zone", nonBlank(source.optString("time_zone"), "Europe/Madrid"));
+        v.put("recurrence_rule", source.optString("recurrence_rule", ""));
+        v.put("start_raw", source.optBoolean("all_day", false) ? source.optString("start_date", "") : source.optString("start_at", ""));
+        v.put("end_raw", source.optBoolean("all_day", false) ? source.optString("end_date", "") : source.optString("end_at", ""));
+        v.put("raw_json", source.toString());
+        v.put("updated_at", now);
+        long importedAt = now;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT imported_at FROM nexo_familia_events WHERE source_event_id=?",
+                new String[]{sourceEventId})) {
+            if (c.moveToFirst()) importedAt = c.getLong(0);
+        } catch (Exception ignored) {}
+        v.put("imported_at", importedAt);
+        getWritableDatabase().insertWithOnConflict("nexo_familia_events", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public JSONArray deleteNexoFamiliaImportedReminders(String sourceEventId) {
+        JSONArray ids = new JSONArray();
+        if (sourceEventId == null || sourceEventId.isBlank()) return ids;
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            ArrayList<Long> values = new ArrayList<>();
+            try (Cursor c = db.rawQuery(
+                    "SELECT local_reminder_id FROM nexo_familia_reminders WHERE source_event_id=? AND local_reminder_id>0",
+                    new String[]{sourceEventId})) {
+                while (c.moveToNext()) values.add(c.getLong(0));
+            }
+            for (Long id : values) {
+                ids.put(id);
+                db.delete("reminders", "id=?", new String[]{String.valueOf(id)});
+            }
+            db.delete("nexo_familia_reminders", "source_event_id=?", new String[]{sourceEventId});
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+        return ids;
+    }
+
+    public void rememberNexoFamiliaReminder(String sourceRuleId, String sourceEventId, long localItemId,
+                                            long localReminderId, int minutesBefore, String sourceStatus,
+                                            JSONObject raw) {
+        if (sourceRuleId == null || sourceRuleId.isBlank()) return;
+        long now = System.currentTimeMillis();
+        ContentValues v = new ContentValues();
+        v.put("source_rule_id", sourceRuleId);
+        v.put("source_event_id", sourceEventId == null ? "" : sourceEventId);
+        v.put("local_item_id", Math.max(0, localItemId));
+        v.put("local_reminder_id", Math.max(0, localReminderId));
+        v.put("minutes_before", Math.max(0, minutesBefore));
+        v.put("source_status", sourceStatus == null ? "" : sourceStatus);
+        v.put("raw_json", raw == null ? "{}" : raw.toString());
+        v.put("updated_at", now);
+        long importedAt = now;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT imported_at FROM nexo_familia_reminders WHERE source_rule_id=?",
+                new String[]{sourceRuleId})) {
+            if (c.moveToFirst()) importedAt = c.getLong(0);
+        } catch (Exception ignored) {}
+        v.put("imported_at", importedAt);
+        getWritableDatabase().insertWithOnConflict("nexo_familia_reminders", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public JSONObject getNexoFamiliaImportStats() {
+        JSONObject out = new JSONObject();
+        try {
+            out.put("events", scalar("SELECT COUNT(*) FROM nexo_familia_events"));
+            out.put("reminders", scalar("SELECT COUNT(*) FROM nexo_familia_reminders"));
+        } catch (Exception ignored) {}
+        return out;
     }
 
 

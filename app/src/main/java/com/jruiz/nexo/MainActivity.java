@@ -56,6 +56,7 @@ import com.jruiz.nexo.input.SmsWatchEngine;
 import com.jruiz.nexo.input.SmsWatchScheduler;
 import com.jruiz.nexo.input.GmailWatchEngine;
 import com.jruiz.nexo.input.GmailWatchScheduler;
+import com.jruiz.nexo.migration.NexoFamiliaImporter;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -87,6 +88,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CALENDAR = 112;
     private static final int REQ_GMAIL_SIGN_IN = 113;
     private static final int REQ_SMS = 114;
+    private static final int REQ_NEXO_FAMILIA_IMPORT = 115;
     private String pendingDocumentRequest = "";
     private String pendingDocumentExportPath = "";
 
@@ -608,6 +610,53 @@ public class MainActivity extends Activity {
         },"nexo-document-export").start();
     }
 
+    private void chooseNexoFamiliaImport() {
+        runOnUiThread(() -> {
+            try {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                i.setType("application/json");
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivityForResult(i, REQ_NEXO_FAMILIA_IMPORT);
+            } catch (Exception e) {
+                jsCallback("onNexoFamiliaImportError", "No se pudo abrir el selector de archivos.");
+            }
+        });
+    }
+
+    private void importNexoFamiliaFrom(Uri uri) {
+        new Thread(() -> {
+            try {
+                String raw = readUriUtf8(uri, 8 * 1024 * 1024);
+                JSONObject payload = new JSONObject(raw);
+                JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
+                if (result.optBoolean("ok", false) || result.optInt("preserved", 0) > 0) {
+                    jsCallbackJson("onNexoFamiliaImportDone", result);
+                } else {
+                    jsCallback("onNexoFamiliaImportError", result.optString("error", "No se pudo importar Nexo Familia."));
+                }
+            } catch (Exception e) {
+                jsCallback("onNexoFamiliaImportError", "El archivo de Nexo Familia no es válido o está dañado.");
+            }
+        }, "nexo-familia-import").start();
+    }
+
+    private String readUriUtf8(Uri uri, int maxBytes) throws IOException {
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            if (in == null) throw new IOException("Archivo no disponible");
+            byte[] buffer = new byte[16384];
+            int total = 0, n;
+            while ((n = in.read(buffer)) != -1) {
+                if (n <= 0) continue;
+                total += n;
+                if (total > maxBytes) throw new IOException("Archivo demasiado grande");
+                out.write(buffer, 0, n);
+            }
+            return out.toString(java.nio.charset.StandardCharsets.UTF_8);
+        }
+    }
+
     private void chooseBackupExport() {
         runOnUiThread(() -> {
             try {
@@ -921,6 +970,10 @@ public class MainActivity extends Activity {
                 InputHubPrefs.setGmailError(this, "No se pudo autorizar Gmail. Revisa la configuración OAuth de Nexo.");
                 jsCallback("onInputHubChanged", "gmail");
             }
+            return;
+        }
+        if (requestCode == REQ_NEXO_FAMILIA_IMPORT) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) importNexoFamiliaFrom(data.getData());
             return;
         }
         if (requestCode == REQ_BACKUP_EXPORT) {
@@ -1787,6 +1840,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String setOccurrenceStatus(long seriesId,long occurrenceAt,String status) { return service.setOccurrenceStatus(seriesId,occurrenceAt,status).toString(); }
         @JavascriptInterface public String getToday() { return db.getTodayData().toString(); }
         @JavascriptInterface public String getMoreSummary() { return db.getMoreSummary().toString(); }
+        @JavascriptInterface public void chooseNexoFamiliaImport() { MainActivity.this.chooseNexoFamiliaImport(); }
+        @JavascriptInterface public String getNexoFamiliaImportStats() { return db.getNexoFamiliaImportStats().toString(); }
         @JavascriptInterface public String search(String q) { return db.search(q).toString(); }
         @JavascriptInterface public String synthesizeJournal(String text) { return db.synthesizeJournal(text).toString(); }
         @JavascriptInterface public long saveJournal(String json) { try { return db.insertJournalEntry(new JSONObject(json)); } catch(Exception e) { return 0; } }
