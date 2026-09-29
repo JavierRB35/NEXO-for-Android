@@ -1329,7 +1329,7 @@ function openAgendaOptions(id,occurrenceAt,recurring){
   const i=parseNative(recurring?NexoNative.getOccurrence(id,occurrenceAt):NexoNative.getItem(id),{});
   if(!i.id){toast('Este elemento ya no existe.');refreshCurrent();return;}
   const done=i.status==='done'||i.occurrenceStatus==='done',appointment=isAppointmentType(i.type);
-  openModal(i.title||'Cita',`<div class="scope-buttons"><button id="agendaEditAction" class="primary-button">${uiIcon('edit')} Ver / editar</button>${appointment?`<button id="agendaDoneAction" class="secondary-button">${uiIcon('check')} ${done?'Marcar pendiente':'Marcar completada'}</button>`:''}${appointment&&!done&&i.dueAt?'<button id="agendaPostponeAction" class="secondary-button">Posponer</button>':''}${i.locationText?`<button id="agendaDirectionsAction" class="secondary-button">${uiIcon('pin')} Ir al lugar</button>`:''}<button id="agendaShareAction" class="secondary-button">${uiIcon('share')} Compartir</button></div>`);
+  openModal(i.title||'Cita',`<div class="scope-buttons"><button id="agendaEditAction" class="primary-button">${uiIcon('edit')} Ver / editar</button>${appointment?`<button id="agendaDoneAction" class="secondary-button">${uiIcon('check')} ${done?'Marcar pendiente':'Marcar completada'}</button>`:''}${appointment&&!done&&i.dueAt?'<button id="agendaPostponeAction" class="secondary-button">Posponer</button>':''}${(i.locationText||i.mapsUrl)?`<button id="agendaDirectionsAction" class="secondary-button">${uiIcon('pin')} Ir al lugar</button>`:''}<button id="agendaShareAction" class="secondary-button">${uiIcon('share')} Compartir</button></div>`);
   $('#agendaEditAction').addEventListener('click',()=>{closeModal();if(recurring)openOccurrence(id,occurrenceAt);else openItem(id);});
   $('#agendaDoneAction')?.addEventListener('click',()=>{
     const result=parseNative(recurring?NexoNative.setOccurrenceStatus(id,occurrenceAt,done?'active':'done'):NexoNative.updateItem(JSON.stringify({id,status:done?'pending':'done'})),{});
@@ -1337,7 +1337,7 @@ function openAgendaOptions(id,occurrenceAt,recurring){
     closeModal();refreshCurrent();toast(done?'Cita pendiente':'Cita completada');
   });
   $('#agendaPostponeAction')?.addEventListener('click',()=>{closeModal();openPostponeSheet(id,occurrenceAt,recurring);});
-  $('#agendaDirectionsAction')?.addEventListener('click',()=>{closeModal();NexoNative.openLocationDirections(String(i.locationText));});
+  $('#agendaDirectionsAction')?.addEventListener('click',()=>{closeModal();if(i.mapsUrl)NexoNative.openExternal(String(i.mapsUrl));else NexoNative.openLocationDirections(String(i.locationText));});
   $('#agendaShareAction').addEventListener('click',()=>{closeModal();openItemShareMenu(id,occurrenceAt,recurring,!!i.dueAt);});
 }
 
@@ -1431,7 +1431,7 @@ function openItem(id){
       <label>Enlace de Google Maps <span class="optional">(opcional)</span><input id="editMapsUrl" type="text" inputmode="url" value="${escAttr(i.mapsUrl||'')}"></label>
       <label>Zona horaria<input id="editTimeZone" type="text" value="${escAttr(i.timeZone||'Europe/Madrid')}"></label>
       ${i.participantsText?`<div class="details-box"><strong>Participantes</strong><div class="small muted">${esc(i.participantsText)}</div></div>`:''}
-      <div class="form-grid"><label>Periodicidad<select id="editRecurrence">${recurrenceOptions(i.recurrence||'none')}</select></label><label id="editUntilLabel" class="${i.recurrence&&i.recurrence!=='none'?'':'hidden'}">Repetir hasta<div class="date-wrap"><input id="editUntil" type="date" value="${i.recurrenceUntil?escAttr(isoFromMs(i.recurrenceUntil).date):''}"></div></label></div>
+      <div class="form-grid"><label>Periodicidad<select id="editRecurrence">${recurrenceOptions(i.recurrence||'none')}</select></label><label id="editUntilLabel" class="${i.recurrence&&i.recurrence!=='none'?'':'hidden'}">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="editUntil" type="date" value="${i.recurrenceUntil?escAttr(isoFromMs(i.recurrenceUntil).date):''}"></div></label></div>
       <div id="editAlertsSection" class="alert-editor ${i.dueAt?'':'hidden'}"><div class="alert-editor-head"><div><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-bell"></use></svg> Avisos</strong><div class="small muted">Se mostrarán en Nexo y se incluyen al compartir el evento como .ics.</div></div><button id="addEditAlert" type="button" class="mini-button primary">+ Añadir aviso</button></div><div id="editAlertList" class="alert-list"></div></div>
       ${isAppointmentType(i.type)?`<label class="switch-row voice-reminder-row"><input id="editVoiceEnabled" type="checkbox" ${i.voiceEnabled?'checked':''}><span><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg> Aviso por voz</strong><small>Lee en voz alta cada aviso configurado.</small></span></label>`:''}
       ${isAppointmentType(i.type)?`<label>Estado<select id="editStatus"><option value="pending" ${i.status!=='done'&&i.status!=='postponed'?'selected':''}>Pendiente</option><option value="done" ${i.status==='done'?'selected':''}>Completada</option><option value="postponed" ${i.status==='postponed'?'selected':''}>Pospuesta</option><option value="cancelled" ${i.status==='cancelled'?'selected':''}>Cancelada</option></select></label>`:''}
