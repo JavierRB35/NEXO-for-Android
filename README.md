@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta4 · AndroidIDE
+# Nexo 3.7.0-beta5 · AndroidIDE
 
-Rama de trabajo: `feature/nexo-input-hub-v0.4`.
+Rama de trabajo: `feature/nexo-input-hub-v0.5`.
 
 Identidad:
-- Nexo **3.7.0-beta4**
-- `versionCode 69`
+- Nexo **3.7.0-beta5**
+- `versionCode 70`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta4/
+/storage/emulated/0/Download/Nexo_3_7_0_beta5/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta4"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta5"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta4.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta5.apk
 ```
 
 ## Input Hub beta4
@@ -66,7 +66,7 @@ La snapshot incluida se ha regenerado directamente desde el Supabase de Nexo Fam
 - **4 miembros**.
 - Todos los campos originales disponibles en la tabla `events` y las reglas originales.
 
-La importación es idempotente por UUID y verifica al finalizar 33/33 eventos y 46/46 reglas. Los campos que son realmente `null` en Supabase no se inventan; se preserva además el JSON original completo en la capa de compatibilidad.
+La importación es idempotente por UUID, verifica al finalizar 33/33 eventos y 46/46 reglas y dispone de una auditoría/reparación local desde Copia de seguridad > Nexo Familia. Los campos que son realmente `null` en Supabase no se inventan; se preserva además el JSON original completo en la capa de compatibilidad.
 
 ## Validación
 
