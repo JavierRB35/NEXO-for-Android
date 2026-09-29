@@ -112,8 +112,12 @@ public final class GmailWatchEngine {
                             fingerprint.startsWith(FILTER_REVISION)) {
                         continue;
                     }
-                    // Baselines, descartes de revisiones anteriores y errores se
-                    // recuperan por la ventana reciente para evitar releer 30 días.
+                    // Los errores de red/parsing se reintentan en toda la ventana
+                    // de consulta. Baselines y filtros antiguos se limitan al recovery.
+                    if (fingerprint.startsWith("gmail-error:")) {
+                        if (!processMessage(token, db, context, id)) hadProcessingError = true;
+                        continue;
+                    }
                     continue;
                 }
                 if (!processMessage(token, db, context, id)) hadProcessingError = true;
