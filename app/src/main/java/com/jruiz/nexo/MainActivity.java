@@ -1746,6 +1746,13 @@ public class MainActivity extends Activity {
                 o.put("smsDirectEnabled", InputHubPrefs.smsEnabled(MainActivity.this));
                 o.put("smsPermission", MainActivity.this.hasSmsPermission());
                 o.put("smsBaselined", InputHubPrefs.smsBaselined(MainActivity.this));
+                o.put("smsLastSync", InputHubPrefs.smsLastSync(MainActivity.this));
+                o.put("smsError", InputHubPrefs.smsError(MainActivity.this));
+                JSONObject watch = db.getExternalWatchDiagnostics();
+                o.put("smsSeen", watch.optLong("smsSeen", 0));
+                o.put("smsCaptured", watch.optLong("smsCaptured", 0));
+                o.put("gmailSeen", watch.optLong("gmailSeen", 0));
+                o.put("gmailCaptured", watch.optLong("gmailCaptured", 0));
                 o.put("gmailDirectEnabled", InputHubPrefs.gmailEnabled(MainActivity.this));
                 o.put("gmailAuthorized", GmailWatchEngine.hasAuthorizedAccount(MainActivity.this));
                 o.put("gmailEmail", InputHubPrefs.gmailEmail(MainActivity.this));
