@@ -5,7 +5,7 @@ assert "applicationId 'com.jruiz.nexo'" in gradle
 assert "versionCode 64" in gradle
 assert "versionName '3.6.0-beta2'" in gradle
 assert 'v3.6.0-beta2' in html
-assert 'APP_NAME="Nexo_Input_Hub_v0_3"' in script
+assert 'APP_NAME="Nexo_3_6_0_beta2"' in script
 assert 'assembleRelease' in script and 'apksigner' in script
 assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 18' in db
 assert 'manifest.put("appVersion", BuildConfig.VERSION_NAME);' in backup
