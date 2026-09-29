@@ -412,6 +412,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         getWritableDatabase().insertWithOnConflict("nexo_familia_reminders", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
+    public boolean hasNexoFamiliaReminderMapping(String sourceRuleId) {
+        if (sourceRuleId == null || sourceRuleId.isBlank()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM nexo_familia_reminders WHERE source_rule_id=? LIMIT 1",
+                new String[]{sourceRuleId})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     /**
      * Devuelve el registro original completo de Nexo Familia asociado al evento local.
      * El modelo Android conserva además los campos de uso diario normalizados; aquí se
