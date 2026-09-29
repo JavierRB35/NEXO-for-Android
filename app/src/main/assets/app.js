@@ -891,10 +891,27 @@ function renderMore(){
   $('#preferredShoppingList').innerHTML='<option value="0">Elegir al pulsar Mi compra</option>'+lists.map(l=>`<option value="${Number(l.id)}">${esc(l.title)}</option>`).join('');
   $('#preferredShoppingList').value=lists.some(l=>Number(l.id)===preferred)?String(preferred):'0';
   $$('[data-display-mode]').forEach(b=>{const selected=b.dataset.displayMode===state.displayMode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
+  renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
   const backup=parseNative(NexoNative.getBackupStatus(),{}),last=Number(backup.lastExportAt)||0,total=Object.values(backup.stats||{}).reduce((a,n)=>a+(Number(n)||0),0),hint=$('#backupHint');
   const due=total>0&&(!last||Date.now()-last>30*86400000);hint.classList.toggle('hidden',!due);
   if(due)hint.innerHTML='<strong>Copia de seguridad pendiente</strong><span>Exporta tus datos y recuerda guardar los audios por separado.</span>';
+}
+
+function renderCommunicationCaptureSettings(){
+  const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{enabled:true,apps:[]});
+  const access=!!NexoNative.hasNotificationAccess();
+  const status=$('#notificationAccessStatus'),master=$('#communicationCaptureEnabled'),apps=$('#communicationApps');
+  if(status){
+    status.className='notification-access-status '+(access?'enabled':'disabled');
+    status.innerHTML=access?'<strong>Acceso concedido</strong><span>Nexo puede recibir las notificaciones de las apps activadas.</span>':'<strong>Acceso pendiente</strong><span>Activa “Nexo Inbox” en el acceso a notificaciones de Android.</span>';
+  }
+  if(master){master.checked=settings.enabled!==false;master.disabled=false;}
+  if(apps){
+    apps.innerHTML=(settings.apps||[]).map(a=>`<label class="toggle-row"><span><strong>${esc(a.label)}</strong><small>${a.key==='whatsapp'?'Mensajes de WhatsApp':a.key==='gmail'?'Correos mostrados por Gmail':a.key==='telegram'?'Mensajes de Telegram':'Mensajes SMS'}</small></span><input type="checkbox" data-communication-app="${escAttr(a.key)}" ${a.enabled!==false?'checked':''} ${settings.enabled===false?'disabled':''}></label>`).join('');
+    apps.querySelectorAll('[data-communication-app]').forEach(el=>el.addEventListener('change',()=>{NexoNative.setCommunicationAppEnabled(el.dataset.communicationApp,el.checked);toast(`${el.checked?'Activada':'Desactivada'} captura de ${el.closest('label')?.querySelector('strong')?.textContent||'la aplicación'}`);}));
+  }
+  const btn=$('#notificationAccessBtn');if(btn)btn.textContent=access?'Revisar acceso a notificaciones':'Activar acceso a notificaciones';
 }
 
 function medicationOffsetLabel(offset){return offset<0?`${Math.abs(offset)} min antes`:offset===0?'Hora exacta':`+${offset} min`;}
@@ -931,15 +948,23 @@ function openPanel(panel,options={}){
 }
 function renderItemsPanel(items,empty){ $('#panelContent').innerHTML=items.length?`<div class="stack">${items.map(itemCard).join('')}</div>`:`<div class="empty-state">${esc(empty)}</div>`;bindItemButtons($('#panelContent')); }
 
+function inboxSourceLabel(capture){
+  const pkg=String(capture.sourcePackage||'');
+  const app=pkg==='com.whatsapp'||pkg==='com.whatsapp.w4b'?'WhatsApp':pkg==='com.google.android.gm'?'Gmail':pkg.startsWith('org.telegram.messenger')?'Telegram':pkg.includes('messaging')||pkg==='com.android.mms'?'SMS':capture.source==='notification'?'Comunicación':'Compartido';
+  const sender=String(capture.sender||capture.subject||'').trim();
+  return sender?`${app} · ${sender}`:app;
+}
+
 function inboxCaptureCard(capture){
   const raw=String(capture.rawText||capture.subject||capture.attachmentName||'Contenido recibido').trim();
   const title=String(capture.detectedTitle||capture.classification?.title||capture.subject||capture.attachmentName||raw.split(/\n/)[0]||'Contenido recibido').trim();
   const type=String(capture.detectedType||capture.classification?.type||'').trim();
   const preview=raw.length>220?`${raw.slice(0,217)}…`:raw;
   const attachment=capture.attachmentName?`<div class="item-location">${uiIcon('file')} ${esc(capture.attachmentName)}</div>`:'';
+  const source=inboxSourceLabel(capture);
   return `<div class="item-card inbox-capture-card">
     <div class="item-top"><div class="item-title">${esc(title)}</div></div>
-    <div class="item-meta"><span class="pill">Recibido</span>${type?`<span class="meta-tag">${esc(typeLabel(type))}</span>`:''}<span class="meta-tag">${esc(fmtDate(capture.createdAt,true))}</span></div>
+    <div class="item-meta"><span class="pill">${esc(source)}</span>${type?`<span class="meta-tag">${esc(typeLabel(type))}</span>`:''}<span class="meta-tag">${esc(fmtDate(capture.createdAt,true))}</span></div>
     ${preview?`<div class="item-body">${esc(preview)}</div>`:''}
     ${attachment}
     <div class="item-actions"><button class="mini-button primary" data-review-capture="${Number(capture.id)}">Revisar</button><button class="mini-button" data-discard-capture="${Number(capture.id)}">Descartar</button></div>
@@ -1431,6 +1456,12 @@ window.NexoUI={
     const p=parseNative(raw,{});
     openInboxCaptureEditor(p,true);
   },
+  reviewInboxCaptureFromNotification(id){
+    reviewInboxCapture(Number(id));
+  },
+  onNotificationAccessChanged(){
+    if(state.screen==='more')renderCommunicationCaptureSettings();
+  },
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
   onDocumentFileChosen(raw){
     const result=parseNative(raw,{}),editor=state.documentEditor;
@@ -1499,6 +1530,8 @@ function init(){
   $('#captureBackBtn').addEventListener('click',()=>navigateBack());
   $('#startScreen').addEventListener('change',()=>{NexoNative.setStartScreen($('#startScreen').value);toast('Pantalla de apertura actualizada');});
   $('#preferredShoppingList').addEventListener('change',()=>{NexoNative.setPreferredShoppingList(Number($('#preferredShoppingList').value));toast('Acceso a la compra actualizado');});
+  $('#notificationAccessBtn')?.addEventListener('click',()=>NexoNative.openNotificationAccessSettings());
+  $('#communicationCaptureEnabled')?.addEventListener('change',()=>{NexoNative.setCommunicationCaptureEnabled($('#communicationCaptureEnabled').checked);renderCommunicationCaptureSettings();toast($('#communicationCaptureEnabled').checked?'Captura automática activada':'Captura automática pausada');});
   $('#resetMedicationMessages')?.addEventListener('click',()=>{NexoNative.resetMedicationMessages();renderMedicationMessageSettings();toast('Frases restauradas');});
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
   $('#searchFilter').addEventListener('change',()=>runSearch());
