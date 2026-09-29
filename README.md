@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta7 · AndroidIDE
+# Nexo 3.7.0-beta8 · AndroidIDE
 
-Rama de trabajo: `feature/nexo-input-hub-v0.7`.
+Rama de trabajo: `feature/nexo-input-hub-v0.8`.
 
 Identidad:
-- Nexo **3.7.0-beta7**
-- `versionCode 72`
+- Nexo **3.7.0-beta8**
+- `versionCode 73`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta7/
+/storage/emulated/0/Download/Nexo_3_7_0_beta8/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta7"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta8"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta7.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta8.apk
 ```
 
 ## Input Hub beta4
@@ -75,3 +75,10 @@ sh validation/validate-project.sh
 ```
 
 La rama mantiene el Gradle Wrapper completo y los scripts de compilación para AndroidIDE.
+
+
+## Corrección calendario beta8
+
+Android `rawQuery(..., String[] selectionArgs)` enlaza los parámetros como texto. Las comparaciones contra una expresión `CASE` no heredan afinidad numérica de columna, por lo que el calendario no recurrente podía devolver cero filas aunque los eventos existieran.
+
+Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)` tanto en `getCalendar()` como en las comparaciones temporales de conciliación de estado. La regresión automatizada reproduce 0 eventos con la consulta antigua y 18 con la corregida.
