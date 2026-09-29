@@ -15,8 +15,11 @@ public class CalendarWatchJob extends JobService {
                 }
             } finally {
                 if (!stopped) {
-                    jobFinished(params, false);
-                    CalendarWatchScheduler.schedule(this);
+                    if (params.getJobId() == CalendarWatchScheduler.CONTENT_JOB_ID) {
+                        CalendarWatchScheduler.scheduleContentWatcher(this);
+                    } else {
+                        jobFinished(params, false);
+                    }
                 }
             }
         }, "nexo-calendar-watch").start();
@@ -25,6 +28,6 @@ public class CalendarWatchJob extends JobService {
 
     @Override public boolean onStopJob(JobParameters params) {
         stopped = true;
-        return true;
+        return false;
     }
 }
