@@ -899,7 +899,7 @@ function renderClassification(a, fillForm=true) {
     $('#captureRecurrence').value=recurrence;
     if(recurrence!=='none'){
       $('#captureRecurrenceUntilLabel').classList.remove('hidden');
-      $('#captureRecurrenceUntil').value=a.recurrenceUntilDate||$('#captureRecurrenceUntil').value||'2040-12-31';
+      $('#captureRecurrenceUntil').value=a.recurrenceUntilDate||'';
     }else{
       $('#captureRecurrenceUntilLabel').classList.add('hidden');
       $('#captureRecurrenceUntil').value='';
