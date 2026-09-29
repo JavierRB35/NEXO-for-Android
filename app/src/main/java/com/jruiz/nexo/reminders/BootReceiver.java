@@ -3,6 +3,9 @@ package com.jruiz.nexo.reminders;
 import android.content.*;
 import com.jruiz.nexo.data.DatabaseHelper;
 import com.jruiz.nexo.medications.MedicationScheduler;
+import com.jruiz.nexo.calendar.CalendarWatchScheduler;
+import com.jruiz.nexo.input.SmsWatchScheduler;
+import com.jruiz.nexo.input.GmailWatchScheduler;
 import org.json.*;
 
 public class BootReceiver extends BroadcastReceiver {
@@ -21,5 +24,8 @@ public class BootReceiver extends BroadcastReceiver {
         }
         MedicationScheduler.restorePendingRepeats(context,db);
         db.close();
+        CalendarWatchScheduler.schedule(context);
+        SmsWatchScheduler.schedule(context);
+        GmailWatchScheduler.schedule(context);
     }
 }
