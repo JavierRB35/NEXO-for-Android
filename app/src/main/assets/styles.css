@@ -1055,3 +1055,310 @@ textarea:focus,input:focus,select:focus,.date-wrap:focus-within{
 @media(prefers-reduced-motion:reduce){
   button{transition:none}
 }
+
+
+/* Nexo 3.6.0-beta2 · visual overhaul */
+body{background:#f4f6f3}
+.topbar{
+  min-height:62px;
+  padding:8px 14px;
+  background:rgba(255,255,255,.985);
+  border-bottom:0;
+  box-shadow:0 1px 0 rgba(28,33,30,.07);
+}
+.brand-logo{width:36px;height:36px;border-radius:11px}
+.brand{font-size:1.16rem}
+.header-version{display:none}
+
+/* Inicio: nueva jerarquía, no un simple grid de botones */
+.screen[data-screen="today"]{
+  padding:18px 12px 24px;
+  background:linear-gradient(180deg,#fbfcfa 0,#f4f6f3 260px);
+}
+.home-headline{padding:2px 3px 14px}
+.home-kicker,.home-section-heading span,.home-command-copy>span{
+  color:var(--primary);
+  font-size:.69rem;
+  font-weight:800;
+  letter-spacing:.095em;
+}
+.home-headline h1{
+  margin:4px 0 5px;
+  max-width:330px;
+  color:#19201c;
+  font-size:1.72rem;
+  line-height:1.08;
+  letter-spacing:-.045em;
+}
+.home-headline p{
+  margin:0;
+  max-width:420px;
+  color:var(--muted);
+  font-size:.88rem;
+  line-height:1.45;
+}
+.home-accent-strip{display:flex;gap:5px;width:82px;margin-top:12px}
+.home-accent-strip span{height:4px;border-radius:999px;flex:1}
+.home-accent-strip span:nth-child(1){background:var(--primary)}
+.home-accent-strip span:nth-child(2){background:#e0a600}
+.home-accent-strip span:nth-child(3){background:var(--danger)}
+
+.home-command-card{
+  margin:0 0 18px;
+  padding:15px;
+  border:1px solid #dbe4dd;
+  border-radius:22px;
+  background:linear-gradient(135deg,#eef8f2 0%,#ffffff 58%,#fffaf0 100%);
+  box-shadow:0 8px 28px rgba(27,65,49,.055);
+}
+.home-command-copy{display:grid;gap:3px;margin-bottom:13px}
+.home-command-copy>strong{
+  color:#1e2822;
+  font-size:1.04rem;
+  font-weight:760;
+  letter-spacing:-.015em;
+}
+.home-command-copy>small{color:#69756e;font-size:.79rem;line-height:1.4}
+.home-command-card .home-create-row{margin:0;grid-template-columns:minmax(0,1.35fr) minmax(0,.8fr)}
+.home-command-card .primary-button,.home-command-card .secondary-button{
+  min-height:50px;
+  border-radius:15px;
+}
+.home-command-card .secondary-button{background:rgba(255,255,255,.82)}
+
+.home-section-heading{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 3px 9px;
+}
+.home-section-heading h2{
+  margin:2px 0 0;
+  font-size:1.08rem;
+  line-height:1.2;
+  letter-spacing:-.025em;
+}
+.home-section-heading>small{padding-bottom:2px;color:#7a847d;font-size:.72rem}
+
+.home-tool-surface{
+  padding:7px 6px 9px;
+  border:1px solid #dfe5df;
+  border-radius:22px;
+  background:#fff;
+  box-shadow:0 3px 16px rgba(25,48,37,.035);
+}
+.module-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:2px;
+}
+.module-tile{
+  min-height:91px;
+  flex-direction:column;
+  justify-content:center;
+  gap:8px;
+  padding:8px 3px;
+  border:0;
+  border-radius:16px;
+  background:transparent;
+  text-align:center;
+}
+.module-tile>.ui-icon{
+  width:44px;
+  height:44px;
+  min-width:44px;
+  padding:11px;
+  margin:0 auto;
+  border-radius:15px;
+  background:#e8f4ee;
+  color:var(--primary);
+}
+.module-tile:nth-child(3n)>.ui-icon,
+.module-tile[data-panel="quotes"]>.ui-icon,
+.module-tile[data-panel="documents"]>.ui-icon{
+  background:#fff0bd;
+  color:#795600;
+}
+.module-tile strong{
+  display:block;
+  max-width:92px;
+  margin:auto;
+  font-size:.78rem;
+  font-weight:690;
+  line-height:1.18;
+}
+.module-tile:active{background:#f2f6f3;border:0}
+.home-shortcuts{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+  margin-top:11px;
+}
+.home-shortcuts button{
+  min-height:43px;
+  border:0;
+  border-radius:14px;
+  background:#e9ede9;
+  color:#48534c;
+}
+.home-shortcuts button:active{background:#dde5df}
+
+/* Pantallas secundarias: una cabecera más editorial y menos técnica */
+.panel-header{
+  position:relative;
+  grid-template-columns:44px minmax(0,1fr);
+  gap:9px;
+  margin:0 0 15px;
+  padding:2px 0 4px;
+}
+.panel-header .back-button{
+  width:44px;height:44px;min-width:44px;min-height:44px;
+  border-radius:50%;
+  background:#e9eeea;
+  color:#3f4a43;
+}
+.panel-header h1{font-size:1.72rem;letter-spacing:-.045em}
+.panel-header p{max-width:520px;font-size:.86rem}
+.panel-header #panelAction{margin-top:3px;padding-top:0}
+.panel-header #panelAction .primary-button{
+  background:var(--primary);
+  color:#fff;
+}
+.panel-header #panelAction .secondary-button{
+  background:#fff;
+}
+
+/* Listas: más densidad y separación por ritmo, no por cajas pesadas */
+.stack{gap:7px}
+.item-card,.agenda-row,.note-card,.med-card,.recording-card,.list-row,.place-card,.document-card{
+  border-color:#dde4de;
+  border-radius:15px;
+  box-shadow:0 1px 2px rgba(28,45,35,.025);
+}
+.agenda-row{min-height:64px}
+.agenda-open{padding:10px 10px 9px}
+.agenda-title{font-size:.92rem;font-weight:720}
+.agenda-description{font-size:.79rem;color:#59665f}
+.appointment-filters,.journal-filter-row{gap:5px;margin-bottom:12px}
+.appointment-filters button,.journal-filter-row button{
+  min-height:38px;
+  padding:6px 10px;
+  font-size:.75rem;
+}
+
+/* Formularios: bloques funcionales claramente separados */
+.screen[data-screen="save"]{background:#f5f7f4}
+.screen[data-screen="save"] .screen-heading{margin-bottom:13px}
+.capture-card{
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.capture-mode-row{
+  margin:0;
+  padding:14px 14px 9px;
+  border:1px solid #dce3dd;
+  border-bottom:0;
+  border-radius:20px 20px 0 0;
+  background:#fff;
+}
+.capture-text{
+  min-height:112px;
+  margin:0;
+  padding:9px 14px 14px;
+  border:1px solid #dce3dd!important;
+  border-top:0!important;
+  border-radius:0 0 20px 20px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.interpretation-status{margin:7px 4px 3px}
+.capture-basics{
+  margin-top:14px;
+  padding:14px;
+  border:1px solid #dce3dd;
+  border-radius:20px;
+  background:#fff;
+}
+#captureAlertsSection{
+  margin-top:12px;
+  padding:13px 14px;
+  border:1px solid #dce3dd;
+  border-radius:18px;
+  background:#fff;
+}
+#captureDetails{
+  margin-top:12px;
+  padding:0 14px;
+  border:1px solid #dce3dd;
+  border-radius:18px;
+  background:#fff;
+}
+#saveCaptureBtn{
+  margin-top:14px;
+  border-radius:16px;
+  box-shadow:0 5px 15px rgba(16,84,62,.16);
+}
+
+/* Search */
+.screen[data-screen="search"] .search-box{
+  padding:7px;
+  border:1px solid #dce3dd;
+  border-radius:18px;
+  background:#fff;
+}
+.screen[data-screen="search"] .search-box input{
+  min-height:46px;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+.screen[data-screen="search"] .search-box button{min-height:46px}
+
+/* Settings as grouped lists, less card wall */
+.screen[data-screen="more"] .settings-card{
+  border-radius:20px;
+  box-shadow:0 2px 10px rgba(25,48,37,.025);
+}
+.screen[data-screen="more"] .menu-list{
+  border-radius:20px;
+}
+
+/* Frases/Cuaderno: warmer, more editorial */
+.journal-toolbar{
+  gap:8px;
+  margin-bottom:10px;
+}
+.journal-toolbar input{background:#fff}
+.journal-card{
+  position:relative;
+  padding:15px 15px 14px 18px;
+  border-left:4px solid #e2ad21;
+}
+.journal-card-title{font-size:.98rem}
+.journal-card-summary{font-size:.84rem;line-height:1.42}
+.journal-prompt{border-radius:20px}
+
+/* Bottom bar reads like a modern navigation surface */
+.bottom-nav{
+  min-height:70px;
+  padding-top:7px;
+  border-top:0;
+  box-shadow:0 -1px 0 #dfe4df,0 -8px 24px rgba(28,45,35,.04);
+}
+.nav-item{min-height:56px}
+.nav-item>.ui-icon{padding:3px 15px}
+.nav-item.active>.ui-icon{background:#dff1e7}
+.nav-item.active small{color:var(--primary);font-weight:760}
+
+/* Keep comfortable density on very narrow phones */
+@media(max-width:370px){
+  .module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .module-tile{min-height:86px}
+  .module-tile>.ui-icon{width:40px;height:40px;min-width:40px;padding:10px}
+  .module-tile strong{font-size:.72rem}
+  .home-command-card .home-create-row{grid-template-columns:1fr}
+}
+@media(min-width:620px){
+  .module-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
