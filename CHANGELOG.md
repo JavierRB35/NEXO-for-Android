@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.7.0-beta3 · versionCode 68 · Recuperación de Gmail e invitaciones de calendario
+
+- Gmail reevalúa una sola vez los correos de los últimos 2 días que ya se habían marcado como vistos pero no habían creado entrada en Inbox.
+- La recuperación usa una revisión de filtro versionada para no reprocesar indefinidamente ni duplicar capturas existentes.
+- Cumpleaños, invitaciones, calendar/calendario y eventos de calendario pasan a ser señales explícitas de contenido accionable.
+- Un correo reciente descartado por una versión anterior puede aparecer en Inbox al actualizar a beta3.
+- Se mantiene la lectura directa por Gmail API y la consulta al abrir Nexo y mediante JobScheduler.
+
+
 ## 3.7.0-beta2 · versionCode 67 · Eventos Nexo Familia y migración automática
 
 - Migración automática inicial de los 33 eventos actuales de Nexo Familia (familia Ruiz-Villena) al almacenamiento local de Nexo Android.
