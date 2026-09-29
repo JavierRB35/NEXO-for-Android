@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.5.0-beta4 · versionCode 59 · Calendar Inbox reliability
+
+- Corrección de detección de cambios de Calendar en Inbox.
+- Al volver a Nexo se ejecuta un escaneo de recuperación antes de rearmar el observador.
+- Se mantiene la detección rápida mediante TriggerContentUri sobre Calendar Provider.
+- Se añade un escaneo periódico de respaldo cada 15 minutos para evitar cambios perdidos por el proveedor/OEM.
+- El botón "Buscar entradas ahora" sigue forzando un escaneo inmediato.
+
+
 ## 3.5.0-beta3 · versionCode 58 · Nexo Input Hub v0.3
 
 - Nueva arquitectura de entradas desacoplada de las notificaciones.

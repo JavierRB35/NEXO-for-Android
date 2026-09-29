@@ -140,11 +140,18 @@ public class MainActivity extends Activity {
         }
         if (CalendarCapturePrefs.isEnabled(this) &&
                 checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
-            if (!CalendarCapturePrefs.isBaselined(this)) {
-                new Thread(() -> CalendarWatchEngine.initializeBaseline(getApplicationContext()), "nexo-calendar-baseline").start();
-            } else {
-                CalendarWatchScheduler.schedule(this);
-            }
+            new Thread(() -> {
+                Context app = getApplicationContext();
+                if (!CalendarCapturePrefs.isBaselined(app)) {
+                    CalendarWatchEngine.initializeBaseline(app);
+                } else {
+                    // Recupera cambios que Android/Calendar pudiera no haber entregado
+                    // mientras Nexo estaba en segundo plano y vuelve a armar el watcher.
+                    CalendarWatchEngine.scan(app);
+                    CalendarWatchScheduler.schedule(app);
+                }
+                jsCallback("onInputHubChanged", "calendar");
+            }, "nexo-calendar-resume").start();
         }
         if (InputHubPrefs.smsEnabled(this) &&
                 checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) {

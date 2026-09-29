@@ -9,7 +9,9 @@ import android.content.pm.PackageManager;
 import android.provider.CalendarContract;
 
 public final class CalendarWatchScheduler {
-    private static final int JOB_ID = 7349;
+    private static final int CONTENT_JOB_ID = 7349;
+    private static final int PERIODIC_JOB_ID = 7352;
+    private static final long PERIOD_MS = 15L * 60L * 1000L;
 
     private CalendarWatchScheduler() {}
 
@@ -22,23 +24,32 @@ public final class CalendarWatchScheduler {
         if (!canRun(context)) return;
         JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (scheduler == null) return;
-        JobInfo job = new JobInfo.Builder(
-                JOB_ID,
-                new ComponentName(context, CalendarWatchJob.class)
-        )
+        ComponentName service = new ComponentName(context, CalendarWatchJob.class);
+
+        JobInfo contentJob = new JobInfo.Builder(CONTENT_JOB_ID, service)
                 .addTriggerContentUri(new JobInfo.TriggerContentUri(
                         CalendarContract.Events.CONTENT_URI,
                         JobInfo.TriggerContentUri.FLAG_NOTIFY_FOR_DESCENDANTS
                 ))
-                .setTriggerContentUpdateDelay(2500L)
-                .setTriggerContentMaxDelay(12000L)
+                .setTriggerContentUpdateDelay(1500L)
+                .setTriggerContentMaxDelay(6000L)
                 .setPersisted(true)
                 .build();
-        scheduler.schedule(job);
+        scheduler.schedule(contentJob);
+
+        // Respaldo para proveedores/OEM que pierdan o agrupen avisos del Calendar Provider.
+        JobInfo periodicJob = new JobInfo.Builder(PERIODIC_JOB_ID, service)
+                .setPersisted(true)
+                .setPeriodic(PERIOD_MS)
+                .build();
+        scheduler.schedule(periodicJob);
     }
 
     public static void cancel(Context context) {
         JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        if (scheduler != null) scheduler.cancel(JOB_ID);
+        if (scheduler != null) {
+            scheduler.cancel(CONTENT_JOB_ID);
+            scheduler.cancel(PERIODIC_JOB_ID);
+        }
     }
 }
