@@ -358,11 +358,82 @@ function navigate(screen, options={}) {
 }
 
 function renderToday() {
-  const d=parseNative(NexoNative.getMoreSummary(),{}),count=Number(d.inbox)||0;
-  const badge=$('#inboxCount'),label=$('#inboxHomeText');
-  if(badge){badge.textContent=String(count);badge.classList.toggle('hidden',!count);}
-  if(label)label.textContent=count?count+' pendiente'+(count===1?'':'s')+' de organizar':'Todo organizado';
-  renderDailyContext();
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=today.getTime(),end7=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7).getTime()-1;
+  const horizon=new Date(today.getFullYear()+3,today.getMonth(),today.getDate()).getTime();
+  const all=parseNative(NexoNative.getCalendar(start,horizon),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted');
+  const firstBySeries=new Map();
+  all.sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)).forEach(i=>{
+    const key=String(i.seriesId||i.id);
+    if(!firstBySeries.has(key)&&!(i.status==='done'&&!i.recurring&&(!i.recurrence||i.recurrence==='none')))firstBySeries.set(key,i);
+  });
+  state.homeUpcoming=[...firstBySeries.values()].filter(i=>Number(i.dueAt)>=start).sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)).slice(0,10);
+  const todayKey=isoDateLocal(today);
+  const todayItems=state.homeUpcoming.filter(i=>localDateKeyFromMs(i.dueAt)===todayKey);
+  const weekItems=state.homeUpcoming.filter(i=>Number(i.dueAt)>=start&&Number(i.dueAt)<=end7);
+  const inboxCount=Number(NexoNative.getInboxCaptureCount())+(parseNative(NexoNative.getInbox(),[])||[]).length;
+
+  $('#homeTodayCount').textContent=String(todayItems.length);
+  $('#homeTodayHint').textContent=todayItems.length?String(todayItems[0].title||'Evento'):'Sin eventos previstos';
+  $('#homeWeekCount').textContent=String(weekItems.length);
+  $('#homeWeekHint').textContent=weekItems.length?'Eventos después de hoy':'Semana tranquila';
+  $('#homeInboxCount').textContent=String(inboxCount);
+  $('#homeInboxHint').textContent=inboxCount?inboxCount+' pendiente'+(inboxCount===1?'':'s')+' de organizar':'Todo organizado';
+
+  const recording=parseNative(NexoNative.getRecordingStatus(),{});
+  $('#homeRecordState').textContent=recording.active?'●':'REC';
+  $('#homeRecordHint').textContent=recording.active?(recording.paused?'Grabación en pausa':'Grabación en curso'):'Iniciar grabación local';
+  $('#homeRecordCard').classList.toggle('is-recording',!!recording.active);
+
+  const members=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
+  state.homeMemberMap=new Map(members.map(m=>[familySearchNormalize(m.full_name),m]));
+  $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card">No hay próximos eventos. Añade el primero desde Agenda.</div>';
+  bindHomeUpcoming();
+  buildFamilyStyleSearchIndex();
+  const q=$('#homeSearchInput')?.value.trim()||'';
+  if(q)runHomeSearch(q);
+}
+
+function homeParticipantData(item){
+  const raw=String(item.participantsText||'').trim();if(!raw)return [];
+  return raw.split(/[,;·]/).map(x=>x.trim()).filter(Boolean).slice(0,6).map(name=>{
+    const exact=state.homeMemberMap.get(familySearchNormalize(name));
+    if(exact)return {name:exact.full_name,color:exact.color||'#16855B'};
+    return {name,color:'#16855B'};
+  });
+}
+function homeUpcomingCard(item){
+  const d=new Date(Number(item.dueAt)),theme=familyCategoryTheme(item.category),icon=familyCategoryIcon(item.category),participants=homeParticipantData(item);
+  const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase();
+  const month=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(d).replace('.','').toUpperCase();
+  const recurring=!!item.recurring||(item.recurrence&&item.recurrence!=='none');
+  const id=Number(item.seriesId||item.id),occ=Number(item.occurrenceAt||item.dueAt);
+  const style='--event-category-color:'+theme[0]+';--event-category-bg:'+theme[1]+';--event-category-border:'+theme[2];
+  const avatars=participants.length?'<span class="event-participant-avatars">'+participants.slice(0,4).map(p=>'<span class="event-participant-avatar" style="background:'+escAttr(p.color)+';color:'+(['#FFFFFF','#FACC15'].includes(String(p.color).toUpperCase())?'#182033':'#fff')+'" title="'+escAttr(p.name)+'">'+esc(p.name.trim().charAt(0).toUpperCase())+'</span>').join('')+(participants.length>4?'<span class="event-participant-avatar event-participant-avatar--more">+'+(participants.length-4)+'</span>':'')+'</span>':'';
+  return '<button type="button" class="upcoming-card upcoming-card--link" style="'+style+'" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
+    '<span class="date-tile"><span class="date-tile__weekday">'+esc(weekday)+'</span><strong>'+String(d.getDate()).padStart(2,'0')+'</strong><small>'+esc(month)+'</small></span>'+
+    '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(item.title||'Evento')+'</strong>'+(item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+avatars+'</span>'+
+    '<span class="upcoming-card__aside"><span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span><span class="upcoming-card__time">'+uiIcon('clock')+(item.allDay===true||item.hasTime===false?'Todo el día':esc(fmtTime(item.dueAt)))+'</span></span></button>';
+}
+function bindHomeUpcoming(){
+  $$('[data-home-event]').forEach(b=>b.addEventListener('click',()=>{
+    const id=Number(b.dataset.homeEvent),occ=Number(b.dataset.homeOccurrence),rec=b.dataset.homeRecurring==='1';
+    if(rec)openOccurrence(id,occ);else openItem(id);
+  }));
+}
+function runHomeSearch(query){
+  const q=String(query||'').trim(),section=$('#homeSearchResultsSection'),dash=$('#homeDashboardContent');
+  if(!q){section.classList.add('hidden');dash.classList.remove('hidden');$('#homeSearchResults').innerHTML='';return;}
+  const results=familyStyleSearch(q,false);state.homeSearchResults=results;
+  dash.classList.add('hidden');section.classList.remove('hidden');$('#homeSearchCount').textContent=String(results.length);
+  $('#homeSearchResults').innerHTML=results.length?results.map((x,i)=>familySearchCard(x,i,true)).join(''):'<div class="empty-card">No hay coincidencias en tus datos.</div>';
+  $$('[data-family-search-home="1"]').forEach(b=>b.addEventListener('click',()=>openFamilySearchResult(state.homeSearchResults[Number(b.dataset.familySearchResult)])));
+}
+function openHomeToday(){
+  const now=new Date();state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);state.calendarSelected=isoDateLocal(now);navigate('calendar',{root:false});
+}
+function openHomeWeek(){
+  state.appointmentsWindow='week';state.appointmentsFilter='pending';openPanel('appointments',{keepWindow:true});
 }
 
 function renderParkingHomeCard(parking){
