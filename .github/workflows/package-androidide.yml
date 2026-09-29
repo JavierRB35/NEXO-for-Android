@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/nexo-input-hub-v0.3
+      - feature/nexo-input-hub-v0.4
       - fix/input-hub-reliability-and-familia-migration
 
 jobs:
