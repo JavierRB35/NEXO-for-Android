@@ -92,7 +92,8 @@ function familySearchTokens(query){return familySearchNormalize(query).split(/[^
 function nextOccurrenceForSearch(item,todayStart){
   if(!item?.dueAt)return 0;
   if(!item.recurrence||item.recurrence==='none')return Number(item.dueAt)||0;
-  return Number(NexoNative.getNextOccurrence(Number(item.seriesId||item.id),todayStart-1))||0;
+  const next=Number(NexoNative.getNextOccurrence(Number(item.seriesId||item.id),todayStart-1))||0;
+  return next&&next<=todayStart+740*86400000?next:0;
 }
 function familySearchCandidateForItem(item,todayStart){
   const recurring=!!item.recurrence&&item.recurrence!=='none';
@@ -116,7 +117,7 @@ function buildFamilyStyleSearchIndex(){
   (data.journal||[]).forEach(x=>out.push({kind:'journal',id:Number(x.id),type:x.kind==='quote'?'Frase':'Cuaderno',title:String(x.title||'Entrada'),detail:[x.summary,x.tags].filter(Boolean).join(' · '),searchText:[x.title,x.body,x.summary,x.tags].filter(Boolean).join(' '),historical:false,raw:x}));
   (data.inbox||[]).forEach(x=>out.push({kind:'inbox',id:Number(x.id),type:'Inbox',title:String(x.detectedTitle||x.subject||x.attachmentName||String(x.rawText||'').split(/\n/)[0]||'Entrada'),detail:[x.source,x.sender].filter(Boolean).join(' · '),searchText:[x.detectedTitle,x.subject,x.rawText,x.sender,x.source,x.sourcePackage,x.attachmentName].filter(Boolean).join(' '),historical:false,raw:x}));
   (data.recordings||[]).forEach(x=>{let transcription='';try{if(NexoNative.hasTranscription(String(x.id)))transcription=String(NexoNative.getTranscription(String(x.id))||'');}catch(_){}
-    out.push({kind:'recording',id:String(x.id||''),type:'Grabación',title:String(x.title||'Grabación'),detail:x.createdAt?fmtDate(Number(x.createdAt),true):'',searchText:[x.title,transcription].filter(Boolean).join(' '),historical:false,raw:x});});
+    out.push({kind:'recording',id:String(x.id||''),type:'Grabación',title:String(x.title||'Grabación'),detail:x.startedAt?fmtDate(Number(x.startedAt),true):'',searchText:[x.title,transcription].filter(Boolean).join(' '),historical:false,raw:x});});
   state.homeSearchIndex=out;return out;
 }
 function familyStyleSearch(query,includeHistorical=false){
@@ -362,7 +363,7 @@ function navigate(screen, options={}) {
 function renderToday() {
   const today=new Date();today.setHours(0,0,0,0);
   const start=today.getTime(),end7=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7).getTime()-1;
-  const horizon=new Date(today.getFullYear()+3,today.getMonth(),today.getDate()).getTime();
+  const horizon=start+740*86400000;
   const all=parseNative(NexoNative.getCalendar(start,horizon),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted');
   const firstBySeries=new Map();
   all.sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)).forEach(i=>{
@@ -1530,7 +1531,9 @@ function renderAppointmentsPanel(){
     $('#panelTitle').textContent='Próximos 7 días';$('#panelSubtitle').textContent='Hoy y los 6 días siguientes';
     $('#panelAction').innerHTML='<button id="weekShowAll" class="secondary-button" type="button">Agenda completa</button>';
     $('#weekShowAll').addEventListener('click',()=>{state.appointmentsWindow='';renderAppointmentsPanel();});
-    $('#panelContent').innerHTML=rows.length?'<div class="stack">'+rows.map(i=>agendaCard(i,true)).join('')+'</div>':'<div class="empty-state">No hay eventos en los próximos 7 días.</div>';
+    const groups=new Map();
+    rows.forEach(i=>{const key=localDateKeyFromMs(i.dueAt),list=groups.get(key)||[];list.push(i);groups.set(key,list);});
+    $('#panelContent').innerHTML=rows.length?'<div class="agenda-week-groups">'+[...groups.entries()].map(([key,list])=>'<section class="agenda-week-group"><h3>'+esc(new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long'}).format(new Date(key+'T12:00:00')))+'</h3><div class="stack">'+list.map(i=>agendaCard(i,true)).join('')+'</div></section>').join('')+'</div>':'<div class="empty-state">No hay eventos en los próximos 7 días.</div>';
     bindItemButtons($('#panelContent'));return;
   }
   const rows=parseNative(NexoNative.getAppointments(),[]);
