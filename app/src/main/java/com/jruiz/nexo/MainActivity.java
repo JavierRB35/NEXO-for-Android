@@ -46,6 +46,8 @@ import com.jruiz.nexo.recordings.RecordingNaming;
 import com.jruiz.nexo.transcription.TranscriptionModelManager;
 import com.jruiz.nexo.transcription.TranscriptionStore;
 import com.jruiz.nexo.transcription.TranscriptionService;
+import com.jruiz.nexo.communications.CommunicationCapturePrefs;
+import com.jruiz.nexo.communications.NexoNotificationListener;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -78,6 +80,7 @@ public class MainActivity extends Activity {
     private JSONObject pendingIncoming;
     private JSONObject pendingSharedImport;
     private JSONObject pendingSharedPreview;
+    private long pendingInboxCaptureId = 0L;
     private String pendingParkingNote = "";
     private LocationManager parkingLocationManager;
     private LocationListener parkingGpsListener;
@@ -169,6 +172,7 @@ public class MainActivity extends Activity {
             @Override public void onPageFinished(WebView view, String url) {
                 pageReady = true;
                 deliverIncomingIfReady();
+                deliverInboxReviewIfReady();
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri u = request.getUrl();
@@ -186,6 +190,11 @@ public class MainActivity extends Activity {
     private void handleIncomingIntent(Intent intent) {
         if (intent == null) return;
         String action = intent.getAction();
+        if (NexoNotificationListener.ACTION_REVIEW.equals(action)) {
+            pendingInboxCaptureId = intent.getLongExtra("captureId", 0L);
+            deliverInboxReviewIfReady();
+            return;
+        }
         if (!Intent.ACTION_SEND.equals(action) && !Intent.ACTION_VIEW.equals(action)) return;
         try {
             String mime = intent.getType() == null ? "" : intent.getType();
@@ -285,6 +294,40 @@ public class MainActivity extends Activity {
         final String js = "window.NexoUI && window.NexoUI.receiveShare(" + JSONObject.quote(pendingIncoming.toString()) + ");";
         pendingIncoming = null;
         webView.evaluateJavascript(js, null);
+    }
+
+    private void deliverInboxReviewIfReady() {
+        if (!pageReady || pendingInboxCaptureId <= 0 || webView == null) return;
+        long id = pendingInboxCaptureId;
+        pendingInboxCaptureId = 0L;
+        webView.evaluateJavascript(
+                "window.NexoUI && window.NexoUI.reviewInboxCaptureFromNotification(" + id + ");",
+                null
+        );
+    }
+
+    private boolean isNotificationAccessEnabled() {
+        try {
+            String enabled = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+            if (enabled == null || enabled.isBlank()) return false;
+            ComponentName target = new ComponentName(this, NexoNotificationListener.class);
+            String full = target.flattenToString();
+            String shortName = target.flattenToShortString();
+            for (String part : enabled.split(":")) {
+                if (full.equals(part) || shortName.equals(part)) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private void openNotificationAccessSettings() {
+        runOnUiThread(() -> {
+            try {
+                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+            } catch (Exception e) {
+                Toast.makeText(this, "No se pudo abrir el acceso a notificaciones", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private JSONObject copyUriToInternal(Uri uri, String mimeHint) throws Exception {
@@ -1370,6 +1413,17 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void setPreferredShoppingList(long id) {
             getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putLong("shopping_list_id", Math.max(0L,id)).apply();
+        }
+        @JavascriptInterface public boolean hasNotificationAccess() { return MainActivity.this.isNotificationAccessEnabled(); }
+        @JavascriptInterface public void openNotificationAccessSettings() { MainActivity.this.openNotificationAccessSettings(); }
+        @JavascriptInterface public String getCommunicationCaptureSettings() {
+            return CommunicationCapturePrefs.toJson(MainActivity.this).toString();
+        }
+        @JavascriptInterface public void setCommunicationCaptureEnabled(boolean enabled) {
+            CommunicationCapturePrefs.setEnabled(MainActivity.this, enabled);
+        }
+        @JavascriptInterface public void setCommunicationAppEnabled(String key, boolean enabled) {
+            CommunicationCapturePrefs.setAppEnabled(MainActivity.this, key, enabled);
         }
         @JavascriptInterface public String getMedicationMessages() {
             JSONArray a=new JSONArray();
