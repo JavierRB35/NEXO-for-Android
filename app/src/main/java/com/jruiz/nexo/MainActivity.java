@@ -1497,7 +1497,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean markInboxCaptureConverted(long id,String entity,long convertedId) {
             return db.markInboxCaptureConverted(id,entity,convertedId);
         }
-        @JavascriptInterface public boolean discardInboxCapture(long id) { return db.discardInboxCapture(id); }
+        @JavascriptInterface public boolean discardInboxCapture(long id) {
+            JSONObject capture=db.getInboxCapture(id);
+            String path=capture.optString("attachmentPath","");
+            boolean ok=db.discardInboxCapture(id);
+            if(ok && !path.isBlank()) service.discardUnusedAttachment(path);
+            return ok;
+        }
         @JavascriptInterface public String getFavorites() { return db.getFavorites().toString(); }
         @JavascriptInterface public String getHistory() { return db.getRecentHistory().toString(); }
         @JavascriptInterface public String getReminders() { return db.getFutureReminders().toString(); }
