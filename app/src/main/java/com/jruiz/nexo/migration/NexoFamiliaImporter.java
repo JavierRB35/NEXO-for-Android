@@ -112,7 +112,7 @@ public final class NexoFamiliaImporter {
 
     private static JSONObject toLocalEvent(JSONObject event, Map<String,String> memberNames) throws Exception {
         boolean allDay=event.optBoolean("all_day",false);
-        ZoneId zone=safeZone(event.optString("time_zone","Europe/Madrid"));
+        ZoneId zone=safeZone(cleanString(event,"time_zone"));
         long start=allDay ? parseDate(event.optString("start_date",""),zone) : parseTimestamp(event.optString("start_at",""),zone);
         long end=allDay ? parseDate(event.optString("end_date",""),zone) : parseTimestamp(event.optString("end_at",""),zone);
         if(start<=0)throw new IllegalArgumentException("Falta fecha de inicio válida");
@@ -127,25 +127,26 @@ public final class NexoFamiliaImporter {
             } catch(Exception ignored){}
         }
 
-        String recurrence=mapRecurrence(event.optString("recurrence_rule",""));
-        long recurrenceUntil=parseUntil(event.optString("recurrence_rule",""),zone);
-        String status=mapStatus(event.optString("status","pending"));
+        String recurrenceRule=cleanString(event,"recurrence_rule");
+        String recurrence=mapRecurrence(recurrenceRule);
+        long recurrenceUntil=parseUntil(recurrenceRule,zone);
+        String status=mapStatus(cleanString(event,"status"));
 
         JSONObject local=new JSONObject();
         local.put("type","event");
-        local.put("title",nonBlank(event.optString("title"),"Evento de Nexo Familia"));
-        local.put("body",event.optString("description",""));
+        local.put("title",nonBlank(cleanString(event,"title"),"Evento de Nexo Familia"));
+        local.put("body",cleanString(event,"description"));
         local.put("originalText","");
-        local.put("category",canonicalCategory(event.optString("category","Otro")));
+        local.put("category",canonicalCategory(cleanString(event,"category")));
         local.put("dueAt",start);
         local.put("endAt",end);
         local.put("hasTime",!allDay);
         local.put("allDay",allDay);
         local.put("timeZone",zone.getId());
         local.put("durationMinutes",duration);
-        local.put("locationText",event.optString("location",""));
-        local.put("mapsUrl",event.optString("maps_url",""));
-        local.put("recurrenceRule",event.optString("recurrence_rule",""));
+        local.put("locationText",cleanString(event,"location"));
+        local.put("mapsUrl",cleanString(event,"maps_url"));
+        local.put("recurrenceRule",cleanString(event,"recurrence_rule"));
         local.put("participantsText",participantNames(event.optJSONArray("participant_ids"),memberNames));
         local.put("priority",1);
         local.put("favorite",false);
@@ -256,6 +257,14 @@ public final class NexoFamiliaImporter {
                 "Viaje","Vacaciones","Casa","Vehículos / ITV","Seguros","Trámites","Tarea / Recado","Compras",
                 "Ocio / Social","Deporte","Recordatorio","Otro"));
         return allowed.contains(value)?value:"Otro";
+    }
+
+    private static String cleanString(JSONObject source, String key) {
+        if (source == null || key == null || !source.has(key) || source.isNull(key)) return "";
+        Object value = source.opt(key);
+        if (value == null || value == JSONObject.NULL) return "";
+        String text = String.valueOf(value).trim();
+        return "null".equalsIgnoreCase(text) ? "" : text;
     }
 
     private static String nonBlank(String value,String fallback){return value==null||value.isBlank()?fallback:value;}
