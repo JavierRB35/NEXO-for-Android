@@ -433,8 +433,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.delete("reminders", targetItems, null);
             db.execSQL("DELETE FROM recurrence_exceptions WHERE series_id IN (SELECT local_item_id FROM nexo_familia_events) " +
                     "OR series_id IN (SELECT id FROM items WHERE source='nexo-familia')");
-            db.execSQL("DELETE FROM history WHERE entity_id IN (SELECT local_item_id FROM nexo_familia_events) " +
-                    "OR entity_id IN (SELECT id FROM items WHERE source='nexo-familia')");
             db.execSQL("DELETE FROM items WHERE id IN (SELECT local_item_id FROM nexo_familia_events) OR source='nexo-familia'");
             db.delete("nexo_familia_reminders", null, null);
             db.delete("nexo_familia_events", null, null);
