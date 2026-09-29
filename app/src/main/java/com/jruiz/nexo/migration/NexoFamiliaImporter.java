@@ -201,6 +201,15 @@ public final class NexoFamiliaImporter {
         return errors;
     }
 
+    public static long sourceStartMillis(JSONObject event) {
+        if (event == null) return 0L;
+        boolean allDay = event.optBoolean("all_day", false);
+        ZoneId zone = safeZone(cleanString(event, "time_zone"));
+        return allDay
+                ? parseDate(cleanString(event, "start_date"), zone)
+                : parseTimestamp(cleanString(event, "start_at"), zone);
+    }
+
     private static JSONObject toLocalEvent(JSONObject event, Map<String,String> memberNames) throws Exception {
         boolean allDay=event.optBoolean("all_day",false);
         ZoneId zone=safeZone(cleanString(event,"time_zone"));
