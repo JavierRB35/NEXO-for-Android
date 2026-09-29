@@ -1,5 +1,21 @@
 # Changelog de Nexo
 
+## 3.7.0-beta4 · versionCode 69 · Input Hub fiable y migración Nexo Familia verificada
+
+- SMS y Calendar finalizan correctamente los jobs disparados por cambios de contenido y vuelven a armar sus observadores.
+- El filtro de Inbox pasa a priorizar sensibilidad: fechas, horas, recurrencias, ubicaciones, recordatorios y señales accionables llegan a revisión salvo ruido inequívoco u OTP.
+- SMS conserva reintentos ante errores y reevalúa siete días recientes al activar o recuperar la fuente.
+- Gmail deja de limitarse a la etiqueta Inbox, revisa correo recibido reciente aunque una regla lo archive y mantiene fuera enviados y borradores.
+- Gmail recupera texto MIME almacenado mediante attachmentId para no perder invitaciones o detalles que no estén en el snippet.
+- SMS y Gmail mantienen simultáneamente la vía directa y el respaldo por notificación, con deduplicación por contenido/remitente/ventana temporal.
+- Ajustes muestra vistos, candidatos, descartados y errores por cada fuente directa para diagnosticar falsos negativos.
+- Snapshot de Nexo Familia regenerado directamente desde Supabase de producción: 33 eventos, 46 reglas de aviso y 4 miembros.
+- La migración valida UUID, referencias, integridad y conteos antes de importar y verifica después 33/33 eventos y 46/46 reglas.
+- Cada evento migrado conserva los campos de uso diario en el modelo Android y el JSON original completo de Nexo Familia, incluidas visibilidad, participantes, invitados, origen, UID externo y metadatos sociales.
+- Los null legítimos de Supabase se conservan como ausencia de valor; no se convierten en la cadena "null".
+- La nueva snapshotVersion fuerza una reimportación idempotente sobre instalaciones que ya ejecutaron una migración anterior.
+- Baseline AndroidIDE sin cambios: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta3 · versionCode 68 · Inbox fiable y migración Nexo Familia corregida
 
 - Gmail reevalúa los correos recientes ya vistos pero no capturados; la revisión está versionada para no duplicar entradas.
