@@ -1,13 +1,17 @@
 # Changelog de Nexo
 
-## 3.7.0-beta3 · versionCode 68 · Recuperación de Gmail e invitaciones de calendario
+## 3.7.0-beta3 · versionCode 68 · Inbox fiable y migración Nexo Familia corregida
 
-- Gmail reevalúa una sola vez los correos de los últimos 2 días que ya se habían marcado como vistos pero no habían creado entrada en Inbox.
-- La recuperación usa una revisión de filtro versionada para no reprocesar indefinidamente ni duplicar capturas existentes.
-- Cumpleaños, invitaciones, calendar/calendario y eventos de calendario pasan a ser señales explícitas de contenido accionable.
-- Un correo reciente descartado por una versión anterior puede aparecer en Inbox al actualizar a beta3.
-- Se mantiene la lectura directa por Gmail API y la consulta al abrir Nexo y mediante JobScheduler.
-
+- Gmail reevalúa los correos recientes ya vistos pero no capturados; la revisión está versionada para no duplicar entradas.
+- Gmail analiza ahora asunto, snippet y cuerpo completo del mensaje, mejorando citas, cumpleaños e invitaciones de calendario.
+- SMS recupera mensajes accionables recientes incluso si quedaron marcados como referencia inicial o fueron descartados por un filtro anterior.
+- Al abrir Inbox se fuerza una consulta inmediata de SMS, Gmail y Calendar, además de los trabajos en segundo plano.
+- Inbox muestra si las fuentes directas SMS/Gmail están realmente activas y permite lanzar “Buscar ahora”.
+- Se amplían las señales de cita: fechas con mes en texto, más formatos horarios, confirmaciones, invitaciones y recordatorios.
+- La instantánea de Nexo Familia se actualiza y fuerza una reimportación idempotente de los 33 eventos y 46 reglas de aviso.
+- Los valores JSON null de Supabase dejan de convertirse en texto “null”; los campos opcionales vacíos permanecen vacíos.
+- La pantalla de copia de seguridad muestra cuántos eventos de Nexo Familia están vinculados respecto al total esperado.
+- La compilación valida que el paquete contiene exactamente la instantánea esperada de migración.
 
 ## 3.7.0-beta2 · versionCode 67 · Eventos Nexo Familia y migración automática
 
