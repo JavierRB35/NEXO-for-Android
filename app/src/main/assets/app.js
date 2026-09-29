@@ -271,7 +271,7 @@ function openJournalComposer(prefill='',forcedKind=''){
       if(!body){toast('Escribe o dicta el texto de la cita');return;}
       if(!title){toast('Pon un título a la cita');$('#journalTitle').focus();return;}
       const id=NexoNative.saveJournal(JSON.stringify({body,kind:'quote',title,summary:reference,tags:'',favorite:$('#journalFavorite').checked,source:'manual'}));
-      if(Number(id)>0){closeModal();toast('Cita guardada');if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
+      if(Number(id)>0){closeModal();toast('Cita guardada');if(state.screen==='panel'&&(state.lastPanel==='journal'||state.lastPanel==='quotes'))renderJournalPanel();renderJournalPrompt(false);}
       else toast('No se pudo guardar la cita');
     });
     setTimeout(()=>$('#journalBody')?.focus(),80);
@@ -290,7 +290,7 @@ function openJournalComposer(prefill='',forcedKind=''){
     if($('#journalKind').value==='quote'){closeModal();openJournalComposer(body,'quote');return;}
     if(!$('#journalTitle').value.trim())analyze();
     const id=NexoNative.saveJournal(JSON.stringify({body,kind:'thought',title:$('#journalTitle').value.trim(),summary:$('#journalSummary').value.trim(),tags:$('#journalTags').value.trim(),favorite:$('#journalFavorite').checked,source:'manual'}));
-    if(Number(id)>0){closeModal();toast('Guardado en Cuaderno');if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}else toast('No se pudo guardar en Cuaderno');
+    if(Number(id)>0){closeModal();toast('Guardado en Cuaderno');if(state.screen==='panel'&&(state.lastPanel==='journal'||state.lastPanel==='quotes'))renderJournalPanel();renderJournalPrompt(false);}else toast('No se pudo guardar en Cuaderno');
   });
   setTimeout(()=>$('#journalBody')?.focus(),80);
 }
@@ -319,15 +319,38 @@ function openJournal(id){
 }
 
 function renderJournalPanel(){
-  const quoteMode=state.journalFilter==='quote';
-  $('#panelAction').innerHTML=`<button id="journalAddTop" class="secondary-button">${quoteMode?'+ Nueva cita':'+ Escribir'}</button>`;
-  $('#journalAddTop').addEventListener('click',()=>openJournalComposer('',quoteMode?'quote':''));
-  const q=state.journalSearch||'',kind=state.journalFilter==='thought'?'thought':state.journalFilter==='quote'?'quote':'',fav=state.journalFilter==='favorite';
+  const quoteMode=state.lastPanel==='quotes';
+  const kind=quoteMode?'quote':'thought';
+  const filter=['favorite','revisit'].includes(state.journalFilter)?state.journalFilter:'all';
+  const q=state.journalSearch||'',fav=filter==='favorite';
   let rows=parseNative(NexoNative.getJournalEntries(q,kind,fav),[]);
-  if(state.journalFilter==='revisit'){const cutoff=Date.now()-7*24*60*60*1000;rows=rows.filter(x=>Number(x.createdAt||0)<cutoff).sort((a,b)=>((Number(a.id)*1103515245+12345)>>>0)-((Number(b.id)*1103515245+12345)>>>0)).slice(0,12);}
-  $('#panelContent').innerHTML=`<div class="journal-toolbar"><input id="journalSearch" type="search" placeholder="${quoteMode?'Buscar en tus citas…':'Buscar en tus pensamientos…'}" value="${escAttr(q)}"><button id="journalVoice" class="secondary-button journal-voice"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button><button id="journalAdd" class="primary-button journal-add">${quoteMode?'+ Nueva cita':'+ Escribir'}</button></div><div class="journal-filter-row"><button data-journal-filter="all" class="${state.journalFilter==='all'?'active':''}">Todo</button><button data-journal-filter="thought" class="${state.journalFilter==='thought'?'active':''}">Pensamientos</button><button data-journal-filter="quote" class="${state.journalFilter==='quote'?'active':''}">Citas</button><button data-journal-filter="favorite" class="${state.journalFilter==='favorite'?'active':''}">★ Favoritos</button><button data-journal-filter="revisit" class="${state.journalFilter==='revisit'?'active':''}">↺ Releer</button></div><div id="journalList" class="stack">${journalGroupHtml(rows)}</div>`;
+  if(filter==='revisit'){
+    const cutoff=Date.now()-7*24*60*60*1000;
+    rows=rows.filter(x=>Number(x.createdAt||0)<cutoff)
+      .sort((a,b)=>((Number(a.id)*1103515245+12345)>>>0)-((Number(b.id)*1103515245+12345)>>>0))
+      .slice(0,12);
+  }
+
+  $('#panelTitle').textContent=quoteMode?'Frases':'Cuaderno';
+  $('#panelSubtitle').textContent=quoteMode?'Citas textuales, autores y referencias · fuera del calendario':'Pensamientos y reflexiones personales · fuera del calendario';
+  $('#panelAction').innerHTML=`<button id="journalAddTop" class="secondary-button">${quoteMode?'+ Nueva frase':'+ Escribir'}</button>`;
+  $('#journalAddTop').addEventListener('click',()=>openJournalComposer('',quoteMode?'quote':''));
+
+  $('#panelContent').innerHTML=`<div class="journal-toolbar">
+    <input id="journalSearch" type="search" placeholder="${quoteMode?'Buscar por texto, título o autor…':'Buscar en tu Cuaderno…'}" value="${escAttr(q)}">
+    <button id="journalVoice" class="secondary-button journal-voice"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button>
+    <button id="journalAdd" class="primary-button journal-add">${quoteMode?'+ Nueva frase':'+ Escribir'}</button>
+  </div>
+  <div class="journal-filter-row">
+    <button data-journal-filter="all" class="${filter==='all'?'active':''}">Todas</button>
+    <button data-journal-filter="favorite" class="${filter==='favorite'?'active':''}">★ Favoritas</button>
+    <button data-journal-filter="revisit" class="${filter==='revisit'?'active':''}">↺ Releer</button>
+  </div>
+  <div id="journalList" class="stack">${journalGroupHtml(rows)}</div>`;
+
   bindJournalButtons($('#journalList'));
-  $('#journalVoice').addEventListener('click',()=>startJournalVoice('',quoteMode?'quote':''));$('#journalAdd').addEventListener('click',()=>openJournalComposer('',quoteMode?'quote':''));
+  $('#journalVoice').addEventListener('click',()=>startJournalVoice('',quoteMode?'quote':''));
+  $('#journalAdd').addEventListener('click',()=>openJournalComposer('',quoteMode?'quote':''));
   $('#journalSearch').addEventListener('input',e=>{state.journalSearch=e.target.value;clearTimeout(renderJournalPanel._t);renderJournalPanel._t=setTimeout(renderJournalPanel,220);});
   $$('[data-journal-filter]').forEach(b=>b.addEventListener('click',()=>{state.journalFilter=b.dataset.journalFilter;renderJournalPanel();}));
 }
@@ -1021,11 +1044,15 @@ function openPanel(panel,options={}){
   if(panel==='tasks'||panel==='reminders')panel='appointments';
   stopRecordingPolling();
   if(panel==='calendar'){navigate('calendar',options);return;}
+  if(panel==='journal'||panel==='quotes')state.journalFilter='all';
   navigate('panel',{...options,panel,list:null});
   const cfg={
-    appointments:['Citas','Todo lo que tienes que hacer, con fecha o sin ella'],lists:['Listas','Listas rápidas y reutilizables'],
+    appointments:['Agenda','Citas, tareas y compromisos · con fecha o sin ella'],lists:['Listas','Listas rápidas y reutilizables'],
     inbox:['Inbox','Contenido recibido que todavía no has organizado'],history:['Historial','Actividad reciente'],
-    backup:['Copia de seguridad','Datos y adjuntos · audios por separado'],medications:['Medicamentos','Tratamientos, próximas tomas e historial'],journal:['Cuaderno','Pensamientos, citas y reflexiones · fuera del calendario'],notes:['Notas','Anotaciones locales · más recientes primero'],recordings:['Grabaciones','Audio local · reuniones y conversaciones autorizadas']
+    backup:['Copia de seguridad','Datos y adjuntos · audios por separado'],medications:['Medicamentos','Tratamientos, próximas tomas e historial'],
+    journal:['Cuaderno','Pensamientos y reflexiones personales · fuera del calendario'],
+    quotes:['Frases','Citas textuales, autores y referencias · fuera del calendario'],
+    notes:['Notas','Anotaciones locales · más recientes primero'],recordings:['Grabaciones','Audio local · reuniones y conversaciones autorizadas']
   }[panel]||['Más',''];
   $('#panelTitle').textContent=cfg[0];$('#panelSubtitle').textContent=cfg[1];$('#panelAction').innerHTML='';
   if(panel==='appointments')renderAppointmentsPanel();
@@ -1034,7 +1061,7 @@ function openPanel(panel,options={}){
   else if(panel==='history') renderHistoryPanel();
   else if(panel==='backup') renderBackupPanel();
   else if(panel==='medications') renderMedicationsPanel();
-  else if(panel==='journal') renderJournalPanel();
+  else if(panel==='journal'||panel==='quotes') renderJournalPanel();
   else if(panel==='notes') renderNotesPanel();
   else if(panel==='recordings') renderRecordingsPanel();
   else if(panel==='places') renderPlacesPanel();
@@ -1560,7 +1587,7 @@ window.NexoUI={
     $('#sharedCancel').addEventListener('click',()=>{NexoNative.cancelSharedImport();closeModal();});
     $('#sharedConfirm').addEventListener('click',()=>{const b=$('#sharedConfirm');b.disabled=true;b.textContent='Añadiendo…';NexoNative.confirmSharedImport();});
   },
-  onSharedImportDone(raw){const r=parseNative(raw,{});closeModal();toast(`${r.title||'Contenido'} añadido a Nexo`,'',null,5000);if(r.entity==='list'&&r.id){openPanel('lists');setTimeout(()=>openList(Number(r.id)),80);}else if(r.entity==='journal'&&r.id){openPanel('journal');setTimeout(()=>openJournal(Number(r.id)),80);}else if(r.entity==='item'&&r.id){refreshCurrent();setTimeout(()=>openItem(Number(r.id)),80);}else refreshCurrent();},
+  onSharedImportDone(raw){const r=parseNative(raw,{});closeModal();toast(`${r.title||'Contenido'} añadido a Nexo`,'',null,5000);if(r.entity==='list'&&r.id){openPanel('lists');setTimeout(()=>openList(Number(r.id)),80);}else if(r.entity==='journal'&&r.id){const j=parseNative(NexoNative.getJournal(Number(r.id)),{});openPanel(j.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(Number(r.id)),80);}else if(r.entity==='item'&&r.id){refreshCurrent();setTimeout(()=>openItem(Number(r.id)),80);}else refreshCurrent();},
   onSharedImportError(msg){closeModal();toast(msg||'No se pudo importar el contenido.','',null,6000);},
   onRecordingStateChanged(raw){if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   onRecordingError(msg){toast(msg||'No se pudo completar la acción de grabación.','',null,5500);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
@@ -1711,7 +1738,7 @@ function init(){
     state.journalPick.favorite=favorite;
     refreshJournalPromptFavorite();
     toast(favorite?'Añadido a favoritos':'Quitado de favoritos');
-    if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();
+    if(state.screen==='panel'&&(state.lastPanel==='journal'||state.lastPanel==='quotes'))renderJournalPanel();
   });
   $('#journalPromptNext').addEventListener('click',e=>{e.stopPropagation();renderJournalPrompt(true);});
   $$('[data-display-mode]').forEach(b=>b.addEventListener('click',()=>applyDisplayMode(b.dataset.displayMode,true)));
