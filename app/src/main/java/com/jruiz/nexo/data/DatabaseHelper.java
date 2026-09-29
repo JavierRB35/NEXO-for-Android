@@ -1578,7 +1578,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             o.put("tasks", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type='task' AND status='pending'"));
             o.put("lists", scalar("SELECT COUNT(*) FROM lists"));
-            o.put("inbox", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1"));
+            o.put("inbox", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1") + getPendingInboxCaptureCount());
             o.put("favorites", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND favorite=1") + scalar("SELECT COUNT(*) FROM lists WHERE favorite=1"));
             o.put("reminders", scalar("SELECT COUNT(*) FROM reminders WHERE enabled=1 AND trigger_at>" + System.currentTimeMillis()));
             o.put("journal", scalar("SELECT COUNT(*) FROM journal_entries"));
