@@ -1,6 +1,6 @@
 # Nexo 3.7.0-beta4 · AndroidIDE
 
-Rama de trabajo: `fix/input-hub-reliability-and-familia-migration`.
+Rama de trabajo: `feature/nexo-input-hub-v0.4`.
 
 Identidad:
 - Nexo **3.7.0-beta4**
