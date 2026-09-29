@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-APP_NAME="Nexo_Inbox_v0_2"
+APP_NAME="Nexo_Input_Hub_v0_3"
 DOWNLOAD_DIR="/storage/emulated/0/Download"
 KEY_DIR="${NEXO_KEY_DIR:-$HOME/.nexo-release}"
 KEYSTORE="$KEY_DIR/nexo-release.p12"
