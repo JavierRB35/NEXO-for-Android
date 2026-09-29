@@ -750,13 +750,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (in.has("durationMinutes")) v.put("duration_minutes", Math.max(0, in.optInt("durationMinutes", 0)));
         if (in.has("voiceEnabled")) v.put("voice_enabled", in.optBoolean("voiceEnabled") ? 1 : 0);
         if (in.has("noteTitleManual")) v.put("note_title_manual", in.optBoolean("noteTitleManual") ? 1 : 0);
-        // Reprogramar una cita/tarea decide de nuevo su estado temporal: hoy/futuro = pendiente, pasado = finalizada.
-        if (in.has("dueAt") && !in.has("status")) {
+
+        // Lógica de Nexo Familia para eventos: la fecha manda sobre el estado temporal.
+        // Un evento no recurrente pasado queda completado; hoy/futuro queda pendiente.
+        // Cancelado es explícito y nunca se reactiva automáticamente.
+        if (in.has("dueAt")) {
             String effectiveType=in.optString("type",old.optString("type","note"));
+            String effectiveRecurrence=RecurrenceEngine.normalize(in.optString("recurrence",old.optString("recurrence",RecurrenceEngine.NONE)));
             long newDue=Math.max(0,in.optLong("dueAt",0));
-            long oldDue=Math.max(0,old.optLong("dueAt",0));
-            if(newDue>0 && newDue!=oldDue && isAppointmentTypeForStatus(effectiveType) && !RecurrenceEngine.isRecurring(in.optString("recurrence",old.optString("recurrence",RecurrenceEngine.NONE)))) {
-                v.put("status", isBeforeToday(newDue) ? "done" : "pending");
+            long newEnd=in.has("endAt")?Math.max(0,in.optLong("endAt",0)):Math.max(0,old.optLong("endAt",0));
+            String requestedStatus=in.has("status")?in.optString("status",old.optString("status","pending")):old.optString("status","pending");
+            if ("event".equals(effectiveType) && !"cancelled".equals(requestedStatus)) {
+                if (RecurrenceEngine.isRecurring(effectiveRecurrence)) {
+                    v.put("status","pending");
+                } else if (newDue>0) {
+                    long effectiveEnd=newEnd>0?newEnd:newDue;
+                    v.put("status", isBeforeToday(effectiveEnd) ? "done" : "pending");
+                }
             }
         }
         v.put("updated_at", System.currentTimeMillis());
@@ -790,61 +800,54 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         long now=System.currentTimeMillis();
         long start=LocalDate.now(ZoneId.systemDefault()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
-        // Los elementos locales normales conservan la regla histórica: un evento se
-        // completa al quedar su día anterior en el pasado. Los eventos importados
-        // desde Nexo Familia se excluyen de esta actualización genérica porque su
-        // estado se reconstruye a partir del estado fuente y del epoch real.
-        ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",now);
-        db.update("items",done,
-                "deleted_at=0 AND source<>'nexo-familia' AND due_at>0 " +
-                "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) " +
-                "AND recurrence='none' AND type IN ('event','task','reminder','expiry') " +
-                "AND status IN ('active','pending','postponed')",
-                new String[]{String.valueOf(start)});
-
-        // Nexo Familia: nunca se deduce el estado por visibility. Se respeta
-        // cancelled/completed de Supabase; los demás quedan pending mientras su
-        // final real no haya pasado. Esto evita que los eventos selected futuros
-        // desaparezcan de Agenda al ser marcados como done por una conciliación local.
+        // Eventos: misma semántica que Nexo Familia. Se decide por DÍA de fin,
+        // no por la hora actual. Cancelado siempre se conserva.
         try {
             db.execSQL(
                     "UPDATE items SET status=CASE " +
-                    "WHEN lower(COALESCE((SELECT nf.source_status FROM nexo_familia_events nf WHERE nf.local_item_id=items.id LIMIT 1),''))='cancelled' THEN 'cancelled' " +
-                    "WHEN lower(COALESCE((SELECT nf.source_status FROM nexo_familia_events nf WHERE nf.local_item_id=items.id LIMIT 1),''))='completed' THEN 'done' " +
-                    "WHEN recurrence='none' AND due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) THEN 'done' " +
+                    "WHEN status='cancelled' THEN 'cancelled' " +
+                    "WHEN recurrence<>'none' THEN 'pending' " +
+                    "WHEN due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) THEN 'done' " +
                     "ELSE 'pending' END, updated_at=? " +
-                    "WHERE deleted_at=0 AND source='nexo-familia'",
-                    new Object[]{now,now});
+                    "WHERE deleted_at=0 AND type='event'",
+                    new Object[]{start,now});
         } catch (Exception ignored) {}
 
-        // Los cumpleaños locales (no procedentes de Nexo Familia) se evalúan contra
-        // la aparición del año actual. Hoy todavía queda pendiente.
-        try(Cursor c=db.rawQuery(
+        // Tareas, recordatorios y vencimientos conservan su semántica propia.
+        ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",now);
+        db.update("items",done,
+                "deleted_at=0 AND due_at>0 " +
+                "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) " +
+                "AND recurrence='none' AND type IN ('task','reminder','expiry') " +
+                "AND status IN ('active','pending','postponed')",
+                new String[]{String.valueOf(start)});
+
+        // Las series recurrentes de eventos permanecen abiertas; las excepciones
+        // representan el estado de cada aparición concreta.
+        try(Cursor cur=db.rawQuery(
                 "SELECT id,due_at,status,recurrence,recurrence_until FROM items " +
-                "WHERE deleted_at=0 AND source<>'nexo-familia' AND due_at>0 " +
-                "AND status<>'cancelled' AND lower(category) IN ('cumpleanos','cumpleaños','cumple')",
+                "WHERE deleted_at=0 AND type='event' AND due_at>0 AND recurrence<>'none' AND status<>'cancelled'",
                 null)){
             ZoneId zone=ZoneId.systemDefault();LocalDate today=LocalDate.now(zone);
             long yearStart=LocalDate.of(today.getYear(),1,1).atStartOfDay(zone).toInstant().toEpochMilli();
             long yearEnd=LocalDate.of(today.getYear()+1,1,1).atStartOfDay(zone).toInstant().toEpochMilli()-1;
-            while(c.moveToNext()){
-                long id=c.getLong(0),at=c.getLong(1),until=c.getLong(4);String status=c.getString(2),recurrence=c.getString(3);
-                if(RecurrenceEngine.isRecurring(recurrence)){
-                    if("done".equals(status)){
-                        ContentValues baseOpen=new ContentValues();baseOpen.put("status","pending");baseOpen.put("updated_at",System.currentTimeMillis());
-                        db.update("items",baseOpen,"id=?",new String[]{String.valueOf(id)});
-                    }
+            while(cur.moveToNext()){
+                long id=cur.getLong(0),at=cur.getLong(1),until=cur.getLong(4);String recurrence=cur.getString(3);
+                ContentValues open=new ContentValues();open.put("status","pending");open.put("updated_at",now);
+                db.update("items",open,"id=?",new String[]{String.valueOf(id)});
+
+                // Para cumpleaños/aniversarios y demás series anuales, la aparición
+                // pasada puede constar como hecha sin cerrar la serie.
+                if (RecurrenceEngine.ANNUAL.equals(RecurrenceEngine.normalize(recurrence))) {
                     List<Long> occs=RecurrenceEngine.occurrencesBetween(at,recurrence,until,yearStart,yearEnd,zone,20);
                     if(!occs.isEmpty()){
-                        long key=occs.get(0);LocalDate d=Instant.ofEpochMilli(key).atZone(zone).toLocalDate();String wanted=d.isBefore(today)?"done":"active";
-                        JSONObject ex=getRecurrenceException(id,key);String current=ex.length()==0?"active":ex.optString("state","active");
+                        long key=occs.get(0);
+                        LocalDate d=Instant.ofEpochMilli(key).atZone(zone).toLocalDate();
+                        String wanted=d.isBefore(today)?"done":"active";
+                        JSONObject ex=getRecurrenceException(id,key);
+                        String current=ex.length()==0?"active":ex.optString("state","active");
                         if(!wanted.equals(current))setOccurrenceStatus(id,key,wanted);
                     }
-                }else{
-                    LocalDate stored=Instant.ofEpochMilli(at).atZone(zone).toLocalDate();LocalDate thisYear;
-                    try{thisYear=LocalDate.of(today.getYear(),stored.getMonthValue(),stored.getDayOfMonth());}catch(DateTimeException e){thisYear=LocalDate.of(today.getYear(),2,28);}
-                    String wanted=thisYear.isBefore(today)?"done":"pending";
-                    if(!wanted.equals(status)){ContentValues v=new ContentValues();v.put("status",wanted);v.put("updated_at",System.currentTimeMillis());db.update("items",v,"id=?",new String[]{String.valueOf(id)});}
                 }
             }
         }catch(Exception ignored){}
@@ -1440,6 +1443,44 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             return queryItems("type IN ('place','restaurant')", null, "updated_at DESC", 3000);
         }
         return new JSONArray();
+    }
+
+    /**
+     * Índice completo para reproducir en WebView el mismo algoritmo de búsqueda
+     * de Nexo Familia. No filtra por texto: el ranking se hace de forma uniforme
+     * en JavaScript sobre todos los dominios locales.
+     */
+    public JSONObject getFamilyStyleSearchIndex() {
+        JSONObject out=new JSONObject();
+        try {
+            out.put("items", queryItems("1=1", null, "updated_at DESC", 3000));
+            out.put("lists", getListsForSearchIndex());
+            out.put("medications", getMedications("", "all"));
+            out.put("journal", getJournalEntries("", "", false));
+            out.put("inbox", getInboxCaptures());
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    private JSONArray getListsForSearchIndex() {
+        JSONArray out=new JSONArray();
+        try (Cursor c=getReadableDatabase().rawQuery(
+                "SELECT l.id,l.title,l.kind,l.favorite,l.updated_at," +
+                "COALESCE(GROUP_CONCAT(e.text||' '||e.category,' '),'') " +
+                "FROM lists l LEFT JOIN list_entries e ON e.list_id=l.id " +
+                "GROUP BY l.id ORDER BY l.updated_at DESC",null)) {
+            while(c.moveToNext()) {
+                JSONObject o=new JSONObject();
+                o.put("id",c.getLong(0));
+                o.put("title",c.getString(1));
+                o.put("kind",c.getString(2));
+                o.put("favorite",c.getInt(3)==1);
+                o.put("updatedAt",c.getLong(4));
+                o.put("entriesText",c.getString(5));
+                out.put(o);
+            }
+        } catch(Exception ignored) {}
+        return out;
     }
 
     public JSONArray search(String raw) {
@@ -2660,7 +2701,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         JSONArray a = new JSONArray();
         String sql = "SELECT * FROM items WHERE deleted_at=0 AND (" + where + ") ORDER BY " + order + " LIMIT " + limit;
         try (Cursor c = getReadableDatabase().rawQuery(sql, args)) {
-            while (c.moveToNext()) a.put(itemJson(c));
+            while (c.moveToNext()) a.put(normalizeNexoFamiliaStatusForRead(itemJson(c)));
         } catch (Exception ignored) {}
         return a;
     }
@@ -2730,36 +2771,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (item == null || item.length() == 0) return item;
         if (!"nexo-familia".equals(item.optString("source", ""))) return item;
         try {
-            String sourceStatus = "";
-            long id = item.optLong("id", 0L);
-            if (id > 0L) {
-                try (Cursor c = getReadableDatabase().rawQuery(
-                        "SELECT source_status FROM nexo_familia_events WHERE local_item_id=? LIMIT 1",
-                        new String[]{String.valueOf(id)})) {
-                    if (c.moveToFirst() && !c.isNull(0)) sourceStatus = c.getString(0);
-                }
-            }
+            String current=item.optString("status","pending");
+            if ("cancelled".equals(current)) return item;
 
-            String wanted;
-            if ("cancelled".equalsIgnoreCase(sourceStatus)) {
-                wanted = "cancelled";
-            } else if ("completed".equalsIgnoreCase(sourceStatus)) {
-                wanted = "done";
+            String recurrence=RecurrenceEngine.normalize(item.optString("recurrence",RecurrenceEngine.NONE));
+            if (RecurrenceEngine.isRecurring(recurrence)) {
+                item.put("status","pending");
             } else {
-                long due = item.optLong("dueAt", 0L);
-                long end = item.optLong("endAt", 0L);
-                long effectiveEnd = end > 0L ? end : due;
-                boolean recurring = RecurrenceEngine.isRecurring(
-                        item.optString("recurrence", RecurrenceEngine.NONE)
-                );
-                wanted = (!recurring && effectiveEnd > 0L && effectiveEnd < System.currentTimeMillis())
-                        ? "done" : "pending";
-            }
-
-            item.put("status", wanted);
-            if (item.has("occurrenceStatus") &&
-                    !RecurrenceEngine.isRecurring(item.optString("recurrence", RecurrenceEngine.NONE))) {
-                item.put("occurrenceStatus", wanted);
+                long due=item.optLong("dueAt",0L);
+                long end=item.optLong("endAt",0L);
+                long effectiveEnd=end>0L?end:due;
+                item.put("status", effectiveEnd>0L && isBeforeToday(effectiveEnd) ? "done" : "pending");
             }
         } catch (Exception ignored) {}
         return item;
