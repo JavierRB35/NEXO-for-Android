@@ -29,6 +29,8 @@ public final class GmailWatchEngine {
     public static final Scope GMAIL_SCOPE = new Scope(GMAIL_READONLY);
     private static final String API = "https://gmail.googleapis.com/gmail/v1/users/me";
     private static final String QUERY = "in:inbox newer_than:30d";
+    private static final String RECOVERY_QUERY = "in:inbox newer_than:2d";
+    private static final String FILTER_REVISION = "gmail-filter-v3:";
 
     private GmailWatchEngine() {}
 
@@ -60,7 +62,8 @@ public final class GmailWatchEngine {
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
             String token = GoogleAuthUtil.getToken(context, account.getAccount(), "oauth2:" + GMAIL_READONLY);
-            for (String id : listMessageIds(token)) db.rememberExternalInput("gmail", id, id, 0L);
+            for (String id : listMessageIds(token, QUERY)) db.rememberExternalInput("gmail", id, "gmail-baseline:" + id, 0L);
+            recoverRecentIgnored(token, db, context);
             InputHubPrefs.setGmailEmail(context, account.getEmail());
             InputHubPrefs.setGmailBaselined(context, true);
             InputHubPrefs.setGmailLastSync(context, System.currentTimeMillis());
@@ -89,36 +92,19 @@ public final class GmailWatchEngine {
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
             String token = GoogleAuthUtil.getToken(context, account.getAccount(), "oauth2:" + GMAIL_READONLY);
-            for (String id : listMessageIds(token)) {
-                if (db.hasExternalInput("gmail", id)) continue;
-
-                GmailMessage message = fetchMessage(token, id);
-                long captureId = 0L;
-                if (message != null) {
-                    String text = message.analysisText();
-                    JSONObject classification = RuleClassifier.classify(text).toJson();
-                    if (NotificationCandidateFilter.shouldCapture(text, classification)) {
-                        JSONObject in = new JSONObject();
-                        in.put("source", "gmail-api");
-                        in.put("mime", "message/rfc822");
-                        in.put("subject", message.subject);
-                        in.put("text", text);
-                        in.put("sourcePackage", "gmail-api");
-                        in.put("sender", message.from);
-                        in.put("sourceKey", "gmail:" + id);
-                        captureId = db.insertInboxCapture(in, classification);
-                        if (captureId > 0) {
-                            String preview = message.subject;
-                            if (!message.snippet.isBlank()) preview += " · " + message.snippet;
-                            if (preview.length() > 180) preview = preview.substring(0, 177) + "…";
-                            InboxCandidateNotifier.show(
-                                    context, captureId, "Nexo · correo accionable", message.from, preview
-                            );
-                        }
-                    }
+            for (String id : listMessageIds(token, QUERY)) {
+                JSONObject previous = db.getExternalInputState("gmail", id);
+                if (previous.length() > 0) {
+                    long captureId = previous.optLong("captureId", 0L);
+                    String fingerprint = previous.optString("fingerprint", "");
+                    if (captureId > 0 || db.inboxCaptureExists("gmail:" + id) || fingerprint.startsWith(FILTER_REVISION)) continue;
+                    // Los mensajes ya vistos pero descartados se recuperan únicamente
+                    // mediante RECOVERY_QUERY para evitar reprocesar 30 días de correo.
+                    continue;
                 }
-                db.rememberExternalInput("gmail", id, id, captureId);
+                processMessage(token, db, context, id);
             }
+            recoverRecentIgnored(token, db, context);
             InputHubPrefs.setGmailEmail(context, account.getEmail());
             InputHubPrefs.setGmailLastSync(context, System.currentTimeMillis());
             InputHubPrefs.setGmailError(context, "");
@@ -129,13 +115,13 @@ public final class GmailWatchEngine {
         }
     }
 
-    private static List<String> listMessageIds(String token) throws Exception {
+    private static List<String> listMessageIds(String token, String query) throws Exception {
         ArrayList<String> ids = new ArrayList<>();
         String page = "";
         int pages = 0;
         do {
             String url = API + "/messages?q=" +
-                    URLEncoder.encode(QUERY, StandardCharsets.UTF_8.name()) +
+                    URLEncoder.encode(query, StandardCharsets.UTF_8.name()) +
                     "&maxResults=100&fields=messages/id,nextPageToken";
             if (!page.isBlank()) url += "&pageToken=" + URLEncoder.encode(page, StandardCharsets.UTF_8.name());
             JSONObject json = getJson(url, token);
@@ -150,6 +136,49 @@ public final class GmailWatchEngine {
             pages++;
         } while (!page.isBlank() && pages < 3);
         return ids;
+    }
+
+    private static void recoverRecentIgnored(String token, DatabaseHelper db, Context context) throws Exception {
+        for (String id : listMessageIds(token, RECOVERY_QUERY)) {
+            JSONObject previous = db.getExternalInputState("gmail", id);
+            if (previous.length() == 0) {
+                processMessage(token, db, context, id);
+                continue;
+            }
+            long captureId = previous.optLong("captureId", 0L);
+            String fingerprint = previous.optString("fingerprint", "");
+            if (captureId > 0 || db.inboxCaptureExists("gmail:" + id) || fingerprint.startsWith(FILTER_REVISION)) continue;
+            processMessage(token, db, context, id);
+        }
+    }
+
+    private static void processMessage(String token, DatabaseHelper db, Context context, String id) throws Exception {
+        GmailMessage message = fetchMessage(token, id);
+        long captureId = 0L;
+        if (message != null) {
+            String text = message.analysisText();
+            JSONObject classification = RuleClassifier.classify(text).toJson();
+            if (NotificationCandidateFilter.shouldCapture(text, classification)) {
+                JSONObject in = new JSONObject();
+                in.put("source", "gmail-api");
+                in.put("mime", "message/rfc822");
+                in.put("subject", message.subject);
+                in.put("text", text);
+                in.put("sourcePackage", "gmail-api");
+                in.put("sender", message.from);
+                in.put("sourceKey", "gmail:" + id);
+                captureId = db.insertInboxCapture(in, classification);
+                if (captureId > 0) {
+                    String preview = message.subject;
+                    if (!message.snippet.isBlank()) preview += " · " + message.snippet;
+                    if (preview.length() > 180) preview = preview.substring(0, 177) + "…";
+                    InboxCandidateNotifier.show(
+                            context, captureId, "Nexo · correo accionable", message.from, preview
+                    );
+                }
+            }
+        }
+        db.rememberExternalInput("gmail", id, FILTER_REVISION + id, captureId);
     }
 
     private static GmailMessage fetchMessage(String token, String id) throws Exception {
