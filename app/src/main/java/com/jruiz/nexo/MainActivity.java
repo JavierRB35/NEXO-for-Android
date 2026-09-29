@@ -2051,6 +2051,10 @@ public class MainActivity extends Activity {
                 JSONObject audit = MainActivity.this.auditBundledNexoFamiliaPayload(MainActivity.this.readBundledNexoFamiliaPayload());
                 stats.put("expectedEvents", audit.optInt("expectedEvents", p.getInt("expectedEvents", 0)));
                 stats.put("verifiedEvents", audit.optInt("verifiedEvents", 0));
+                stats.put("expectedFamily", audit.optInt("expectedFamily", 0));
+                stats.put("verifiedFamily", audit.optInt("verifiedFamily", 0));
+                stats.put("expectedSelected", audit.optInt("expectedSelected", 0));
+                stats.put("verifiedSelected", audit.optInt("verifiedSelected", 0));
                 stats.put("expectedReminderRules", audit.optInt("expectedReminderRules", p.getInt("expectedReminderRules", 0)));
                 stats.put("verifiedReminderRules", audit.optInt("verifiedReminderRules", 0));
                 stats.put("missingEvents", audit.optJSONArray("missingEvents"));
