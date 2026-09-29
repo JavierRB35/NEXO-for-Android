@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 14;
+    private static final int DB_VERSION = 15;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -127,6 +127,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "PRIMARY KEY(term,category)" +
                 ")");
 
+        createInboxTables(db);
         createJournalTables(db);
         seedJournalBiblicalLibrary(db);
         createMedicationTables(db);
@@ -181,6 +182,33 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE items ADD COLUMN note_title_manual INTEGER NOT NULL DEFAULT 0");
             db.execSQL("UPDATE items SET note_title_manual=1 WHERE type='note'");
         }
+        if (oldVersion < 15) {
+            createInboxTables(db);
+        }
+    }
+
+
+    private static void createInboxTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS inbox_captures (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "source TEXT NOT NULL DEFAULT 'android-share'," +
+                "mime TEXT NOT NULL DEFAULT ''," +
+                "subject TEXT NOT NULL DEFAULT ''," +
+                "raw_text TEXT NOT NULL DEFAULT ''," +
+                "attachment_path TEXT NOT NULL DEFAULT ''," +
+                "attachment_name TEXT NOT NULL DEFAULT ''," +
+                "attachment_mime TEXT NOT NULL DEFAULT ''," +
+                "detected_type TEXT NOT NULL DEFAULT ''," +
+                "detected_title TEXT NOT NULL DEFAULT ''," +
+                "classification_json TEXT NOT NULL DEFAULT '{}'," +
+                "status TEXT NOT NULL DEFAULT 'new'," +
+                "converted_entity TEXT NOT NULL DEFAULT ''," +
+                "converted_id INTEGER NOT NULL DEFAULT 0," +
+                "created_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_status_created ON inbox_captures(status,created_at DESC)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_converted ON inbox_captures(converted_entity,converted_id)");
     }
 
 
@@ -1592,6 +1620,107 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 }
             }
         } catch(Exception ignored){}
+    }
+
+    /** Guarda primero el contenido recibido para que no dependa de completar el formulario en la misma sesión. */
+    public long insertInboxCapture(JSONObject in, JSONObject classification) {
+        if (in == null) return 0;
+        long now = System.currentTimeMillis();
+        JSONObject detected = classification == null ? new JSONObject() : classification;
+        ContentValues v = new ContentValues();
+        v.put("source", nonBlank(in.optString("source"), "android-share"));
+        v.put("mime", in.optString("mime", ""));
+        v.put("subject", in.optString("subject", ""));
+        String raw = in.optString("text", "");
+        if (raw.isBlank()) raw = in.optString("attachmentName", "");
+        v.put("raw_text", raw);
+        v.put("attachment_path", in.optString("attachmentPath", ""));
+        v.put("attachment_name", in.optString("attachmentName", ""));
+        v.put("attachment_mime", in.optString("attachmentMime", ""));
+        v.put("detected_type", detected.optString("type", ""));
+        v.put("detected_title", detected.optString("title", ""));
+        v.put("classification_json", detected.toString());
+        v.put("status", "new");
+        v.put("converted_entity", "");
+        v.put("converted_id", 0);
+        v.put("created_at", now);
+        v.put("updated_at", now);
+        return getWritableDatabase().insert("inbox_captures", null, v);
+    }
+
+    public long getPendingInboxCaptureCount() {
+        return scalar("SELECT COUNT(*) FROM inbox_captures WHERE status IN ('new','reviewing')");
+    }
+
+    public JSONArray getInboxCaptures() {
+        JSONArray out = new JSONArray();
+        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at FROM inbox_captures WHERE status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 200";
+        try (Cursor c = getReadableDatabase().rawQuery(sql, null)) {
+            while (c.moveToNext()) out.put(inboxCaptureJson(c));
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public JSONObject getInboxCapture(long id) {
+        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at FROM inbox_captures WHERE id=? LIMIT 1";
+        try (Cursor c = getReadableDatabase().rawQuery(sql, new String[]{String.valueOf(id)})) {
+            if (c.moveToFirst()) return inboxCaptureJson(c);
+        } catch (Exception ignored) {}
+        return new JSONObject();
+    }
+
+    public boolean updateInboxCaptureClassification(long id, JSONObject classification) {
+        if (id <= 0 || classification == null) return false;
+        ContentValues v = new ContentValues();
+        v.put("detected_type", classification.optString("type", ""));
+        v.put("detected_title", classification.optString("title", ""));
+        v.put("classification_json", classification.toString());
+        v.put("status", "reviewing");
+        v.put("updated_at", System.currentTimeMillis());
+        return getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+    }
+
+    public boolean markInboxCaptureConverted(long id, String entity, long convertedId) {
+        if (id <= 0 || convertedId <= 0) return false;
+        ContentValues v = new ContentValues();
+        v.put("status", "converted");
+        v.put("converted_entity", nonBlank(entity, "item"));
+        v.put("converted_id", convertedId);
+        v.put("updated_at", System.currentTimeMillis());
+        return getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+    }
+
+    public boolean discardInboxCapture(long id) {
+        if (id <= 0) return false;
+        ContentValues v = new ContentValues();
+        v.put("status", "discarded");
+        v.put("updated_at", System.currentTimeMillis());
+        return getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+    }
+
+    private static JSONObject inboxCaptureJson(Cursor c) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("id", c.getLong(0));
+            o.put("source", c.getString(1));
+            o.put("mime", c.getString(2));
+            o.put("subject", c.getString(3));
+            o.put("rawText", c.getString(4));
+            o.put("attachmentPath", c.getString(5));
+            o.put("attachmentName", c.getString(6));
+            o.put("attachmentMime", c.getString(7));
+            o.put("detectedType", c.getString(8));
+            o.put("detectedTitle", c.getString(9));
+            String rawClassification = c.getString(10);
+            try { o.put("classification", new JSONObject(rawClassification == null ? "{}" : rawClassification)); }
+            catch (Exception ignored) { o.put("classification", new JSONObject()); }
+            o.put("status", c.getString(11));
+            o.put("convertedEntity", c.getString(12));
+            o.put("convertedId", c.getLong(13));
+            o.put("createdAt", c.getLong(14));
+            o.put("updatedAt", c.getLong(15));
+        } catch (Exception ignored) {}
+        return o;
     }
 
     public JSONArray getInbox() { return queryItems("needs_review=1", null, "created_at DESC", 200); }
