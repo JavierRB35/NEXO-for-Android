@@ -629,18 +629,37 @@ public class MainActivity extends Activity {
 
             JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
             int expected = payload.optJSONArray("events") == null ? 0 : payload.optJSONArray("events").length();
+            JSONArray expectedRulesArray = payload.optJSONArray("reminderRules");
+            if (expectedRulesArray == null) expectedRulesArray = payload.optJSONArray("reminder_rules");
+            int expectedRules = expectedRulesArray == null ? 0 : expectedRulesArray.length();
+
             int preserved = result.optInt("preserved", 0);
+            int verifiedEvents = result.optInt("verifiedEvents", 0);
+            int verifiedRules = result.optInt("verifiedReminderRules", 0);
             int skipped = result.optInt("skipped", 0);
+            boolean complete = result.optBoolean("ok", false) &&
+                    expected > 0 &&
+                    preserved == expected &&
+                    verifiedEvents == expected &&
+                    verifiedRules == expectedRules &&
+                    skipped == 0;
+
             prefs.edit()
                     .putInt("expectedEvents", expected)
+                    .putInt("expectedReminderRules", expectedRules)
                     .putInt("lastPreserved", preserved)
+                    .putInt("lastVerifiedEvents", verifiedEvents)
+                    .putInt("lastVerifiedReminderRules", verifiedRules)
                     .putInt("lastSkipped", skipped)
+                    .putBoolean("lastComplete", complete)
                     .putLong("lastAttemptAt", System.currentTimeMillis())
                     .apply();
-            if (expected > 0 && preserved == expected && skipped == 0) {
+
+            if (complete) {
                 prefs.edit()
                         .putString("snapshotVersion", snapshot)
-                        .putInt("events", preserved)
+                        .putInt("events", verifiedEvents)
+                        .putInt("reminderRules", verifiedRules)
                         .putLong("importedAt", System.currentTimeMillis())
                         .apply();
                 db.reconcileTemporalStatuses();
@@ -671,10 +690,18 @@ public class MainActivity extends Activity {
                 String raw = readUriUtf8(uri, 8 * 1024 * 1024);
                 JSONObject payload = new JSONObject(raw);
                 JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
-                if (result.optBoolean("ok", false) || result.optInt("preserved", 0) > 0) {
+                if (result.optBoolean("ok", false)) {
                     jsCallbackJson("onNexoFamiliaImportDone", result);
                 } else {
-                    jsCallback("onNexoFamiliaImportError", result.optString("error", "No se pudo importar Nexo Familia."));
+                    String message = result.optString("error", "");
+                    if (message.isBlank()) {
+                        message = "Migración incompleta: " +
+                                result.optInt("verifiedEvents", 0) + "/" + result.optInt("expectedEvents", 0) +
+                                " eventos y " +
+                                result.optInt("verifiedReminderRules", 0) + "/" + result.optInt("expectedReminderRules", 0) +
+                                " reglas verificadas.";
+                    }
+                    jsCallback("onNexoFamiliaImportError", message);
                 }
             } catch (Exception e) {
                 jsCallback("onNexoFamiliaImportError", "El archivo de Nexo Familia no es válido o está dañado.");
