@@ -1,6 +1,23 @@
 'use strict';
 
-const CATEGORIES = ['Personal','Casa','Coche','Compras','Viajes','Restaurantes','Lugares','Documentos','Finanzas','Salud','Medicamentos','Cumpleaños','Ideas','Notas','Ocio','Otros'];
+const CATEGORIES = ['Familia','Cumpleaños','Santo / Onomástica','Salud / Médico','Colegio / Estudios','Trabajo','Viaje','Vacaciones','Casa','Vehículos / ITV','Seguros','Trámites','Tarea / Recado','Compras','Ocio / Social','Deporte','Recordatorio','Otro'];
+const LEGACY_CATEGORY_MAP = {
+  Personal:'Familia',
+  Coche:'Vehículos / ITV',
+  Viajes:'Viaje',
+  Salud:'Salud / Médico',
+  Medicamentos:'Salud / Médico',
+  Finanzas:'Trámites',
+  Ocio:'Ocio / Social',
+  Restaurantes:'Ocio / Social',
+  Lugares:'Ocio / Social',
+  Documentos:'Trámites',
+  Ideas:'Otro',
+  Notas:'Otro',
+  Tareas:'Tarea / Recado',
+  Recordatorios:'Recordatorio',
+  Otros:'Otro'
+};
 const TYPE_LABEL = {note:'Nota',event:'Cita',task:'Cita',reminder:'Cita',expiry:'Cita',place:'Lugar',restaurant:'Restaurante',document:'Documento',product:'Producto',medication:'Medicamento',parking:'Aparcamiento'};
 const RECURRENCE_LABEL = {none:'No se repite',daily:'Diaria',weekly:'Semanal',monthly:'Mensual',bimonthly:'Bimestral',quarterly:'Trimestral',semiannual:'Semestral',annual:'Anual'};
 const PLACE_LABELS = ['Quiero ir','He estado','Restaurante','Lugar bonito','Cafetería','Naturaleza','Playa','Mirador','Alojamiento','Otros'];
@@ -30,7 +47,7 @@ const typeLabel = t => TYPE_LABEL[t] || 'Elemento';
 function isAppointmentType(type){return ['event','task','reminder','expiry'].includes(type);}
 function isPlaceType(type){return type==='place'||type==='restaurant';}
 function placeLabel(item){return String(item.subcategory||'').trim()||(item.type==='restaurant'||item.category==='Restaurantes'?'Restaurante':'Otros');}
-function categoryLabel(category){return ['Tareas','Recordatorios'].includes(category)?'Personal':(category||'Otros');}
+function categoryLabel(category){const raw=String(category||'').trim();return LEGACY_CATEGORY_MAP[raw]||raw||'Otro';}
 function itemTypeControl(id,type){
   if(isAppointmentType(type))return `<input id="${id}" type="hidden" value="event">`;
   return `<label>Tipo<select id="${id}">${Object.entries(TYPE_LABEL).filter(([k])=>!['parking','medication','task','reminder','expiry','place','restaurant'].includes(k)).map(([k,v])=>`<option value="${k}" ${k===type?'selected':''}>${esc(v)}</option>`).join('')}</select></label>`;
@@ -139,8 +156,27 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
   return items.filter(i=>Number(i.id)!==Number(excludeId)&&i.hasTime!==false&&i.dueAt&&a0<(i.dueAt+Math.max(1,Number(i.durationMinutes)||60)*60000)&&a1>i.dueAt);
 }
 
+function updateFloatingActions(){
+  const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
+  if(!voice||!add)return;
+  const panelVoice=state.screen==='panel'&&['journal','quotes','medications'].includes(state.lastPanel);
+  const voiceVisible=['today','calendar','search','tools','save'].includes(state.screen)||panelVoice;
+  voice.classList.toggle('hidden',!voiceVisible);
+  add.classList.toggle('hidden',state.screen!=='calendar');
+}
+function runFloatingVoice(){
+  if(state.screen==='save'){
+    startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'});
+    return;
+  }
+  if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
+  if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
+  if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
+  startManagedDictation('universal',{title:'Habla con Nexo',hint:'Di qué quieres guardar o recordar. Nexo preparará la entrada para que la revises.'});
+}
+
 function navigate(screen, options={}) {
-  if(!['today','save','search','more','calendar','panel'].includes(screen))return;
+  if(!['today','save','search','more','calendar','tools','panel'].includes(screen))return;
   const route={screen};
   if(screen==='panel'){route.panel=options.panel||state.lastPanel;route.list=options.list??null;}
   if(screen==='save'&&state.screen!=='save')state.captureReturnRoute={...router.current,scrollY:window.scrollY};
@@ -148,21 +184,29 @@ function navigate(screen, options={}) {
   if(screen!=='panel'||route.panel!=='recordings')stopRecordingPolling();
   state.screen=screen;
   if(screen==='panel'){state.lastPanel=route.panel;state.currentList=route.list;}
-  $$('.screen').forEach(el=>el.classList.toggle('active',el.dataset.screen===screen));
-  const active=screen==='panel'?'today':screen==='save'?(state.captureReturnRoute?.screen==='calendar'?'calendar':'today'):screen;
-  $$('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
+  $('.screen').forEach(el=>el.classList.toggle('active',el.dataset.screen===screen));
+  const active=screen==='panel'
+    ? (route.panel==='inbox'?'today':'tools')
+    : screen==='save'
+      ? (state.captureReturnRoute?.screen==='calendar'?'calendar':state.captureReturnRoute?.screen==='tools'?'tools':'today')
+      : screen==='more'?'tools'
+      : screen;
+  $('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
   if(screen==='today')renderToday();
   else if(screen==='more')renderMore();
   else if(screen==='calendar')renderCalendar();
   else if(screen==='search'&&$('#searchInput').value.trim())runSearch();
+  updateFloatingActions();
   const target=router.key(route);
   requestAnimationFrame(()=>{if(router.key(router.current)===target)window.scrollTo(0,moved.scrollY);});
 }
 
 function renderToday() {
   const d=parseNative(NexoNative.getMoreSummary(),{}),count=Number(d.inbox)||0;
-  $('#inboxCount').textContent=count?String(count):'';
-  $('#inboxCount').classList.toggle('hidden',!count);
+  const badge=$('#inboxCount'),label=$('#inboxHomeText');
+  if(badge){badge.textContent=String(count);badge.classList.toggle('hidden',!count);}
+  if(label)label.textContent=count?count+' pendiente'+(count===1?'':'s')+' de organizar':'Todo organizado';
+  renderDailyContext();
 }
 
 function renderParkingHomeCard(parking){
@@ -588,13 +632,25 @@ function renderTodaySummary(){
 }
 
 function calendarDotClass(i){
-  const c=categoryLabel(i?.category).toLocaleLowerCase('es-ES');
-  if(c.includes('cumple'))return 'birthday';
-  if(['salud','medicamentos'].includes(c))return 'health';
-  if(['coche','documentos','finanzas'].includes(c))return 'errand';
-  if(['casa','compras'].includes(c))return 'home';
-  if(['viajes','restaurantes','lugares','ocio'].includes(c))return 'leisure';
-  return 'general';
+  const c=categoryLabel(i?.category).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-ES');
+  if(c==='familia')return 'family';
+  if(c==='cumpleanos')return 'birthday';
+  if(c==='santo / onomastica')return 'saint';
+  if(c==='salud / medico')return 'health';
+  if(c==='colegio / estudios')return 'study';
+  if(c==='trabajo')return 'work';
+  if(c==='viaje')return 'travel';
+  if(c==='vacaciones')return 'vacation';
+  if(c==='casa')return 'home';
+  if(c==='vehiculos / itv')return 'vehicle';
+  if(c==='seguros')return 'insurance';
+  if(c==='tramites')return 'paperwork';
+  if(c==='tarea / recado')return 'errand';
+  if(c==='compras')return 'shopping';
+  if(c==='ocio / social')return 'leisure';
+  if(c==='deporte')return 'sport';
+  if(c==='recordatorio')return 'reminder';
+  return 'other';
 }
 
 function homeDayLabel(iso){
@@ -831,7 +887,7 @@ function resetAnalysis() {
   state.classification=null;
   state.captureAlerts=[];state.captureSuggestedAlert=null;
   $('#classificationPreview').classList.add('hidden'); $('#reminderSuggestion').classList.add('hidden');
-  $('#captureTitle').value=''; $('#captureDescription').value=''; $('#captureCategory').value='Otros'; $('#captureType').value=state.capturePinnedType||'event'; $('#captureDate').value=state.capturePinnedDate||''; $('#captureTime').value=''; $('#captureEndTime').value=''; $('#captureLocation').value=''; $('#capturePriority').value='1'; if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=false; $('#captureRecurrence').value='none'; $('#captureRecurrenceUntil').value=''; $('#captureRecurrenceUntilLabel').classList.add('hidden');
+  $('#captureTitle').value=''; $('#captureDescription').value=''; $('#captureCategory').value='Otro'; $('#captureType').value=state.capturePinnedType||'event'; $('#captureDate').value=state.capturePinnedDate||''; $('#captureTime').value=''; $('#captureEndTime').value=''; $('#captureLocation').value=''; $('#capturePriority').value='1'; if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=false; $('#captureRecurrence').value='none'; $('#captureRecurrenceUntil').value=''; $('#captureRecurrenceUntilLabel').classList.add('hidden');
   refreshCaptureAlertEditor();
   setInterpretationStatus('idle','Interpretación local preparada');
 }
@@ -866,7 +922,7 @@ function commitCapture() {
   }
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
-    category:$('#captureCategory').value||'Otros', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
+    category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
     dueAt, hasTime:!!(date&&time), durationMinutes, locationText:$('#captureLocation').value.trim(), priority:Number($('#capturePriority').value||1),
     recurrence:$('#captureRecurrence').value||'none', recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
@@ -942,7 +998,7 @@ function renderCalendar(direction=0){
     if(d.getMonth()!==state.calendarMonth.getMonth()||d.getFullYear()!==state.calendarMonth.getFullYear()){state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();}
     else {renderCalendarDay();$$('[data-calendar-day]').forEach(x=>{const selected=x.dataset.calendarDay===state.calendarSelected;x.classList.toggle('selected',selected);x.setAttribute('aria-pressed',String(selected));});}
   }));
-  renderCalendarDay();renderDailyContext();
+  renderCalendarDay();
   const grid=$('#calendarGrid');
   if(direction&&typeof grid.animate==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     grid.getAnimations?.().forEach(a=>a.cancel());
@@ -957,8 +1013,8 @@ function renderCalendarDay(){
   $('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());
   $('#calendarSelectedMeta').textContent=items.length?`${items.length} cita${items.length===1?'':'s'}`:'Sin citas';
   $('#calendarDayItems').innerHTML=items.length?items.map(i=>agendaCard(i)).join(''):'<div class="empty-state">Sin citas para este día.</div>';
-  $('#calendarAddBtn').innerHTML=uiIcon('plus')+' Añadir';
-  $('#calendarAddBtn').setAttribute('aria-label','Añadir una cita el '+label);
+  const addFab=$('#calendarAddFab');
+  if(addFab)addFab.setAttribute('aria-label','Añadir una cita el '+label);
   bindItemButtons($('#calendarDayItems'));
 }
 
@@ -1430,7 +1486,7 @@ function closeModal(){
 }
 
 function refreshCurrent(){
-  if(state.screen==='today')renderToday();else if(state.screen==='search')runSearch();else if(state.screen==='more')renderMore();else if(state.screen==='calendar')renderCalendar();else if(state.screen==='panel'){if(state.currentList)openList(state.currentList);else if(state.lastPanel)openPanel(state.lastPanel);}
+  if(state.screen==='today')renderToday();else if(state.screen==='search')runSearch();else if(state.screen==='more')renderMore();else if(state.screen==='calendar')renderCalendar();else if(state.screen==='panel'){if(state.currentList)openList(state.currentList);else if(state.lastPanel)openPanel(state.lastPanel);}updateFloatingActions();
 }
 
 function getShoppingListId(){const lists=parseNative(NexoNative.getLists(),[]),l=lists.find(x=>normVoiceText(x.title)==='lista de compra');return l?Number(l.id):Number(NexoNative.createList('Lista de compra','Compra',true));}
@@ -1676,12 +1732,12 @@ function init(){
   const appVersion=String(NexoNative.getAppVersion());
   $$('[data-app-version]').forEach(el=>{el.textContent='v'+appVersion;el.setAttribute('aria-label','Versión '+appVersion);});
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
-  CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otros';
+  CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';
   setInterpretationStatus('idle','Interpretación local preparada');
   $$('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
-  $('#homeCreateBtn').addEventListener('click',()=>openCreationMenu());
-  $('#homeShoppingBtn').addEventListener('click',ensureShoppingList);
+  $('#globalVoiceFab').addEventListener('click',runFloatingVoice);
+  $('#calendarAddFab').addEventListener('click',()=>prepareCaptureForDate(state.calendarSelected||isoDateLocal(new Date())));
   $('#captureBackBtn').addEventListener('click',()=>navigateBack());
   $('#startScreen').addEventListener('change',()=>{NexoNative.setStartScreen($('#startScreen').value);toast('Pantalla de apertura actualizada');});
   $('#preferredShoppingList').addEventListener('change',()=>{NexoNative.setPreferredShoppingList(Number($('#preferredShoppingList').value));toast('Acceso a la compra actualizado');});
@@ -1723,7 +1779,7 @@ function init(){
   $('#captureTime').addEventListener('change',()=>{if(!$('#captureTime').value)$('#captureEndTime').value='';});
   $('#addCaptureAlert').addEventListener('click',()=>openAddAlertOverlay(v=>setCaptureAlerts([...state.captureAlerts,v],true)));
   $('#acceptReminderSuggestion').addEventListener('click',()=>{if(state.captureSuggestedAlert===null)return;setCaptureAlerts([...state.captureAlerts,state.captureSuggestedAlert],true);state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');});
-  $('#voiceCaptureBtn').addEventListener('click',()=>startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'}));
+  $('#voiceCaptureBtn')?.addEventListener('click',()=>startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'}));
   $('#saveCaptureBtn').addEventListener('click',saveCapture);$('#clearCaptureBtn').addEventListener('click',()=>clearCapture());$('#chooseFileBtn').addEventListener('click',()=>NexoNative.chooseFile());
   $('#searchBtn').addEventListener('click',()=>runSearch());$('#searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});$$('.query-chips button').forEach(b=>b.addEventListener('click',()=>runSearch(b.textContent)));
   $('#todaySummaryMore').addEventListener('click',()=>{state.todaySummaryExpanded=!state.todaySummaryExpanded;renderTodaySummary();});
@@ -1743,13 +1799,10 @@ function init(){
   $('#journalPromptNext').addEventListener('click',e=>{e.stopPropagation();renderJournalPrompt(true);});
   $$('[data-display-mode]').forEach(b=>b.addEventListener('click',()=>applyDisplayMode(b.dataset.displayMode,true)));
 
-  $('#homeTalkBtn').addEventListener('click',()=>startManagedDictation('universal',{title:'Habla con Nexo',hint:'Di qué tienes que hacer, cuándo y dónde. Puedes pedir uno o varios avisos. Se preparará una cita para que la revises.'}));
-
   $('#calendarPrev').addEventListener('click',()=>changeCalendarMonth(-1));
   $('#calendarNext').addEventListener('click',()=>changeCalendarMonth(1));
   $('#calendarToday').addEventListener('click',()=>{const now=new Date();state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);state.calendarSelected=isoDateLocal(now);renderCalendar();});
   attachMonthSwipe($('#calendarGrid'),()=>changeCalendarMonth(-1),()=>changeCalendarMonth(1));
-  $('#calendarAddBtn').addEventListener('click',()=>prepareCaptureForDate(state.calendarSelected||isoDateLocal(new Date())));
   $('#captureRecurrence').addEventListener('change',()=>{const recurring=$('#captureRecurrence').value!=='none';$('#captureRecurrenceUntilLabel').classList.toggle('hidden',!recurring);if(recurring&&!$('#captureRecurrenceUntil').value)$('#captureRecurrenceUntil').value='2040-12-31';});
   $$('.quick-action').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.action;if(a==='voice')startManagedDictation('universal',{title:'Habla con Nexo'});else if(a==='quick-task')prepareQuickNoteForType('task');else if(a==='shopping-list')ensureShoppingList();else if(a==='parking')openParkingModal();}));
   $$('[data-panel]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.panel)));$('#panelBack').addEventListener('click',()=>navigateBack());
