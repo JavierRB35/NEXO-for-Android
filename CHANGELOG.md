@@ -1,5 +1,13 @@
 # Changelog de Nexo
 
+## 3.7.0-beta10 · versionCode 75 · FAB contextual para crear eventos
+
+- Añade un único botón flotante **+** de creación de eventos en las pantallas donde la acción corresponde: **Inicio, Calendario y Agenda / Próximos 7 días**.
+- En Calendario respeta la fecha seleccionada; en Inicio y Agenda parte de hoy.
+- El botón no aparece en Buscar, Herramientas, Inbox ni módulos no relacionados con eventos.
+- Mantiene el flotante de voz como acción independiente.
+- Sin cambios en base de datos, migraciones, Input Hub ni baseline AndroidIDE.
+
 ## 3.7.0-beta9 · versionCode 74 · Inicio y búsqueda con paridad Nexo Familia
 
 - Pantalla Inicio reconstruida con la misma jerarquía visual de Nexo Familia.
