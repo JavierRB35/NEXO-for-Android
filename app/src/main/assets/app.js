@@ -1179,7 +1179,7 @@ function openPanel(panel,options={}){
   $('#panelTitle').textContent=cfg[0];$('#panelSubtitle').textContent=cfg[1];$('#panelAction').innerHTML='';
   if(panel==='appointments')renderAppointmentsPanel();
   else if(panel==='lists') renderListsPanel();
-  else if(panel==='inbox') renderInboxPanel();
+  else if(panel==='inbox'){renderInboxPanel();NexoNative.scanInputHubNow();}
   else if(panel==='history') renderHistoryPanel();
   else if(panel==='backup') renderBackupPanel();
   else if(panel==='medications') renderMedicationsPanel();
