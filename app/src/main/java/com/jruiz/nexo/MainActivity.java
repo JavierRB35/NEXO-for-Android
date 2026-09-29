@@ -630,10 +630,21 @@ public class MainActivity extends Activity {
             String snapshot = payload.optString("snapshotVersion", "v1");
             SharedPreferences prefs = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
             JSONObject beforeAudit = auditBundledNexoFamiliaPayload(payload);
-            if (!force && snapshot.equals(prefs.getString("snapshotVersion", "")) &&
+            boolean cleanRebuildDone = snapshot.equals(prefs.getString("cleanRebuildVersion", ""));
+            if (!force && cleanRebuildDone &&
+                    snapshot.equals(prefs.getString("snapshotVersion", "")) &&
                     beforeAudit.optBoolean("complete", false)) return;
 
+            // Beta6: no intentamos reparar sobre una migración dudosa. Reconstruimos
+            // únicamente las copias procedentes de Nexo Familia y mantenemos intactos
+            // todos los datos manuales y de otras fuentes de Nexo Android.
+            JSONArray oldReminderIds = db.resetNexoFamiliaImportedData();
+            for (int i=0;i<oldReminderIds.length();i++) {
+                ReminderScheduler.cancel(getApplicationContext(), oldReminderIds.optLong(i));
+            }
+
             JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
+            JSONObject afterAudit = auditBundledNexoFamiliaPayload(payload);
             int expected = payload.optJSONArray("events") == null ? 0 : payload.optJSONArray("events").length();
             JSONArray expectedRulesArray = payload.optJSONArray("reminderRules");
             if (expectedRulesArray == null) expectedRulesArray = payload.optJSONArray("reminder_rules");
@@ -648,7 +659,8 @@ public class MainActivity extends Activity {
                     preserved == expected &&
                     verifiedEvents == expected &&
                     verifiedRules == expectedRules &&
-                    skipped == 0;
+                    skipped == 0 &&
+                    afterAudit.optBoolean("complete", false);
 
             prefs.edit()
                     .putInt("expectedEvents", expected)
@@ -664,11 +676,17 @@ public class MainActivity extends Activity {
             if (complete) {
                 prefs.edit()
                         .putString("snapshotVersion", snapshot)
+                        .putString("cleanRebuildVersion", snapshot)
                         .putInt("events", verifiedEvents)
                         .putInt("reminderRules", verifiedRules)
                         .putLong("importedAt", System.currentTimeMillis())
                         .apply();
                 db.reconcileTemporalStatuses();
+            } else {
+                prefs.edit()
+                        .remove("snapshotVersion")
+                        .remove("cleanRebuildVersion")
+                        .apply();
             }
         } catch (Exception ignored) {
             // La app debe seguir abriendo aunque el snapshot opcional no pueda migrarse.
@@ -688,17 +706,39 @@ public class MainActivity extends Activity {
             if (rules == null) rules = new JSONArray();
 
             int verifiedEvents = 0;
+            int expectedFamily = 0, verifiedFamily = 0;
+            int expectedSelected = 0, verifiedSelected = 0;
+
             for (int i=0;i<events.length();i++) {
                 JSONObject event = events.optJSONObject(i);
                 if (event == null) continue;
                 String sourceId = event.optString("id", "").trim();
+                String visibility = event.optString("visibility", "").trim();
+                if ("family".equals(visibility)) expectedFamily++;
+                if ("selected".equals(visibility)) expectedSelected++;
+
                 long localId = sourceId.isEmpty() ? 0L : db.getNexoFamiliaLocalItemId(sourceId);
-                if (localId > 0L && db.getItem(localId).length() > 0) {
+                JSONObject local = localId > 0L ? db.getItem(localId) : new JSONObject();
+                long expectedStart = NexoFamiliaImporter.sourceStartMillis(event);
+                boolean valid = local.length() > 0 &&
+                        "nexo-familia".equals(local.optString("source", "")) &&
+                        "event".equals(local.optString("type", "")) &&
+                        event.optString("title", "").equals(local.optString("title", "")) &&
+                        expectedStart > 0L &&
+                        Math.abs(local.optLong("dueAt", 0L) - expectedStart) < 1000L;
+
+                if (valid) {
                     verifiedEvents++;
+                    if ("family".equals(visibility)) verifiedFamily++;
+                    if ("selected".equals(visibility)) verifiedSelected++;
                 } else {
                     JSONObject miss = new JSONObject();
                     miss.put("id", sourceId);
                     miss.put("title", event.optString("title", "Evento sin título"));
+                    miss.put("visibility", visibility);
+                    miss.put("expectedStart", expectedStart);
+                    miss.put("localItemId", localId);
+                    miss.put("localStart", local.optLong("dueAt", 0L));
                     missingEvents.put(miss);
                 }
             }
@@ -715,11 +755,17 @@ public class MainActivity extends Activity {
             JSONObject stats = db.getNexoFamiliaImportStats();
             boolean complete = events.length() > 0 &&
                     verifiedEvents == events.length() &&
+                    verifiedFamily == expectedFamily &&
+                    verifiedSelected == expectedSelected &&
                     verifiedRules == rules.length() &&
                     stats.optLong("brokenMappings", 0L) == 0L;
 
             out.put("expectedEvents", events.length());
             out.put("verifiedEvents", verifiedEvents);
+            out.put("expectedFamily", expectedFamily);
+            out.put("verifiedFamily", verifiedFamily);
+            out.put("expectedSelected", expectedSelected);
+            out.put("verifiedSelected", verifiedSelected);
             out.put("expectedReminderRules", rules.length());
             out.put("verifiedReminderRules", verifiedRules);
             out.put("missingEvents", missingEvents);
