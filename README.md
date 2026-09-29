@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta9 · AndroidIDE
+# Nexo 3.7.0-beta10 · AndroidIDE
 
-Rama de trabajo: `feature/nexo-home-familia-v0.9`.
+Rama de trabajo: `feature/nexo-home-familia-v0.10`.
 
 Identidad:
-- Nexo **3.7.0-beta9**
-- `versionCode 74`
+- Nexo **3.7.0-beta10**
+- `versionCode 75`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta9/
+/storage/emulated/0/Download/Nexo_3_7_0_beta10/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta9"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta10"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta9.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta10.apk
 ```
 
 ## Input Hub beta4
@@ -94,3 +94,11 @@ Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)`
 - La búsqueda de Inicio y la pestaña Buscar comparten el algoritmo de Nexo Familia: normalización sin acentos, stopwords, exigencia de todos los términos, misma ponderación y prioridad temporal. Incluye además Notas, Medicación, Listas, Documentos, Cuaderno/Frases, Grabaciones e Inbox.
 - Los eventos históricos quedan fuera por defecto y se pueden incluir explícitamente en la pestaña Buscar.
 - Ciclo temporal de eventos alineado con Familia: no recurrente pasado = completado; hoy/futuro = pendiente; recurrente = pendiente; cancelado se conserva. Al reprogramar un evento completado a hoy/futuro vuelve a pendiente.
+
+
+## Botón flotante de evento
+
+- El botón flotante **+** de añadir evento aparece únicamente en contextos de agenda: **Inicio, Calendario y Agenda / 7 días**.
+- En Calendario crea el evento sobre la fecha seleccionada.
+- En Inicio y Agenda / 7 días crea el evento sobre la fecha de hoy, que el usuario puede cambiar en el formulario.
+- Se mantiene separado del flotante de voz y no aparece en Buscar, Herramientas, Inbox ni módulos que no gestionan eventos.
