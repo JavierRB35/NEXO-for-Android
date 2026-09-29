@@ -222,6 +222,18 @@ public class MainActivity extends Activity {
                 p.put("attachmentMime", f.optString("mime"));
                 if (p.optString("text").isBlank()) p.put("text", f.optString("name", "Archivo compartido"));
             }
+            // Persistir antes de abrir la interfaz: si Android mata la actividad o el usuario sale,
+            // el contenido recibido seguirá disponible en Nexo Inbox.
+            JSONObject classification = new JSONObject();
+            String sharedText = p.optString("text", "");
+            if (!sharedText.isBlank()) {
+                try { classification = service.classify(sharedText); }
+                catch (Exception ignored) { classification = new JSONObject(); }
+            }
+            long captureId = db.insertInboxCapture(p, classification);
+            if (captureId > 0) p.put("captureId", captureId);
+            if (classification.length() > 0) p.put("classification", classification);
+
             pendingIncoming = p;
             deliverIncomingIfReady();
         } catch (Exception e) {
@@ -1469,6 +1481,17 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String getTasks(String mode) { return db.getTasks(mode).toString(); }
         @JavascriptInterface public boolean setTaskStatus(long id,String status) { return db.setTaskStatus(id,status); }
         @JavascriptInterface public String getInbox() { return db.getInbox().toString(); }
+        @JavascriptInterface public String getInboxCaptures() { return db.getInboxCaptures().toString(); }
+        @JavascriptInterface public String getInboxCapture(long id) { return db.getInboxCapture(id).toString(); }
+        @JavascriptInterface public long getInboxCaptureCount() { return db.getPendingInboxCaptureCount(); }
+        @JavascriptInterface public boolean updateInboxCaptureClassification(long id,String json) {
+            try { return db.updateInboxCaptureClassification(id,new JSONObject(json)); }
+            catch(Exception e) { return false; }
+        }
+        @JavascriptInterface public boolean markInboxCaptureConverted(long id,String entity,long convertedId) {
+            return db.markInboxCaptureConverted(id,entity,convertedId);
+        }
+        @JavascriptInterface public boolean discardInboxCapture(long id) { return db.discardInboxCapture(id); }
         @JavascriptInterface public String getFavorites() { return db.getFavorites().toString(); }
         @JavascriptInterface public String getHistory() { return db.getRecentHistory().toString(); }
         @JavascriptInterface public String getReminders() { return db.getFutureReminders().toString(); }
