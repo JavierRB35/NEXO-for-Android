@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.7.0-beta8 · versionCode 73 · Corrección SQL del calendario no recurrente
+
+- Causa raíz reproducida sobre el patrón real de Android/SQLite: los límites de `rawQuery` llegan mediante `String[] selectionArgs`.
+- Una expresión `CASE WHEN end_at>0 THEN end_at ELSE due_at END` no hereda afinidad numérica, de modo que compararla directamente con `?` podía evaluar contra TEXT y excluir todas las filas no recurrentes.
+- `getCalendar()` usa ahora `CAST(? AS INTEGER)` en los límites temporales de la consulta no recurrente.
+- La conciliación temporal aplica el mismo CAST en comparaciones `CASE` para evitar marcar futuros como finalizados.
+- Prueba de regresión SQLite: consulta antigua = 0; consulta corregida = 18 eventos no recurrentes.
+- Caso de control: “Medicina digestiva”, 30/10/2026 09:30, debe aparecer sin volver a importarse.
+- Los 15 cumpleaños/aniversarios recurrentes no dependían de esta consulta, lo que explica que sí aparecieran.
+- Baseline AndroidIDE sin cambios: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta7 · versionCode 72 · Corrección de estados selected en Nexo Familia
 
 - Diagnóstico realizado sobre una copia real `nexo.db` del teléfono: los 33 eventos estaban importados, pero los 16 con visibilidad `selected` habían quedado marcados como `done`.
