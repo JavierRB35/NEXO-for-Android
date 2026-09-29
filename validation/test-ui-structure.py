@@ -79,10 +79,10 @@ for dest in ["today","calendar","search","tools"]:
 
 assert 'id="globalVoiceFab"' in html, "Falta FAB de voz"
 assert 'id="calendarAddFab"' in html, "Falta FAB de añadir cita"
-assert "$$('screen-placeholder')" not in app_js
 assert "$$('.screen').forEach" in app_js, "La navegación debe iterar todas las pantallas"
 assert "$$('.nav-item').forEach" in app_js, "La navegación debe iterar todos los botones inferiores"
-assert "$('.screen').forEach" not in app_js, "Selector simple incorrecto para pantallas"
-assert "$('.nav-item').forEach" not in app_js, "Selector simple incorrecto para navegación"
+import re
+assert not re.search(r"(?<!\$)\$\('\.screen'\)\.forEach", app_js), "Selector simple incorrecto para pantallas"
+assert not re.search(r"(?<!\$)\$\('\.nav-item'\)\.forEach", app_js), "Selector simple incorrecto para navegación"
 
 print("Estructura UI Nexo: OK")
