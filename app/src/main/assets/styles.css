@@ -1670,3 +1670,23 @@ main{max-width:720px}
   .tools-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
   .tools-grid--system{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+
+/* Inbox · estado de fuentes directas */
+.inbox-source-health{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 12px;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--surface);
+}
+.inbox-source-health>div{display:grid;gap:2px;min-width:0}
+.inbox-source-health strong{font-size:.86rem}
+.inbox-source-health small{color:var(--muted);font-size:.74rem;line-height:1.35}
+.inbox-source-health .source-ok{color:var(--primary);font-weight:700}
+.inbox-source-health .source-off{color:#8a6500;font-weight:700}
+.inbox-source-health .mini-button{flex:0 0 auto;min-height:40px}
