@@ -773,7 +773,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONObject getItem(long id) {
         try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM items WHERE id=? AND deleted_at=0", new String[]{String.valueOf(id)})) {
             if (!c.moveToFirst()) return new JSONObject();
-            JSONObject item = itemJson(c);
+            JSONObject item = normalizeNexoFamiliaStatusForRead(itemJson(c));
             if ("nexo-familia".equals(item.optString("source", ""))) {
                 JSONObject metadata = getNexoFamiliaMetadataForLocalItem(id);
                 if (metadata.length() > 0) item.put("nexoFamilia", metadata);
@@ -1178,7 +1178,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONArray getDeletedItems() {
         JSONArray a = new JSONArray();
         try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM items WHERE deleted_at>0 ORDER BY deleted_at ASC", null)) {
-            while (c.moveToNext()) a.put(itemJson(c));
+            while (c.moveToNext()) a.put(normalizeNexoFamiliaStatusForRead(itemJson(c)));
         } catch (Exception ignored) {}
         return a;
     }
@@ -1215,7 +1215,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND due_at<=? AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=? AND recurrence='none' ORDER BY due_at ASC",
                 new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
-                JSONObject o = itemJson(c);
+                JSONObject o = normalizeNexoFamiliaStatusForRead(itemJson(c));
                 o.put("recurring", false); o.put("seriesId", o.optLong("id")); o.put("occurrenceAt", o.optLong("dueAt")); o.put("occurrenceStatus", o.optString("status", "active"));
                 rows.add(o);
             }
@@ -1225,7 +1225,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND recurrence<>'none' AND due_at<=? AND (recurrence_until=0 OR recurrence_until>=?)",
                 new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
-                JSONObject base = itemJson(c);
+                JSONObject base = normalizeNexoFamiliaStatusForRead(itemJson(c));
                 long seriesId = base.optLong("id");
                 HashMap<Long, JSONObject> exceptions = recurrenceExceptions(seriesId, start, end);
                 HashSet<Long> emitted = new HashSet<>();
@@ -2719,6 +2719,50 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("updatedAt",c.getLong(c.getColumnIndexOrThrow("updated_at")));
         } catch (Exception ignored) {}
         return o;
+    }
+
+    /**
+     * Normaliza el estado de los eventos procedentes de Nexo Familia justo antes
+     * de entregarlos a la UI. Esto hace la lectura tolerante a estados heredados
+     * incorrectos de versiones anteriores (por ejemplo, futuros guardados como done).
+     */
+    private JSONObject normalizeNexoFamiliaStatusForRead(JSONObject item) {
+        if (item == null || item.length() == 0) return item;
+        if (!"nexo-familia".equals(item.optString("source", ""))) return item;
+        try {
+            String sourceStatus = "";
+            long id = item.optLong("id", 0L);
+            if (id > 0L) {
+                try (Cursor c = getReadableDatabase().rawQuery(
+                        "SELECT source_status FROM nexo_familia_events WHERE local_item_id=? LIMIT 1",
+                        new String[]{String.valueOf(id)})) {
+                    if (c.moveToFirst() && !c.isNull(0)) sourceStatus = c.getString(0);
+                }
+            }
+
+            String wanted;
+            if ("cancelled".equalsIgnoreCase(sourceStatus)) {
+                wanted = "cancelled";
+            } else if ("completed".equalsIgnoreCase(sourceStatus)) {
+                wanted = "done";
+            } else {
+                long due = item.optLong("dueAt", 0L);
+                long end = item.optLong("endAt", 0L);
+                long effectiveEnd = end > 0L ? end : due;
+                boolean recurring = RecurrenceEngine.isRecurring(
+                        item.optString("recurrence", RecurrenceEngine.NONE)
+                );
+                wanted = (!recurring && effectiveEnd > 0L && effectiveEnd < System.currentTimeMillis())
+                        ? "done" : "pending";
+            }
+
+            item.put("status", wanted);
+            if (item.has("occurrenceStatus") &&
+                    !RecurrenceEngine.isRecurring(item.optString("recurrence", RecurrenceEngine.NONE))) {
+                item.put("occurrenceStatus", wanted);
+            }
+        } catch (Exception ignored) {}
+        return item;
     }
 
     private JSONObject withResultKind(JSONObject o,String kind){ try{o.put("resultKind",kind);}catch(Exception ignored){} return o; }
