@@ -18,18 +18,29 @@ import java.util.List;
 public final class SmsWatchEngine {
     private static final long WINDOW_MS = 90L * 86400000L;
     private static final long RECOVERY_MS = 3L * 86400000L;
-    private static final String FILTER_REVISION = "sms-filter-v4:";
+    private static final String FILTER_REVISION = "sms-filter-v5:";
 
     private SmsWatchEngine() {}
 
     public static void initializeBaseline(Context context) {
-        if (!hasPermission(context)) return;
+        if (!hasPermission(context) || !InputHubPrefs.smsEnabled(context)) return;
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
-            for (SmsSnapshot sms : readInbox(context)) {
-                db.rememberExternalInput("sms", sms.id, sms.fingerprint(), 0L);
+            List<SmsSnapshot> messages = readInbox(context);
+            // Se conserva el baseline para no importar meses de SMS históricos.
+            for (SmsSnapshot sms : messages) {
+                if (!db.hasExternalInput("sms", sms.id)) {
+                    db.rememberExternalInput("sms", sms.id, "sms-baseline:" + sms.fingerprint(), 0L);
+                }
             }
             InputHubPrefs.setSmsBaselined(context, true);
+            // Pero los mensajes accionables muy recientes no deben perderse por haber
+            // activado/reautorizado la fuente después de recibirlos.
+            recoverRecent(context, db, messages);
+            InputHubPrefs.setSmsLastSync(context, System.currentTimeMillis());
+            InputHubPrefs.setSmsError(context, "");
+        } catch (Exception e) {
+            InputHubPrefs.setSmsError(context, safeMessage(e));
         } finally {
             db.close();
         }
@@ -45,8 +56,9 @@ public final class SmsWatchEngine {
 
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
+            List<SmsSnapshot> messages = readInbox(context);
             long recoveryFrom = System.currentTimeMillis() - RECOVERY_MS;
-            for (SmsSnapshot sms : readInbox(context)) {
+            for (SmsSnapshot sms : messages) {
                 JSONObject previous = db.getExternalInputState("sms", sms.id);
                 if (previous.length() > 0) {
                     long oldCapture = previous.optLong("captureId", 0L);
@@ -54,30 +66,50 @@ public final class SmsWatchEngine {
                     if (oldCapture > 0 || db.inboxCaptureExists("sms:" + sms.id) || oldFingerprint.startsWith(FILTER_REVISION)) continue;
                     if (sms.date < recoveryFrom) continue;
                 }
-
-                JSONObject classification = RuleClassifier.classify(sms.body).toJson();
-                long captureId = 0L;
-                if (NotificationCandidateFilter.shouldCapture(sms.body, classification)) {
-                    JSONObject in = new JSONObject();
-                    in.put("source", "sms-provider");
-                    in.put("mime", "text/plain");
-                    in.put("subject", sms.address);
-                    in.put("text", sms.body);
-                    in.put("sourcePackage", "android.sms");
-                    in.put("sender", sms.address);
-                    in.put("sourceKey", "sms:" + sms.id);
-                    captureId = db.insertInboxCapture(in, classification);
-                    if (captureId > 0) {
-                        String preview = sms.body.length() > 140 ? sms.body.substring(0, 137) + "…" : sms.body;
-                        InboxCandidateNotifier.show(context, captureId, "Nexo · SMS accionable", sms.address, preview);
-                    }
-                }
-                db.rememberExternalInput("sms", sms.id, FILTER_REVISION + sms.fingerprint(), captureId);
+                processSms(context, db, sms);
             }
-        } catch (Exception ignored) {
+            InputHubPrefs.setSmsLastSync(context, System.currentTimeMillis());
+            InputHubPrefs.setSmsError(context, "");
+        } catch (Exception e) {
+            InputHubPrefs.setSmsError(context, safeMessage(e));
         } finally {
             db.close();
         }
+    }
+
+    private static void recoverRecent(Context context, DatabaseHelper db, List<SmsSnapshot> messages) {
+        long from = System.currentTimeMillis() - RECOVERY_MS;
+        for (SmsSnapshot sms : messages) {
+            if (sms.date < from) continue;
+            JSONObject previous = db.getExternalInputState("sms", sms.id);
+            if (previous.optLong("captureId", 0L) > 0 || db.inboxCaptureExists("sms:" + sms.id)) continue;
+            String fp = previous.optString("fingerprint", "");
+            if (fp.startsWith(FILTER_REVISION)) continue;
+            processSms(context, db, sms);
+        }
+    }
+
+    private static void processSms(Context context, DatabaseHelper db, SmsSnapshot sms) {
+        long captureId = 0L;
+        try {
+            JSONObject classification = RuleClassifier.classify(sms.body).toJson();
+            if (NotificationCandidateFilter.shouldCapture(sms.body, classification)) {
+                JSONObject in = new JSONObject();
+                in.put("source", "sms-provider");
+                in.put("mime", "text/plain");
+                in.put("subject", sms.address);
+                in.put("text", sms.body);
+                in.put("sourcePackage", "android.sms");
+                in.put("sender", sms.address);
+                in.put("sourceKey", "sms:" + sms.id);
+                captureId = db.insertInboxCapture(in, classification);
+                if (captureId > 0) {
+                    String preview = sms.body.length() > 140 ? sms.body.substring(0, 137) + "…" : sms.body;
+                    InboxCandidateNotifier.show(context, captureId, "Nexo · SMS accionable", sms.address, preview);
+                }
+            }
+        } catch (Exception ignored) {}
+        db.rememberExternalInput("sms", sms.id, FILTER_REVISION + sms.fingerprint(), captureId);
     }
 
     private static List<SmsSnapshot> readInbox(Context context) {
@@ -112,6 +144,11 @@ public final class SmsWatchEngine {
 
     private static boolean hasPermission(Context context) {
         return context.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private static String safeMessage(Exception e) {
+        String m = e == null ? "" : String.valueOf(e.getMessage());
+        return m == null || m.isBlank() ? "No se pudo consultar los SMS." : m;
     }
 
     private static final class SmsSnapshot {
