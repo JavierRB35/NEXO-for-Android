@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.5.0-beta5 · versionCode 60 · Input Hub reliability audit
+
+- Corrige Calendar y SMS: los trabajos con `TriggerContentUri` ya no usan `setPersisted(true)`, combinación incompatible en Android.
+- Calendar y SMS rearman su observador de contenido después de cada ejecución.
+- Calendar conserva escaneo periódico de respaldo cada 15 minutos.
+- SMS añade escaneo periódico de respaldo cada 15 minutos.
+- Al volver a Nexo, Calendar/SMS/Gmail realizan recuperación o escaneo según corresponda.
+- WhatsApp y Telegram siguen dependiendo de NotificationListener, pero ahora solicitan rebind si Android desconecta el listener y reprocesan notificaciones activas al reconectar.
+- Si se desactiva la fuente directa de Gmail o SMS, se reactiva su fallback por notificación.
+
+
 ## 3.5.0-beta4 · versionCode 59 · Calendar Inbox reliability
 
 - Corrección de detección de cambios de Calendar en Inbox.
