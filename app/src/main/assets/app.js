@@ -162,8 +162,18 @@ function openFamilySearchResult(item){
   if(raw.type==='note'){openPanel('notes');setTimeout(()=>openNoteComposer(Number(raw.id)),40);return;}
   if(raw.type==='document'){openPanel('documents');setTimeout(()=>openDocumentEditor(Number(raw.id)),40);return;}
   if(isPlaceType(raw.type)){openPanel('places');setTimeout(()=>openPlaceEditor(Number(raw.id)),40);return;}
-  if(item.recurring&&item.occurrenceAt){openOccurrence(Number(item.id),Number(item.occurrenceAt));return;}
+  if(isAppointmentType(raw.type)){
+    openEventInAgenda(Number(item.id),Number(item.occurrenceAt||raw.dueAt||0),!!item.recurring);
+    return;
+  }
   openItem(Number(item.id));
+}
+function openEventInAgenda(id,occurrenceAt,recurring){
+  const when=Number(occurrenceAt)||Date.now(),d=new Date(when);
+  state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);
+  state.calendarSelected=isoDateLocal(d);
+  navigate('calendar',{root:false});
+  setTimeout(()=>{if(recurring)openOccurrence(Number(id),Number(occurrenceAt));else openItem(Number(id));},60);
 }
 
 function isAppointmentType(type){return ['event','task','reminder','expiry'].includes(type);}
@@ -419,9 +429,9 @@ function homeUpcomingCard(item){
     '<span class="upcoming-card__aside"><span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span><span class="upcoming-card__time">'+uiIcon('clock')+(item.allDay===true||item.hasTime===false?'Todo el día':esc(fmtTime(item.dueAt)))+'</span></span></button>';
 }
 function bindHomeUpcoming(){
-  $$('[data-home-event]').forEach(b=>b.addEventListener('click',()=>{
+  $('[data-home-event]').forEach(b=>b.addEventListener('click',()=>{
     const id=Number(b.dataset.homeEvent),occ=Number(b.dataset.homeOccurrence),rec=b.dataset.homeRecurring==='1';
-    if(rec)openOccurrence(id,occ);else openItem(id);
+    openEventInAgenda(id,occ,rec);
   }));
 }
 function runHomeSearch(query){
