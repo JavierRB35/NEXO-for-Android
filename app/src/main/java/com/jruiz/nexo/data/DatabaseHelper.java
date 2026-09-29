@@ -412,12 +412,49 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         getWritableDatabase().insertWithOnConflict("nexo_familia_reminders", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
+    /**
+     * Devuelve el registro original completo de Nexo Familia asociado al evento local.
+     * El modelo Android conserva además los campos de uso diario normalizados; aquí se
+     * mantienen sin pérdida los campos sociales, de visibilidad, UUID, invitados,
+     * origen externo y cualquier otro valor presente en Supabase.
+     */
+    public JSONObject getNexoFamiliaMetadataForLocalItem(long localItemId) {
+        JSONObject out = new JSONObject();
+        if (localItemId <= 0) return out;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT source_event_id,raw_json FROM nexo_familia_events WHERE local_item_id=? LIMIT 1",
+                new String[]{String.valueOf(localItemId)})) {
+            if (!c.moveToFirst()) return out;
+            String sourceEventId = c.getString(0);
+            String raw = c.getString(1);
+            JSONObject source = new JSONObject(raw == null || raw.isBlank() ? "{}" : raw);
+            out.put("sourceEventId", sourceEventId);
+            out.put("source", source);
+
+            JSONArray rules = new JSONArray();
+            try (Cursor r = getReadableDatabase().rawQuery(
+                    "SELECT raw_json FROM nexo_familia_reminders WHERE source_event_id=? ORDER BY minutes_before DESC,source_rule_id ASC",
+                    new String[]{sourceEventId})) {
+                while (r.moveToNext()) {
+                    String ruleRaw = r.getString(0);
+                    try { rules.put(new JSONObject(ruleRaw == null || ruleRaw.isBlank() ? "{}" : ruleRaw)); }
+                    catch (Exception ignored) {}
+                }
+            }
+            out.put("reminderRules", rules);
+        } catch (Exception ignored) {}
+        return out;
+    }
+
     public JSONObject getNexoFamiliaImportStats() {
         JSONObject out = new JSONObject();
         try {
             out.put("events", scalar("SELECT COUNT(*) FROM nexo_familia_events nf JOIN items i ON i.id=nf.local_item_id WHERE i.deleted_at=0"));
             out.put("mappings", scalar("SELECT COUNT(*) FROM nexo_familia_events"));
             out.put("reminders", scalar("SELECT COUNT(*) FROM nexo_familia_reminders"));
+            out.put("metadataComplete", scalar("SELECT COUNT(*) FROM nexo_familia_events WHERE raw_json<>'' AND raw_json<>'{}'"));
+            out.put("brokenMappings", scalar("SELECT COUNT(*) FROM nexo_familia_events nf LEFT JOIN items i ON i.id=nf.local_item_id WHERE i.id IS NULL OR i.deleted_at<>0"));
+            out.put("emptySourceIds", scalar("SELECT COUNT(*) FROM nexo_familia_events WHERE source_event_id=''"));
         } catch (Exception ignored) {}
         return out;
     }
@@ -692,7 +729,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public JSONObject getItem(long id) {
         try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM items WHERE id=? AND deleted_at=0", new String[]{String.valueOf(id)})) {
-            return c.moveToFirst() ? itemJson(c) : new JSONObject();
+            if (!c.moveToFirst()) return new JSONObject();
+            JSONObject item = itemJson(c);
+            if ("nexo-familia".equals(item.optString("source", ""))) {
+                JSONObject metadata = getNexoFamiliaMetadataForLocalItem(id);
+                if (metadata.length() > 0) item.put("nexoFamilia", metadata);
+            }
+            return item;
+        } catch (Exception ignored) {
+            return new JSONObject();
         }
     }
 
