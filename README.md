@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta8 · AndroidIDE
+# Nexo 3.7.0-beta9 · AndroidIDE
 
-Rama de trabajo: `feature/nexo-input-hub-v0.8`.
+Rama de trabajo: `feature/nexo-home-familia-v0.9`.
 
 Identidad:
-- Nexo **3.7.0-beta8**
-- `versionCode 73`
+- Nexo **3.7.0-beta9**
+- `versionCode 74`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta8/
+/storage/emulated/0/Download/Nexo_3_7_0_beta9/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta8"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta9"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta8.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta9.apk
 ```
 
 ## Input Hub beta4
@@ -82,3 +82,15 @@ La rama mantiene el Gradle Wrapper completo y los scripts de compilación para A
 Android `rawQuery(..., String[] selectionArgs)` enlaza los parámetros como texto. Las comparaciones contra una expresión `CASE` no heredan afinidad numérica de columna, por lo que el calendario no recurrente podía devolver cero filas aunque los eventos existieran.
 
 Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)` tanto en `getCalendar()` como en las comparaciones temporales de conciliación de estado. La regresión automatizada reproduce 0 eventos con la consulta antigua y 18 con la corregida.
+
+
+## Inicio con paridad Nexo Familia
+
+- Inicio replica la estructura visual común de Nexo Familia: buscador superior, “Lo importante ahora”, accesos rápidos y “Próximamente”.
+- “Lo importante ahora”: Hoy, 7 días, Inbox y Grabar audio.
+- Accesos rápidos: Notas, Medicación, Listas y Documentos.
+- “Próximamente” usa la próxima aparición vigente, orden ascendente y un máximo de 10 eventos.
+- La paleta de categorías, iconos, fecha, categoría, ubicación y participantes sigue los valores canónicos de Nexo Familia.
+- La búsqueda de Inicio y la pestaña Buscar comparten el algoritmo de Nexo Familia: normalización sin acentos, stopwords, exigencia de todos los términos, misma ponderación y prioridad temporal. Incluye además Notas, Medicación, Listas, Documentos, Cuaderno/Frases, Grabaciones e Inbox.
+- Los eventos históricos quedan fuera por defecto y se pueden incluir explícitamente en la pestaña Buscar.
+- Ciclo temporal de eventos alineado con Familia: no recurrente pasado = completado; hoy/futuro = pendiente; recurrente = pendiente; cancelado se conserva. Al reprogramar un evento completado a hoy/futuro vuelve a pendiente.
