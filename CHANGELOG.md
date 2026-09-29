@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.0-beta7 · versionCode 72 · Corrección de estados selected en Nexo Familia
+
+- Diagnóstico realizado sobre una copia real `nexo.db` del teléfono: los 33 eventos estaban importados, pero los 16 con visibilidad `selected` habían quedado marcados como `done`.
+- La vista Agenda abre por defecto en Pendientes, por lo que esos eventos desaparecían aunque existieran en SQLite.
+- La conciliación temporal genérica ya no modifica los eventos cuyo origen es `nexo-familia`.
+- Los estados de Nexo Familia se recalculan con el estado fuente de Supabase y `System.currentTimeMillis()`.
+- `completed` y `cancelled` se respetan; los demás quedan `pending` mientras su fecha/hora final no haya pasado.
+- Los cumpleaños locales mantienen su lógica propia y excluyen Nexo Familia para evitar dobles reglas de estado.
+- Al abrir la app, incluso si la migración ya estaba marcada como completa, se concilian los estados antes de cargar la interfaz.
+- En la copia real analizada, la regla corregida deja 14 eventos `selected` pendientes y 2 finalizados; “Medicina digestiva” pasa a `pending`.
+- La pantalla de Nexo Familia muestra también pendientes/finalizados por tipo de visibilidad.
+- Baseline AndroidIDE sin cambios: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta6 · versionCode 71 · Reconstrucción limpia de Nexo Familia
 
 - Sustituye la reparación incremental por una reconstrucción limpia de los datos importados desde Nexo Familia.
