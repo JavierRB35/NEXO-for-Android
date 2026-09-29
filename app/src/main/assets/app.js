@@ -1099,8 +1099,8 @@ function renderMore(){
 function renderCommunicationCaptureSettings(){
   const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{
     enabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false,
-    smsDirectEnabled:false,smsPermission:false,smsBaselined:false,
-    gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:''
+    smsDirectEnabled:false,smsPermission:false,smsBaselined:false,smsLastSync:0,smsError:'',smsSeen:0,smsCaptured:0,
+    gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:'',gmailSeen:0,gmailCaptured:0
   });
   const access=!!NexoNative.hasNotificationAccess();
   const status=$('#notificationAccessStatus'),master=$('#communicationCaptureEnabled'),apps=$('#communicationApps');
@@ -1119,7 +1119,10 @@ function renderCommunicationCaptureSettings(){
   const sms=$('#smsDirectEnabled'),smsStatus=$('#smsDirectStatus');
   if(sms)sms.checked=!!settings.smsDirectEnabled;
   if(smsStatus){
-    if(settings.smsDirectEnabled&&settings.smsPermission&&settings.smsBaselined)smsStatus.textContent='Activo · lectura directa de SMS recibidos.';
+    if(settings.smsDirectEnabled&&settings.smsPermission&&settings.smsBaselined){
+      const last=settings.smsLastSync?(' · última consulta '+fmtDate(Number(settings.smsLastSync),true)):'';
+      smsStatus.textContent='Activo · lectura directa de SMS'+last+' · '+Number(settings.smsCaptured||0)+' capturados';
+    }else if(settings.smsError)smsStatus.textContent=String(settings.smsError);
     else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent='Preparando referencia inicial de SMS…';
     else if(settings.smsDirectEnabled&&!settings.smsPermission)smsStatus.textContent='Falta conceder permiso para leer SMS.';
     else smsStatus.textContent='Desactivado.';
@@ -1130,7 +1133,7 @@ function renderCommunicationCaptureSettings(){
   if(gmailStatus){
     const account=settings.gmailEmail?String(settings.gmailEmail):'';
     if(settings.gmailDirectEnabled&&settings.gmailAuthorized&&settings.gmailBaselined){
-      gmailStatus.textContent=`Activo${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''}`;
+      gmailStatus.textContent=`Activo${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''} · ${Number(settings.gmailCaptured||0)} capturados`;
     }else if(settings.gmailDirectEnabled&&settings.gmailAuthorized){
       gmailStatus.textContent=`Cuenta autorizada${account?' · '+account:''} · preparando referencia inicial…`;
     }else if(settings.gmailError){
