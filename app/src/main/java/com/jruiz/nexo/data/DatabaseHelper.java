@@ -670,7 +670,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (in.has("voiceEnabled")) v.put("voice_enabled", in.optBoolean("voiceEnabled") ? 1 : 0);
         if (in.has("noteTitleManual")) v.put("note_title_manual", in.optBoolean("noteTitleManual") ? 1 : 0);
         // Reprogramar una cita/tarea decide de nuevo su estado temporal: hoy/futuro = pendiente, pasado = finalizada.
-        if (in.has("dueAt")) {
+        if (in.has("dueAt") && !in.has("status")) {
             String effectiveType=in.optString("type",old.optString("type","note"));
             long newDue=Math.max(0,in.optLong("dueAt",0));
             long oldDue=Math.max(0,old.optLong("dueAt",0));
