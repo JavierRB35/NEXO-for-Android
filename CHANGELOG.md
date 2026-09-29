@@ -1,5 +1,21 @@
 # Changelog de Nexo
 
+## 3.7.0-beta9 · versionCode 74 · Inicio y búsqueda con paridad Nexo Familia
+
+- Pantalla Inicio reconstruida con la misma jerarquía visual de Nexo Familia.
+- Buscador superior con el algoritmo exacto de relevancia de Familia y resultados en línea.
+- La búsqueda global incluye Personas, Agenda, Notas, Medicación, Listas, Documentos, Lugares, Cuaderno/Frases, Grabaciones e Inbox.
+- Los eventos históricos se excluyen por defecto; la pestaña Buscar permite incluirlos explícitamente.
+- “Lo importante ahora” queda formado por **Hoy, 7 días, Inbox y Grabar audio**.
+- Hoy navega al calendario en la fecha actual; 7 días abre la Agenda para hoy + 6 días; Inbox abre la bandeja; Grabar audio inicia la grabación local inmediatamente y abre Grabaciones.
+- “Información familiar” ofrece accesos directos a **Notas, Medicación, Listas y Documentos**.
+- “Próximamente” muestra hasta 10 próximas apariciones con fecha, ubicación, participantes, categoría e icono; las recurrencias usan su siguiente aparición.
+- Paleta e iconos de categorías copiados de los valores canónicos de Nexo Familia.
+- Ciclo temporal de eventos alineado con la función `sync_family_event_statuses`: pasado no recurrente = completado, hoy/futuro = pendiente, recurrente = pendiente y cancelado se conserva.
+- Reprogramar un evento completado a hoy o futuro lo reactiva automáticamente como pendiente.
+- Se mantiene la corrección SQLite beta8 con `CAST(? AS INTEGER)` para eventos no recurrentes.
+- Baseline AndroidIDE sin cambios: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta8 · versionCode 73 · Corrección SQL del calendario no recurrente
 
 - Causa raíz reproducida sobre el patrón real de Android/SQLite: los límites de `rawQuery` llegan mediante `String[] selectionArgs`.
