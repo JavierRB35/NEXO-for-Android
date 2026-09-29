@@ -15,14 +15,13 @@ import android.service.notification.StatusBarNotification;
 
 import com.jruiz.nexo.MainActivity;
 import com.jruiz.nexo.R;
-import com.jruiz.nexo.core.NexoService;
+import com.jruiz.nexo.core.RuleClassifier;
 import com.jruiz.nexo.data.DatabaseHelper;
 
 import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.ArrayList;
 import java.util.List;
 
 public class NexoNotificationListener extends NotificationListenerService {
@@ -40,8 +39,7 @@ public class NexoNotificationListener extends NotificationListenerService {
 
         DatabaseHelper db = new DatabaseHelper(getApplicationContext());
         try {
-            NexoService service = new NexoService(getApplicationContext(), db);
-            JSONObject classification = service.classify(payload.text);
+            JSONObject classification = RuleClassifier.classify(payload.text).toJson();
             if (!NotificationCandidateFilter.shouldCapture(payload.text, classification)) return;
 
             String sourceKey = fingerprint(pkg, payload.sender, payload.text, sbn.getPostTime());
@@ -92,20 +90,18 @@ public class NexoNotificationListener extends NotificationListenerService {
                         List<Notification.MessagingStyle.Message> messages =
                                 Notification.MessagingStyle.Message.getMessagesFromBundleArray(bundles);
                         if (messages != null && !messages.isEmpty()) {
-                            ArrayList<String> texts = new ArrayList<>();
-                            String lastSender = "";
-                            for (Notification.MessagingStyle.Message m : messages) {
-                                if (m == null) continue;
-                                String t = text(m.getText());
-                                if (!t.isBlank()) texts.add(t);
-                                if (Build.VERSION.SDK_INT >= 28 && m.getSenderPerson() != null) {
-                                    lastSender = text(m.getSenderPerson().getName());
+                            Notification.MessagingStyle.Message last = messages.get(messages.size() - 1);
+                            if (last != null) {
+                                String latest = text(last.getText());
+                                if (!latest.isBlank()) body = latest;
+                                String lastSender;
+                                if (Build.VERSION.SDK_INT >= 28 && last.getSenderPerson() != null) {
+                                    lastSender = text(last.getSenderPerson().getName());
                                 } else {
-                                    lastSender = text(m.getSender());
+                                    lastSender = text(last.getSender());
                                 }
+                                if (!lastSender.isBlank()) title = lastSender;
                             }
-                            if (!texts.isEmpty()) body = String.join("\n", texts);
-                            if (!lastSender.isBlank()) title = lastSender;
                         }
                     }
                 } catch (Exception ignored) {}
@@ -201,7 +197,7 @@ public class NexoNotificationListener extends NotificationListenerService {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(raw.getBytes(StandardCharsets.UTF_8));
             StringBuilder out = new StringBuilder();
-            for (byte b : hash) out.append(String.format("%02x", b));
+            for (byte b : hash) out.append(String.format("%02x", b & 0xff));
             return out.toString();
         } catch (Exception e) {
             return Integer.toHexString(raw.hashCode());
