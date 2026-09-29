@@ -7,6 +7,6 @@ assert "versionName '3.6.0-beta3'" in gradle
 assert 'v3.6.0-beta3' in html
 assert 'APP_NAME="Nexo_3_6_0_beta3"' in script
 assert 'assembleRelease' in script and 'apksigner' in script
-assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 18' in db
+assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 19' in db
 assert 'manifest.put("appVersion", BuildConfig.VERSION_NAME);' in backup
 print('Nexo Input Hub v0.3 / 3.6.0-beta3, applicationId y BD 18: OK')
