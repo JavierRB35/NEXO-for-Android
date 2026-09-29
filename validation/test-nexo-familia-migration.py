@@ -83,18 +83,13 @@ for token in ['validatePayload(payload, events, rules)','verifiedEvents','verifi
 
 print(f'Migración Nexo Familia completa: {len(events)} eventos, {len(rules)} reglas, {len(members)} miembros')
 
-# Regression beta7: Nexo Familia no puede quedar atrapado en la conciliación genérica.
-db_source=db_path.read_text(encoding='utf-8')
-assert "source<>'nexo-familia'" in db_source
-assert "source='nexo-familia'" in db_source
-assert "System.currentTimeMillis()" in db_source
-assert "source_status" in db_source
-print('Estados Nexo Familia separados de la conciliación genérica: OK')
-
-# Regression beta8: Agenda/Calendario normalizan Nexo Familia al leer, aunque SQLite arrastre done.
+# Regression beta9: el ciclo temporal replica Nexo Familia por fecha de calendario.
 db_source=db_path.read_text(encoding='utf-8')
 assert 'normalizeNexoFamiliaStatusForRead' in db_source
 assert 'queryItems' in db_source and 'normalizeNexoFamiliaStatusForRead(itemJson(c))' in db_source
-assert 'SELECT source_status FROM nexo_familia_events WHERE local_item_id=? LIMIT 1' in db_source
-assert 'effectiveEnd < System.currentTimeMillis()' in db_source
-print('Lectura tolerante a estados heredados de Nexo Familia: OK')
+assert "WHEN recurrence<>'none' THEN 'pending'" in db_source
+assert "WHEN status='cancelled' THEN 'cancelled'" in db_source
+assert 'isBeforeToday(effectiveEnd)' in db_source
+assert '"event".equals(effectiveType)' in db_source
+assert 'v.put("status", isBeforeToday(effectiveEnd) ? "done" : "pending")' in db_source
+print('Ciclo temporal de eventos alineado con Nexo Familia: OK')
