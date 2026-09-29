@@ -17,8 +17,9 @@ import java.util.List;
 
 public final class SmsWatchEngine {
     private static final long WINDOW_MS = 90L * 86400000L;
-    private static final long RECOVERY_MS = 3L * 86400000L;
-    private static final String FILTER_REVISION = "sms-filter-v5:";
+    private static final long RECOVERY_MS = 7L * 86400000L;
+    private static final long DEDUPE_WINDOW_MS = 30L * 60L * 1000L;
+    private static final String FILTER_REVISION = "sms-filter-v6:";
 
     private SmsWatchEngine() {}
 
@@ -27,15 +28,15 @@ public final class SmsWatchEngine {
         DatabaseHelper db = new DatabaseHelper(context.getApplicationContext());
         try {
             List<SmsSnapshot> messages = readInbox(context);
-            // Se conserva el baseline para no importar meses de SMS históricos.
+            // Conservamos baseline para no importar meses de histórico.
             for (SmsSnapshot sms : messages) {
                 if (!db.hasExternalInput("sms", sms.id)) {
                     db.rememberExternalInput("sms", sms.id, "sms-baseline:" + sms.fingerprint(), 0L);
                 }
             }
             InputHubPrefs.setSmsBaselined(context, true);
-            // Pero los mensajes accionables muy recientes no deben perderse por haber
-            // activado/reautorizado la fuente después de recibirlos.
+            // Aun al activar/reautorizar, reevalúa una ventana reciente para no perder
+            // mensajes accionables recibidos poco antes.
             recoverRecent(context, db, messages);
             InputHubPrefs.setSmsLastSync(context, System.currentTimeMillis());
             InputHubPrefs.setSmsError(context, "");
@@ -58,18 +59,25 @@ public final class SmsWatchEngine {
         try {
             List<SmsSnapshot> messages = readInbox(context);
             long recoveryFrom = System.currentTimeMillis() - RECOVERY_MS;
+            boolean hadProcessingError = false;
+
             for (SmsSnapshot sms : messages) {
                 JSONObject previous = db.getExternalInputState("sms", sms.id);
                 if (previous.length() > 0) {
                     long oldCapture = previous.optLong("captureId", 0L);
                     String oldFingerprint = previous.optString("fingerprint", "");
-                    if (oldCapture > 0 || db.inboxCaptureExists("sms:" + sms.id) || oldFingerprint.startsWith(FILTER_REVISION)) continue;
-                    if (sms.date < recoveryFrom) continue;
+                    if (oldCapture > 0 || db.inboxCaptureExists("sms:" + sms.id) ||
+                            oldFingerprint.startsWith(FILTER_REVISION)) {
+                        continue;
+                    }
+                    // Baselines y errores recientes se vuelven a evaluar.
+                    if (sms.date < recoveryFrom && !oldFingerprint.startsWith("sms-error:")) continue;
                 }
-                processSms(context, db, sms);
+                if (!processSms(context, db, sms)) hadProcessingError = true;
             }
+
             InputHubPrefs.setSmsLastSync(context, System.currentTimeMillis());
-            InputHubPrefs.setSmsError(context, "");
+            if (!hadProcessingError) InputHubPrefs.setSmsError(context, "");
         } catch (Exception e) {
             InputHubPrefs.setSmsError(context, safeMessage(e));
         } finally {
@@ -89,30 +97,51 @@ public final class SmsWatchEngine {
         }
     }
 
-    private static void processSms(Context context, DatabaseHelper db, SmsSnapshot sms) {
-        long captureId = 0L;
+    private static boolean processSms(Context context, DatabaseHelper db, SmsSnapshot sms) {
         try {
             JSONObject classification = RuleClassifier.classify(sms.body).toJson();
-            if (NotificationCandidateFilter.shouldCapture(sms.body, classification)) {
-                JSONObject in = new JSONObject();
-                in.put("source", "sms-provider");
-                in.put("mime", "text/plain");
-                in.put("subject", sms.address);
-                in.put("text", sms.body);
-                in.put("sourcePackage", "android.sms");
-                in.put("sender", sms.address);
-                in.put("sourceKey", "sms:" + sms.id);
-                captureId = db.insertInboxCapture(in, classification);
-                if (captureId > 0) {
-                    String preview = sms.body.length() > 140 ? sms.body.substring(0, 137) + "…" : sms.body;
-                    InboxCandidateNotifier.show(context, captureId, "Nexo · SMS accionable", sms.address, preview);
+            boolean candidate = NotificationCandidateFilter.shouldCapture(sms.body, classification);
+            long captureId = 0L;
+
+            if (candidate) {
+                // La notificación del SMS puede haberse recibido antes que el ContentProvider.
+                captureId = db.findRecentEquivalentInboxCapture(
+                        "sms", sms.address, sms.body, DEDUPE_WINDOW_MS
+                );
+                if (captureId <= 0L) {
+                    JSONObject in = new JSONObject();
+                    in.put("source", "sms-provider");
+                    in.put("mime", "text/plain");
+                    in.put("subject", sms.address);
+                    in.put("text", sms.body);
+                    in.put("sourcePackage", "android.sms");
+                    in.put("sender", sms.address);
+                    in.put("sourceKey", "sms:" + sms.id);
+                    captureId = db.insertInboxCapture(in, classification);
+                    if (captureId > 0) {
+                        String preview = sms.body.length() > 140 ? sms.body.substring(0, 137) + "…" : sms.body;
+                        InboxCandidateNotifier.show(context, captureId, "Nexo · SMS para revisar", sms.address, preview);
+                    }
                 }
             }
-        } catch (Exception ignored) {}
-        db.rememberExternalInput("sms", sms.id, FILTER_REVISION + sms.fingerprint(), captureId);
+
+            String decision = captureId > 0L ? "captured:" : "rejected:";
+            db.rememberExternalInput(
+                    "sms",
+                    sms.id,
+                    FILTER_REVISION + decision + sms.fingerprint(),
+                    captureId
+            );
+            return true;
+        } catch (Exception e) {
+            // Un fallo transitorio no debe convertir el SMS en descartado definitivo.
+            db.rememberExternalInput("sms", sms.id, "sms-error:" + sms.fingerprint(), 0L);
+            InputHubPrefs.setSmsError(context, safeMessage(e));
+            return false;
+        }
     }
 
-    private static List<SmsSnapshot> readInbox(Context context) {
+    private static List<SmsSnapshot> readInbox(Context context) throws Exception {
         ArrayList<SmsSnapshot> out = new ArrayList<>();
         if (!hasPermission(context)) return out;
         long from = System.currentTimeMillis() - WINDOW_MS;
@@ -122,6 +151,7 @@ public final class SmsWatchEngine {
                 Telephony.Sms.BODY,
                 Telephony.Sms.DATE
         };
+
         try (Cursor c = context.getContentResolver().query(
                 Telephony.Sms.Inbox.CONTENT_URI,
                 projection,
@@ -129,8 +159,8 @@ public final class SmsWatchEngine {
                 new String[]{String.valueOf(from)},
                 Telephony.Sms.DATE + " DESC"
         )) {
-            if (c == null) return out;
-            int limit = 500;
+            if (c == null) throw new IllegalStateException("El proveedor SMS no respondió.");
+            int limit = 1000;
             while (c.moveToNext() && limit-- > 0) {
                 String id = String.valueOf(c.getLong(0));
                 String address = c.isNull(1) ? "" : c.getString(1);
@@ -138,7 +168,7 @@ public final class SmsWatchEngine {
                 long date = c.isNull(3) ? 0L : c.getLong(3);
                 if (!id.isBlank() && !body.isBlank()) out.add(new SmsSnapshot(id, address, body, date));
             }
-        } catch (Exception ignored) {}
+        }
         return out;
     }
 
@@ -154,9 +184,16 @@ public final class SmsWatchEngine {
     private static final class SmsSnapshot {
         final String id, address, body;
         final long date;
+
         SmsSnapshot(String id, String address, String body, long date) {
-            this.id=id;this.address=address==null?"":address;this.body=body==null?"":body;this.date=date;
+            this.id = id;
+            this.address = address == null ? "" : address;
+            this.body = body == null ? "" : body;
+            this.date = date;
         }
-        String fingerprint() { return Integer.toHexString((id+"\n"+address+"\n"+body+"\n"+date).hashCode()); }
+
+        String fingerprint() {
+            return Integer.toHexString((id + "\n" + address + "\n" + body + "\n" + date).hashCode());
+        }
     }
 }
