@@ -2087,6 +2087,18 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) {}
             return stats.toString();
         }
+        @JavascriptInterface public String getFamilyStyleSearchIndex() {
+            JSONObject out=db.getFamilyStyleSearchIndex();
+            try { out.put("recordings", RecordingStore.list(MainActivity.this)); }
+            catch(Exception ignored) {}
+            return out.toString();
+        }
+        @JavascriptInterface public String getNexoFamiliaMembers() {
+            try {
+                JSONArray members=MainActivity.this.readBundledNexoFamiliaPayload().optJSONArray("members");
+                return members==null?"[]":members.toString();
+            } catch(Exception ignored) { return "[]"; }
+        }
         @JavascriptInterface public String search(String q) { return db.search(q).toString(); }
         @JavascriptInterface public String synthesizeJournal(String text) { return db.synthesizeJournal(text).toString(); }
         @JavascriptInterface public long saveJournal(String json) { try { return db.insertJournalEntry(new JSONObject(json)); } catch(Exception e) { return 0; } }
