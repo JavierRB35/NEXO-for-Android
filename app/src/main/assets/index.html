@@ -217,18 +217,31 @@
 </div>
 </div>
 <div class="settings-card communication-capture-settings">
-<h2>Inbox automático</h2>
-<p class="muted">Nexo puede detectar información útil en notificaciones de comunicaciones. El análisis se realiza localmente.</p>
-<div id="notificationAccessStatus" class="notification-access-status"></div>
-<div class="modal-actions"><button id="notificationAccessBtn" class="secondary-button" type="button">Configurar acceso a notificaciones</button></div>
-<label class="toggle-row"><span><strong>Captura automática</strong><small>Solo se guardan candidatos que parezcan accionables.</small></span><input id="communicationCaptureEnabled" type="checkbox"></label>
-<div id="communicationApps" class="communication-apps"></div>
-<p class="small muted">WhatsApp, Gmail, Telegram y SMS. Nexo no lee conversaciones completas: solo el contenido que Android muestra en las notificaciones.</p>
+<h2>Nexo Input Hub</h2>
+<p class="muted">Fuentes directas y comunicaciones que Nexo revisa para detectar información susceptible de convertirse en cita, tarea o recordatorio.</p>
+
 <div class="calendar-capture-section">
-  <div class="search-section-label">Calendario Android</div>
-  <label class="toggle-row"><span><strong>Detectar eventos nuevos de Calendar</strong><small>Observa los eventos almacenados en el calendario del teléfono y los lleva a Inbox para revisión.</small></span><input id="calendarCaptureEnabled" type="checkbox"></label>
+  <div class="search-section-label">Fuentes directas</div>
+  <label class="toggle-row"><span><strong>SMS recibidos</strong><small>Lee directamente la bandeja SMS de Android. No depende de las notificaciones.</small></span><input id="smsDirectEnabled" type="checkbox"></label>
+  <div id="smsDirectStatus" class="small muted"></div>
+
+  <label class="toggle-row"><span><strong>Gmail</strong><small>Consulta la cuenta autorizada mediante Gmail API. No depende de las notificaciones de Gmail.</small></span><input id="gmailDirectEnabled" type="checkbox"></label>
+  <div id="gmailDirectStatus" class="small muted"></div>
+  <div class="modal-actions"><button id="gmailConnectBtn" class="secondary-button" type="button">Conectar Gmail</button></div>
+
+  <label class="toggle-row"><span><strong>Calendar Android</strong><small>Detecta eventos nuevos y cambios escritos por otras aplicaciones en el calendario del teléfono.</small></span><input id="calendarCaptureEnabled" type="checkbox"></label>
   <div id="calendarAccessStatus" class="small muted"></div>
-  <p class="small muted">Al activarlo por primera vez, Nexo registra los eventos existentes como referencia y no los importa. Después detecta altas y cambios.</p>
+  <p class="small muted">La primera activación crea una referencia silenciosa para no importar de golpe el contenido histórico.</p>
+  <div class="modal-actions"><button id="inputHubScanBtn" class="secondary-button" type="button">Buscar entradas ahora</button></div>
+</div>
+
+<div class="calendar-capture-section">
+  <div class="search-section-label">Fuentes por notificación</div>
+  <div id="notificationAccessStatus" class="notification-access-status"></div>
+  <div class="modal-actions"><button id="notificationAccessBtn" class="secondary-button" type="button">Configurar acceso a notificaciones</button></div>
+  <label class="toggle-row"><span><strong>Escucha de notificaciones</strong><small>Se mantiene para apps sin acceso directo, especialmente WhatsApp personal.</small></span><input id="communicationCaptureEnabled" type="checkbox"></label>
+  <div id="communicationApps" class="communication-apps"></div>
+  <p class="small muted">WhatsApp y Telegram dependen del contenido que Android publique en sus notificaciones. Si una app no publica una notificación, esta vía no puede leer su contenido.</p>
 </div>
 </div>
 <div class="settings-card medication-message-settings">
