@@ -439,7 +439,7 @@ public class MainActivity extends Activity {
                 return;
             }
             InputHubPrefs.setSmsEnabled(this, true);
-            CommunicationCapturePrefs.setAppEnabled(this, "sms", false);
+            CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
             if (!hasSmsPermission()) {
                 requestPermissions(new String[]{Manifest.permission.READ_SMS}, REQ_SMS);
                 return;
@@ -479,7 +479,7 @@ public class MainActivity extends Activity {
             return;
         }
         InputHubPrefs.setGmailEnabled(this, true);
-        CommunicationCapturePrefs.setAppEnabled(this, "gmail", false);
+        CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
         ensureNotificationPermission();
         new Thread(() -> {
             if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
@@ -998,7 +998,7 @@ public class MainActivity extends Activity {
                 InputHubPrefs.setGmailBaselined(this, false);
                 InputHubPrefs.setGmailEmail(this, account.getEmail());
                 InputHubPrefs.setGmailError(this, "");
-                CommunicationCapturePrefs.setAppEnabled(this, "gmail", false);
+                CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
                 ensureNotificationPermission();
                 new Thread(() -> {
                     GmailWatchEngine.initializeBaseline(getApplicationContext());
@@ -1354,7 +1354,7 @@ public class MainActivity extends Activity {
             boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (ok) {
                 InputHubPrefs.setSmsEnabled(this, true);
-                CommunicationCapturePrefs.setAppEnabled(this, "sms", false);
+                CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
                 ensureNotificationPermission();
                 new Thread(() -> {
                     SmsWatchEngine.initializeBaseline(getApplicationContext());
@@ -1757,8 +1757,12 @@ public class MainActivity extends Activity {
                 JSONObject watch = db.getExternalWatchDiagnostics();
                 o.put("smsSeen", watch.optLong("smsSeen", 0));
                 o.put("smsCaptured", watch.optLong("smsCaptured", 0));
+                o.put("smsRejected", watch.optLong("smsRejected", 0));
+                o.put("smsErrors", watch.optLong("smsErrors", 0));
                 o.put("gmailSeen", watch.optLong("gmailSeen", 0));
                 o.put("gmailCaptured", watch.optLong("gmailCaptured", 0));
+                o.put("gmailRejected", watch.optLong("gmailRejected", 0));
+                o.put("gmailErrors", watch.optLong("gmailErrors", 0));
                 o.put("gmailDirectEnabled", InputHubPrefs.gmailEnabled(MainActivity.this));
                 o.put("gmailAuthorized", GmailWatchEngine.hasAuthorizedAccount(MainActivity.this));
                 o.put("gmailEmail", InputHubPrefs.gmailEmail(MainActivity.this));
