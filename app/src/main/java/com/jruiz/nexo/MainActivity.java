@@ -415,6 +415,7 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> {
             if (!enabled) {
                 InputHubPrefs.setSmsEnabled(this, false);
+                InputHubPrefs.setSmsBaselined(this, false);
                 SmsWatchScheduler.cancel(this);
                 jsCallback("onInputHubChanged", "sms");
                 return;
@@ -448,6 +449,7 @@ public class MainActivity extends Activity {
     private void setGmailCaptureEnabled(boolean enabled) {
         if (!enabled) {
             InputHubPrefs.setGmailEnabled(this, false);
+            InputHubPrefs.setGmailBaselined(this, false);
             GmailWatchScheduler.cancel(this);
             jsCallback("onInputHubChanged", "gmail");
             return;
