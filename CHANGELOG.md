@@ -1,5 +1,19 @@
 # Changelog de Nexo
 
+## 3.7.0-beta1 · versionCode 66 · Navegación Nexo Familia y compatibilidad de migración
+
+- Inicio simplificado con Inbox visible y resumen de lo importante.
+- Nueva navegación inferior: Inicio, Calendario, Buscar y Herramientas.
+- Herramientas agrupadas por función, eliminando accesos duplicados de Inicio.
+- Se eliminan de Inicio los accesos redundantes Mi compra, Historial y Agenda/Citas.
+- Hablar pasa a ser una acción flotante contextual; Añadir cita es flotante en Calendario.
+- Paleta, densidad, jerarquía y categorías alineadas con Nexo Familia.
+- Categorías de eventos unificadas con el catálogo canónico de Nexo Familia.
+- Nueva capa local de compatibilidad para importar eventos de Nexo Familia sin perder UUID, familia, creador, participantes, visibilidad, metadatos sociales, zona horaria ni datos originales.
+- Importación idempotente de eventos y reglas de aviso desde un JSON de migración de Nexo Familia.
+- BD local actualizada a esquema 19.
+- CI reforzada: valida estructura HTML, navegación, versión, sintaxis JavaScript y compilación Android antes de empaquetar.
+
 ## 3.6.0-beta3 · versionCode 65 · Corrección de navegación del rediseño
 
 - Corrige un cierre HTML sobrante introducido en beta2 que desplazaba Inbox/Historial/Mi compra fuera de Inicio y rompía la presentación de Buscar y Calendario.
