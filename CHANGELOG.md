@@ -1,5 +1,22 @@
 # Changelog de Nexo
 
+## 3.6.0-beta1 · versionCode 63 · Rediseño visual global
+
+- Nuevo sistema visual común documentado en DESIGN_SYSTEM.md.
+- Blanco como superficie dominante; verde como primario; amarillo para atención moderada; rojo solo para error/destrucción.
+- Rediseño coherente de cabecera, navegación inferior, módulos de Inicio, tarjetas, filas, botones, formularios, filtros, estados, ajustes, diálogos y feedback.
+- Menos sombras y menos sensación de "cajas"; jerarquía basada en tipografía, espaciado y bordes suaves.
+- Objetivos táctiles de 48 px o superiores en acciones principales.
+- Formularios con foco verde, etiquetas consistentes y superficies neutras.
+- Bottom navigation con indicador activo tipo Material 3.
+- Inicio más compacto y legible, con acciones principales y módulos claramente diferenciados.
+- Frase del día usa acento amarillo discreto; alertas y acciones destructivas usan rojo únicamente cuando corresponde.
+- Calendario conserva colores de categoría diferenciados por utilidad funcional.
+- Tema Android nativo alineado con la nueva identidad para status bar, navigation bar y colorAccent.
+- Sin cambios en lógica de negocio, permisos, servicios, alarmas, notificaciones, almacenamiento ni integraciones.
+- Baseline técnico intacto: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
+
 ## 3.5.0-beta7 · versionCode 62 · Agenda, Frases y Cuaderno separados
 
 - El módulo principal antes llamado "Citas" pasa a llamarse "Agenda".
