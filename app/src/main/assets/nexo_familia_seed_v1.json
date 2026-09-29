@@ -1,14 +1,14 @@
 {
   "format": "nexo-familia-events-v1",
-  "snapshotVersion": "2026-09-29-v4-repair",
-  "exportedAt": "2026-09-29T19:30:00+02:00",
+  "snapshotVersion": "2026-09-29-v5-clean-rebuild",
+  "exportedAt": "2026-09-29T19:55:00+02:00",
   "sourceProject": "Nexo Familia",
   "sourceAudit": {
     "projectRef": "gimzsrreghmuuwmizojc",
     "familyEventCount": 33,
     "reminderRuleCount": 46,
     "memberCount": 4,
-    "note": "Snapshot de reparación: fuerza una nueva importación idempotente y auditoría local por UUID."
+    "note": "Snapshot de reconstrucción limpia: 17 eventos family + 16 selected; se valida UUID, título y fecha local tras importar."
   },
   "family": {
     "id": "131d5524-72b2-48fa-b1f6-832defc7baba",
