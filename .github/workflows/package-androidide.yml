@@ -43,6 +43,7 @@ jobs:
           python3 validation/test-version-identity.py
           python3 validation/test-input-hub-reliability.py
           python3 validation/test-nexo-familia-migration.py
+          python3 validation/test-calendar-nonrecurring-range.py
           node --check app/src/main/assets/app.js
 
       - name: Compile debug APK
