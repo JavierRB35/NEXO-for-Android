@@ -30,6 +30,13 @@ public final class NexoFamiliaImporter {
             if (rules == null) rules = payload.optJSONArray("reminder_rules");
             if (rules == null) rules = new JSONArray();
 
+            JSONArray payloadErrors = validatePayload(payload, events, rules);
+            if (payloadErrors.length() > 0) {
+                return out.put("ok", false)
+                        .put("error", "La instantánea de Nexo Familia no supera la validación de integridad.")
+                        .put("errors", payloadErrors);
+            }
+
             Map<String,String> memberNames = new HashMap<>();
             JSONArray members = payload.optJSONArray("members");
             if (members != null) {
@@ -96,18 +103,102 @@ public final class NexoFamiliaImporter {
                     skipped++;
                 }
             }
-            out.put("ok", errors.length()==0)
+            int verifiedEvents = 0;
+            for (int i=0;i<events.length();i++) {
+                JSONObject event = events.optJSONObject(i);
+                if (event == null) continue;
+                String sourceId = cleanString(event, "id");
+                long localId = db.getNexoFamiliaLocalItemId(sourceId);
+                if (localId > 0 && db.getItem(localId).length() > 0) verifiedEvents++;
+            }
+
+            int verifiedRules = 0;
+            for (int i=0;i<rules.length();i++) {
+                JSONObject rule = rules.optJSONObject(i);
+                if (rule == null) continue;
+                if (db.hasNexoFamiliaReminderMapping(cleanString(rule, "id"))) verifiedRules++;
+            }
+
+            JSONObject stats = db.getNexoFamiliaImportStats();
+            boolean complete = errors.length()==0 &&
+                    skipped==0 &&
+                    preserved==events.length() &&
+                    verifiedEvents==events.length() &&
+                    verifiedRules==rules.length() &&
+                    stats.optLong("brokenMappings", 0L)==0L &&
+                    stats.optLong("metadataComplete", 0L)>=events.length();
+
+            if (!complete) {
+                errors.put("Verificación final incompleta: eventos " + verifiedEvents + "/" + events.length() +
+                        ", reglas " + verifiedRules + "/" + rules.length() + ".");
+            }
+
+            out.put("ok", complete)
                .put("inserted",inserted)
                .put("updated",updated)
                .put("preserved",preserved)
                .put("reminders",reminderCount)
+               .put("verifiedEvents",verifiedEvents)
+               .put("verifiedReminderRules",verifiedRules)
+               .put("expectedEvents",events.length())
+               .put("expectedReminderRules",rules.length())
                .put("skipped",skipped)
                .put("errors",errors)
-               .put("stats",db.getNexoFamiliaImportStats());
+               .put("stats",stats);
         } catch(Exception e) {
             try {out.put("ok",false).put("error",safeMessage(e)).put("errors",errors);} catch(Exception ignored){}
         }
         return out;
+    }
+
+    private static JSONArray validatePayload(JSONObject payload, JSONArray events, JSONArray rules) {
+        JSONArray errors = new JSONArray();
+        LinkedHashSet<String> eventIds = new LinkedHashSet<>();
+        LinkedHashSet<String> ruleIds = new LinkedHashSet<>();
+
+        JSONObject audit = payload.optJSONObject("sourceAudit");
+        if (audit != null) {
+            int expectedEvents = audit.optInt("familyEventCount", events.length());
+            int expectedRules = audit.optInt("reminderRuleCount", rules.length());
+            if (expectedEvents != events.length()) {
+                errors.put("El snapshot declara " + expectedEvents + " eventos pero contiene " + events.length() + ".");
+            }
+            if (expectedRules != rules.length()) {
+                errors.put("El snapshot declara " + expectedRules + " reglas pero contiene " + rules.length() + ".");
+            }
+        }
+
+        for (int i=0;i<events.length();i++) {
+            JSONObject event = events.optJSONObject(i);
+            if (event == null) {
+                errors.put("Evento inválido en posición " + i + ".");
+                continue;
+            }
+            String id = cleanString(event, "id");
+            if (id.isBlank()) errors.put("Evento sin UUID en posición " + i + ".");
+            else if (!eventIds.add(id)) errors.put("UUID de evento duplicado: " + id + ".");
+            if (cleanString(event, "title").isBlank()) errors.put("Evento sin título: " + id + ".");
+            boolean allDay = event.optBoolean("all_day", false);
+            String start = allDay ? cleanString(event, "start_date") : cleanString(event, "start_at");
+            if (start.isBlank()) errors.put("Evento sin inicio válido: " + id + ".");
+            if (cleanString(event, "time_zone").isBlank()) errors.put("Evento sin zona horaria: " + id + ".");
+        }
+
+        for (int i=0;i<rules.length();i++) {
+            JSONObject rule = rules.optJSONObject(i);
+            if (rule == null) {
+                errors.put("Regla de aviso inválida en posición " + i + ".");
+                continue;
+            }
+            String id = cleanString(rule, "id");
+            String eventId = cleanString(rule, "event_id");
+            if (id.isBlank()) errors.put("Regla de aviso sin UUID en posición " + i + ".");
+            else if (!ruleIds.add(id)) errors.put("UUID de regla duplicado: " + id + ".");
+            if (eventId.isBlank() || !eventIds.contains(eventId)) {
+                errors.put("Regla " + id + " apunta a un evento no incluido: " + eventId + ".");
+            }
+        }
+        return errors;
     }
 
     private static JSONObject toLocalEvent(JSONObject event, Map<String,String> memberNames) throws Exception {
