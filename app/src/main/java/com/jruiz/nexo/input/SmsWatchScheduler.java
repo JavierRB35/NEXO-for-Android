@@ -9,7 +9,9 @@ import android.content.pm.PackageManager;
 import android.provider.Telephony;
 
 public final class SmsWatchScheduler {
-    private static final int JOB_ID = 7350;
+    static final int CONTENT_JOB_ID = 7350;
+    static final int PERIODIC_JOB_ID = 7353;
+    private static final long PERIOD_MS = 15L * 60L * 1000L;
 
     private SmsWatchScheduler() {}
 
@@ -20,22 +22,47 @@ public final class SmsWatchScheduler {
 
     public static void schedule(Context context) {
         if (!canRun(context)) return;
+        scheduleContentWatcher(context);
+        schedulePeriodicFallback(context);
+    }
+
+    static void scheduleContentWatcher(Context context) {
+        if (!canRun(context)) return;
         JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (scheduler == null) return;
-        JobInfo job = new JobInfo.Builder(JOB_ID, new ComponentName(context, SmsWatchJob.class))
+        JobInfo contentJob = new JobInfo.Builder(
+                CONTENT_JOB_ID,
+                new ComponentName(context, SmsWatchJob.class)
+        )
                 .addTriggerContentUri(new JobInfo.TriggerContentUri(
                         Telephony.Sms.CONTENT_URI,
                         JobInfo.TriggerContentUri.FLAG_NOTIFY_FOR_DESCENDANTS
                 ))
                 .setTriggerContentUpdateDelay(1200L)
                 .setTriggerContentMaxDelay(5000L)
-                .setPersisted(true)
                 .build();
-        scheduler.schedule(job);
+        scheduler.schedule(contentJob);
+    }
+
+    private static void schedulePeriodicFallback(Context context) {
+        if (!canRun(context)) return;
+        JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        if (scheduler == null) return;
+        JobInfo periodicJob = new JobInfo.Builder(
+                PERIODIC_JOB_ID,
+                new ComponentName(context, SmsWatchJob.class)
+        )
+                .setPersisted(true)
+                .setPeriodic(PERIOD_MS)
+                .build();
+        scheduler.schedule(periodicJob);
     }
 
     public static void cancel(Context context) {
         JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        if (scheduler != null) scheduler.cancel(JOB_ID);
+        if (scheduler != null) {
+            scheduler.cancel(CONTENT_JOB_ID);
+            scheduler.cancel(PERIODIC_JOB_ID);
+        }
     }
 }
