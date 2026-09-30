@@ -54,7 +54,7 @@
         </button>
         <button id="homeCalendarCard" class="home-pulse-card" type="button">
           <span class="home-pulse-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></span>
-          <span class="home-pulse-card__body"><small>Calendario</small><strong id="homeCalendarMonth">MES</strong><span id="homeCalendarHint">Abrir calendario mensual</span></span>
+          <span class="home-pulse-card__body"><small>Calendario</small><strong id="homeCalendarMonth">Mes</strong><span id="homeCalendarHint">Abrir agenda</span></span>
           <svg class="ui-icon home-pulse-card__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
         </button>
       </div>
@@ -81,7 +81,6 @@
           <p class="section-kicker">Agenda familiar</p>
           <h2 id="homeUpcomingTitle">Próximamente</h2>
         </div>
-        <button id="homeAgendaLink" class="text-link" type="button">Ver agenda</button>
       </div>
       <div id="homeUpcomingList" class="upcoming-list">
         <div class="empty-card">Cargando agenda…</div>
@@ -182,7 +181,7 @@
               <label class="switch-row form-span-2 event-all-day-row"><input id="captureAllDay" type="checkbox"><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
               <label id="captureStartTimeLabel">Hora inicio<div class="date-wrap"><input id="captureTime" type="time"></div></label>
               <label id="captureEndTimeLabel">Hora fin<div class="date-wrap"><input id="captureEndTime" type="time"></div></label>
-              <label class="form-span-2">Ubicación <span class="optional">(opcional)</span><input id="captureLocation" type="text" placeholder="Ej.: Clínica, Valencia"></label><div class="form-span-2 map-field-action"><button id="captureMapPreview" type="button" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> Buscar en Google Maps</button></div>
+              <div class="form-span-2 location-field"><label for="captureLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="captureLocation" type="text" placeholder="Ej.: Clínica, Valencia"><button id="captureMapPreview" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div></div>
               </div>
 <div id="captureAlertsSection" class="alert-editor hidden">
               <div class="alert-editor-head">
@@ -210,7 +209,7 @@
 <option value="semiannual">Semestral</option>
 <option value="annual">Anual</option></select></label>
               <label id="captureRecurrenceUntilLabel" class="hidden">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="captureRecurrenceUntil" type="date"></div></label>
-              <label class="form-span-2">Enlace de Google Maps <span class="optional">(opcional)</span><input id="captureMapsUrl" type="text" inputmode="url" placeholder="https://maps.app.goo.gl/…"></label>
+              <input id="captureMapsUrl" type="hidden">
               <label class="form-span-2">Zona horaria <span class="optional">(normalmente no hace falta cambiarla)</span><input id="captureTimeZone" type="text" value="Europe/Madrid"></label>
             </div>
             </details>
@@ -360,7 +359,7 @@
     <div class="settings-accordion__body hidden"><button class="menu-row" data-panel="backup"><span><svg class="ui-icon"><use href="#nx-icon-download"></use></svg><span><strong>Copia de seguridad</strong><small>Datos y adjuntos. Audios por separado.</small></span></span><svg class="ui-icon"><use href="#nx-icon-right"></use></svg></button><div id="backupHint" class="backup-hint hidden"></div></div>
   </section>
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.0-beta16</span></p></section><section class="screen" data-screen="panel">
+<p class="version-info">Nexo <span data-app-version>v3.7.0-beta17</span></p></section><section class="screen" data-screen="panel">
         <div class="panel-header">
 <button id="panelBack" class="back-button" aria-label="Volver a la pantalla anterior"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button><div>
 <h1 id="panelTitle">Panel</h1>

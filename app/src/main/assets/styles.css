@@ -1883,6 +1883,12 @@ main{max-width:720px}
 .settings-card--embedded{margin:12px 0 0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 .input-hub-mode{margin-top:12px}
 .map-field-action{display:flex;justify-content:flex-start;margin-top:-4px}
+.location-field{display:grid;gap:6px;min-width:0}
+.location-field>label{font-size:.875rem;line-height:1.4;color:var(--muted)}
+.location-input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0}
+.location-input-row>input{min-width:0;width:100%}
+.location-map-button{min-width:88px;min-height:48px;padding:9px 11px;white-space:nowrap}
+.location-map-button .ui-icon{width:19px;height:19px;min-width:19px}
 
 .record-card-actions{
   display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap;
@@ -1920,10 +1926,11 @@ main{max-width:720px}
 
 
 /* Nexo 3.7.0-beta13 · acciones de evento visibles y FAB horizontales */
-.event-form-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
-.event-form-actions .secondary-button,.event-form-actions .danger-button{min-width:0;padding:9px 8px;min-height:44px}
+.event-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.event-form-actions .primary-button,.event-form-actions .secondary-button,.event-form-actions .danger-button{min-width:0;padding:9px 8px;min-height:44px}
 .event-form-actions .danger-button{background:#fff3f3;color:var(--red);border:1px solid #f0caca}
-@media(max-width:380px){.event-form-actions{gap:6px}.event-form-actions .secondary-button,.event-form-actions .danger-button{font-size:.82rem;padding:8px 5px}}
+@media(min-width:560px){.event-form-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:380px){.event-form-actions{gap:6px}.event-form-actions .primary-button,.event-form-actions .secondary-button,.event-form-actions .danger-button{font-size:.82rem;padding:8px 5px}.location-map-button{min-width:72px;padding:8px}}
 
 
 /* Nexo 3.7.0-beta14 · Gmail simple */

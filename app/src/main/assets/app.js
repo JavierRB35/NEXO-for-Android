@@ -395,8 +395,9 @@ function renderToday() {
   $('#homeInboxCount').textContent=String(inboxCount);
   $('#homeInboxHint').textContent=inboxCount?inboxCount+' pendiente'+(inboxCount===1?'':'s')+' de organizar':'Todo organizado';
 
-  const monthShort=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(today).replace('.','').toLocaleUpperCase('es-ES');
-  $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Abrir calendario mensual';
+  const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(today).replace('.','');
+  const monthShort=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
+  $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Abrir agenda';
 
   const members=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
   state.homeMemberMap=new Map(members.map(m=>[familySearchNormalize(m.full_name),m]));
@@ -1706,7 +1707,7 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`<div class="event-form-actions"><button id="editItemTopBtn" class="secondary-button" type="button">${uiIcon('edit')} Editar</button><button id="shareItemBtn" class="secondary-button" type="button">${uiIcon('share')} Compartir</button><button id="deleteItemBtn" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button></div><div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`<div class="event-form-actions"><button id="saveEditBtn" class="primary-button" type="button">Guardar</button><button id="editItemTopBtn" class="secondary-button" type="button">${uiIcon('edit')} Editar</button><button id="shareItemBtn" class="secondary-button" type="button">${uiIcon('share')} Compartir</button><button id="deleteItemBtn" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button></div><div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     <details class="details-box" open><summary>Editar</summary><div class="detail-grid">
       <label>Título<input id="editTitle" type="text" value="${escAttr(i.title)}"></label>
@@ -1716,8 +1717,7 @@ function openItem(id){
       <div class="form-grid"><label>Fecha inicio<div class="date-wrap"><input id="editDate" type="date" value="${i.dueAt?escAttr(iso.date):''}"></div></label><label>Fecha fin<div class="date-wrap"><input id="editEndDate" type="date" value="${endAt?escAttr(endIso.date):''}"></div></label></div>
       <label class="switch-row event-all-day-row"><input id="editAllDay" type="checkbox" ${allDay?'checked':''}><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
       <div class="form-grid"><label id="editStartTimeLabel">Hora inicio<div class="date-wrap"><input id="editTime" type="time" value="${!allDay&&i.dueAt?escAttr(iso.time):''}"></div></label><label id="editEndTimeLabel">Hora fin<div class="date-wrap"><input id="editEndTime" type="time" value="${!allDay?escAttr(endTime):''}"></div></label></div>
-      <label>Ubicación <span class="optional">(opcional)</span><input id="editLocation" type="text" value="${escAttr(i.locationText||'')}"></label>
-      <label>Enlace de Google Maps <span class="optional">(opcional)</span><input id="editMapsUrl" type="text" inputmode="url" value="${escAttr(i.mapsUrl||'')}"></label>
+      <div class="location-field"><label for="editLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="editLocation" type="text" value="${escAttr(i.locationText||'')}"><button id="editLocationMapBtn" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div><input id="editMapsUrl" type="hidden" value="${escAttr(i.mapsUrl||'')}"></div>
       <label>Zona horaria<input id="editTimeZone" type="text" value="${escAttr(i.timeZone||'Europe/Madrid')}"></label>
       ${i.participantsText?`<div class="details-box"><strong>Participantes</strong><div class="small muted">${esc(i.participantsText)}</div></div>`:''}
       <div class="form-grid"><label>Periodicidad<select id="editRecurrence">${recurrenceOptions(i.recurrence||'none')}</select></label><label id="editUntilLabel" class="${i.recurrence&&i.recurrence!=='none'?'':'hidden'}">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="editUntil" type="date" value="${i.recurrenceUntil?escAttr(isoFromMs(i.recurrenceUntil).date):''}"></div></label></div>
@@ -1726,7 +1726,7 @@ function openItem(id){
       ${isAppointmentType(i.type)?`<label>Estado<select id="editStatus"><option value="pending" ${i.status!=='done'&&i.status!=='postponed'?'selected':''}>Pendiente</option><option value="done" ${i.status==='done'?'selected':''}>Completada</option><option value="postponed" ${i.status==='postponed'?'selected':''}>Pospuesta</option><option value="cancelled" ${i.status==='cancelled'?'selected':''}>Cancelada</option></select></label>`:''}
       
     </div></details>
-    <div class="modal-actions wrap-actions"><button id="saveEditBtn" class="primary-button">Guardar cambios</button><button id="goItemLocationBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> Google Maps</button>${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>`);
+    <div class="modal-actions wrap-actions">${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>`);
 
   const syncEditAllDay=()=>{
     const checked=!!$('#editAllDay').checked;
@@ -1755,7 +1755,7 @@ function openItem(id){
     const res=parseNative(NexoNative.updateItem(JSON.stringify({id,title:$('#editTitle').value.trim(),body:$('#editBody').value,category:$('#editCategory').value,type:selectedType,dueAt,endAt,hasTime:!!(date&&time&&!allDay),allDay,durationMinutes,locationText:$('#editLocation').value.trim(),mapsUrl:$('#editMapsUrl').value.trim(),timeZone:$('#editTimeZone').value.trim()||'Europe/Madrid',recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'&&$('#editUntil').value?endOfDayMs($('#editUntil').value):0,voiceEnabled:$('#editVoiceEnabled')?$('#editVoiceEnabled').checked:false,needsReview:false,...statusPayload})),{});
     if(res.ok){let alertsOk=true;if(!sameAlerts(editAlerts,originalAlerts)){const ar=parseNative(NexoNative.replaceItemReminders(id,JSON.stringify(editAlerts)),{});alertsOk=!!ar.ok;}closeModal();toast(!alertsOk?'Cambios guardados, pero no se pudieron actualizar los avisos':conflicts.length?`Cambios guardados · coincide con ${conflicts.length} elemento${conflicts.length===1?'':'s'}`:'Cambios guardados');refreshCurrent();}else toast(res.error||'No se pudieron guardar los cambios.');
   });
-  if($('#goItemLocationBtn'))$('#goItemLocationBtn').addEventListener('click',()=>openMapsFromFields('#editLocation','#editMapsUrl'));
+  if($('#editLocationMapBtn'))$('#editLocationMapBtn').addEventListener('click',()=>openMapsFromFields('#editLocation','#editMapsUrl'));
   if($('#shareItemBtn'))$('#shareItemBtn').addEventListener('click',()=>openItemShareMenu(i.id,i.dueAt||0,false,!!i.dueAt));
   if($('#postponeItemBtn'))$('#postponeItemBtn').addEventListener('click',()=>{closeModal();openPostponeSheet(i.id,i.dueAt,false);});
   if(url)$('#openUrlBtn').addEventListener('click',()=>NexoNative.openExternal(url));
@@ -1767,7 +1767,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if(i.type==='document'){openDocumentEditor(seriesId);return;}
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
-  openModal(i.title,`<div class="event-form-actions"><button id="editOccurrenceTopBtn" class="secondary-button" type="button">${uiIcon('edit')} Editar</button><button id="shareOccurrenceBtn" class="secondary-button" type="button">${uiIcon('share')} Compartir</button><button id="deleteOccurrenceBtn" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button></div><div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
+  openModal(i.title,`<div class="event-form-actions"><button id="saveOccurrenceBtn" class="primary-button" type="button">Guardar</button><button id="editOccurrenceTopBtn" class="secondary-button" type="button">${uiIcon('edit')} Editar</button><button id="shareOccurrenceBtn" class="secondary-button" type="button">${uiIcon('share')} Compartir</button><button id="deleteOccurrenceBtn" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button></div><div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
     <div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     <details class="details-box" open><summary>Editar</summary><div class="detail-grid">
@@ -1778,8 +1778,7 @@ function openOccurrence(seriesId,occurrenceAt){
       <div class="form-grid"><label>Fecha inicio<div class="date-wrap"><input id="occDate" type="date" value="${escAttr(iso.date)}"></div></label><label>Fecha fin<div class="date-wrap"><input id="occEndDate" type="date" value="${escAttr(endIso.date)}"></div></label></div>
       <label class="switch-row event-all-day-row"><input id="occAllDay" type="checkbox" ${allDay?'checked':''}><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
       <div class="form-grid"><label id="occStartTimeLabel">Hora inicio<div class="date-wrap"><input id="occTime" type="time" value="${!allDay?escAttr(iso.time):''}"></div></label><label id="occEndTimeLabel">Hora fin<div class="date-wrap"><input id="occEndTime" type="time" value="${!allDay?escAttr(endTime):''}"></div></label></div>
-      <label>Ubicación <span class="optional">(opcional)</span><input id="occLocation" type="text" value="${escAttr(i.locationText||'')}"></label>
-      <label>Enlace de Google Maps <span class="optional">(opcional)</span><input id="occMapsUrl" type="text" inputmode="url" value="${escAttr(i.mapsUrl||'')}"></label>
+      <div class="location-field"><label for="occLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="occLocation" type="text" value="${escAttr(i.locationText||'')}"><button id="occLocationMapBtn" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div><input id="occMapsUrl" type="hidden" value="${escAttr(i.mapsUrl||'')}"></div>
       <label>Zona horaria<input id="occTimeZone" type="text" value="${escAttr(i.timeZone||'Europe/Madrid')}"></label>
       ${i.participantsText?`<div class="details-box"><strong>Participantes</strong><div class="small muted">${esc(i.participantsText)}</div></div>`:''}
       <div class="form-grid"><label>Periodicidad<select id="occRecurrence">${recurrenceOptions(i.recurrence)}</select></label><label>Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="occUntil" type="date" value="${escAttr(until||'')}"></div></label></div><div class="small muted">Si cambias la periodicidad, Nexo te preguntará si debe aplicarse desde esta aparición o a toda la serie.</div>
@@ -1788,7 +1787,7 @@ function openOccurrence(seriesId,occurrenceAt){
       
     </div></details>
     ${isAppointmentType(i.type)?`<div class="occurrence-status-actions"><button id="occToggleDone" class="secondary-button">${currentState==='done'?'Marcar pendiente':'Marcar completada'}</button>${currentState!=='done'?'<button id="occPostpone" class="secondary-button">Posponer</button>':''}<span class="small muted">Estas acciones afectan solo a esta aparición.</span></div>`:''}
-    <div class="modal-actions wrap-actions"><button id="saveOccurrenceBtn" class="primary-button">Guardar cambios</button><button id="goOccurrenceLocationBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> Google Maps</button></div>`);
+    <div class="modal-actions wrap-actions"></div>`);
 
   $('#editOccurrenceTopBtn').addEventListener('click',()=>{const details=$('#modalBody .details-box');if(details)details.open=true;$('#occTitle')?.focus();});
   const syncOccAllDay=()=>{
@@ -1806,7 +1805,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if($('#occVoiceEnabled'))$('#occVoiceEnabled').addEventListener('change',()=>{if($('#occVoiceEnabled').checked&&!occAlerts.length){occAlerts=[0];renderOccAlerts();toast('Se ha añadido un aviso en el momento para poder leerlo por voz.');}});
   if($('#occToggleDone'))$('#occToggleDone').addEventListener('click',()=>{const next=currentState==='done'?'active':'done',r=parseNative(NexoNative.setOccurrenceStatus(seriesId,occurrenceAt,next),{});if(r.ok){closeModal();toast(next==='done'?'Cita completada':'Cita marcada pendiente');refreshCurrent();}else toast('No se pudo actualizar.');});
   if($('#occPostpone'))$('#occPostpone').addEventListener('click',()=>{closeModal();openPostponeSheet(seriesId,occurrenceAt,true);});
-  if($('#goOccurrenceLocationBtn'))$('#goOccurrenceLocationBtn').addEventListener('click',()=>openMapsFromFields('#occLocation','#occMapsUrl'));
+  if($('#occLocationMapBtn'))$('#occLocationMapBtn').addEventListener('click',()=>openMapsFromFields('#occLocation','#occMapsUrl'));
   $('#shareOccurrenceBtn').addEventListener('click',()=>openItemShareMenu(seriesId,occurrenceAt,true,true));
   $('#saveOccurrenceBtn').addEventListener('click',()=>{
     const date=$('#occDate').value,allDay=!!$('#occAllDay').checked,time=allDay?'':$('#occTime').value,endDate=$('#occEndDate').value||date,endTime=allDay?'':$('#occEndTime').value,rec=$('#occRecurrence').value,untilDate=$('#occUntil').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
@@ -2150,8 +2149,7 @@ function init(){
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
   $('#homeInboxPulseCard')?.addEventListener('click',()=>openPanel('inbox'));
-  $('#homeCalendarCard')?.addEventListener('click',()=>openCalendar('today',isoDateLocal(new Date())));
-  $('#homeAgendaLink')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});
+  $('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});
   $('#searchHistorical')?.addEventListener('change',e=>{state.searchHistorical=!!e.target.checked;if($('#searchInput').value.trim())runSearch();});
   $('#globalVoiceFab').addEventListener('click',runFloatingVoice);
   $('#calendarAddFab').addEventListener('click',runEventAddFab);

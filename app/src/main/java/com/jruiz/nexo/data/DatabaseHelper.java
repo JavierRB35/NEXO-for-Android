@@ -751,16 +751,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (in.has("voiceEnabled")) v.put("voice_enabled", in.optBoolean("voiceEnabled") ? 1 : 0);
         if (in.has("noteTitleManual")) v.put("note_title_manual", in.optBoolean("noteTitleManual") ? 1 : 0);
 
-        // Lógica de Nexo Familia para eventos: la fecha manda sobre el estado temporal.
-        // Un evento no recurrente pasado queda completado; hoy/futuro queda pendiente.
-        // Cancelado es explícito y nunca se reactiva automáticamente.
-        if (in.has("dueAt")) {
+        // La fecha puede sugerir estado solo cuando el usuario NO lo ha elegido.
+        // Un estado explícito (Completada, Pospuesta, Cancelada o Pendiente) manda.
+        if (in.has("dueAt") && !in.has("status")) {
             String effectiveType=in.optString("type",old.optString("type","note"));
             String effectiveRecurrence=RecurrenceEngine.normalize(in.optString("recurrence",old.optString("recurrence",RecurrenceEngine.NONE)));
             long newDue=Math.max(0,in.optLong("dueAt",0));
             long newEnd=in.has("endAt")?Math.max(0,in.optLong("endAt",0)):Math.max(0,old.optLong("endAt",0));
-            String requestedStatus=in.has("status")?in.optString("status",old.optString("status","pending")):old.optString("status","pending");
-            if ("event".equals(effectiveType) && !"cancelled".equals(requestedStatus)) {
+            if ("event".equals(effectiveType)) {
                 if (RecurrenceEngine.isRecurring(effectiveRecurrence)) {
                     v.put("status","pending");
                 } else if (newDue>0) {
@@ -807,6 +805,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     "UPDATE items SET status=CASE " +
                     "WHEN status='cancelled' THEN 'cancelled' " +
                     "WHEN recurrence<>'none' THEN 'pending' " +
+                    "WHEN status='done' THEN 'done' " +
+                    "WHEN status='postponed' THEN 'postponed' " +
                     "WHEN due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) THEN 'done' " +
                     "ELSE 'pending' END, updated_at=? " +
                     "WHERE deleted_at=0 AND type='event'",
@@ -2777,6 +2777,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             String recurrence=RecurrenceEngine.normalize(item.optString("recurrence",RecurrenceEngine.NONE));
             if (RecurrenceEngine.isRecurring(recurrence)) {
                 item.put("status","pending");
+            } else if ("done".equals(current) || "postponed".equals(current)) {
+                // Un cambio manual de estado se conserva aunque la fecha sea hoy o futura.
+                return item;
             } else {
                 long due=item.optLong("dueAt",0L);
                 long end=item.optLong("endAt",0L);

@@ -1,0 +1,47 @@
+name: package-beta17-flat
+
+on:
+  push:
+    branches:
+      - release/nexo-3.7.0-beta17
+  workflow_dispatch:
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate beta17
+        shell: bash
+        run: |
+          node --check app/src/main/assets/app.js
+          sh -n build-on-phone.sh
+          python3 validation/test-version-identity.py
+          python3 validation/test-home-familia-parity.py
+          python3 validation/test-beta13-interactions.py
+          python3 validation/test-beta14-gmail.py
+          python3 validation/test-beta15-voice-holidays.py
+          python3 validation/test-beta16-time-voice.py
+          python3 validation/test-beta17-event-edit-home.py
+          python3 validation/test-temporal-status.py
+          sh validation/regression/run-benchmark.sh validation/regression/data/beta16_time_cases.tsv
+      - name: Create flat source ZIP
+        shell: bash
+        run: |
+          rm -f Nexo_3_7_0_beta17.zip
+          zip -r Nexo_3_7_0_beta17.zip . \
+            -x '.git/*' \
+               '.github/workflows/package-beta12-flat.yml' \
+               '.github/workflows/package-beta13-flat.yml' \
+               '.github/workflows/package-beta14-flat.yml' \
+               '.github/workflows/package-beta15-flat.yml' \
+               '.github/workflows/package-beta16-flat.yml' \
+               '.github/workflows/package-beta17-flat.yml' \
+               'Nexo_3_7_0_beta17.zip' \
+               'app/build/*' \
+               '.gradle/*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexo_3_7_0_beta17
+          path: Nexo_3_7_0_beta17.zip
+          if-no-files-found: error

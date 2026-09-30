@@ -1,4 +1,4 @@
-# Nexo 3.7.0-beta16 · AndroidIDE
+# Nexo 3.7.0-beta17 · AndroidIDE
 
 Rama Release: `release/nexo-3.7.0-beta16`.
 
@@ -135,3 +135,13 @@ Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)`
 - «esta tarde / esta noche / esta madrugada» fijan la fecha en hoy, sin desplazar por error el evento al día siguiente si la hora parecía AM.
 - El botón flotante **Habla con Nexo** aparece también mientras se crea una tarea/cita en Captura rápida.
 - Al dictar desde esa pantalla se amplía el texto actual sin limpiar el tipo o la fecha fijados y Nexo vuelve a interpretar los campos.
+
+
+## Beta17 · edición de eventos e Inicio
+
+- El estado elegido manualmente en una cita se conserva. Marcar **Completada** y guardar ya no vuelve a **Pendiente** por tener una fecha futura.
+- El botón **Guardar** está en la parte superior de la ficha junto a Editar, Compartir y Eliminar, distribuido en una cuadrícula cómoda en móvil.
+- Google Maps se abre desde el propio campo **Ubicación**. El campo visible «Enlace de Google Maps» desaparece; los enlaces heredados se conservan internamente para compatibilidad.
+- La tarjeta **Calendario** de Inicio abre la misma Agenda que antes abría «Ver agenda».
+- Se elimina «Ver agenda» de Próximamente por ser redundante.
+- El mes de la tarjeta Calendario se muestra con capital inicial: «Sept», no «SEPT».

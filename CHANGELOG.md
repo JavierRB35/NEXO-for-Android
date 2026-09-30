@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.7.0-beta17 · versionCode 82 · Estado, edición y acceso a Agenda
+
+- Corrige la persistencia del estado manual de citas: **Completada**, **Pospuesta**, **Cancelada** y **Pendiente** ya no son sustituidos por la fecha durante el guardado.
+- La reconciliación temporal conserva citas no recurrentes completadas manualmente.
+- Los eventos importados de Nexo Familia respetan también un estado manual completado o pospuesto.
+- **Guardar** pasa a la zona superior de acciones de la ficha, con distribución 2×2 en móvil y 4 columnas cuando hay espacio.
+- Google Maps se integra en el mismo campo **Ubicación**; desaparece el campo visible «Enlace de Google Maps».
+- La tarjeta **Calendario** de Inicio abre la Agenda; se elimina el enlace redundante «Ver agenda».
+- El mes del botón Calendario usa capital inicial en lugar de mayúsculas completas.
+- Sin cambios en el esquema de base de datos ni en el baseline AndroidIDE.
+
 ## 3.7.0-beta16 · versionCode 81 · Franjas horarias y voz en tareas
 
 - Corrige «esta tarde a las cinco y media»: ahora se interpreta como **17:30**, no 05:30.
