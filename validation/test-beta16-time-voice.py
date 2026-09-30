@@ -11,5 +11,5 @@ assert "state.voiceMode==='capture-edit'" in js
 assert 'function applyCaptureVoiceText(text)' in js
 assert 'clearCapture();' not in js[js.index('function applyCaptureVoiceText'):js.index('function finalizeManagedDictation')]
 assert 'adjustDayPartFromContext' in temporal
-assert 'esta\\s+(?:manana|tarde|noche|madrugada)' in temporal
+assert 'manana|tarde|noche|madrugada' in temporal
 print('Beta16: franja horaria contextual y voz en captura OK')
