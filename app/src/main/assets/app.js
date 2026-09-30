@@ -1619,7 +1619,7 @@ function openAgendaOptions(id,occurrenceAt,recurring){
   openModal(i.title||'Cita',`<div class="scope-buttons"><button id="agendaEditAction" class="primary-button">${uiIcon('edit')} Ver / editar</button>${appointment?`<button id="agendaDoneAction" class="secondary-button">${uiIcon('check')} ${done?'Marcar pendiente':'Marcar completada'}</button>`:''}${appointment&&!done&&i.dueAt?'<button id="agendaPostponeAction" class="secondary-button">Posponer</button>':''}${(i.locationText||i.mapsUrl)?`<button id="agendaDirectionsAction" class="secondary-button">${uiIcon('pin')} Ir al lugar</button>`:''}<button id="agendaShareAction" class="secondary-button">${uiIcon('share')} Compartir</button></div>`);
   $('#agendaEditAction').addEventListener('click',()=>{closeModal();if(recurring)openOccurrence(id,occurrenceAt);else openItem(id);});
   $('#agendaDoneAction')?.addEventListener('click',()=>{
-    const result=parseNative(recurring?NexoNative.setOccurrenceStatus(id,occurrenceAt,done?'active':'done'):NexoNative.updateItem(JSON.stringify({id,status:done?'pending':'done'})),{});
+    const result=parseNative(recurring?NexoNative.setOccurrenceStatus(id,occurrenceAt,done?'pending':'done'):NexoNative.updateItem(JSON.stringify({id,status:done?'pending':'done',statusManual:true})),{});
     if(!result.ok){toast('No se pudo actualizar la cita.');return;}
     closeModal();refreshCurrent();toast(done?'Cita pendiente':'Cita completada');
   });
