@@ -419,10 +419,15 @@ public class MainActivity extends Activity {
             }
 
             ensureNotificationPermission();
-            new Thread(() -> {
-                CalendarWatchEngine.initializeBaseline(getApplicationContext());
+            if (InputHubPrefs.autoScanEnabled(this)) {
+                new Thread(() -> {
+                    CalendarWatchEngine.initializeBaseline(getApplicationContext());
+                    jsCallback("onCalendarAccessChanged", "1");
+                }, "nexo-calendar-baseline").start();
+            } else {
                 jsCallback("onCalendarAccessChanged", "1");
-            }, "nexo-calendar-baseline").start();
+                jsCallback("onInputHubChanged", "calendar");
+            }
         });
     }
 
@@ -447,10 +452,14 @@ public class MainActivity extends Activity {
                 return;
             }
             ensureNotificationPermission();
-            new Thread(() -> {
-                SmsWatchEngine.initializeBaseline(getApplicationContext());
+            if (InputHubPrefs.autoScanEnabled(this)) {
+                new Thread(() -> {
+                    SmsWatchEngine.initializeBaseline(getApplicationContext());
+                    jsCallback("onInputHubChanged", "sms");
+                }, "nexo-sms-baseline").start();
+            } else {
                 jsCallback("onInputHubChanged", "sms");
-            }, "nexo-sms-baseline").start();
+            }
         });
     }
 
@@ -483,12 +492,16 @@ public class MainActivity extends Activity {
         InputHubPrefs.setGmailEnabled(this, true);
         CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
         ensureNotificationPermission();
-        new Thread(() -> {
-            if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
-            else GmailWatchEngine.scan(getApplicationContext());
-            GmailWatchScheduler.schedule(getApplicationContext());
+        if (InputHubPrefs.autoScanEnabled(this)) {
+            new Thread(() -> {
+                if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
+                else GmailWatchEngine.scan(getApplicationContext());
+                GmailWatchScheduler.schedule(getApplicationContext());
+                jsCallback("onInputHubChanged", "gmail");
+            }, "nexo-gmail-enable").start();
+        } else {
             jsCallback("onInputHubChanged", "gmail");
-        }, "nexo-gmail-enable").start();
+        }
     }
 
     private void setInputHubAutoScanEnabled(boolean enabled) {
@@ -1176,11 +1189,15 @@ public class MainActivity extends Activity {
                 InputHubPrefs.setGmailError(this, "");
                 CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
                 ensureNotificationPermission();
-                new Thread(() -> {
-                    GmailWatchEngine.initializeBaseline(getApplicationContext());
-                    GmailWatchScheduler.schedule(getApplicationContext());
+                if (InputHubPrefs.autoScanEnabled(this)) {
+                    new Thread(() -> {
+                        GmailWatchEngine.initializeBaseline(getApplicationContext());
+                        GmailWatchScheduler.schedule(getApplicationContext());
+                        jsCallback("onInputHubChanged", "gmail");
+                    }, "nexo-gmail-baseline").start();
+                } else {
                     jsCallback("onInputHubChanged", "gmail");
-                }, "nexo-gmail-baseline").start();
+                }
             } catch (Exception e) {
                 InputHubPrefs.setGmailEnabled(this, false);
                 CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
@@ -1514,11 +1531,16 @@ public class MainActivity extends Activity {
             if (ok) {
                 CalendarCapturePrefs.setEnabled(this, true);
                 ensureNotificationPermission();
-                new Thread(() -> {
-                    CalendarWatchEngine.initializeBaseline(getApplicationContext());
+                if (InputHubPrefs.autoScanEnabled(this)) {
+                    new Thread(() -> {
+                        CalendarWatchEngine.initializeBaseline(getApplicationContext());
+                        jsCallback("onCalendarAccessChanged", "1");
+                        jsCallback("onInputHubChanged", "calendar");
+                    }, "nexo-calendar-baseline").start();
+                } else {
                     jsCallback("onCalendarAccessChanged", "1");
                     jsCallback("onInputHubChanged", "calendar");
-                }, "nexo-calendar-baseline").start();
+                }
             } else {
                 CalendarCapturePrefs.setEnabled(this, false);
                 CalendarWatchScheduler.cancel(this);
@@ -1532,10 +1554,14 @@ public class MainActivity extends Activity {
                 InputHubPrefs.setSmsEnabled(this, true);
                 CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
                 ensureNotificationPermission();
-                new Thread(() -> {
-                    SmsWatchEngine.initializeBaseline(getApplicationContext());
+                if (InputHubPrefs.autoScanEnabled(this)) {
+                    new Thread(() -> {
+                        SmsWatchEngine.initializeBaseline(getApplicationContext());
+                        jsCallback("onInputHubChanged", "sms");
+                    }, "nexo-sms-baseline").start();
+                } else {
                     jsCallback("onInputHubChanged", "sms");
-                }, "nexo-sms-baseline").start();
+                }
             } else {
                 InputHubPrefs.setSmsEnabled(this, false);
                 SmsWatchScheduler.cancel(this);
