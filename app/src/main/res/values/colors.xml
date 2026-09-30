@@ -7,6 +7,7 @@
     <color name="nexo_text">#1C211E</color>
     <color name="nexo_background">#F7F8F6</color>
     <color name="nexo_navy">#18362C</color>
+    <color name="nexo_icon_background">#000000</color>
     <color name="nexo_blue">#176B50</color>
     <color name="white">#FFFFFF</color>
 </resources>
