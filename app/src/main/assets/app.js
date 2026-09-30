@@ -115,15 +115,16 @@ function familySearchCandidateForItem(item,todayStart){
   const eventDate=next?localDateKeyFromMs(next):localDateKeyFromMs(item.dueAt);
   const historical=eventLike?(recurring?!next:(item.status==='done'||(eventDate&&eventDate<isoDateLocal(new Date())))):false;
   const type=item.type==='note'?'Nota':eventLike?'Evento':item.type==='document'?'Documento':isPlaceType(item.type)?'Lugar':typeLabel(item.type);
-  const assigned=item.participantsText?'Asignado a '+item.participantsText:'';
-  const detail=[categoryLabel(item.category),assigned,item.locationText,eventDate,historical?'Finalizado':''].filter(Boolean).join(' · ');
+  const involved=item.participantsText?'Personas: '+item.participantsText:'';
+  const detail=[categoryLabel(item.category),involved,item.locationText,eventDate,historical?'Finalizado':''].filter(Boolean).join(' · ');
   return {kind:'item',id:Number(item.seriesId||item.id),occurrenceAt:recurring?next:0,recurring,type,title:String(item.title||type),detail,
-    searchText:[item.title,item.body,item.originalText,item.category,item.subcategory,item.tags,item.locationText,item.participantsText,item.attachmentName,'agenda','asignado'].filter(Boolean).join(' '),
+    searchText:[item.title,item.body,item.originalText,item.category,item.subcategory,item.tags,item.locationText,item.participantsText,item.attachmentName,'agenda','personas','involucrado'].filter(Boolean).join(' '),
     sortDate:eventDate||'',historical,raw:item};
 }
 function buildFamilyStyleSearchIndex(){
   const data=parseNative(NexoNative.getFamilyStyleSearchIndex(),{}),today=new Date();today.setHours(0,0,0,0);const start=today.getTime(),out=[];
   (parseNative(NexoNative.getNexoFamiliaMembers(),[])||[]).forEach(m=>out.push({kind:'member',id:String(m.user_id||''),type:'Persona',title:String(m.full_name||'Persona'),detail:m.role==='admin'?'Administrador':'Miembro',searchText:[m.full_name,m.role].filter(Boolean).join(' '),historical:false,raw:m}));
+  (parseNative(NexoNative.getPeople(),[])||[]).forEach(p=>out.push({kind:'person',id:Number(p.id)||0,type:'Persona',title:String(p.name||'Persona'),detail:'Persona de Nexo',searchText:[p.name,'persona','eventos'].filter(Boolean).join(' '),historical:false,raw:p}));
   (data.items||[]).forEach(i=>out.push(familySearchCandidateForItem(i,start)));
   (data.lists||[]).forEach(x=>out.push({kind:'list',id:Number(x.id),type:'Lista',title:String(x.title||'Lista'),detail:String(x.kind||''),searchText:[x.title,x.kind,x.entriesText].filter(Boolean).join(' '),historical:false,raw:x}));
   (data.medications||[]).forEach(x=>out.push({kind:'medication',id:Number(x.id),type:'Medicación',title:String(x.name||x.title||'Medicamento'),detail:[x.dose,x.scheduleText,x.instructions,x.active===false?'Historial':''].filter(Boolean).join(' · '),searchText:[x.name,x.title,x.dose,x.instructions,x.notes,x.scheduleText,x.times].filter(Boolean).join(' '),historical:false,raw:x}));
@@ -144,10 +145,9 @@ function familyStyleSearch(query,includeHistorical=false){
     let score=0;
     if(title===normalizedQuery)score+=120;else if(title.startsWith(normalizedQuery))score+=80;else if(title.includes(normalizedQuery))score+=55;
     if(detail.includes(normalizedQuery))score+=35;
-    if(detail.includes('asignado a '+normalizedQuery))score+=70;
     if(searchText.includes(normalizedQuery))score+=20;
     if(type.includes(normalizedQuery))score+=12;
-    tokens.forEach(t=>{if(title.includes(t))score+=12;if(detail.includes(t))score+=7;if(detail.includes('asignado a '+t))score+=28;if(searchText.includes(t))score+=4;});
+    tokens.forEach(t=>{if(title.includes(t))score+=12;if(detail.includes(t))score+=7;if(searchText.includes(t))score+=4;});
     return {item,score,index};
   }).filter(Boolean).sort((a,b)=>{
     const relevance=b.score-a.score;if(relevance!==0)return relevance;
@@ -161,11 +161,13 @@ function familyStyleSearch(query,includeHistorical=false){
   }).map(x=>x.item);
 }
 function familySearchCard(item,index,home=false){
-  return '<button type="button" class="family-result-card" data-family-search-result="'+index+'" data-family-search-home="'+(home?'1':'0')+'"><span class="family-result-main"><span class="pill">'+esc(item.type)+'</span><strong>'+esc(item.title)+'</strong>'+(item.detail?'<span>'+esc(item.detail)+'</span>':'')+'</span>'+uiIcon('right')+'</button>';
+  const avatars=item.kind==='item'&&isAppointmentType(item.raw?.type)?eventParticipantAvatarsHtml(item.raw,'event-participant-avatars--search'):'';
+  return '<button type="button" class="family-result-card" data-family-search-result="'+index+'" data-family-search-home="'+(home?'1':'0')+'"><span class="family-result-main"><span class="pill">'+esc(item.type)+'</span><strong>'+esc(item.title)+'</strong>'+(item.detail?'<span>'+esc(item.detail)+'</span>':'')+avatars+'</span>'+uiIcon('right')+'</button>';
 }
 function openFamilySearchResult(item){
   if(!item)return;
   if(item.kind==='member'){navigate('more');return;}
+  if(item.kind==='person'){navigate('more');setTimeout(()=>{toggleSettingsAccordion('people');if(item.id)openPersonEditor(Number(item.id));},60);return;}
   if(item.kind==='list'){openPanel('lists');setTimeout(()=>openList(Number(item.id)),40);return;}
   if(item.kind==='medication'){openPanel('medications');setTimeout(()=>openMedicationComposer('',item.raw),40);return;}
   if(item.kind==='journal'){openPanel(item.raw?.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(Number(item.id)),40);return;}
