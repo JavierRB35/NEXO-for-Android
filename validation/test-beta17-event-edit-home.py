@@ -66,8 +66,8 @@ launcher_round_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.x
 colors=(root/'app/src/main/res/values/colors.xml').read_text(encoding='utf-8')
 assert '<img class="brand-logo" src="nexo-logo.webp"' in html
 assert screen_logo.exists() and launcher_logo.exists()
-assert hashlib.sha256(screen_logo.read_bytes()).hexdigest()=='f5c7ddefc6e38aa41887db9e062e94d913d8f9253714a0d83b6f30dce22bd2a4'
-assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()=='dedf9cba52dd9f62ee9dc2574b1aedebad3085a73f8fd81e1cadd67549b75b75'
+assert hashlib.sha256(screen_logo.read_bytes()).hexdigest()=='4acaf52c4f3a36a94f29589a27b9de55fc4310d59fe43f5f3a84c60f667d9283'
+assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()=='9cdad428e65c34bc9f3d2b27bd5231ef96c36bf54b2cf47702f0ea6568830239'
 assert '@drawable/nexo_family_foreground' in launcher_xml and '@drawable/nexo_family_foreground' in launcher_round_xml
 assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
 assert '<color name="nexo_icon_background">#000000</color>' in colors
