@@ -1000,7 +1000,7 @@ function itemCard(i) {
   const id=i.seriesId||i.id,occ=i.occurrenceAt||i.dueAt||0;
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${i.id}"`;
   const done=(i.status==='done'||i.occurrenceStatus==='done'),cancelled=i.status==='cancelled';
-  return `<div class="item-card ${done?'item-done':''}">
+  return `<div class="item-card ${done?'item-done':''}" role="button" tabindex="0" data-item-card-open="${id}" data-item-card-occurrence="${occ}" data-item-card-recurring="${recurring?'1':'0'}">
     <div class="item-top"><div class="item-title">${esc(i.title)}</div><div class="record-card-actions">${recordIconAction('edit','Editar',open)}${recordIconAction('share','Compartir',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>
     <div class="item-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag">${esc(due)}</span>`:''}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':cancelled?'<span class="meta-tag done-tag">Cancelada</span>':''}</div>
     ${i.body&&i.body!==i.title?`<div class="item-body">${esc(i.body)}</div>`:''}
@@ -1011,6 +1011,11 @@ function itemCard(i) {
 function bindItemButtons(root=document){
   bindPlaceButtons(root);
   bindDocumentButtons(root);
+  root.querySelectorAll('[data-item-card-open]').forEach(card=>{
+    const open=()=>{const id=Number(card.dataset.itemCardOpen),occ=Number(card.dataset.itemCardOccurrence||0),rec=card.dataset.itemCardRecurring==='1';if(rec)openOccurrence(id,occ);else openItem(id);};
+    card.addEventListener('click',e=>{if(e.target.closest('button,a,input,select,textarea,label'))return;open();});
+    card.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('button,a,input,select,textarea')){e.preventDefault();open();}});
+  });
   root.querySelectorAll('[data-agenda-options]').forEach(b=>b.addEventListener('click',()=>openAgendaOptions(Number(b.dataset.agendaOptions),Number(b.dataset.agendaOccurrence),b.dataset.agendaRecurring==='1')));
   root.querySelectorAll('[data-open-item]').forEach(b=>b.addEventListener('click',()=>openItem(Number(b.dataset.openItem))));
   root.querySelectorAll('[data-open-occurrence]').forEach(b=>b.addEventListener('click',()=>openOccurrence(Number(b.dataset.openOccurrence),Number(b.dataset.occurrenceAt))));
