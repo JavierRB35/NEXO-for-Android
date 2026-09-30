@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta11 · AndroidIDE
+# Nexo 3.7.0-beta14 · AndroidIDE
 
-Rama de trabajo: `feature/nexo-polish-v0.11`.
+Rama Release: `release/nexo-3.7.0-beta14`.
 
 Identidad:
-- Nexo **3.7.0-beta11**
-- `versionCode 76`
+- Nexo **3.7.0-beta14**
+- `versionCode 79`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta11/
+/storage/emulated/0/Download/Nexo_3_7_0_beta14/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta11"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta14"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta11.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta14.apk
 ```
 
 ## Input Hub beta4
