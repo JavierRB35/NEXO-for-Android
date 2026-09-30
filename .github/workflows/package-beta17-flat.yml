@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release/nexo-3.7.0-beta17
+      - work/nexo-3.7.0-beta17-ajustes-eventos
   workflow_dispatch:
 
 jobs:
