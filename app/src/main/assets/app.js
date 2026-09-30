@@ -2053,7 +2053,7 @@ window.NexoUI={
   },
   onSharedImportDone(raw){const r=parseNative(raw,{});closeModal();toast(`${r.title||'Contenido'} añadido a Nexo`,'',null,5000);if(r.entity==='list'&&r.id){openPanel('lists');setTimeout(()=>openList(Number(r.id)),80);}else if(r.entity==='journal'&&r.id){const j=parseNative(NexoNative.getJournal(Number(r.id)),{});openPanel(j.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(Number(r.id)),80);}else if(r.entity==='item'&&r.id){refreshCurrent();setTimeout(()=>openItem(Number(r.id)),80);}else refreshCurrent();},
   onSharedImportError(msg){closeModal();toast(msg||'No se pudo importar el contenido.','',null,6000);},
-  onRecordingStateChanged(raw){if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();if(state.screen==='today')renderToday();},
+  onRecordingStateChanged(raw){if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();if(state.screen==='today')renderToday();updateFloatingActions();},
   onRecordingError(msg){toast(msg||'No se pudo completar la acción de grabación.','',null,5500);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   onRecordingPlaybackStarted(id){state.playingRecordingId=String(id||'');refreshRecordingSurface();setTimeout(startRecordingPlaybackPolling,80);},
   onRecordingPlaybackStopped(id){stopRecordingPlaybackPolling();if(!id||state.playingRecordingId===String(id))state.playingRecordingId='';refreshRecordingSurface();},
