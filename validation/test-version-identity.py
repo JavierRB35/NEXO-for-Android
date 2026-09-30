@@ -16,7 +16,7 @@ assert "versionName '3.7.0-beta17'" in gradle
 assert 'v3.7.0-beta17' in html
 assert 'APP_NAME="Nexo_3_7_0_beta17"' in script
 assert 'assembleRelease' in script and 'apksigner' in script
-assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 22' in db
+assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 23' in db
 assert 'manifest.put("appVersion", BuildConfig.VERSION_NAME);' in backup
 assert seed.get('snapshotVersion') == '2026-09-29-v5-clean-rebuild'
 assert len(seed.get('events', [])) == 33
@@ -24,4 +24,4 @@ assert len(seed.get('reminderRules', [])) == 46
 assert seed.get('sourceAudit', {}).get('familyEventCount') == 33
 assert seed.get('sourceAudit', {}).get('reminderRuleCount') == 46
 assert 'validatePayload(payload, events, rules)' in importer
-print('Nexo 3.7.0-beta17, applicationId, BD 22 y snapshot completa: OK')
+print('Nexo 3.7.0-beta17, applicationId, BD 23 y snapshot completa: OK')
