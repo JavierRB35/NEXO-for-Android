@@ -35,6 +35,7 @@ python validation/test-release-config.py
 python validation/test-calendar-swipe.py
 python validation/test-calendar-nonrecurring-range.py
 python validation/test-home-familia-parity.py
+python validation/test-beta11-polish.py
 node validation/test-calendar-swipe-runtime.js
 if [ -n "${NEXO_QA_MODULES:-}" ]; then
     node validation/test-ui-runtime.cjs
