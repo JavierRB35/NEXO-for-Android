@@ -1363,9 +1363,9 @@ function renderMore(){
 
 function renderCommunicationCaptureSettings(){
   const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{
-    enabled:true,autoScanEnabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false,
+    enabled:true,autoScanEnabled:false,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false,
     smsDirectEnabled:false,smsPermission:false,smsBaselined:false,smsLastSync:0,smsError:'',smsSeen:0,smsCaptured:0,smsRejected:0,smsErrors:0,
-    gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:'',gmailSeen:0,gmailCaptured:0,gmailRejected:0,gmailErrors:0
+    gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:'',gmailErrorDetail:'',gmailSeen:0,gmailCaptured:0,gmailRejected:0,gmailErrors:0
   });
   const auto=$('#inputHubAutoScan'),autoStatus=$('#inputHubAutoScanStatus');
   if(auto)auto.checked=settings.autoScanEnabled!==false;
@@ -1398,21 +1398,42 @@ function renderCommunicationCaptureSettings(){
     else smsStatus.textContent='Desactivado.';
   }
 
-  const gmail=$('#gmailDirectEnabled'),gmailStatus=$('#gmailDirectStatus'),gmailBtn=$('#gmailConnectBtn');
-  if(gmail)gmail.checked=!!settings.gmailDirectEnabled;
+  const gmailStatus=$('#gmailDirectStatus'),gmailBtn=$('#gmailConnectBtn'),gmailScan=$('#gmailScanNowBtn'),gmailDisconnect=$('#gmailDisconnectBtn'),gmailBadge=$('#gmailConnectionBadge'),gmailAccount=$('#gmailAccount'),gmailDiagnostic=$('#gmailDiagnostic'),gmailDiagnosticText=$('#gmailDiagnosticText');
+  const gmailConnected=!!settings.gmailAuthorized;
+  const gmailAccountText=settings.gmailEmail?String(settings.gmailEmail):'';
+  if(gmailBadge){
+    gmailBadge.textContent=gmailConnected?'Conectado':'No conectado';
+    gmailBadge.classList.toggle('connected',gmailConnected);
+    gmailBadge.classList.toggle('error',!gmailConnected&&!!settings.gmailError);
+  }
+  if(gmailAccount){
+    gmailAccount.textContent=gmailAccountText;
+    gmailAccount.classList.toggle('hidden',!gmailConnected||!gmailAccountText);
+  }
   if(gmailStatus){
-    const account=settings.gmailEmail?String(settings.gmailEmail):'';
-    if(settings.gmailDirectEnabled&&settings.gmailAuthorized&&settings.gmailBaselined){
-      gmailStatus.textContent=`${settings.autoScanEnabled===false?'Preparado para escaneo manual':'Activo · Gmail API automática'}${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''} · ${Number(settings.gmailSeen||0)} vistos · ${Number(settings.gmailCaptured||0)} candidatos · ${Number(settings.gmailRejected||0)} descartados${Number(settings.gmailErrors||0)?' · '+Number(settings.gmailErrors||0)+' con error':''}`;
-    }else if(settings.gmailDirectEnabled&&settings.gmailAuthorized){
-      gmailStatus.textContent=settings.autoScanEnabled===false?`Cuenta autorizada${account?' · '+account:''} · pulsa Escanear ahora para iniciar.`:`Cuenta autorizada${account?' · '+account:''} · preparando referencia inicial…`;
+    if(gmailConnected&&settings.gmailBaselined){
+      const last=settings.gmailLastSync?'Último escaneo: '+fmtDate(Number(settings.gmailLastSync),true):'Preparado para escanear';
+      gmailStatus.textContent=`${last} · ${Number(settings.gmailCaptured||0)} candidatos · ${Number(settings.gmailRejected||0)} descartados${settings.autoScanEnabled===false?' · manual':' · automático activado'}`;
+    }else if(gmailConnected){
+      gmailStatus.textContent=settings.autoScanEnabled===false?'Cuenta conectada · pulsa “Escanear Gmail” para empezar.':'Cuenta conectada · preparando Gmail…';
     }else if(settings.gmailError){
       gmailStatus.textContent=String(settings.gmailError);
     }else{
-      gmailStatus.textContent=settings.gmailDirectEnabled?'Falta autorizar una cuenta de Gmail.':'Desactivado.';
+      gmailStatus.textContent='Conecta una cuenta de Google una sola vez. Después podrás escanear Gmail desde aquí.';
     }
   }
-  if(gmailBtn)gmailBtn.textContent=settings.gmailAuthorized?(settings.gmailEmail?`Cambiar cuenta (${settings.gmailEmail})`:'Cambiar cuenta'):'Conectar Gmail';
+  if(gmailBtn){
+    gmailBtn.textContent=gmailConnected?'Cambiar cuenta':'Conectar Gmail';
+    gmailBtn.classList.toggle('secondary-button',gmailConnected);
+    gmailBtn.classList.toggle('primary-button',!gmailConnected);
+  }
+  gmailScan?.classList.toggle('hidden',!gmailConnected);
+  gmailDisconnect?.classList.toggle('hidden',!gmailConnected);
+  if(gmailDiagnostic){
+    const detail=String(settings.gmailErrorDetail||'').trim();
+    gmailDiagnostic.classList.toggle('hidden',!settings.gmailError&&!detail);
+    if(gmailDiagnosticText)gmailDiagnosticText.textContent=detail||String(settings.gmailError||'');
+  }
 
   const calendar=$('#calendarCaptureEnabled'),calendarStatus=$('#calendarAccessStatus');
   if(calendar)calendar.checked=!!settings.calendarEnabled;
@@ -2180,13 +2201,20 @@ function init(){
     toast(enabled?'Activando lectura directa de SMS…':'Lectura directa de SMS desactivada');
     setTimeout(renderCommunicationCaptureSettings,500);
   });
-  $('#gmailDirectEnabled')?.addEventListener('change',()=>{
-    const enabled=$('#gmailDirectEnabled').checked;
-    NexoNative.setGmailCaptureEnabled(enabled);
-    toast(enabled?'Activando Gmail directo…':'Consulta directa de Gmail desactivada');
-    setTimeout(renderCommunicationCaptureSettings,700);
+  $('#gmailConnectBtn')?.addEventListener('click',()=>{
+    NexoNative.connectGmail();
+    toast('Abriendo Google para conectar Gmail…');
   });
-  $('#gmailConnectBtn')?.addEventListener('click',()=>NexoNative.connectGmail());
+  $('#gmailScanNowBtn')?.addEventListener('click',()=>{
+    NexoNative.scanGmailNow();
+    toast('Escaneando Gmail…');
+    setTimeout(renderCommunicationCaptureSettings,900);
+  });
+  $('#gmailDisconnectBtn')?.addEventListener('click',()=>{
+    NexoNative.disconnectGmail();
+    toast('Gmail desconectado');
+    setTimeout(renderCommunicationCaptureSettings,400);
+  });
   $('#calendarCaptureEnabled')?.addEventListener('change',()=>{
     const enabled=$('#calendarCaptureEnabled').checked;
     NexoNative.setCalendarCaptureEnabled(enabled);
