@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.provider.CalendarContract;
 
+import com.jruiz.nexo.input.InputHubPrefs;
+
 public final class CalendarWatchScheduler {
     static final int CONTENT_JOB_ID = 7349;
     static final int PERIODIC_JOB_ID = 7352;
@@ -16,7 +18,7 @@ public final class CalendarWatchScheduler {
     private CalendarWatchScheduler() {}
 
     public static boolean canRun(Context context) {
-        return CalendarCapturePrefs.isEnabled(context) &&
+        return InputHubPrefs.autoScanEnabled(context) && CalendarCapturePrefs.isEnabled(context) &&
                 context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED;
     }
 
