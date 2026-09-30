@@ -696,6 +696,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("attachment_mime", in.optString("attachmentMime", ""));
         String status = in.optString("status", in.optString("type", "note").equals("task") ? "pending" : "active");
         v.put("status", status);
+        v.put("status_manual", in.optBoolean("statusManual", false) ? 1 : 0);
         v.put("needs_review", in.optBoolean("needsReview", false) ? 1 : 0);
         v.put("recurrence", RecurrenceEngine.normalize(in.optString("recurrence", RecurrenceEngine.NONE)));
         v.put("recurrence_until", Math.max(0, in.optLong("recurrenceUntil", 0)));
