@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 21;
+    private static final int DB_VERSION = 22;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -141,6 +141,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         createJournalTables(db);
         seedJournalBiblicalLibrary(db);
         createMedicationTables(db);
+        createPeopleTables(db);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -226,6 +227,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // No se puede distinguir retrospectivamente un 'done/postponed/cancelled' manual
             // de uno calculado. Priorizamos no perder una decisión explícita ya existente.
             db.execSQL("UPDATE items SET status_manual=1 WHERE status IN ('done','postponed','cancelled')");
+        }
+        if (oldVersion < 22) {
+            createPeopleTables(db);
         }
     }
 
@@ -567,6 +571,103 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "UNIQUE(medication_id,scheduled_at)" +
                 ")");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_medication_doses_med_time ON medication_doses(medication_id,scheduled_at)");
+    }
+
+    private static void createPeopleTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS people (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "name TEXT NOT NULL," +
+                "color TEXT NOT NULL DEFAULT '#3158D4'," +
+                "archived_at INTEGER NOT NULL DEFAULT 0," +
+                "created_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_people_active_name ON people(archived_at,name COLLATE NOCASE)");
+    }
+
+    private static String normalizePersonColor(String value) {
+        String color=value==null?"":value.trim().toUpperCase(Locale.ROOT);
+        return color.matches("^#[0-9A-F]{6}$") ? color : "#3158D4";
+    }
+
+    private static JSONObject personJson(Cursor c) {
+        JSONObject out=new JSONObject();
+        try {
+            out.put("id",c.getLong(c.getColumnIndexOrThrow("id")));
+            out.put("name",c.getString(c.getColumnIndexOrThrow("name")));
+            out.put("color",c.getString(c.getColumnIndexOrThrow("color")));
+            out.put("archivedAt",c.getLong(c.getColumnIndexOrThrow("archived_at")));
+            out.put("createdAt",c.getLong(c.getColumnIndexOrThrow("created_at")));
+            out.put("updatedAt",c.getLong(c.getColumnIndexOrThrow("updated_at")));
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public JSONArray getPeople() {
+        JSONArray out=new JSONArray();
+        try (Cursor c=getReadableDatabase().rawQuery(
+                "SELECT id,name,color,archived_at,created_at,updated_at FROM people WHERE archived_at=0 ORDER BY name COLLATE NOCASE,id",null)) {
+            while(c.moveToNext())out.put(personJson(c));
+        }
+        return out;
+    }
+
+    public JSONObject getPerson(long id) {
+        if(id<=0)return new JSONObject();
+        try (Cursor c=getReadableDatabase().rawQuery(
+                "SELECT id,name,color,archived_at,created_at,updated_at FROM people WHERE id=? LIMIT 1",
+                new String[]{String.valueOf(id)})) {
+            return c.moveToFirst()?personJson(c):new JSONObject();
+        }
+    }
+
+    public JSONObject savePerson(JSONObject in) {
+        JSONObject out=new JSONObject();
+        try {
+            long id=in.optLong("id",0);
+            String name=in.optString("name","").trim();
+            if(name.isBlank())return out.put("ok",false).put("error","Escribe el nombre de la persona.");
+            if(name.length()>100)return out.put("ok",false).put("error","El nombre es demasiado largo.");
+            String color=normalizePersonColor(in.optString("color","#3158D4"));
+
+            String duplicateSql=id>0
+                    ?"SELECT id FROM people WHERE archived_at=0 AND name=? COLLATE NOCASE AND id<>? LIMIT 1"
+                    :"SELECT id FROM people WHERE archived_at=0 AND name=? COLLATE NOCASE LIMIT 1";
+            String[] duplicateArgs=id>0
+                    ?new String[]{name,String.valueOf(id)}
+                    :new String[]{name};
+            try(Cursor c=getReadableDatabase().rawQuery(duplicateSql,duplicateArgs)) {
+                if(c.moveToFirst())return out.put("ok",false).put("error","Ya existe una persona con ese nombre.");
+            }
+
+            long now=System.currentTimeMillis();
+            ContentValues v=new ContentValues();
+            v.put("name",name);
+            v.put("color",color);
+            v.put("updated_at",now);
+            if(id>0) {
+                int changed=getWritableDatabase().update("people",v,"id=? AND archived_at=0",new String[]{String.valueOf(id)});
+                if(changed<=0)return out.put("ok",false).put("error","No se encuentra esta persona.");
+            } else {
+                v.put("archived_at",0);
+                v.put("created_at",now);
+                id=getWritableDatabase().insert("people",null,v);
+                if(id<=0)return out.put("ok",false).put("error","No se pudo guardar la persona.");
+            }
+            return out.put("ok",true).put("id",id).put("person",getPerson(id));
+        } catch(Exception e) {
+            try{return out.put("ok",false).put("error","No se pudo guardar la persona.");}
+            catch(Exception ignored){return out;}
+        }
+    }
+
+    public boolean archivePerson(long id) {
+        if(id<=0)return false;
+        long now=System.currentTimeMillis();
+        ContentValues v=new ContentValues();
+        v.put("archived_at",now);
+        v.put("updated_at",now);
+        return getWritableDatabase().update("people",v,"id=? AND archived_at=0",new String[]{String.valueOf(id)})>0;
     }
 
     /** Evita duplicar la cita de ejemplo al actualizar desde versiones anteriores. */
