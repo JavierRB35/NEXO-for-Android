@@ -974,7 +974,7 @@ function agendaCard(i,showDate=false){
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`;
   const when=i.seriesEnded?'Serie sin próximas fechas':!i.dueAt?'Sin fecha':showDate?fmtDueItem(i):fmtAgendaTime(i);
   const description=String(i.body||'').trim(),title=String(i.title||'Cita');
-  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><button type="button" class="agenda-options" aria-label="Opciones de ${escAttr(title)}" data-agenda-options="${id}" data-agenda-occurrence="${occ}" data-agenda-recurring="${recurring?'1':'0'}">${uiIcon('more')}</button></div>`;
+  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('edit','Editar evento',recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`)}${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
 }
 
 function prepareHomeCapture(type='',text=''){
@@ -990,7 +990,7 @@ function itemCard(i) {
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${i.id}"`;
   const done=(i.status==='done'||i.occurrenceStatus==='done'),cancelled=i.status==='cancelled';
   return `<div class="item-card ${done?'item-done':''}">
-    <div class="item-top"><div class="item-title">${esc(i.title)}</div></div>
+    <div class="item-top"><div class="item-title">${esc(i.title)}</div><div class="record-card-actions">${recordIconAction('edit','Editar',open)}${recordIconAction('share','Compartir',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>
     <div class="item-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag">${esc(due)}</span>`:''}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':cancelled?'<span class="meta-tag done-tag">Cancelada</span>':''}</div>
     ${i.body&&i.body!==i.title?`<div class="item-body">${esc(i.body)}</div>`:''}
     ${i.locationText?`<div class="item-location"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> ${esc(i.locationText)}</div>`:''}
@@ -1004,6 +1004,7 @@ function bindItemButtons(root=document){
   root.querySelectorAll('[data-open-item]').forEach(b=>b.addEventListener('click',()=>openItem(Number(b.dataset.openItem))));
   root.querySelectorAll('[data-open-occurrence]').forEach(b=>b.addEventListener('click',()=>openOccurrence(Number(b.dataset.openOccurrence),Number(b.dataset.occurrenceAt))));
   root.querySelectorAll('[data-share-item]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openItemShareMenu(Number(b.dataset.shareItem),Number(b.dataset.shareOccurrence||0),b.dataset.shareRecurring==='1',b.dataset.shareHasDate==='1');}));
+  root.querySelectorAll('[data-card-delete-item]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.cardDeleteItem),occ=Number(b.dataset.cardDeleteOccurrence||0),rec=b.dataset.cardDeleteRecurring==='1';if(rec)openAgendaOptions(id,occ,true);else deleteItemFromCard(id);}));
   root.querySelectorAll('[data-go-location]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const place=String(b.dataset.goLocation||'').trim();if(place)NexoNative.openLocationDirections(place);}));
   root.querySelectorAll('[data-postpone-event]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openPostponeSheet(Number(b.dataset.postponeEvent),Number(b.dataset.postponeOccurrence||0),b.dataset.postponeRecurring==='1');}));
 }
@@ -2308,18 +2309,20 @@ function documentDescription(item){
 }
 function documentCard(i){
   const own=i.type==='document',id=Number(i.id),description=documentDescription(i)||i.attachmentName||'Documento',label=own?String(i.subcategory||'').trim():'';
-  return `<article class="document-card" data-document-card="${id}"><button type="button" class="document-open" ${own?`data-document-edit="${id}"`:`data-document-open="${id}"`} aria-label="${own?'Editar':'Abrir'} ${escAttr(i.attachmentName||'documento')}">${label?`<span class="document-label">${esc(label)}</span>`:''}<span class="document-description">${esc(description)}</span><span class="document-filename">${uiIcon('file')}${esc(i.attachmentName||'Sin archivo adjunto')}</span></button>${i.attachmentPath?`<div class="document-actions"><button type="button" class="secondary-button" data-document-open="${id}">Abrir</button><button type="button" class="secondary-button" data-document-download="${id}">${uiIcon('download')} Descargar</button><button type="button" class="secondary-button" data-document-share="${id}">${uiIcon('share')} Compartir</button></div>`:''}${!own?`<button type="button" class="document-source text-button" data-document-source="${id}">Ver ${esc(typeLabel(i.type).toLowerCase())} de origen</button>`:''}</article>`;
+  return `<article class="document-card" data-document-card="${id}"><button type="button" class="document-open" ${own?`data-document-edit="${id}"`:`data-document-open="${id}"`} aria-label="${own?'Editar':'Abrir'} ${escAttr(i.attachmentName||'documento')}">${label?`<span class="document-label">${esc(label)}</span>`:''}<span class="document-description">${esc(description)}</span><span class="document-filename">${uiIcon('file')}${esc(i.attachmentName||'Sin archivo adjunto')}</span></button><div class="record-card-actions">${own?recordIconAction('edit','Editar documento',`data-document-edit="${id}"`):''}${i.attachmentPath?recordIconAction('share','Compartir documento',`data-document-share="${id}"`):''}${own?recordIconAction('trash','Eliminar documento',`data-document-delete="${id}"`,'icon-action--danger'):''}</div>${i.attachmentPath?`<div class="document-actions"><button type="button" class="secondary-button" data-document-open="${id}">Abrir archivo</button><button type="button" class="secondary-button" data-document-download="${id}">${uiIcon('download')} Descargar</button></div>`:''}${!own?`<button type="button" class="document-source text-button" data-document-source="${id}">Ver ${esc(typeLabel(i.type).toLowerCase())} de origen</button>`:''}</article>`;
 }
 function bindDocumentButtons(root){
-  root.querySelectorAll('[data-document-edit]').forEach(b=>b.addEventListener('click',()=>openDocumentEditor(Number(b.dataset.documentEdit))));
-  root.querySelectorAll('[data-document-open]').forEach(b=>b.addEventListener('click',()=>{
-    const i=parseNative(NexoNative.getItem(Number(b.dataset.documentOpen)),{});
+  root.querySelectorAll('[data-document-edit]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openDocumentEditor(Number(b.dataset.documentEdit));}));
+  root.querySelectorAll('[data-document-open]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();const i=parseNative(NexoNative.getItem(Number(b.dataset.documentOpen)),{});
     NexoNative.openDocumentFile(String(i.attachmentPath||''),String(i.attachmentName||''),String(i.attachmentMime||''));
   }));
-  root.querySelectorAll('[data-document-download]').forEach(b=>b.addEventListener('click',()=>NexoNative.downloadDocument(Number(b.dataset.documentDownload))));
-  root.querySelectorAll('[data-document-share]').forEach(b=>b.addEventListener('click',()=>NexoNative.shareDocument(Number(b.dataset.documentShare))));
+  root.querySelectorAll('[data-document-download]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.downloadDocument(Number(b.dataset.documentDownload));}));
+  root.querySelectorAll('[data-document-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareDocument(Number(b.dataset.documentShare));}));
+  root.querySelectorAll('[data-document-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.documentDelete));}));
   root.querySelectorAll('[data-document-source]').forEach(b=>b.addEventListener('click',()=>openItem(Number(b.dataset.documentSource))));
 }
+
 function renderDocumentsList(){
   const tokens=normVoiceText(state.documentSearch).split(' ').filter(Boolean);
   const rows=state.documents.filter(i=>(state.documentFilter==='all'||(i.type==='document'?i.subcategory||'':'')===state.documentFilter)&&tokens.every(t=>normVoiceText([i.title,i.body,i.attachmentName,i.type==='document'?i.subcategory:''].join(' ')).includes(t)));
@@ -2371,16 +2374,16 @@ function openDocumentEditor(id=0,incoming=null){
 }
 
 function placeCard(i){
-  const location=String(i.locationText||'').trim(),mapLabel=/^(?:https?:\/\/|www\.|maps\.|goo\.gl\/)/i.test(location)?'Enlace de Google Maps':location;
-  return `<article class="place-card" data-place-card="${Number(i.id)}"><button type="button" class="place-open" data-open-place="${Number(i.id)}"><span class="place-label">${esc(placeLabel(i))}</span><strong>${esc(i.title||'Lugar guardado')}</strong>${i.body?`<span class="place-description">${esc(i.body)}</span>`:''}${location?`<span class="place-location">${uiIcon('pin')}${esc(mapLabel)}</span>`:''}</button>${location?`<div class="place-card-actions"><button type="button" class="secondary-button" data-place-map="${Number(i.id)}">${uiIcon('pin')} Ver en Maps</button></div>`:''}</article>`;
+  const location=String(i.locationText||'').trim(),mapLabel=/^(?:https?:\/\/|www\.|maps\.|goo\.gl\/)/i.test(location)?'Enlace de Google Maps':location,id=Number(i.id);
+  return `<article class="place-card" data-place-card="${id}"><button type="button" class="place-open" data-open-place="${id}"><span class="place-label">${esc(placeLabel(i))}</span><strong>${esc(i.title||'Lugar guardado')}</strong>${i.body?`<span class="place-description">${esc(i.body)}</span>`:''}${location?`<span class="place-location">${uiIcon('pin')}${esc(mapLabel)}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar lugar',`data-open-place="${id}"`)}${recordIconAction('share','Compartir lugar',`data-place-share="${id}"`)}${recordIconAction('trash','Eliminar lugar',`data-place-delete="${id}"`,'icon-action--danger')}${location?recordIconAction('pin','Abrir en Google Maps',`data-place-map="${id}"`):''}</div></article>`;
 }
 function bindPlaceButtons(root){
-  root.querySelectorAll('[data-open-place]').forEach(b=>b.addEventListener('click',()=>openPlaceEditor(Number(b.dataset.openPlace))));
-  root.querySelectorAll('[data-place-map]').forEach(b=>b.addEventListener('click',()=>{
-    const i=parseNative(NexoNative.getItem(Number(b.dataset.placeMap)),{});
-    if(i.id&&i.locationText)NexoNative.openPlaceMap(String(i.locationText));else toast('Este lugar ya no tiene una ubicación guardada.');
-  }));
+  root.querySelectorAll('[data-open-place]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openPlaceEditor(Number(b.dataset.openPlace));}));
+  root.querySelectorAll('[data-place-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoItem(Number(b.dataset.placeShare),0,false);}));
+  root.querySelectorAll('[data-place-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.placeDelete));}));
+  root.querySelectorAll('[data-place-map]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const i=parseNative(NexoNative.getItem(Number(b.dataset.placeMap)),{});if(i.id&&i.locationText)NexoNative.openPlaceMap(String(i.locationText));else toast('Este lugar ya no tiene una ubicación guardada.');}));
 }
+
 function renderPlacesPanel(){
   state.places=parseNative(NexoNative.getCollection('places'),[]);
   const labels=[...new Set([...PLACE_LABELS,...state.places.map(placeLabel)])];
