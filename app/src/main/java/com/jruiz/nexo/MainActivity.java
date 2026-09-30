@@ -61,6 +61,7 @@ import com.jruiz.nexo.migration.NexoFamiliaImporter;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 
@@ -463,16 +464,96 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void clearGmailConnectionError() {
+        InputHubPrefs.setGmailError(this, "");
+        InputHubPrefs.setGmailErrorDetail(this, "");
+    }
+
+    private void setGmailConnectionError(Exception error) {
+        int code = -1;
+        String status = "";
+        if (error instanceof ApiException) {
+            code = ((ApiException) error).getStatusCode();
+            status = GoogleSignInStatusCodes.getStatusCodeString(code);
+        }
+        String friendly;
+        if (code == 10) {
+            friendly = "Google todavía no reconoce esta versión de Nexo.";
+        } else if (code == 12501) {
+            friendly = "Conexión con Gmail cancelada.";
+        } else if (code == 7) {
+            friendly = "No se pudo contactar con Google. Comprueba tu conexión a Internet.";
+        } else if (error instanceof IllegalStateException && error.getMessage() != null && error.getMessage().contains("permiso")) {
+            friendly = "La cuenta no concedió permiso para leer Gmail.";
+        } else {
+            friendly = "No se pudo conectar Gmail.";
+        }
+        StringBuilder detail = new StringBuilder();
+        if (!status.isBlank()) detail.append("Google Sign-In: ").append(status);
+        if (code >= 0) {
+            if (detail.length() > 0) detail.append(" · ");
+            detail.append("código ").append(code);
+        }
+        if (detail.length() == 0 && error.getMessage() != null && !error.getMessage().isBlank()) {
+            detail.append(error.getMessage());
+        }
+        InputHubPrefs.setGmailError(this, friendly);
+        InputHubPrefs.setGmailErrorDetail(this, detail.toString());
+    }
+
     private void connectGmail() {
         runOnUiThread(() -> {
             try {
+                clearGmailConnectionError();
+                InputHubPrefs.setGmailEnabled(this, true);
                 GoogleSignInClient client = GoogleSignIn.getClient(this, GmailWatchEngine.signInOptions());
                 startActivityForResult(client.getSignInIntent(), REQ_GMAIL_SIGN_IN);
+                jsCallback("onInputHubChanged", "gmail");
             } catch (Exception e) {
-                InputHubPrefs.setGmailError(this, "No se pudo abrir la autorización de Google.");
+                InputHubPrefs.setGmailEnabled(this, false);
+                setGmailConnectionError(e);
                 jsCallback("onInputHubChanged", "gmail");
             }
         });
+    }
+
+    private void disconnectGmail() {
+        runOnUiThread(() -> {
+            GmailWatchScheduler.cancel(this);
+            InputHubPrefs.setGmailEnabled(this, false);
+            InputHubPrefs.setGmailBaselined(this, false);
+            InputHubPrefs.setGmailEmail(this, "");
+            clearGmailConnectionError();
+            try {
+                GoogleSignInClient client = GoogleSignIn.getClient(this, GmailWatchEngine.signInOptions());
+                client.signOut().addOnCompleteListener(task -> jsCallback("onInputHubChanged", "gmail"));
+            } catch (Exception ignored) {
+                jsCallback("onInputHubChanged", "gmail");
+            }
+        });
+    }
+
+    private void scanGmailNow() {
+        if (!GmailWatchEngine.hasAuthorizedAccount(this)) {
+            InputHubPrefs.setGmailEnabled(this, false);
+            InputHubPrefs.setGmailError(this, "Conecta Gmail antes de escanear.");
+            InputHubPrefs.setGmailErrorDetail(this, "");
+            jsCallback("onInputHubChanged", "gmail");
+            return;
+        }
+        InputHubPrefs.setGmailEnabled(this, true);
+        clearGmailConnectionError();
+        new Thread(() -> {
+            if (!InputHubPrefs.gmailBaselined(getApplicationContext())) {
+                GmailWatchEngine.initializeBaseline(getApplicationContext());
+            } else {
+                GmailWatchEngine.scan(getApplicationContext());
+            }
+            if (InputHubPrefs.autoScanEnabled(getApplicationContext())) {
+                GmailWatchScheduler.schedule(getApplicationContext());
+            }
+            jsCallback("onInputHubChanged", "gmail");
+        }, "nexo-gmail-manual-scan").start();
     }
 
     private void setGmailCaptureEnabled(boolean enabled) {
@@ -480,18 +561,15 @@ public class MainActivity extends Activity {
             InputHubPrefs.setGmailEnabled(this, false);
             InputHubPrefs.setGmailBaselined(this, false);
             GmailWatchScheduler.cancel(this);
-            CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
             jsCallback("onInputHubChanged", "gmail");
             return;
         }
         if (!GmailWatchEngine.hasAuthorizedAccount(this)) {
-            InputHubPrefs.setGmailEnabled(this, true);
             connectGmail();
             return;
         }
         InputHubPrefs.setGmailEnabled(this, true);
-        CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
-        ensureNotificationPermission();
+        clearGmailConnectionError();
         if (InputHubPrefs.autoScanEnabled(this)) {
             new Thread(() -> {
                 if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
@@ -1186,9 +1264,8 @@ public class MainActivity extends Activity {
                 InputHubPrefs.setGmailEnabled(this, true);
                 InputHubPrefs.setGmailBaselined(this, false);
                 InputHubPrefs.setGmailEmail(this, account.getEmail());
-                InputHubPrefs.setGmailError(this, "");
+                clearGmailConnectionError();
                 CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
-                ensureNotificationPermission();
                 if (InputHubPrefs.autoScanEnabled(this)) {
                     new Thread(() -> {
                         GmailWatchEngine.initializeBaseline(getApplicationContext());
@@ -1200,8 +1277,7 @@ public class MainActivity extends Activity {
                 }
             } catch (Exception e) {
                 InputHubPrefs.setGmailEnabled(this, false);
-                CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
-                InputHubPrefs.setGmailError(this, "No se pudo autorizar Gmail. Revisa la configuración OAuth de Nexo.");
+                setGmailConnectionError(e);
                 jsCallback("onInputHubChanged", "gmail");
             }
             return;
@@ -1988,6 +2064,7 @@ public class MainActivity extends Activity {
                 o.put("gmailBaselined", InputHubPrefs.gmailBaselined(MainActivity.this));
                 o.put("gmailLastSync", InputHubPrefs.gmailLastSync(MainActivity.this));
                 o.put("gmailError", InputHubPrefs.gmailError(MainActivity.this));
+                o.put("gmailErrorDetail", InputHubPrefs.gmailErrorDetail(MainActivity.this));
             } catch (Exception ignored) {}
             return o.toString();
         }
@@ -2008,6 +2085,12 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void connectGmail() {
             MainActivity.this.connectGmail();
+        }
+        @JavascriptInterface public void disconnectGmail() {
+            MainActivity.this.disconnectGmail();
+        }
+        @JavascriptInterface public void scanGmailNow() {
+            MainActivity.this.scanGmailNow();
         }
         @JavascriptInterface public void setGmailCaptureEnabled(boolean enabled) {
             MainActivity.this.setGmailCaptureEnabled(enabled);
