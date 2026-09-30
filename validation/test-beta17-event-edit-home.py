@@ -44,9 +44,14 @@ assert 'Enlace de Google Maps' not in html
 assert '<label>Enlace de Google Maps' not in item
 assert '<label>Enlace de Google Maps' not in occ
 
-# Inicio: Calendario abre Agenda, Ver agenda desaparece y mes no se fuerza a mayúsculas.
+# Inicio: Calendario abre exactamente la Agenda; el acceso redundante "Ver agenda"
+# desaparece. El Calendario de la barra inferior conserva su navegación al calendario mensual.
 assert 'id="homeAgendaLink"' not in html
+assert 'Ver agenda' not in html
 assert "$('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});" in js
+assert '<button class="nav-item" data-nav="calendar">' in html
+assert "$('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));" in js
+assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
 assert "monthRaw.toLocaleUpperCase" not in js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
 assert "monthRaw.replace(/^./" in js
 assert 'v3.7.0-beta17' in html
