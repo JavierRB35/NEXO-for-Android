@@ -1958,3 +1958,52 @@ main{max-width:720px}
 .calendar-day.outside-month.calendar-day--holiday{opacity:1}.calendar-day.outside-month.calendar-day--holiday .day-dots{opacity:.48}
 .holiday-calendar-note{margin:10px 2px 0;padding:8px 10px;border-radius:10px;color:var(--muted);background:#f7f9ff;font-size:.72rem;line-height:1.4}
 .selected-day-holidays{display:grid;gap:7px;margin:0 0 10px}.selected-day-holidays.hidden{display:none}.selected-day-holiday{display:flex;align-items:flex-start;gap:10px;padding:10px 11px;border:1px solid #eadce0;border-radius:13px;background:#fffafb}.selected-day-holiday>div{display:grid;gap:2px;min-width:0}.selected-day-holiday strong{font-size:.86rem}.selected-day-holiday small,.holiday-source-link{color:var(--muted);font-size:.68rem;line-height:1.35}.holiday-source-link{border:0;padding:0;background:transparent;color:var(--primary);font-weight:750;text-align:left}.selected-day-holiday__level{flex:0 0 auto;min-width:72px;padding:4px 7px;border-radius:999px;text-align:center;font-size:.64rem;font-weight:850}.selected-day-holiday__level--national{color:#9d2940;background:#fff0f2}.selected-day-holiday__level--regional{color:#3158d4;background:#eef3ff}.selected-day-holiday__level--provincial{color:#6d28d9;background:#f3efff}.selected-day-holiday__level--local{color:#0f6f4a;background:#edf9f1}
+
+
+/* Personas · catálogo local con la misma filosofía visual de Nexo Familia */
+.people-settings{gap:14px}
+.people-settings__head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.people-settings__head>div{min-width:0}
+.people-settings__head h2{margin:0 0 4px}
+.people-settings__head .primary-button{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto}
+.people-settings__head .primary-button .ui-icon{width:17px;height:17px}
+.people-settings-list{display:grid;gap:8px}
+.nexo-person-row{
+  width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) 20px;align-items:center;gap:11px;
+  padding:10px 11px;border:1px solid var(--line);border-radius:15px;color:var(--navy);background:#fff;
+  font:inherit;text-align:left
+}
+.nexo-person-row:active{background:#f7f9fc}
+.nexo-person-avatar{
+  width:42px;height:42px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;
+  box-shadow:0 0 0 1px rgba(24,32,51,.09);font-size:.76rem;font-weight:900;letter-spacing:.02em
+}
+.nexo-person-avatar--large{width:58px;height:58px;font-size:1rem}
+.nexo-person-identity{display:grid;min-width:0;gap:2px}
+.nexo-person-identity strong{overflow:hidden;font-size:.94rem;font-weight:850;text-overflow:ellipsis;white-space:nowrap}
+.nexo-person-identity small{color:var(--muted);font-size:.72rem}
+.nexo-person-chevron{width:18px;height:18px;color:var(--muted)}
+.people-empty{display:grid;gap:3px;padding:14px;border:1px dashed var(--line);border-radius:15px;color:var(--muted);background:#fafbfc}
+.people-empty strong{color:var(--navy);font-size:.9rem}
+.people-empty span{font-size:.78rem;line-height:1.35}
+.person-editor{display:grid;gap:16px}
+.person-editor>label{display:grid;gap:7px;font-size:.84rem;color:var(--muted)}
+.person-editor-preview{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:16px;background:#fafbfc}
+.person-editor-preview>div{display:grid;gap:3px}
+.person-editor-preview strong{font-size:1rem;color:var(--navy)}
+.person-editor-preview span{font-size:.76rem;color:var(--muted)}
+.person-color-block{display:grid;gap:7px}
+.person-color-block>strong{font-size:.88rem}
+.person-color-block p{margin:0}
+.person-color-palette{display:flex;flex-wrap:wrap;gap:10px}
+.person-color-swatch{
+  width:42px;height:42px;display:grid;place-items:center;padding:0;border:2px solid transparent;border-radius:50%;
+  box-shadow:0 0 0 1px rgba(24,32,51,.12);color:#fff
+}
+.person-color-swatch .ui-icon{width:19px;height:19px}
+.person-color-swatch--light{color:#182033}
+.person-color-swatch--selected{border-color:#fff;box-shadow:0 0 0 3px var(--blue)}
+@media(max-width:430px){
+  .people-settings__head{display:grid}
+  .people-settings__head .primary-button{width:100%;justify-content:center}
+}
