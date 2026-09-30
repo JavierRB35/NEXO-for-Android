@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 20;
+    private static final int DB_VERSION = 21;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -59,6 +59,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "attachment_name TEXT NOT NULL DEFAULT ''," +
                 "attachment_mime TEXT NOT NULL DEFAULT ''," +
                 "status TEXT NOT NULL DEFAULT 'active'," +
+                "status_manual INTEGER NOT NULL DEFAULT 0," +
                 "needs_review INTEGER NOT NULL DEFAULT 0," +
                 "recurrence TEXT NOT NULL DEFAULT 'none'," +
                 "recurrence_until INTEGER NOT NULL DEFAULT 0," +
@@ -219,6 +220,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE items ADD COLUMN participants_text TEXT NOT NULL DEFAULT ''");
             db.execSQL("UPDATE items SET end_at=CASE WHEN duration_minutes>0 THEN due_at+(duration_minutes*60000) ELSE due_at END WHERE due_at>0 AND end_at=0");
             db.execSQL("UPDATE items SET all_day=1 WHERE due_at>0 AND has_time=0 AND type IN ('event','task','reminder','expiry')");
+        }
+        if (oldVersion < 21) {
+            db.execSQL("ALTER TABLE items ADD COLUMN status_manual INTEGER NOT NULL DEFAULT 0");
+            // No se puede distinguir retrospectivamente un 'done/postponed/cancelled' manual
+            // de uno calculado. Priorizamos no perder una decisión explícita ya existente.
+            db.execSQL("UPDATE items SET status_manual=1 WHERE status IN ('done','postponed','cancelled')");
         }
     }
 
@@ -743,7 +750,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (in.has("locationText")) v.put("location_text", in.optString("locationText", ""));
         if (in.has("priority")) v.put("priority", clamp(in.optInt("priority", 1), 1, 3));
         if (in.has("favorite")) v.put("favorite", in.optBoolean("favorite") ? 1 : 0);
-        if (in.has("status")) v.put("status", in.optString("status", "active"));
+        if (in.has("status")) {
+            v.put("status", in.optString("status", "active"));
+            // Si un consumidor envía un estado, se considera una decisión manual salvo
+            // que indique expresamente statusManual=false (p. ej. una importación).
+            v.put("status_manual", in.has("statusManual") ? (in.optBoolean("statusManual") ? 1 : 0) : 1);
+        } else if (in.has("statusManual")) {
+            v.put("status_manual", in.optBoolean("statusManual") ? 1 : 0);
+        }
         if (in.has("needsReview")) v.put("needs_review", in.optBoolean("needsReview") ? 1 : 0);
         if (in.has("recurrence")) v.put("recurrence", RecurrenceEngine.normalize(in.optString("recurrence", RecurrenceEngine.NONE)));
         if (in.has("recurrenceUntil")) v.put("recurrence_until", Math.max(0, in.optLong("recurrenceUntil", 0)));
@@ -753,7 +767,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         // La fecha puede sugerir estado solo cuando el usuario NO lo ha elegido.
         // Un estado explícito (Completada, Pospuesta, Cancelada o Pendiente) manda.
-        if (in.has("dueAt") && !in.has("status")) {
+        if (in.has("dueAt") && !in.has("status") && !old.optBoolean("statusManual", false)) {
             String effectiveType=in.optString("type",old.optString("type","note"));
             String effectiveRecurrence=RecurrenceEngine.normalize(in.optString("recurrence",old.optString("recurrence",RecurrenceEngine.NONE)));
             long newDue=Math.max(0,in.optLong("dueAt",0));
@@ -803,6 +817,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             db.execSQL(
                     "UPDATE items SET status=CASE " +
+                    "WHEN status_manual=1 THEN status " +
                     "WHEN status='cancelled' THEN 'cancelled' " +
                     "WHEN recurrence<>'none' THEN 'pending' " +
                     "WHEN status='done' THEN 'done' " +
@@ -819,7 +834,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "deleted_at=0 AND due_at>0 " +
                 "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) " +
                 "AND recurrence='none' AND type IN ('task','reminder','expiry') " +
-                "AND status IN ('active','pending','postponed')",
+                "AND status_manual=0 AND status IN ('active','pending','postponed')",
                 new String[]{String.valueOf(start)});
 
         // Las series recurrentes de eventos permanecen abiertas; las excepciones
@@ -834,7 +849,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             while(cur.moveToNext()){
                 long id=cur.getLong(0),at=cur.getLong(1),until=cur.getLong(4);String recurrence=cur.getString(3);
                 ContentValues open=new ContentValues();open.put("status","pending");open.put("updated_at",now);
-                db.update("items",open,"id=?",new String[]{String.valueOf(id)});
+                db.update("items",open,"id=? AND status_manual=0",new String[]{String.valueOf(id)});
 
                 // Para cumpleaños/aniversarios y demás series anuales, la aparición
                 // pasada puede constar como hecha sin cerrar la serie.
@@ -846,7 +861,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         String wanted=d.isBefore(today)?"done":"active";
                         JSONObject ex=getRecurrenceException(id,key);
                         String current=ex.length()==0?"active":ex.optString("state","active");
-                        if(!wanted.equals(current))setOccurrenceStatus(id,key,wanted);
+                        // Solo conciliamos apariciones que siguen en estado automático.
+                        // pending/done/postponed/cancelled representan decisiones manuales.
+                        if("active".equals(current) && !"active".equals(wanted))setOccurrenceStatus(id,key,wanted);
                     }
                 }
             }
@@ -985,6 +1002,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public boolean setTaskStatus(long id, String status) {
         ContentValues v = new ContentValues();
         v.put("status", status);
+        v.put("status_manual", 1);
         v.put("updated_at", System.currentTimeMillis());
         int rows = getWritableDatabase().update("items", v, "id=? AND type='task' AND deleted_at=0", new String[]{String.valueOf(id)});
         if (rows > 0) addHistory(status.equals("done") ? "tarea realizada" : "tarea actualizada", "task", id, getItem(id).optString("title"));
@@ -1328,7 +1346,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         long bestKey = 0, bestActual = Long.MAX_VALUE;
         // Apariciones movidas hacia el futuro pueden proceder de una clave original ya pasada.
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT occurrence_at,override_due_at,state FROM recurrence_exceptions WHERE series_id=? AND override_due_at>? AND state NOT IN ('deleted','done') ORDER BY override_due_at ASC LIMIT 1",
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT occurrence_at,override_due_at,state FROM recurrence_exceptions WHERE series_id=? AND override_due_at>? AND state NOT IN ('deleted','done','cancelled') ORDER BY override_due_at ASC LIMIT 1",
                 new String[]{String.valueOf(seriesId), String.valueOf(afterMillis)})) {
             if (c.moveToFirst()) { bestKey=c.getLong(0); bestActual=c.getLong(1); }
         } catch (Exception ignored) {}
@@ -1341,7 +1359,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (occ.length() > 0) {
                 String state = occ.optString("occurrenceStatus", "active");
                 long actual = occ.optLong("dueAt", key);
-                if (!"deleted".equals(state) && !"done".equals(state) && actual > afterMillis && actual < bestActual) { bestKey=key; bestActual=actual; }
+                if (!"deleted".equals(state) && !"done".equals(state) && !"cancelled".equals(state) && actual > afterMillis && actual < bestActual) { bestKey=key; bestActual=actual; }
                 if (actual > afterMillis && actual >= bestActual) break;
             }
             cursor = key;
@@ -1382,7 +1400,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("recurring", true); o.put("seriesId", base.optLong("id")); o.put("occurrenceAt", occurrenceAt); o.put("dueAt", occurrenceAt);
             o.put("endAt", occurrenceAt + span);
             o.put("occurrenceStatus", state);
-            if ("done".equals(state) || "postponed".equals(state)) o.put("status", state);
+            if ("done".equals(state) || "postponed".equals(state) || "cancelled".equals(state)) o.put("status", state);
+            else if ("pending".equals(state)) o.put("status", "pending");
             if (ex != null) {
                 String raw = ex.optString("overrideJson", "");
                 if (!raw.isBlank()) {
@@ -2748,6 +2767,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("attachmentName",c.getString(c.getColumnIndexOrThrow("attachment_name")));
             o.put("attachmentMime",c.getString(c.getColumnIndexOrThrow("attachment_mime")));
             o.put("status",c.getString(c.getColumnIndexOrThrow("status")));
+            int statusManualIndex=c.getColumnIndex("status_manual");
+            o.put("statusManual",statusManualIndex>=0 && c.getInt(statusManualIndex)==1);
             o.put("needsReview",c.getInt(c.getColumnIndexOrThrow("needs_review"))==1);
             o.put("recurrence",c.getString(c.getColumnIndexOrThrow("recurrence")));
             o.put("recurrenceUntil",c.getLong(c.getColumnIndexOrThrow("recurrence_until")));
@@ -2772,7 +2793,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (!"nexo-familia".equals(item.optString("source", ""))) return item;
         try {
             String current=item.optString("status","pending");
-            if ("cancelled".equals(current)) return item;
+            if (item.optBoolean("statusManual", false) || "cancelled".equals(current)) return item;
 
             String recurrence=RecurrenceEngine.normalize(item.optString("recurrence",RecurrenceEngine.NONE));
             if (RecurrenceEngine.isRecurring(recurrence)) {
