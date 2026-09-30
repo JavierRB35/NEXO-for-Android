@@ -1825,7 +1825,7 @@ main{max-width:720px}
 .family-result-main{display:grid;gap:3px;min-width:0}
 .family-result-main .pill{width:max-content}
 .family-result-main strong{font-size:.94rem;font-weight:900}
-.family-result-main>span:last-child:not(.pill){overflow:hidden;color:#667085;font-size:.75rem;line-height:1.28;text-overflow:ellipsis}
+.family-result-main>span:not(.pill):not(.event-participant-avatars){overflow:hidden;color:#667085;font-size:.75rem;line-height:1.28;text-overflow:ellipsis}
 .family-result-card>.ui-icon{width:20px;height:20px;color:#96a0ad}
 .search-history-toggle{
   display:flex;min-height:48px;align-items:center;gap:10px;margin:10px 0 12px;padding:8px 11px;
@@ -2024,3 +2024,12 @@ main{max-width:720px}
 .form-helper{margin:7px 0 0;color:var(--muted);font-size:.76rem;line-height:1.4}
 .member-assignment-empty{display:block;width:100%;padding:10px 12px;border:1px dashed var(--line);border-radius:13px;color:var(--muted);background:#fafbfc;font-size:.78rem;line-height:1.4}
 .detail-grid>.event-people-assignment{margin-top:2px}
+
+
+/* Personas en tarjetas y fichas de eventos · mismo avatar 28x28 que Nexo Familia */
+.event-participant-avatars--agenda{margin-top:6px}
+.event-participant-avatars--item{margin-top:9px}
+.event-participant-avatars--detail{margin:10px 0 2px}
+.event-participant-avatars--search{margin-top:5px}
+.family-result-main .event-participant-avatars{min-height:28px}
+.agenda-open .event-participant-avatars{width:max-content;max-width:100%}
