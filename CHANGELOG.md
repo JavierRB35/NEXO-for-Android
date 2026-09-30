@@ -1,5 +1,20 @@
 # Changelog de Nexo
 
+## 3.7.0-beta11 · versionCode 76 · Navegación, batería y consistencia Nexo Familia
+
+- Las tarjetas de eventos de Inicio, búsqueda, Agenda, Calendario y listados abren directamente el formulario del evento.
+- Los flotantes **Grabar audio** y **+ evento** se gestionan desde un único controlador y se restauran al navegar, volver de segundo plano o regresar a Inicio.
+- El flotante de micrófono inicia grabación de audio en pantallas generales; conserva dictado contextual en listas, Cuaderno/Frases y Medicación.
+- Input Hub incorpora **Escaneo automático / manual**. Manual cancela jobs periódicos y observadores directos y evita escanear al volver a Nexo; “Escanear ahora” sigue disponible.
+- La escucha de notificaciones de WhatsApp/Telegram permanece independiente del modo directo automático/manual.
+- Ajustes pasa a acordeones por categorías siguiendo el patrón de Nexo Familia.
+- Cumpleaños replica el icono de Familia, incluida la tarta 🎂 en el calendario.
+- “Información familiar” pasa a llamarse **Accesos directos**.
+- Eventos, notas, documentos, lugares, listas, Cuaderno/Frases, medicación y grabaciones muestran acciones compactas de editar, compartir y eliminar.
+- La versión en ejecución aparece en la cabecera junto a Nexo.
+- Formularios de evento, aparición recurrente, captura y lugares disponen de acceso directo a Google Maps.
+- Sin cambios en esquema de base de datos ni baseline AndroidIDE.
+
 ## 3.7.0-beta10 · versionCode 75 · FAB contextual para crear eventos
 
 - Añade un único botón flotante **+** de creación de eventos en las pantallas donde la acción corresponde: **Inicio, Calendario y Agenda / Próximos 7 días**.
