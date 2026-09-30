@@ -1592,8 +1592,10 @@ main{max-width:720px}
   z-index:31;
   right:max(16px,calc((100vw - 720px)/2 + 16px));
   bottom:calc(70px + env(safe-area-inset-bottom));
-  display:grid;
-  justify-items:end;
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:flex-end;
   gap:8px;
   pointer-events:none;
 }
@@ -1915,3 +1917,10 @@ main{max-width:720px}
   font-size:13px;line-height:1;
 }
 .fab-voice.is-recording{color:#fff;background:#c83246;box-shadow:0 8px 24px rgba(200,50,70,.34)}
+
+
+/* Nexo 3.7.0-beta13 · acciones de evento visibles y FAB horizontales */
+.event-form-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.event-form-actions .secondary-button,.event-form-actions .danger-button{min-width:0;padding:9px 8px;min-height:44px}
+.event-form-actions .danger-button{background:#fff3f3;color:var(--red);border:1px solid #f0caca}
+@media(max-width:380px){.event-form-actions{gap:6px}.event-form-actions .secondary-button,.event-form-actions .danger-button{font-size:.82rem;padding:8px 5px}}
