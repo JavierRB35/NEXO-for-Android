@@ -1,5 +1,15 @@
 # Changelog de Nexo
 
+## 3.7.0-beta13 · versionCode 78 · Reparación global de interacción
+
+- Corrige un fallo de inicialización causado por usar un selector simple (`) donde se requería una lista (`$`). El error detenía el enlace de los controles posteriores.
+- Repara los accesos de **Herramientas**, la **X de los formularios**, el **FAB +**, las tarjetas de Inicio y otras acciones que quedaban sin manejador.
+- Corrige además los selectores de tarjetas de Inicio y acordeones de Ajustes para evitar el mismo fallo al renderizar.
+- Los dos botones flotantes se muestran **en horizontal** para ocupar menos altura en orientación vertical.
+- Las fichas de citas y apariciones recurrentes muestran arriba acciones visibles de **Editar, Compartir y Eliminar**.
+- Se añade una regresión específica para impedir que vuelva a usarse `$().forEach` y para comprobar los controles críticos.
+- Sin cambios en esquema de base de datos ni baseline AndroidIDE.
+
 ## 3.7.0-beta12 · versionCode 77 · Escaneo manual por defecto
 
 - Input Hub arranca en **modo Manual** en instalaciones nuevas.
