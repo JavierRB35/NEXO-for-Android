@@ -322,7 +322,7 @@ function updateFloatingActions(){
   if(!voice||!add)return;
   const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
   const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup';
-  const voiceVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel);
+  const voiceVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
   const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
   voice.classList.remove('is-recording');
   voice.setAttribute('aria-label','Hablar con Nexo');voice.setAttribute('title','Hablar con Nexo');
@@ -330,6 +330,11 @@ function updateFloatingActions(){
 }
 function runEventAddFab(){const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);}
 function runFloatingVoice(){
+  if(state.screen==='save'){
+    const base=$('#captureText')?.value.trim()||'';
+    startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});
+    return;
+  }
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
@@ -1905,9 +1910,17 @@ function managedVoiceFullText(includePartial=false){const parts=[state.managedVo
 function updateManagedVoiceTranscript(){const text=managedVoiceFullText(true);$('#managedVoiceTranscript').textContent=text||'Te escucho…';}
 function stopManagedDictation(){if($('#voiceOverlay').classList.contains('hidden'))return;$('#managedVoiceStop').disabled=true;$('#managedVoiceStop').textContent='Terminando…';$('#managedVoiceStatus').textContent='GUARDANDO LO QUE HAS DICHO…';NexoNative.stopManagedVoice();}
 function resetManagedVoice(){state.managedVoiceTarget='';state.managedVoiceBase='';state.managedVoiceSegments=[];state.managedVoicePartial='';state.managedVoiceListId=0;state.managedVoiceShopping=false;state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';$('#voiceOverlay').classList.add('hidden');}
+function applyCaptureVoiceText(text){
+  const value=String(text||'').trim();if(!value)return;
+  if(state.screen!=='save')navigate('save');
+  $('#captureText').value=value;
+  setInterpretationStatus('working','Dictado añadido · interpretando localmente…');
+  analyzeCapture({immediate:true});
+  toast('Voz transcrita. Revisa lo que Nexo ha entendido.');
+}
 function finalizeManagedDictation(){
   let text=managedVoiceFullText(true);const target=state.managedVoiceTarget,listId=state.managedVoiceListId,shopping=state.managedVoiceShopping,noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,journalKind=state.journalVoiceKind;resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;if(!text){toast('No he podido recoger ninguna frase. Inténtalo de nuevo.');return;}
-  if(target==='universal')routeUniversalVoice(text);else if(target==='list')handleListVoice(text,listId,shopping);else if(target==='journal')openJournalComposer(text,journalKind);else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);else if(target==='medication')openMedicationComposer(text);else{navigate('save');clearCapture();$('#captureText').value=text;analyzeCapture({immediate:true});}
+  if(target==='universal')routeUniversalVoice(text);else if(target==='capture-edit')applyCaptureVoiceText(text);else if(target==='list')handleListVoice(text,listId,shopping);else if(target==='journal')openJournalComposer(text,journalKind);else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);else if(target==='medication')openMedicationComposer(text);else{navigate('save');clearCapture();$('#captureText').value=text;analyzeCapture({immediate:true});}
 }
 function stripJournalVoicePrefix(text){return String(text||'').replace(/^\s*(?:guarda|apunta|anota)\s+(?:un\s+)?(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]?\s*/i,'').replace(/^\s*(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]\s*/i,'').trim();}
 function looksLikeShoppingVoice(text){const n=normVoiceText(text),product=/(leche|huevos?|pan|agua|azucar|mantequilla|cafe|detergente|jamon|queso|yogur|papel|arroz|pasta|pollo|carne|pescado|tomate|lechuga|patata|cebolla|manzana|platano|aceite|harina|galleta|cereal)/.test(n);return /lista (?:de la )?compra|a la compra|en la compra/.test(n)||/^(?:comprar|compra|anade|añade|agrega|apunta|pon|mete)\b/.test(n)&&product||/^(?:quita|elimina|borra|saca|cambia|sustituye|reemplaza)\b/.test(n)&&product||/(?:ya he comprado|he comprado|todavia no|aun no|no he comprado)/.test(n)&&product||/(?:elimina|borra|quita|vacia) (?:lo|los) comprad/.test(n);}
@@ -2080,6 +2093,7 @@ window.NexoUI={
     const spoken=String(text||'').trim(),managedBase=managedVoiceFullText(true);
     $('#voiceOverlay').classList.add('hidden');
     if(state.voiceMode==='universal'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();routeUniversalVoice(combined);return;}
+    if(state.voiceMode==='capture-edit'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyCaptureVoiceText(combined);return;}
     if(state.voiceMode==='list'){const id=state.managedVoiceListId||state.currentList,shopping=state.managedVoiceShopping,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();handleListVoice(combined,id,shopping);return;}
     if(state.voiceMode==='journal'){const kind=state.journalVoiceKind,combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined,kind);return;}
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}

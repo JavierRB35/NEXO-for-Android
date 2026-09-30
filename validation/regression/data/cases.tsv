@@ -8,6 +8,13 @@ dev	TEMP	Apunta pasado mañana a las 9	2026-08-25|09:00	temporal con contexto
 dev	TEMP	hoy a las 20:15	2026-08-23|20:15	temporal base
 dev	TEMP	La reunión es hoy a las 20:15	2026-08-23|20:15	temporal con contexto
 dev	TEMP	esta mañana a las 9	2026-08-23|09:00	temporal base
+dev	TEMP	esta tarde a las cinco y media	2026-08-23|17:30	franja antes de hora hablada
+dev	TEMP	Tengo que ir a casa de mis padres esta tarde a las cinco y media	2026-08-23|17:30	caso real tarde
+dev	TEMP	esta tarde a las 5:30	2026-08-23|17:30	franja antes de hora numérica
+dev	TEMP	mañana por la tarde a las cinco y media	2026-08-24|17:30	mañana + tarde
+dev	TEMP	mañana por la tarde a las 5:30	2026-08-24|17:30	mañana + tarde numérica
+dev	TEMP	mañana por la mañana a las cinco y media	2026-08-24|05:30	mañana + franja mañana
+dev	TEMP	esta noche a las nueve	2026-08-23|21:00	franja noche
 dev	TEMP	Necesito acordarme esta mañana a las 9	2026-08-23|09:00	temporal con contexto
 dev	TEMP	el lunes a las 11	2026-08-24|11:00	temporal base
 dev	TEMP	Recuérdame el lunes a las 11	2026-08-24|11:00	temporal con contexto

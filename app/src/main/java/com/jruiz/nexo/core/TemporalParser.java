@@ -112,8 +112,8 @@ public final class TemporalParser {
         if (!out.hasDate && n.contains("pasado manana")) {
             out.date = today.plusDays(2); out.hasDate = true; out.dateSource = "pasado mañana";
         }
-        if (!out.hasDate && Pattern.compile("\\besta\\s+manana\\b").matcher(n).find()) {
-            out.date = today; out.hasDate = true; out.dateSource = "esta mañana";
+        if (!out.hasDate && Pattern.compile("\\besta\\s+(?:manana|tarde|noche|madrugada)\\b").matcher(n).find()) {
+            out.date = today; out.hasDate = true; out.dateSource = "esta franja del día";
         }
         // "hoy" es una referencia de fecha explícita y debe ganar a cualquier
         // aparición posterior de "mañana" usada como franja horaria:
@@ -250,7 +250,7 @@ public final class TemporalParser {
             String matched = m.group(0);
             boolean explicitCue = matched.matches(".*\\ba\\s+las?.*") || matched.matches(".*\\blas?.*");
             if (matched.contains(".") && !explicitCue && h>=1 && h<=31 && min>=1 && min<=12) continue;
-            String tail=n.substring(m.end()); h=adjustDayPart(h,tail);
+            h=adjustDayPartFromContext(h,n,m.start(),m.end());
             if (validTime(h,min)) { out.time=LocalTime.of(h,min); out.hasTime=true; out.timeSource="hora numérica"; return; }
         }
 
@@ -279,8 +279,7 @@ public final class TemporalParser {
                         int[] parsed=parseSmallNumber(tokens,used,59);
                         if (parsed[0]>=0) { min=parsed[0]; used=parsed[1]; }
                     }
-                    String remainder=String.join(" ",Arrays.copyOfRange(tokens,Math.min(used,tokens.length),tokens.length));
-                    h=adjustDayPart(h,remainder);
+                    h=adjustDayPartFromContext(h,n,marker.start(),marker.end());
                     if (validTime(h,min)) { out.time=LocalTime.of(h,min); out.hasTime=true; out.timeSource="hora escrita con palabras"; }
                 }
             }
@@ -393,6 +392,29 @@ public final class TemporalParser {
             if (v>=0 && v<=max) { best=v; bestEnd=start+len; }
         }
         return new int[]{best,bestEnd};
+    }
+
+    /**
+     * Ajusta una hora de 12 h usando la franja horaria más cercana al marcador.
+     * Esto cubre tanto "a las cinco de la tarde" como "esta tarde a las cinco"
+     * y "mañana por la tarde a las cinco y media".
+     */
+    private static int adjustDayPartFromContext(int hour, String full, int anchorStart, int anchorEnd) {
+        if (full == null || full.isBlank()) return hour;
+        Matcher cue = Pattern.compile("\\b(?:esta|por\\s+la|de\\s+la|durante\\s+(?:toda\\s+)?la)\\s+(manana|tarde|noche|madrugada)\\b").matcher(full);
+        String best = "";
+        int bestDistance = Integer.MAX_VALUE;
+        while (cue.find()) {
+            int distance;
+            if (cue.end() <= anchorStart) distance = anchorStart - cue.end();
+            else if (cue.start() >= anchorEnd) distance = cue.start() - anchorEnd;
+            else distance = 0;
+            if (distance <= 80 && distance < bestDistance) {
+                bestDistance = distance;
+                best = cue.group(1);
+            }
+        }
+        return best.isBlank() ? hour : adjustDayPart(hour, best);
     }
 
     private static int adjustDayPart(int hour, String tail) {

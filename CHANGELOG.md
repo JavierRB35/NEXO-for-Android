@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.0-beta16 · versionCode 81 · Franjas horarias y voz en tareas
+
+- Corrige «esta tarde a las cinco y media»: ahora se interpreta como **17:30**, no 05:30.
+- La franja horaria puede aparecer antes o después de la hora: «mañana por la tarde a las 5:30» y «a las 5:30 de la tarde» producen 17:30.
+- «mañana por la mañana» mantiene la hora AM y la fecha del día siguiente.
+- «esta tarde», «esta noche» y «esta madrugada» se consideran referencias explícitas al día de hoy.
+- El botón flotante **Habla con Nexo** se muestra también en la pantalla de creación de tareas/citas.
+- El dictado dentro de una captura existente conserva el contexto de esa captura y añade el texto sin reiniciar el formulario.
+- Se añaden casos de regresión específicos para las franjas mañana/tarde/noche.
+- Sin cambios en esquema de base de datos ni baseline AndroidIDE.
+
+# Changelog de Nexo
+
 ## 3.7.0-beta15 · versionCode 80 · Voz inteligente y festivos
 
 - El micrófono flotante general deja de iniciar la grabadora y abre **Habla con Nexo**.

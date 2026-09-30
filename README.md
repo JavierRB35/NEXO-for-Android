@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta15 · AndroidIDE
+# Nexo 3.7.0-beta16 · AndroidIDE
 
-Rama Release: `release/nexo-3.7.0-beta15`.
+Rama Release: `release/nexo-3.7.0-beta16`.
 
 Identidad:
-- Nexo **3.7.0-beta15**
-- `versionCode 80`
+- Nexo **3.7.0-beta16**
+- `versionCode 81`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta15/
+/storage/emulated/0/Download/Nexo_3_7_0_beta16/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta15"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta16"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta15.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta16.apk
 ```
 
 ## Input Hub beta4
@@ -126,3 +126,12 @@ Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)`
 - El Calendario incorpora festivos nacionales, autonómicos, provinciales y locales con el mismo proveedor y el mismo tratamiento visual que Nexo Familia.
 - La localidad replica la configuración vigente de Nexo Familia: **La Pobla de Vallbona (INE 46202), Valencia, Comunitat Valenciana**.
 - La caché local dura 7 días; sin conexión se usa la última caché y, si no existe, un fallback de festivos nacionales permanentes.
+
+
+## Beta16 · franjas horarias y dictado dentro de tareas
+
+- El parser temporal usa también la franja situada **antes** de la hora: «esta tarde a las cinco y media» = **17:30**.
+- «mañana por la mañana» conserva la mañana y «mañana por la tarde» convierte correctamente a formato de 24 horas.
+- «esta tarde / esta noche / esta madrugada» fijan la fecha en hoy, sin desplazar por error el evento al día siguiente si la hora parecía AM.
+- El botón flotante **Habla con Nexo** aparece también mientras se crea una tarea/cita en Captura rápida.
+- Al dictar desde esa pantalla se amplía el texto actual sin limpiar el tipo o la fecha fijados y Nexo vuelve a interpretar los campos.
