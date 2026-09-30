@@ -1393,7 +1393,7 @@ function renderCommunicationCaptureSettings(){
       const last=settings.smsLastSync?(' · última consulta '+fmtDate(Number(settings.smsLastSync),true)):'';
       smsStatus.textContent=(settings.autoScanEnabled===false?'Preparado para escaneo manual':'Activo · lectura directa automática')+last+' · '+Number(settings.smsSeen||0)+' vistos · '+Number(settings.smsCaptured||0)+' candidatos · '+Number(settings.smsRejected||0)+' descartados'+(Number(settings.smsErrors||0)?' · '+Number(settings.smsErrors||0)+' con error':'');
     }else if(settings.smsError)smsStatus.textContent=String(settings.smsError);
-    else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent='Preparando referencia inicial de SMS…';
+    else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent=settings.autoScanEnabled===false?'Preparado · pulsa Escanear ahora para crear la referencia inicial.':'Preparando referencia inicial de SMS…';
     else if(settings.smsDirectEnabled&&!settings.smsPermission)smsStatus.textContent='Falta conceder permiso para leer SMS.';
     else smsStatus.textContent='Desactivado.';
   }
@@ -1405,7 +1405,7 @@ function renderCommunicationCaptureSettings(){
     if(settings.gmailDirectEnabled&&settings.gmailAuthorized&&settings.gmailBaselined){
       gmailStatus.textContent=`${settings.autoScanEnabled===false?'Preparado para escaneo manual':'Activo · Gmail API automática'}${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''} · ${Number(settings.gmailSeen||0)} vistos · ${Number(settings.gmailCaptured||0)} candidatos · ${Number(settings.gmailRejected||0)} descartados${Number(settings.gmailErrors||0)?' · '+Number(settings.gmailErrors||0)+' con error':''}`;
     }else if(settings.gmailDirectEnabled&&settings.gmailAuthorized){
-      gmailStatus.textContent=`Cuenta autorizada${account?' · '+account:''} · preparando referencia inicial…`;
+      gmailStatus.textContent=settings.autoScanEnabled===false?`Cuenta autorizada${account?' · '+account:''} · pulsa Escanear ahora para iniciar.`:`Cuenta autorizada${account?' · '+account:''} · preparando referencia inicial…`;
     }else if(settings.gmailError){
       gmailStatus.textContent=String(settings.gmailError);
     }else{
