@@ -12,6 +12,9 @@ public final class InputHubPrefs {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
+    public static boolean autoScanEnabled(Context c) { return prefs(c).getBoolean("auto_scan_enabled", true); }
+    public static void setAutoScanEnabled(Context c, boolean value) { prefs(c).edit().putBoolean("auto_scan_enabled", value).apply(); }
+
     public static boolean smsEnabled(Context c) { return prefs(c).getBoolean("sms_enabled", false); }
     public static void setSmsEnabled(Context c, boolean value) { prefs(c).edit().putBoolean("sms_enabled", value).apply(); }
     public static boolean smsBaselined(Context c) { return prefs(c).getBoolean("sms_baselined", false); }
