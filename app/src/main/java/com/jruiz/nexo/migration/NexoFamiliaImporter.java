@@ -252,6 +252,7 @@ public final class NexoFamiliaImporter {
         local.put("favorite",false);
         local.put("source","nexo-familia");
         local.put("status",status);
+        local.put("statusManual",false);
         local.put("needsReview",false);
         local.put("recurrence",recurrence);
         local.put("recurrenceUntil",recurrenceUntil);
