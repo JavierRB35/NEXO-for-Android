@@ -51,7 +51,53 @@ assert 'id="homeAgendaLink"' not in html
 assert 'Ver agenda' not in html
 assert "$('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});" in js
 assert '<button class="nav-item" data-nav="calendar">' in html
-assert "$('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));" in js
+assert ('
+assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
+month_block=js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
+assert "monthRaw.toLocaleUpperCase" not in month_block
+assert ".toLocaleLowerCase('es-ES')" in month_block
+assert "monthRaw.replace(/^./" in month_block
+
+# Logo suministrado por el usuario: cabecera + icono adaptativo Android.
+import hashlib
+screen_logo=root/'app/src/main/assets/nexo-logo.webp'
+launcher_logo=root/'app/src/main/res/drawable-nodpi/nexo_family_foreground.webp'
+launcher_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml').read_text(encoding='utf-8')
+launcher_round_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml').read_text(encoding='utf-8')
+colors=(root/'app/src/main/res/values/colors.xml').read_text(encoding='utf-8')
+assert '<img class="brand-logo" src="nexo-logo.webp"' in html
+assert screen_logo.exists() and launcher_logo.exists()
+assert hashlib.sha256(screen_logo.read_bytes()).hexdigest()=='4acaf52c4f3a36a94f29589a27b9de55fc4310d59fe43f5f3a84c60f667d9283'
+assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()=='d4a08eeb86fee28e1ef2e5191371a929583ad13550b46f8a43e64ed25c6045c6'
+assert '@drawable/nexo_family_foreground' in launcher_xml and '@drawable/nexo_family_foreground' in launcher_round_xml
+assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
+assert '<color name="nexo_icon_background">#000000</color>' in colors
+assert 'v3.7.0-beta17' in html
+print('Beta17: criterios de aceptación + mes de Inicio + logo suministrado OK')
++'
+assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
+month_block=js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
+assert "monthRaw.toLocaleUpperCase" not in month_block
+assert ".toLocaleLowerCase('es-ES')" in month_block
+assert "monthRaw.replace(/^./" in month_block
+
+# Logo suministrado por el usuario: cabecera + icono adaptativo Android.
+import hashlib
+screen_logo=root/'app/src/main/assets/nexo-logo.webp'
+launcher_logo=root/'app/src/main/res/drawable-nodpi/nexo_family_foreground.webp'
+launcher_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml').read_text(encoding='utf-8')
+launcher_round_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml').read_text(encoding='utf-8')
+colors=(root/'app/src/main/res/values/colors.xml').read_text(encoding='utf-8')
+assert '<img class="brand-logo" src="nexo-logo.webp"' in html
+assert screen_logo.exists() and launcher_logo.exists()
+assert hashlib.sha256(screen_logo.read_bytes()).hexdigest()=='4acaf52c4f3a36a94f29589a27b9de55fc4310d59fe43f5f3a84c60f667d9283'
+assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()=='d4a08eeb86fee28e1ef2e5191371a929583ad13550b46f8a43e64ed25c6045c6'
+assert '@drawable/nexo_family_foreground' in launcher_xml and '@drawable/nexo_family_foreground' in launcher_round_xml
+assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
+assert '<color name="nexo_icon_background">#000000</color>' in colors
+assert 'v3.7.0-beta17' in html
+print('Beta17: criterios de aceptación + mes de Inicio + logo suministrado OK')
++"('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));") in js
 assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
 month_block=js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
 assert "monthRaw.toLocaleUpperCase" not in month_block
