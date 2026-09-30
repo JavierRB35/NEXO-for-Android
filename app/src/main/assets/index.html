@@ -307,7 +307,24 @@
         <div class="calendar-capture-section">
           <div class="search-section-label">Fuentes directas</div>
           <label class="toggle-row"><span><strong>SMS recibidos</strong><small>Lee directamente la bandeja SMS de Android.</small></span><input id="smsDirectEnabled" type="checkbox"></label><div id="smsDirectStatus" class="small muted"></div>
-          <label class="toggle-row"><span><strong>Gmail</strong><small>Consulta la cuenta autorizada mediante Gmail API.</small></span><input id="gmailDirectEnabled" type="checkbox"></label><div id="gmailDirectStatus" class="small muted"></div><div class="modal-actions"><button id="gmailConnectBtn" class="secondary-button" type="button">Conectar Gmail</button></div>
+          <div class="gmail-connect-card">
+            <div class="gmail-connect-head">
+              <div><strong>Gmail</strong><small>Nexo puede revisar tu correo cuando pulses “Escanear Gmail”. El escaneo automático sigue siendo opcional.</small></div>
+              <span id="gmailConnectionBadge" class="gmail-status-badge">No conectado</span>
+            </div>
+            <div id="gmailAccount" class="gmail-account hidden"></div>
+            <div id="gmailDirectStatus" class="small muted"></div>
+            <div class="gmail-actions">
+              <button id="gmailConnectBtn" class="primary-button" type="button">Conectar Gmail</button>
+              <button id="gmailScanNowBtn" class="secondary-button hidden" type="button">Escanear Gmail</button>
+              <button id="gmailDisconnectBtn" class="ghost-button hidden" type="button">Desconectar</button>
+            </div>
+            <details id="gmailDiagnostic" class="gmail-diagnostic hidden">
+              <summary>Ver diagnóstico</summary>
+              <div id="gmailDiagnosticText" class="small muted"></div>
+              <p class="small muted">Este apartado es solo para resolver problemas. Un usuario normal no necesita configurar Google Cloud ni conocer OAuth.</p>
+            </details>
+          </div>
           <label class="toggle-row"><span><strong>Calendar Android</strong><small>Detecta eventos nuevos y cambios escritos por otras aplicaciones.</small></span><input id="calendarCaptureEnabled" type="checkbox"></label><div id="calendarAccessStatus" class="small muted"></div>
           <p class="small muted">En modo Manual estas fuentes solo se consultan al pulsar “Escanear ahora”.</p>
         </div>
