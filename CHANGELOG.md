@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.0-beta14 · versionCode 79 · Gmail sencillo
+
+- Gmail pasa a un flujo directo de usuario: **Conectar Gmail → Escanear Gmail → Desconectar**.
+- Se elimina el interruptor técnico de “Gmail directo” de la interfaz.
+- La pantalla normal muestra solo el estado de conexión, la cuenta conectada y el último escaneo.
+- El escaneo de Gmail puede lanzarse de forma independiente, sin escanear SMS ni Calendar.
+- El modo **Manual** sigue siendo el predeterminado; Gmail no programa consultas periódicas salvo que el usuario active el escaneo automático.
+- Los errores de Google se traducen a mensajes comprensibles. El detalle técnico y el código real quedan ocultos en **Ver diagnóstico**.
+- El error 10 / DEVELOPER_ERROR se presenta como “Google todavía no reconoce esta versión de Nexo”, sin exponer OAuth al usuario normal.
+- Desconectar Gmail cancela su scheduler, limpia el estado local y cierra la sesión Google de Nexo.
+- Conectar Gmail ya no solicita permisos de notificaciones como efecto secundario.
+- Sin cambios en esquema de base de datos ni baseline AndroidIDE.
+
 ## 3.7.0-beta13 · versionCode 78 · Reparación global de interacción
 
 - Corrige un fallo de inicialización causado por usar un selector simple (`) donde se requería una lista (`$`). El error detenía el enlace de los controles posteriores.
