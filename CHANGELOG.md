@@ -1,5 +1,13 @@
 # Changelog de Nexo
 
+## 3.7.0-beta12 · versionCode 77 · Escaneo manual por defecto
+
+- Input Hub arranca en **modo Manual** en instalaciones nuevas.
+- Calendar, SMS y Gmail no programan escaneos periódicos hasta que el usuario active expresamente **Escaneo automático**.
+- El botón **Escanear ahora** sigue consultando manualmente las fuentes directas activadas.
+- WhatsApp y Telegram mediante acceso a notificaciones siguen siendo independientes de este ajuste.
+- Sin cambios en esquema de base de datos ni baseline AndroidIDE.
+
 ## 3.7.0-beta11 · versionCode 76 · Navegación, batería y consistencia Nexo Familia
 
 - Las tarjetas de eventos de Inicio, búsqueda, Agenda, Calendario y listados abren directamente el formulario del evento.
