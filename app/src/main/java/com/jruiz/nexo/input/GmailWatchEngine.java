@@ -77,9 +77,11 @@ public final class GmailWatchEngine {
             InputHubPrefs.setGmailBaselined(context, true);
             InputHubPrefs.setGmailLastSync(context, System.currentTimeMillis());
             InputHubPrefs.setGmailError(context, "");
+            InputHubPrefs.setGmailErrorDetail(context, "");
             GmailWatchScheduler.schedule(context);
         } catch (Exception e) {
             InputHubPrefs.setGmailError(context, readableError(e));
+            InputHubPrefs.setGmailErrorDetail(context, "Gmail API: " + e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " · " + e.getMessage()));
         } finally {
             db.close();
         }
@@ -126,9 +128,13 @@ public final class GmailWatchEngine {
             if (!recoverRecentIgnored(token, db, context)) hadProcessingError = true;
             InputHubPrefs.setGmailEmail(context, account.getEmail());
             InputHubPrefs.setGmailLastSync(context, System.currentTimeMillis());
-            if (!hadProcessingError) InputHubPrefs.setGmailError(context, "");
+            if (!hadProcessingError) {
+                InputHubPrefs.setGmailError(context, "");
+                InputHubPrefs.setGmailErrorDetail(context, "");
+            }
         } catch (Exception e) {
             InputHubPrefs.setGmailError(context, readableError(e));
+            InputHubPrefs.setGmailErrorDetail(context, "Gmail API: " + e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " · " + e.getMessage()));
         } finally {
             db.close();
         }
