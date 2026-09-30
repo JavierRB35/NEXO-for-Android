@@ -434,6 +434,17 @@ function homeParticipantData(item){
     return {name,color:'#16855B'};
   });
 }
+function eventParticipantAvatarsHtml(item,extraClass=''){
+  const participants=homeParticipantData(item);
+  if(!participants.length)return '';
+  const avatars=participants.slice(0,4).map(p=>{
+    const color=String(p.color||'#3158D4'),fg=['#FFFFFF','#FACC15'].includes(color.toUpperCase())?'#182033':'#FFFFFF';
+    const initial=String(p.name||'').trim().charAt(0).toUpperCase()||'?';
+    return '<span class="event-participant-avatar" style="background:'+escAttr(color)+';color:'+fg+'" title="'+escAttr(p.name)+'">'+esc(initial)+'</span>';
+  }).join('');
+  const more=participants.length>4?'<span class="event-participant-avatar event-participant-avatar--more">+'+(participants.length-4)+'</span>':'';
+  return '<span class="event-participant-avatars '+escAttr(extraClass)+'" aria-label="Personas incluidas">'+avatars+more+'</span>';
+}
 function homeUpcomingCard(item){
   const d=new Date(Number(item.dueAt)),theme=familyCategoryTheme(item.category),icon=familyCategoryIcon(item.category),participants=homeParticipantData(item);
   const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase();
