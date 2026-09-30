@@ -8,7 +8,7 @@ css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf-8')
 
 # 1. Estado manual gana a la inferencia temporal.
-assert 'DB_VERSION = 22' in db
+assert 'DB_VERSION = 23' in db
 assert 'status_manual INTEGER NOT NULL DEFAULT 0' in db
 assert 'WHEN status_manual=1 THEN status' in db
 assert 'in.has("dueAt") && !in.has("status") && !old.optBoolean("statusManual", false)' in db
@@ -58,7 +58,7 @@ assert "navigate(b.dataset.nav,{root:true})" in js
 assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
 
 # 5. Mes abreviado: inicial mayúscula y resto minúscula.
-month_block=js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
+month_block=js[js.index('const monthRaw='):js.index('const localPeople=',js.index('const monthRaw='))]
 assert "monthRaw.toLocaleUpperCase" not in month_block
 assert ".toLocaleLowerCase('es-ES')" in month_block
 assert "monthRaw.replace(/^./" in month_block
