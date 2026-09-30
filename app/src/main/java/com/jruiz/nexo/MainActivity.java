@@ -2204,6 +2204,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String setOccurrenceStatus(long seriesId,long occurrenceAt,String status) { return service.setOccurrenceStatus(seriesId,occurrenceAt,status).toString(); }
         @JavascriptInterface public String getToday() { return db.getTodayData().toString(); }
         @JavascriptInterface public String getMoreSummary() { return db.getMoreSummary().toString(); }
+        @JavascriptInterface public String getPeople() { return db.getPeople().toString(); }
+        @JavascriptInterface public String getPerson(long id) { return db.getPerson(id).toString(); }
+        @JavascriptInterface public String savePerson(String json) {
+            try { return db.savePerson(new JSONObject(json)).toString(); }
+            catch(Exception e) { return new JSONObject().toString(); }
+        }
+        @JavascriptInterface public boolean archivePerson(long id) { return db.archivePerson(id); }
         @JavascriptInterface public void chooseNexoFamiliaImport() { MainActivity.this.chooseNexoFamiliaImport(); }
         @JavascriptInterface public void repairBundledNexoFamiliaMigration() {
             new Thread(() -> {
