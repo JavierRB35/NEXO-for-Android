@@ -48,6 +48,7 @@ jobs:
           python3 validation/test-nexo-familia-migration.py
           python3 validation/test-calendar-nonrecurring-range.py
           python3 validation/test-home-familia-parity.py
+          python3 validation/test-beta11-polish.py
           node --check app/src/main/assets/app.js
 
       - name: Compile debug APK
