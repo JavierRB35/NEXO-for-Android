@@ -32,6 +32,8 @@ public final class InputHubPrefs {
     public static void setGmailEmail(Context c, String value) { prefs(c).edit().putString("gmail_email", value == null ? "" : value).apply(); }
     public static String gmailError(Context c) { return prefs(c).getString("gmail_error", ""); }
     public static void setGmailError(Context c, String value) { prefs(c).edit().putString("gmail_error", value == null ? "" : value).apply(); }
+    public static String gmailErrorDetail(Context c) { return prefs(c).getString("gmail_error_detail", ""); }
+    public static void setGmailErrorDetail(Context c, String value) { prefs(c).edit().putString("gmail_error_detail", value == null ? "" : value).apply(); }
     public static long gmailLastSync(Context c) { return prefs(c).getLong("gmail_last_sync", 0L); }
     public static void setGmailLastSync(Context c, long value) { prefs(c).edit().putLong("gmail_last_sync", value).apply(); }
 }
