@@ -145,9 +145,10 @@ function familyStyleSearch(query,includeHistorical=false){
     let score=0;
     if(title===normalizedQuery)score+=120;else if(title.startsWith(normalizedQuery))score+=80;else if(title.includes(normalizedQuery))score+=55;
     if(detail.includes(normalizedQuery))score+=35;
+    if(detail.includes('personas: '+normalizedQuery))score+=70;
     if(searchText.includes(normalizedQuery))score+=20;
     if(type.includes(normalizedQuery))score+=12;
-    tokens.forEach(t=>{if(title.includes(t))score+=12;if(detail.includes(t))score+=7;if(searchText.includes(t))score+=4;});
+    tokens.forEach(t=>{if(title.includes(t))score+=12;if(detail.includes(t))score+=7;if(detail.includes('personas: '+t))score+=28;if(searchText.includes(t))score+=4;});
     return {item,score,index};
   }).filter(Boolean).sort((a,b)=>{
     const relevance=b.score-a.score;if(relevance!==0)return relevance;
