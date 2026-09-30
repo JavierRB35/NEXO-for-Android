@@ -1644,11 +1644,14 @@ function renderListsPanel(){
   $('#panelAddList').addEventListener('click',openNewListModal);
   $('#panelContent').innerHTML=lists.length?lists.map(l=>{
     const count=Number(l.count||0),pending=Number(l.pending||0),done=Math.max(0,count-pending);
-    return `<div class="list-row"><div class="list-row-shell"><button class="row-open" data-list-open="${l.id}"><div class="list-row-head"><div><strong>${esc(l.title)}</strong><div class="small muted">${esc(l.kind)} · ${pending} pendiente${pending===1?'':'s'} · ${count} elemento${count===1?'':'s'}${done?` · ${done} completado${done===1?'':'s'}`:''}</div></div><span>›</span></div></button><button type="button" class="list-row-menu" data-list-manage="${l.id}" aria-label="Gestionar ${escAttr(l.title)}"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-more"></use></svg></button></div></div>`;
+    return `<div class="list-row"><div class="list-row-shell"><button class="row-open" data-list-open="${l.id}"><div class="list-row-head"><div><strong>${esc(l.title)}</strong><div class="small muted">${esc(l.kind)} · ${pending} pendiente${pending===1?'':'s'} · ${count} elemento${count===1?'':'s'}${done?` · ${done} completado${done===1?'':'s'}`:''}</div></div></div></button><div class="record-card-actions">${recordIconAction('edit','Editar lista',`data-list-manage="${l.id}"`)}${recordIconAction('share','Compartir lista',`data-list-share="${l.id}"`)}${recordIconAction('trash','Eliminar lista',`data-list-delete="${l.id}"`,'icon-action--danger')}</div></div></div>`;
   }).join(''):'<div class="empty-state">No tienes listas.</div>';
   $$('[data-list-open]').forEach(b=>b.addEventListener('click',()=>openList(Number(b.dataset.listOpen))));
-  $$('[data-list-manage]').forEach(b=>b.addEventListener('click',()=>openListManagement(Number(b.dataset.listManage))));
+  $$('[data-list-manage]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openListManagement(Number(b.dataset.listManage));}));
+  $$('[data-list-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoList(Number(b.dataset.listShare));}));
+  $$('[data-list-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.listDelete),l=parseNative(NexoNative.getList(id),{});confirmGeneric('Eliminar lista','Se eliminará “'+(l.title||'esta lista')+'” y todos sus elementos.',()=>{if(NexoNative.deleteList(id)){toast('Lista eliminada');renderListsPanel();}else toast('No se pudo eliminar');},'Eliminar');}));
 }
+
 function openList(id,options={}){
   const l=parseNative(NexoNative.getList(id),{});
   if(!l.id){
