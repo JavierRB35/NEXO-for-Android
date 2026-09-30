@@ -1849,3 +1849,69 @@ main{max-width:720px}
   margin:0;padding:0 2px;color:#667085;font-size:.78rem;font-weight:900;
   letter-spacing:.02em;text-transform:capitalize;
 }
+
+
+/* Nexo beta11 · patrones de Nexo Familia */
+.brand-copy{display:flex;align-items:baseline;gap:7px;min-width:0}
+.brand-version{color:#7b8494;font-size:.66rem;font-weight:800;white-space:nowrap}
+
+.settings-accordion-list{display:grid;gap:10px;margin-bottom:12px}
+.settings-accordion{
+  overflow:hidden;border:1px solid rgba(225,226,221,.98);border-radius:17px;
+  background:rgba(255,255,255,.97);box-shadow:0 7px 18px rgba(77,73,55,.06);
+}
+.settings-accordion__summary{
+  display:grid;grid-template-columns:42px minmax(0,1fr) 22px;align-items:center;gap:10px;
+  width:100%;min-height:66px;padding:10px 12px;border:0;color:var(--text);
+  background:transparent;font:inherit;text-align:left;
+}
+.settings-accordion__icon{
+  display:grid;place-items:center;width:40px;height:40px;border-radius:13px;
+  color:var(--primary);background:var(--primary-soft);
+}
+.settings-accordion__icon .ui-icon{width:21px;height:21px}
+.settings-accordion__label{display:grid;min-width:0;gap:2px}
+.settings-accordion__label strong{font-size:.94rem;font-weight:850}
+.settings-accordion__label small{overflow:hidden;color:var(--muted);font-size:.72rem;line-height:1.25;text-overflow:ellipsis}
+.settings-accordion__chevron{width:19px;height:19px;color:var(--muted);transition:transform 160ms ease}
+.settings-accordion--open .settings-accordion__chevron{transform:rotate(90deg)}
+.settings-accordion--open .settings-accordion__summary{background:rgba(22,133,91,.045)}
+.settings-accordion__body{padding:0 12px 12px;border-top:1px solid rgba(229,230,225,.92)}
+.settings-accordion__body.hidden{display:none}
+.settings-card--embedded{margin:12px 0 0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.input-hub-mode{margin-top:12px}
+.map-field-action{display:flex;justify-content:flex-start;margin-top:-4px}
+
+.record-card-actions{
+  display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap;
+}
+.icon-action{
+  width:34px;height:34px;display:inline-grid;place-items:center;flex:0 0 auto;padding:0;
+  border:1px solid rgba(217,220,215,.98);border-radius:11px;
+  color:#586474;background:rgba(255,255,255,.96);box-shadow:0 3px 10px rgba(50,56,65,.05);
+}
+.icon-action .ui-icon{width:17px;height:17px}
+.icon-action:active{transform:scale(.96)}
+.icon-action--danger{color:#c33145;background:#fff5f6;border-color:#f3c7ce}
+.icon-action--whatsapp{color:#128c53;background:#effaf4;border-color:#c4ead4}
+
+.note-card,.document-card,.place-card,.journal-card,.med-card,.list-row-shell{
+  position:relative;
+}
+.note-card>.record-card-actions,.document-card>.record-card-actions,.place-card>.record-card-actions,
+.journal-card>.record-card-actions,.med-card>.record-card-actions{
+  position:absolute;top:9px;right:9px;z-index:3;
+}
+.note-card-open,.journal-card-open,.med-card-open{width:100%;padding-right:118px;text-align:left}
+.document-open,.place-open{padding-right:118px}
+.item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.item-top .record-card-actions{flex:0 0 auto}
+.agenda-record-actions{align-self:center;margin-left:auto}
+.agenda-row{grid-template-columns:minmax(0,1fr) auto}
+.list-row-shell>.record-card-actions{padding-right:7px;flex:0 0 auto}
+
+.calendar-event-birthday{
+  display:inline-grid;place-items:center;width:15px;height:15px;margin-top:-4px;
+  font-size:13px;line-height:1;
+}
+.fab-voice.is-recording{color:#fff;background:#c83246;box-shadow:0 8px 24px rgba(200,50,70,.34)}
