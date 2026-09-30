@@ -269,7 +269,7 @@ public class NexoService {
 
                 JSONObject next=new JSONObject(base.toString());
                 JSONObject ov=occurrenceOverride(in);
-                for (String key:new String[]{"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) next.put(key,ov.get(key));
+                for (String key:new String[]{"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) next.put(key,ov.get(key));
                 if("task".equals(next.optString("type"))) next.put("status","pending");
                 next.put("recurrence",nextRecurrence);
                 next.put("recurrenceUntil",nextUntil);
@@ -291,7 +291,7 @@ public class NexoService {
             JSONObject payload=new JSONObject();
             payload.put("id",seriesId);
             JSONObject ov=occurrenceOverride(in);
-            for (String key:new String[]{"title","body","category","type","endAt","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) payload.put(key,ov.get(key));
+            for (String key:new String[]{"title","body","category","type","endAt","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) payload.put(key,ov.get(key));
             if(in.optBoolean("dateChanged",false) && ov.has("dueAt")){
                 long oldBaseDue=base.optLong("dueAt",0);
                 long shiftedBase = shiftWholeSeriesBase(oldBaseDue, occurrenceAt, ov.optLong("dueAt",0));
@@ -349,7 +349,7 @@ public class NexoService {
 
     private JSONObject occurrenceOverride(JSONObject in) throws Exception {
         JSONObject o=new JSONObject();
-        for(String key:new String[]{"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","durationMinutes","locationText","priority","favorite","needsReview"}) if(in.has(key)) o.put(key,in.get(key));
+        for(String key:new String[]{"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(in.has(key)) o.put(key,in.get(key));
         return o;
     }
 
