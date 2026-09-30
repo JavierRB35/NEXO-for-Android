@@ -452,7 +452,7 @@ function homeUpcomingCard(item){
   const recurring=!!item.recurring||(item.recurrence&&item.recurrence!=='none');
   const id=Number(item.seriesId||item.id),occ=Number(item.occurrenceAt||item.dueAt);
   const style='--event-category-color:'+theme[0]+';--event-category-bg:'+theme[1]+';--event-category-border:'+theme[2];
-  const avatars=participants.length?'<span class="event-participant-avatars">'+participants.slice(0,4).map(p=>'<span class="event-participant-avatar" style="background:'+escAttr(p.color)+';color:'+(['#FFFFFF','#FACC15'].includes(String(p.color).toUpperCase())?'#182033':'#fff')+'" title="'+escAttr(p.name)+'">'+esc(p.name.trim().charAt(0).toUpperCase())+'</span>').join('')+(participants.length>4?'<span class="event-participant-avatar event-participant-avatar--more">+'+(participants.length-4)+'</span>':'')+'</span>':'';
+  const avatars=eventParticipantAvatarsHtml(item);
   return '<button type="button" class="upcoming-card upcoming-card--link" style="'+style+'" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
     '<span class="date-tile"><span class="date-tile__weekday">'+esc(weekday)+'</span><strong>'+String(d.getDate()).padStart(2,'0')+'</strong><small>'+esc(month)+'</small></span>'+
     '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(item.title||'Evento')+'</strong>'+(item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+avatars+'</span>'+
