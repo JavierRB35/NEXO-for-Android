@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 22;
+    private static final int DB_VERSION = 23;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -230,6 +230,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         if (oldVersion < 22) {
             createPeopleTables(db);
+        }
+        if (oldVersion < 23) {
+            createItemPeopleTable(db);
         }
     }
 
@@ -583,6 +586,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "updated_at INTEGER NOT NULL" +
                 ")");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_people_active_name ON people(archived_at,name COLLATE NOCASE)");
+        createItemPeopleTable(db);
+    }
+
+    private static void createItemPeopleTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS item_people (" +
+                "item_id INTEGER NOT NULL," +
+                "person_id INTEGER NOT NULL," +
+                "assigned_at INTEGER NOT NULL," +
+                "PRIMARY KEY(item_id,person_id)" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_item_people_person ON item_people(person_id,item_id)");
     }
 
     private static String normalizePersonColor(String value) {
@@ -668,6 +682,80 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("archived_at",now);
         v.put("updated_at",now);
         return getWritableDatabase().update("people",v,"id=? AND archived_at=0",new String[]{String.valueOf(id)})>0;
+    }
+
+    public boolean replaceItemPeople(long itemId, JSONArray ids) {
+        if(itemId<=0)return false;
+        SQLiteDatabase db=getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete("item_people","item_id=?",new String[]{String.valueOf(itemId)});
+            LinkedHashSet<Long> unique=new LinkedHashSet<>();
+            if(ids!=null)for(int i=0;i<ids.length();i++){long id=ids.optLong(i,0);if(id>0)unique.add(id);}
+            long now=System.currentTimeMillis();
+            for(long personId:unique){
+                try(Cursor c=db.rawQuery("SELECT 1 FROM people WHERE id=? LIMIT 1",new String[]{String.valueOf(personId)})){
+                    if(!c.moveToFirst())continue;
+                }
+                ContentValues v=new ContentValues();
+                v.put("item_id",itemId);v.put("person_id",personId);v.put("assigned_at",now);
+                db.insertWithOnConflict("item_people",null,v,SQLiteDatabase.CONFLICT_IGNORE);
+            }
+            db.setTransactionSuccessful();
+            return true;
+        } finally { db.endTransaction(); }
+    }
+
+    public JSONArray getItemPeople(long itemId) {
+        JSONArray out=new JSONArray();
+        if(itemId<=0)return out;
+        try(Cursor c=getReadableDatabase().rawQuery(
+                "SELECT p.id,p.name,p.color,p.archived_at FROM item_people ip JOIN people p ON p.id=ip.person_id WHERE ip.item_id=? ORDER BY p.name COLLATE NOCASE,p.id",
+                new String[]{String.valueOf(itemId)})){
+            while(c.moveToNext()){
+                JSONObject p=new JSONObject();
+                p.put("id",c.getLong(0));p.put("name",c.getString(1));p.put("color",c.getString(2));p.put("archived",c.getLong(3)>0);
+                out.put(p);
+            }
+        } catch(Exception ignored){}
+        return out;
+    }
+
+    private JSONObject attachParticipantsFromIds(JSONObject item, JSONArray ids) {
+        try {
+            JSONArray participants=new JSONArray(),normalizedIds=new JSONArray();
+            StringBuilder names=new StringBuilder();
+            LinkedHashSet<Long> unique=new LinkedHashSet<>();
+            if(ids!=null)for(int i=0;i<ids.length();i++){long id=ids.optLong(i,0);if(id>0)unique.add(id);}
+            for(long personId:unique){
+                JSONObject p=getPerson(personId);if(p.length()==0)continue;
+                JSONObject compact=new JSONObject();
+                compact.put("id",personId);compact.put("name",p.optString("name","Persona"));compact.put("color",p.optString("color","#3158D4"));compact.put("archived",p.optLong("archivedAt",0)>0);
+                participants.put(compact);normalizedIds.put(personId);
+                if(names.length()>0)names.append(", ");names.append(compact.optString("name"));
+            }
+            item.put("participantIds",normalizedIds);
+            item.put("participants",participants);
+            if(participants.length()>0)item.put("participantsText",names.toString());
+        } catch(Exception ignored){}
+        return item;
+    }
+
+    private JSONObject attachItemPeople(JSONObject item) {
+        if(item==null||item.length()==0)return item;
+        long itemId=item.optLong("id",0);
+        JSONArray participants=getItemPeople(itemId),ids=new JSONArray();
+        for(int i=0;i<participants.length();i++){JSONObject p=participants.optJSONObject(i);if(p!=null)ids.put(p.optLong("id",0));}
+        try{
+            item.put("participantIds",ids);
+            item.put("participants",participants);
+            if(participants.length()>0){
+                StringBuilder names=new StringBuilder();
+                for(int i=0;i<participants.length();i++){JSONObject p=participants.optJSONObject(i);if(p==null)continue;if(names.length()>0)names.append(", ");names.append(p.optString("name","Persona"));}
+                item.put("participantsText",names.toString());
+            }
+        }catch(Exception ignored){}
+        return item;
     }
 
     /** Evita duplicar la cita de ejemplo al actualizar desde versiones anteriores. */
@@ -807,6 +895,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("created_at", now);
         v.put("updated_at", now);
         long id = getWritableDatabase().insertOrThrow("items", null, v);
+        if(in.has("participantIds"))replaceItemPeople(id,in.optJSONArray("participantIds"));
         addHistory("guardado", in.optString("type", "note"), id, in.optString("title", "Nota rápida"));
         return id;
     }
@@ -886,6 +975,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("updated_at", System.currentTimeMillis());
         int rows = getWritableDatabase().update("items", v, "id=?", new String[]{String.valueOf(id)});
         if (rows > 0) {
+            if(in.has("participantIds"))replaceItemPeople(id,in.optJSONArray("participantIds"));
             String oldCat = old.optString("category");
             String newCat = in.optString("category", oldCat);
             if (!newCat.equals(oldCat)) learnFromCorrection(old.optString("title") + " " + old.optString("body"), newCat);
@@ -1318,6 +1408,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             db.delete("reminders", "item_id=?", new String[]{String.valueOf(id)});
             db.delete("recurrence_exceptions", "series_id=?", new String[]{String.valueOf(id)});
+            db.delete("item_people", "item_id=?", new String[]{String.valueOf(id)});
             int rows = db.delete("items", "id=? AND deleted_at>0", new String[]{String.valueOf(id)});
             db.setTransactionSuccessful();
             return rows > 0;
@@ -1508,8 +1599,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 String raw = ex.optString("overrideJson", "");
                 if (!raw.isBlank()) {
                     JSONObject ov = new JSONObject(raw);
-                    String[] keys = {"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","durationMinutes","locationText","priority","favorite","status","needsReview"};
+                    String[] keys = {"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","status","needsReview"};
                     for (String key : keys) if (ov.has(key)) o.put(key, ov.get(key));
+                    if(ov.has("participantIds"))attachParticipantsFromIds(o,ov.optJSONArray("participantIds"));
                 }
                 long moved = ex.optLong("overrideDueAt",0); if (moved>0) {
                     long overriddenEnd = o.optLong("endAt",0);
@@ -2140,6 +2232,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("attachments", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND attachment_path<>''"));
             o.put("journal", scalar("SELECT COUNT(*) FROM journal_entries"));
             o.put("medications", scalar("SELECT COUNT(*) FROM medications"));
+            o.put("people", scalar("SELECT COUNT(*) FROM people WHERE archived_at=0"));
+            o.put("eventPeopleLinks", scalar("SELECT COUNT(*) FROM item_people"));
             o.put("inboxCaptures", scalar("SELECT COUNT(*) FROM inbox_captures WHERE status IN ('new','reviewing')"));
         } catch(Exception ignored){}
         return o;
@@ -2881,6 +2975,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("noteTitleManual",noteTitleManualIndex>=0 && c.getInt(noteTitleManualIndex)==1);
             o.put("createdAt",c.getLong(c.getColumnIndexOrThrow("created_at")));
             o.put("updatedAt",c.getLong(c.getColumnIndexOrThrow("updated_at")));
+            attachItemPeople(o);
         } catch (Exception ignored) {}
         return o;
     }
