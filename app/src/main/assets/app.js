@@ -169,11 +169,8 @@ function openFamilySearchResult(item){
   openItem(Number(item.id));
 }
 function openEventInAgenda(id,occurrenceAt,recurring){
-  const when=Number(occurrenceAt)||Date.now(),d=new Date(when);
-  state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);
-  state.calendarSelected=isoDateLocal(d);
-  navigate('calendar',{root:false});
-  setTimeout(()=>{if(recurring)openOccurrence(Number(id),Number(occurrenceAt));else openItem(Number(id));},60);
+  if(recurring)openOccurrence(Number(id),Number(occurrenceAt));
+  else openItem(Number(id));
 }
 
 function isAppointmentType(type){return ['event','task','reminder','expiry'].includes(type);}
@@ -322,11 +319,13 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
 function updateFloatingActions(){
   const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
   if(!voice||!add)return;
-  const panelVoice=state.screen==='panel'&&(['journal','quotes','medications'].includes(state.lastPanel)||(state.lastPanel==='lists'&&!!state.currentList));
-  const voiceVisible=['today','calendar','search','tools','save'].includes(state.screen)||panelVoice;
-  const eventContext=state.screen==='today'||state.screen==='calendar'||(state.screen==='panel'&&state.lastPanel==='appointments');
+  const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
+  const nonEventPanels=new Set(['backup','history','inbox']);
+  const contentPanel=state.screen==='panel'&&!nonEventPanels.has(state.lastPanel);
+  const voiceVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel);
+  const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
   voice.classList.toggle('hidden',!voiceVisible);
-  add.classList.toggle('hidden',!eventContext);
+  add.classList.toggle('hidden',!eventVisible);
 }
 function runEventAddFab(){
   const today=isoDateLocal(new Date());
@@ -411,6 +410,7 @@ function renderToday() {
   buildFamilyStyleSearchIndex();
   const q=$('#homeSearchInput')?.value.trim()||'';
   if(q)runHomeSearch(q);
+  requestAnimationFrame(updateFloatingActions);
 }
 
 function homeParticipantData(item){
@@ -1230,6 +1230,13 @@ function openCalendar(returnScreen='today',selectedDate=''){
   navigate('calendar');
 }
 
+function openMapsFromFields(locationSelector,mapsSelector){
+  const maps=$(mapsSelector)?.value.trim()||'',place=$(locationSelector)?.value.trim()||'';
+  if(maps){NexoNative.openExternal(maps);return;}
+  if(place){NexoNative.openLocationDirections(place);return;}
+  toast('Escribe primero una dirección o ubicación.');
+}
+
 function itemEffectiveEndAt(item){
   if(!item?.dueAt)return 0;
   const end=Number(item.endAt)||((Number(item.durationMinutes)||0)?Number(item.dueAt)+Number(item.durationMinutes)*60000:Number(item.dueAt));
@@ -1262,8 +1269,9 @@ function renderCalendar(direction=0){
   for(let cell=0;cell<cells;cell++){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],selected=iso===state.calendarSelected;
     const label=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)+` · ${list.length?list.length+' elementos':'sin elementos'}`;
-    const tones=[...new Set(list.map(calendarDotClass))];
-    const dots=tones.map(tone=>`<span class="calendar-dot ${tone}"></span>`).join('');
+    const dots=list.slice(0,3).map(event=>calendarDotClass(event)==='birthday'
+      ? '<span class="calendar-event-birthday" title="Cumpleaños" aria-hidden="true">🎂</span>'
+      : `<span class="calendar-dot ${calendarDotClass(event)}"></span>`).join('');
     html+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
   }
   $('#calendarGrid').innerHTML=html;
@@ -1682,7 +1690,7 @@ function openItem(id){
       ${isAppointmentType(i.type)?`<label>Estado<select id="editStatus"><option value="pending" ${i.status!=='done'&&i.status!=='postponed'?'selected':''}>Pendiente</option><option value="done" ${i.status==='done'?'selected':''}>Completada</option><option value="postponed" ${i.status==='postponed'?'selected':''}>Pospuesta</option><option value="cancelled" ${i.status==='cancelled'?'selected':''}>Cancelada</option></select></label>`:''}
       
     </div></details>
-    <div class="modal-actions wrap-actions"><button id="saveEditBtn" class="primary-button">Guardar cambios</button>${i.locationText?'<button id="goItemLocationBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg> Ir</button>':''}<button id="shareItemBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button>${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>
+    <div class="modal-actions wrap-actions"><button id="saveEditBtn" class="primary-button">Guardar cambios</button><button id="goItemLocationBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> Google Maps</button><button id="shareItemBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button>${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>
     <button id="deleteItemBtn" class="danger-link">Eliminar este elemento</button>`);
 
   const syncEditAllDay=()=>{
@@ -1711,7 +1719,7 @@ function openItem(id){
     const res=parseNative(NexoNative.updateItem(JSON.stringify({id,title:$('#editTitle').value.trim(),body:$('#editBody').value,category:$('#editCategory').value,type:selectedType,dueAt,endAt,hasTime:!!(date&&time&&!allDay),allDay,durationMinutes,locationText:$('#editLocation').value.trim(),mapsUrl:$('#editMapsUrl').value.trim(),timeZone:$('#editTimeZone').value.trim()||'Europe/Madrid',recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'&&$('#editUntil').value?endOfDayMs($('#editUntil').value):0,voiceEnabled:$('#editVoiceEnabled')?$('#editVoiceEnabled').checked:false,needsReview:false,...statusPayload})),{});
     if(res.ok){let alertsOk=true;if(!sameAlerts(editAlerts,originalAlerts)){const ar=parseNative(NexoNative.replaceItemReminders(id,JSON.stringify(editAlerts)),{});alertsOk=!!ar.ok;}closeModal();toast(!alertsOk?'Cambios guardados, pero no se pudieron actualizar los avisos':conflicts.length?`Cambios guardados · coincide con ${conflicts.length} elemento${conflicts.length===1?'':'s'}`:'Cambios guardados');refreshCurrent();}else toast(res.error||'No se pudieron guardar los cambios.');
   });
-  if($('#goItemLocationBtn'))$('#goItemLocationBtn').addEventListener('click',()=>{const maps=$('#editMapsUrl').value.trim(),place=$('#editLocation').value.trim();if(maps)NexoNative.openExternal(maps);else if(place)NexoNative.openLocationDirections(place);else toast('Este elemento no tiene ubicación.');});
+  if($('#goItemLocationBtn'))$('#goItemLocationBtn').addEventListener('click',()=>openMapsFromFields('#editLocation','#editMapsUrl'));
   if($('#shareItemBtn'))$('#shareItemBtn').addEventListener('click',()=>openItemShareMenu(i.id,i.dueAt||0,false,!!i.dueAt));
   if($('#postponeItemBtn'))$('#postponeItemBtn').addEventListener('click',()=>{closeModal();openPostponeSheet(i.id,i.dueAt,false);});
   if(url)$('#openUrlBtn').addEventListener('click',()=>NexoNative.openExternal(url));
@@ -2080,6 +2088,9 @@ function init(){
   setInterpretationStatus('idle','Interpretación local preparada');
   $$('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
+  const runningVersion=String(NexoNative.getAppVersion()||'');
+  if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
+  $('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
@@ -2097,6 +2108,12 @@ function init(){
   $('#startScreen').addEventListener('change',()=>{NexoNative.setStartScreen($('#startScreen').value);toast('Pantalla de apertura actualizada');});
   $('#preferredShoppingList').addEventListener('change',()=>{NexoNative.setPreferredShoppingList(Number($('#preferredShoppingList').value));toast('Acceso a la compra actualizado');});
   $('#notificationAccessBtn')?.addEventListener('click',()=>NexoNative.openNotificationAccessSettings());
+  $('#inputHubAutoScan')?.addEventListener('change',()=>{
+    const enabled=$('#inputHubAutoScan').checked;
+    NexoNative.setInputHubAutoScanEnabled(enabled);
+    renderCommunicationCaptureSettings();
+    toast(enabled?'Escaneo automático activado':'Modo manual activado · usa Escanear ahora');
+  });
   $('#communicationCaptureEnabled')?.addEventListener('change',()=>{NexoNative.setCommunicationCaptureEnabled($('#communicationCaptureEnabled').checked);renderCommunicationCaptureSettings();toast($('#communicationCaptureEnabled').checked?'Captura automática activada':'Captura automática pausada');});
   $('#smsDirectEnabled')?.addEventListener('change',()=>{
     const enabled=$('#smsDirectEnabled').checked;
@@ -2126,6 +2143,7 @@ function init(){
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
   $('#searchFilter').addEventListener('change',()=>runSearch());
   $('#captureText').addEventListener('input',()=>analyzeCapture());
+  $('#captureMapPreview')?.addEventListener('click',()=>openMapsFromFields('#captureLocation','#captureMapsUrl'));
   ['captureTitle','captureDescription','captureCategory','captureTime','captureEndTime','captureLocation','capturePriority','captureRecurrence','captureRecurrenceUntil'].forEach(id=>$('#'+id).addEventListener('change',()=>{state.userAdjusted=true;}));
   $('#captureType').addEventListener('change',()=>{state.userAdjusted=true;refreshCaptureAlertEditor();});
   $('#captureVoiceEnabled').addEventListener('change',()=>{state.userAdjusted=true;if($('#captureVoiceEnabled').checked&&!state.captureAlerts.length&&$('#captureDate').value)setCaptureAlerts([0],true);else refreshCaptureAlertEditor();});
@@ -2170,7 +2188,11 @@ function init(){
   $('#confirmCancel').addEventListener('click',()=>{$('#confirmModal').classList.add('hidden');state.confirmAction=null;});
   $('#confirmDelete').addEventListener('click',()=>{const fn=state.confirmAction;state.confirmAction=null;if(fn)fn();});
   $('#confirmModal').addEventListener('click',e=>{if(e.target===$('#confirmModal')){$('#confirmModal').classList.add('hidden');state.confirmAction=null;}});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&state.noteEditor)flushNoteAutosave();});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden'&&state.noteEditor)flushNoteAutosave();
+    if(document.visibilityState==='visible')requestAnimationFrame(updateFloatingActions);
+  });
+  window.addEventListener('pageshow',()=>requestAnimationFrame(updateFloatingActions));
   window.addEventListener('pagehide',()=>{if(state.noteEditor)flushNoteAutosave();});
   document.addEventListener('keydown',handleDialogKeys);
   navigate(NexoNative.getStartScreen()==='calendar'?'calendar':'today',{root:true});
