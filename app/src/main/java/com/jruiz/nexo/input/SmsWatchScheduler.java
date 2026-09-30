@@ -16,7 +16,7 @@ public final class SmsWatchScheduler {
     private SmsWatchScheduler() {}
 
     public static boolean canRun(Context context) {
-        return InputHubPrefs.smsEnabled(context) &&
+        return InputHubPrefs.autoScanEnabled(context) && InputHubPrefs.smsEnabled(context) &&
                 context.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
     }
 
