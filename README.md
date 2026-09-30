@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta10 · AndroidIDE
+# Nexo 3.7.0-beta11 · AndroidIDE
 
-Rama de trabajo: `feature/nexo-home-familia-v0.10`.
+Rama de trabajo: `feature/nexo-polish-v0.11`.
 
 Identidad:
-- Nexo **3.7.0-beta10**
-- `versionCode 75`
+- Nexo **3.7.0-beta11**
+- `versionCode 76`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta10/
+/storage/emulated/0/Download/Nexo_3_7_0_beta11/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta10"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta11"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta10.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta11.apk
 ```
 
 ## Input Hub beta4
@@ -102,3 +102,16 @@ Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)`
 - En Calendario crea el evento sobre la fecha seleccionada.
 - En Inicio y Agenda / 7 días crea el evento sobre la fecha de hoy, que el usuario puede cambiar en el formulario.
 - Se mantiene separado del flotante de voz y no aparece en Buscar, Herramientas, Inbox ni módulos que no gestionan eventos.
+
+
+## Pulido beta11
+
+- Las tarjetas de eventos abren directamente su formulario, sin navegación intermedia.
+- Flotantes de **Grabar audio** y **+ evento** restaurados de forma central al navegar/volver a la app.
+- Input Hub con modo **Automático** o **Manual**. Manual cancela jobs directos y conserva “Escanear ahora”.
+- Ajustes organizados en acordeones al estilo Nexo Familia.
+- Cumpleaños usa el mismo tratamiento de icono que Familia: tarta en tarjetas y 🎂 en calendario.
+- Inicio renombra “Información familiar” a **Accesos directos**.
+- Fichas con acciones compactas de editar, compartir y eliminar.
+- La cabecera muestra la versión real instalada.
+- Formularios de ubicación incorporan acceso directo a Google Maps.
