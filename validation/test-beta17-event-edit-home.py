@@ -11,14 +11,21 @@ assert '"WHEN status=\'done\' THEN \'done\' "' in db
 assert '"WHEN status=\'postponed\' THEN \'postponed\' "' in db
 assert 'else if ("done".equals(current) || "postponed".equals(current))' in db
 
-# Guardar arriba y sin duplicado inferior.
+# Guardar arriba y sin duplicado inferior. La misma barra se reutiliza
+# para eventos normales y apariciones recurrentes.
+assert 'function recordEditorActionBar' in js
+assert 'class="record-form-actions"' in js
 item=js[js.index('function openItem(id)'):js.index('function openOccurrence',js.index('function openItem(id)'))]
-assert item.index('id="saveEditBtn"') < item.index('<details class="details-box"')
-assert item.count('id="saveEditBtn"') == 1
+assert "recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn')" in item
+assert item.count("'saveEditBtn'") == 1
+assert 'id="saveEditBtn"' not in item
 occ=js[js.index('function openOccurrence'):js.index('function chooseRecurrenceScope',js.index('function openOccurrence'))]
-assert occ.index('id="saveOccurrenceBtn"') < occ.index('<details class="details-box"')
-assert occ.count('id="saveOccurrenceBtn"') == 1
-assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in css
+assert "recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn')" in occ
+assert occ.count("'saveOccurrenceBtn'") == 1
+assert 'id="saveOccurrenceBtn"' not in occ
+assert '<div class="modal-actions wrap-actions"></div>' not in occ
+assert '.record-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' in css
+assert '@media(min-width:560px){.record-form-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}' in css
 
 # Maps integrado en ubicación y sin campo visible de enlace.
 assert 'class="location-input-row"' in html
