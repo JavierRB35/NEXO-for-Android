@@ -32,7 +32,7 @@ assert 'Enlace de Google Maps' not in occ
 # Inicio: Calendario abre Agenda, Ver agenda desaparece y mes no se fuerza a mayúsculas.
 assert 'id="homeAgendaLink"' not in html
 assert "$('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});" in js
-assert "toLocaleUpperCase('es-ES')" not in js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
+assert "monthRaw.toLocaleUpperCase" not in js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
 assert "monthRaw.replace(/^./" in js
 assert 'v3.7.0-beta17' in html
 print('Beta17: estado, guardar arriba, Maps en ubicación y Agenda desde Inicio OK')
