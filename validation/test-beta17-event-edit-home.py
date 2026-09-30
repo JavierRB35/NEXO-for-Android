@@ -67,7 +67,7 @@ colors=(root/'app/src/main/res/values/colors.xml').read_text(encoding='utf-8')
 assert '<img class="brand-logo" src="nexo-logo.webp"' in html
 assert screen_logo.exists() and launcher_logo.exists()
 assert hashlib.sha256(screen_logo.read_bytes()).hexdigest()=='4acaf52c4f3a36a94f29589a27b9de55fc4310d59fe43f5f3a84c60f667d9283'
-assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()=='9cdad428e65c34bc9f3d2b27bd5231ef96c36bf54b2cf47702f0ea6568830239'
+assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()=='d4a08eeb86fee28e1ef2e5191371a929583ad13550b46f8a43e64ed25c6045c6'
 assert '@drawable/nexo_family_foreground' in launcher_xml and '@drawable/nexo_family_foreground' in launcher_round_xml
 assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
 assert '<color name="nexo_icon_background">#000000</color>' in colors
