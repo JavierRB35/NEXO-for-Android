@@ -39,7 +39,7 @@ const state = {
   userAdjusted:false, pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
-  captureAlerts:[], captureSuggestedAlert:null, todaySummaryExpanded:false, todaySummaryLines:[],
+  captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
   journalFilter:'all', journalSearch:'', journalPick:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', medicationVoiceBase:'',
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
   placeFilter:'all', placeSearch:'', places:[],
@@ -377,6 +377,7 @@ function navigate(screen, options={}) {
   $$('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
   if(screen==='today')renderToday();
   else if(screen==='more')renderMore();
+  else if(screen==='save')renderCapturePeopleAssignment();
   else if(screen==='calendar')renderCalendar();
   else if(screen==='search'&&$('#searchInput').value.trim())runSearch();
   updateFloatingActions();
@@ -411,8 +412,9 @@ function renderToday() {
   const monthShort=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
   $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Abrir agenda';
 
-  const members=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
-  state.homeMemberMap=new Map(members.map(m=>[familySearchNormalize(m.full_name),m]));
+  const localPeople=parseNative(NexoNative.getPeople(),[]).map(p=>({full_name:p.name,color:p.color,id:p.id}));
+  const legacyMembers=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
+  state.homeMemberMap=new Map([...legacyMembers,...localPeople].map(m=>[familySearchNormalize(m.full_name),m]));
   $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card">No hay próximos eventos. Añade el primero desde Agenda.</div>';
   bindHomeUpcoming();
   buildFamilyStyleSearchIndex();
@@ -422,8 +424,11 @@ function renderToday() {
 }
 
 function homeParticipantData(item){
+  if(Array.isArray(item?.participants)&&item.participants.length){
+    return item.participants.filter(p=>p&&p.name).slice(0,20).map(p=>({name:String(p.name),color:String(p.color||'#3158D4')}));
+  }
   const raw=String(item.participantsText||'').trim();if(!raw)return [];
-  return raw.split(/[,;·]/).map(x=>x.trim()).filter(Boolean).slice(0,6).map(name=>{
+  return raw.split(/[,;·]/).map(x=>x.trim()).filter(Boolean).slice(0,20).map(name=>{
     const exact=state.homeMemberMap.get(familySearchNormalize(name));
     if(exact)return {name:exact.full_name,color:exact.color||'#16855B'};
     return {name,color:'#16855B'};
@@ -1191,6 +1196,7 @@ function resetAnalysis() {
   state.captureAlerts=[];state.captureSuggestedAlert=null;
   $('#classificationPreview').classList.add('hidden'); $('#reminderSuggestion').classList.add('hidden');
   $('#captureTitle').value=''; $('#captureDescription').value=''; $('#captureCategory').value='Otro'; $('#captureType').value=state.capturePinnedType||'event'; $('#captureDate').value=state.capturePinnedDate||''; $('#captureEndDate').value=state.capturePinnedDate||''; $('#captureAllDay').checked=true; $('#captureTime').value=''; $('#captureEndTime').value=''; $('#captureLocation').value=''; $('#captureMapsUrl').value=''; $('#captureTimeZone').value='Europe/Madrid'; $('#capturePriority').value='1'; if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=false; $('#captureRecurrence').value='none'; $('#captureRecurrenceUntil').value=''; $('#captureRecurrenceUntilLabel').classList.add('hidden'); syncCaptureAllDay(false);
+  state.captureParticipantIds=[];renderCapturePeopleAssignment();
   refreshCaptureAlertEditor();
   setInterpretationStatus('idle','Interpretación local preparada');
 }
@@ -1229,7 +1235,7 @@ function commitCapture() {
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
-    dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:$('#captureTimeZone').value.trim()||'Europe/Madrid', priority:Number($('#capturePriority').value||1),
+    dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:$('#captureTimeZone').value.trim()||'Europe/Madrid', priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
     recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
     needsReview:false,
@@ -1361,6 +1367,40 @@ function personInitials(name){
 }
 function personTextColor(color){
   return ['#FFFFFF','#FACC15'].includes(String(color||'').toUpperCase())?'#182033':'#FFFFFF';
+}
+function normalizeParticipantIds(ids){
+  const out=[],seen=new Set();
+  (Array.isArray(ids)?ids:[]).forEach(value=>{const id=Number(value)||0;if(id>0&&!seen.has(id)){seen.add(id);out.push(id);}});
+  return out;
+}
+function eventPeopleAssignmentHtml(hostId){
+  return `<fieldset class="member-assignment event-people-assignment"><legend>Personas incluidas</legend><div id="${hostId}" class="member-chips"></div><p class="form-helper">Selecciona una, varias o todas las personas que también están involucradas en el evento.</p></fieldset>`;
+}
+function renderPersonAssignment(hostId,selectedIds,onChange){
+  const host=$('#'+hostId);if(!host)return;
+  const people=parseNative(NexoNative.getPeople(),[]);
+  let selected=normalizeParticipantIds(selectedIds);
+  const activeIds=people.map(p=>Number(p.id)||0).filter(Boolean);
+  const allAssigned=activeIds.length>0&&activeIds.every(id=>selected.includes(id));
+  if(!people.length){
+    host.innerHTML='<span class="member-assignment-empty">No hay personas creadas. Añádelas desde Ajustes → Personas.</span>';
+    return;
+  }
+  host.innerHTML=`<button type="button" class="${allAssigned?'member-chip member-chip--active':'member-chip'}" data-people-all>Todos</button>`+
+    people.map(person=>`<button type="button" class="${selected.includes(Number(person.id))?'member-chip member-chip--active':'member-chip'}" data-person-assignment="${Number(person.id)}"><span class="member-color-dot" style="background:${escAttr(person.color||'#3158D4')}"></span>${esc(person.name||'Persona')}</button>`).join('');
+  host.querySelector('[data-people-all]')?.addEventListener('click',()=>{
+    const activeSet=new Set(activeIds),currentlyAll=activeIds.length>0&&activeIds.every(id=>selected.includes(id));
+    selected=currentlyAll?selected.filter(id=>!activeSet.has(id)):normalizeParticipantIds([...selected,...activeIds]);
+    onChange([...selected]);renderPersonAssignment(hostId,selected,onChange);
+  });
+  host.querySelectorAll('[data-person-assignment]').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=Number(btn.dataset.personAssignment)||0;
+    selected=selected.includes(id)?selected.filter(x=>x!==id):normalizeParticipantIds([...selected,id]);
+    onChange([...selected]);renderPersonAssignment(hostId,selected,onChange);
+  }));
+}
+function renderCapturePeopleAssignment(){
+  renderPersonAssignment('capturePeopleChips',state.captureParticipantIds,ids=>{state.captureParticipantIds=ids;state.userAdjusted=true;});
 }
 function renderPeopleSettings(){
   const host=$('#peopleSettingsList');if(!host)return;
@@ -1632,6 +1672,11 @@ function openInboxCaptureEditor(capture,incoming=false){
   state.inboxCaptureId=id;
   state.inboxCaptureOriginal=capture;
   state.calendarUpdateItemId=Number(detected.existingItemId||0);
+  if(state.calendarUpdateItemId){
+    const existing=parseNative(NexoNative.getItem(state.calendarUpdateItemId),{});
+    state.captureParticipantIds=normalizeParticipantIds(existing.participantIds||[]);
+    renderCapturePeopleAssignment();
+  }
   state.capturePinnedType=suggested;
   state.capturePinnedDate='';
   state.attachment=capture.attachmentPath?{path:capture.attachmentPath,name:capture.attachmentName||'archivo',mime:capture.attachmentMime||capture.mime||''}:null;
