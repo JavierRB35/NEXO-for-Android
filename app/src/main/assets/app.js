@@ -960,6 +960,14 @@ function renderHomeAgenda(){if(state.screen==='calendar')renderCalendarDay();}
 function recordIconAction(icon,label,attrs='',extra=''){
   return `<button type="button" class="icon-action ${extra}" ${attrs} aria-label="${escAttr(label)}" title="${escAttr(label)}">${uiIcon(icon)}</button>`;
 }
+function recordEditorActionBar(saveId,editId,shareId,deleteId){
+  return `<div class="record-form-actions">
+    <button id="${saveId}" class="primary-button" type="button">${uiIcon('check')} Guardar</button>
+    <button id="${editId}" class="secondary-button" type="button">${uiIcon('edit')} Editar</button>
+    <button id="${shareId}" class="secondary-button" type="button">${uiIcon('share')} Compartir</button>
+    <button id="${deleteId}" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button>
+  </div>`;
+}
 function deleteItemFromCard(id){
   const item=parseNative(NexoNative.getItem(Number(id)),{});
   if(item.id)confirmDeleteItem(item);
@@ -1707,7 +1715,7 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`<div class="event-form-actions"><button id="saveEditBtn" class="primary-button" type="button">Guardar</button><button id="editItemTopBtn" class="secondary-button" type="button">${uiIcon('edit')} Editar</button><button id="shareItemBtn" class="secondary-button" type="button">${uiIcon('share')} Compartir</button><button id="deleteItemBtn" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button></div><div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn')}<div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     <details class="details-box" open><summary>Editar</summary><div class="detail-grid">
       <label>Título<input id="editTitle" type="text" value="${escAttr(i.title)}"></label>
@@ -1769,7 +1777,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if(i.type==='document'){openDocumentEditor(seriesId);return;}
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
-  openModal(i.title,`<div class="event-form-actions"><button id="saveOccurrenceBtn" class="primary-button" type="button">Guardar</button><button id="editOccurrenceTopBtn" class="secondary-button" type="button">${uiIcon('edit')} Editar</button><button id="shareOccurrenceBtn" class="secondary-button" type="button">${uiIcon('share')} Compartir</button><button id="deleteOccurrenceBtn" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button></div><div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
+  openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
     <div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     <details class="details-box" open><summary>Editar</summary><div class="detail-grid">
@@ -1790,7 +1798,7 @@ function openOccurrence(seriesId,occurrenceAt){
       
     </div></details>
     ${isAppointmentType(i.type)?`<div class="occurrence-status-actions"><button id="occToggleDone" class="secondary-button">${currentState==='done'?'Marcar pendiente':'Marcar completada'}</button>${currentState!=='done'?'<button id="occPostpone" class="secondary-button">Posponer</button>':''}<span class="small muted">Estas acciones afectan solo a esta aparición.</span></div>`:''}
-    <div class="modal-actions wrap-actions"></div>`);
+    `);
 
   $('#editOccurrenceTopBtn').addEventListener('click',()=>{const details=$('#modalBody .details-box');if(details)details.open=true;$('#occTitle')?.focus();});
   const syncOccAllDay=()=>{
