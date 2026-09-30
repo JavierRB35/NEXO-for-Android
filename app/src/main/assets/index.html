@@ -282,6 +282,26 @@
     </div>
   </section>
 
+  <section class="settings-accordion" data-settings-accordion="people">
+    <button class="settings-accordion__summary" type="button" data-settings-section="people" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-users"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Personas</strong><small>Personas relacionadas con tus eventos</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded people-settings">
+        <div class="people-settings__head">
+          <div>
+            <h2>Personas</h2>
+            <p class="muted">Crea aquí las personas que quieras poder asociar después a tus eventos. Cada una tendrá su propio color.</p>
+          </div>
+          <button id="peopleAddBtn" class="primary-button" type="button"><svg class="ui-icon"><use href="#nx-icon-plus"></use></svg> Añadir persona</button>
+        </div>
+        <div id="peopleSettingsList" class="people-settings-list"></div>
+      </div>
+    </div>
+  </section>
+
   <section class="settings-accordion" data-settings-accordion="display">
     <button class="settings-accordion__summary" type="button" data-settings-section="display" aria-expanded="false">
       <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-eye"></use></svg></span>
