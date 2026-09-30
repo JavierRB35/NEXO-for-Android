@@ -395,7 +395,7 @@ function renderToday() {
   $('#homeInboxCount').textContent=String(inboxCount);
   $('#homeInboxHint').textContent=inboxCount?inboxCount+' pendiente'+(inboxCount===1?'':'s')+' de organizar':'Todo organizado';
 
-  const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(today).replace('.','');
+  const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(today).replace('.','').toLocaleLowerCase('es-ES');
   const monthShort=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
   $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Abrir agenda';
 
