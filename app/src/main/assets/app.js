@@ -516,7 +516,7 @@ function renderJournalPrompt(forceNew=false){
 
 function journalCard(j){
   const tags=String(j.tags||'').split('·').map(x=>x.trim()).filter(Boolean).slice(0,4);
-  return `<div class="journal-card"><div class="journal-card-top"><div><div class="journal-card-title">${esc(j.title||'Pensamiento')}</div><div class="journal-card-meta">${j.kind==='quote'?'CITA / FRASE':`PENSAMIENTO · ${esc(fmtDate(j.createdAt,true))}`}</div></div>${j.favorite?'<span aria-label="Favorito">★</span>':''}</div>${j.summary?`<div class="journal-card-summary">${esc(j.summary)}</div>`:''}${tags.length?`<div class="journal-tags">${tags.map(t=>`<span class="journal-tag">${esc(t)}</span>`).join('')}</div>`:''}<div class="item-actions"><button class="mini-button" data-open-journal="${j.id}">Abrir</button></div></div>`;
+  return `<div class="journal-card"><button type="button" class="journal-card-open" data-open-journal="${j.id}"><div class="journal-card-top"><div><div class="journal-card-title">${esc(j.title||'Pensamiento')}</div><div class="journal-card-meta">${j.kind==='quote'?'CITA / FRASE':`PENSAMIENTO · ${esc(fmtDate(j.createdAt,true))}`}</div></div>${j.favorite?'<span aria-label="Favorito">★</span>':''}</div>${j.summary?`<div class="journal-card-summary">${esc(j.summary)}</div>`:''}${tags.length?`<div class="journal-tags">${tags.map(t=>`<span class="journal-tag">${esc(t)}</span>`).join('')}</div>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar',`data-open-journal="${j.id}"`)}${recordIconAction('share','Compartir',`data-journal-share="${j.id}"`)}${recordIconAction('trash','Eliminar',`data-journal-delete="${j.id}"`,'icon-action--danger')}</div></div>`;
 }
 
 
@@ -529,7 +529,9 @@ function journalGroupHtml(rows){
 }
 
 function bindJournalButtons(root=document){
-  root.querySelectorAll('[data-open-journal]').forEach(b=>b.addEventListener('click',()=>openJournal(Number(b.dataset.openJournal))));
+  root.querySelectorAll('[data-open-journal]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openJournal(Number(b.dataset.openJournal));}));
+  root.querySelectorAll('[data-journal-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoJournal(Number(b.dataset.journalShare));}));
+  root.querySelectorAll('[data-journal-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.journalDelete),j=parseNative(NexoNative.getJournal(id),{});confirmGeneric('Eliminar entrada','Se eliminará “'+(j.title||'esta entrada')+'”.',()=>{if(NexoNative.deleteJournal(id)){toast('Entrada eliminada');renderJournalPanel();}else toast('No se pudo eliminar');},'Eliminar');}));
 }
 
 function startJournalVoice(base='',kind=''){
@@ -664,11 +666,13 @@ function noteSnippet(body){
 }
 
 function noteCard(n){
-  return `<div class="note-card"><button type="button" class="note-card-open" data-open-note="${n.id}"><span class="note-card-head"><strong>${esc(n.title||'Nota sin título')}</strong><small>${esc(fmtDate(n.createdAt,true))}</small></span>${n.body?`<span class="note-card-body">${esc(noteSnippet(n.body))}</span>`:''}</button></div>`;
+  return `<div class="note-card"><button type="button" class="note-card-open" data-open-note="${n.id}"><span class="note-card-head"><strong>${esc(n.title||'Nota sin título')}</strong><small>${esc(fmtDate(n.createdAt,true))}</small></span>${n.body?`<span class="note-card-body">${esc(noteSnippet(n.body))}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar nota',`data-open-note="${n.id}"`)}${recordIconAction('share','Compartir nota',`data-note-share="${n.id}"`)}${recordIconAction('trash','Eliminar nota',`data-note-delete="${n.id}"`,'icon-action--danger')}</div></div>`;
 }
 
 function bindNoteButtons(root=document){
-  root.querySelectorAll('[data-open-note]').forEach(b=>b.addEventListener('click',()=>openNoteComposer(Number(b.dataset.openNote))));
+  root.querySelectorAll('[data-open-note]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openNoteComposer(Number(b.dataset.openNote));}));
+  root.querySelectorAll('[data-note-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoItem(Number(b.dataset.noteShare),0,false);}));
+  root.querySelectorAll('[data-note-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.noteDelete));}));
 }
 
 function setNoteSaveStatus(text,kind='saved'){
@@ -949,6 +953,20 @@ function attachMonthSwipe(element,onPrevious,onNext){
 function renderHomeCalendar(){if(state.screen==='calendar')renderCalendar();}
 
 function renderHomeAgenda(){if(state.screen==='calendar')renderCalendarDay();}
+
+function recordIconAction(icon,label,attrs='',extra=''){
+  return `<button type="button" class="icon-action ${extra}" ${attrs} aria-label="${escAttr(label)}" title="${escAttr(label)}">${uiIcon(icon)}</button>`;
+}
+function deleteItemFromCard(id){
+  const item=parseNative(NexoNative.getItem(Number(id)),{});
+  if(item.id)confirmDeleteItem(item);
+}
+function shareMedicationCard(id){
+  const m=parseNative(NexoNative.getMedication(Number(id)),{});
+  if(!m.id)return;
+  const text=[m.name,m.dose,m.instructions,medicationScheduleLabel(m)].filter(Boolean).join(' · ');
+  NexoNative.sharePlainText(m.name||'Medicación',text);
+}
 
 function agendaCard(i,showDate=false){
   const recurring=!!i.recurring||(i.recurrence&&i.recurrence!=='none'),done=i.status==='done'||i.occurrenceStatus==='done',cancelled=i.status==='cancelled';
@@ -1950,9 +1968,14 @@ function medicationScheduleLabel(m){
 function medicationStatusLabel(s){return s==='taken'?'Tomado':s==='skipped'?'Omitido':s==='snoozed'?'Pospuesto':'Pendiente';}
 function medicationCard(m){
   const next=Number(m.nextDoseAt||0),active=m.active!==false;
-  return `<div class="med-card ${active?'':'med-inactive'}"><div class="med-card-top"><div><div class="med-name">${esc(m.name||'Medicamento')}</div><div class="med-meta">${m.dose?`${esc(m.dose)} · `:''}${esc(medicationScheduleLabel(m))}</div></div><span class="med-voice">${m.voiceEnabled?'🔊':'🔕'}</span></div>${m.instructions?`<div class="med-instructions">${esc(m.instructions)}</div>`:''}<div class="med-next">${active&&next?`Próxima toma · <strong>${esc(fmtDate(next,true))}</strong>`:active?'Sin próxima toma programada':'Tratamiento finalizado'}</div><div class="item-actions"><button class="mini-button" data-open-medication="${m.id}">Ver / editar</button></div></div>`;
+  return `<div class="med-card ${active?'':'med-inactive'}"><button type="button" class="med-card-open" data-open-medication="${m.id}"><div class="med-card-top"><div><div class="med-name">${esc(m.name||'Medicamento')}</div><div class="med-meta">${m.dose?`${esc(m.dose)} · `:''}${esc(medicationScheduleLabel(m))}</div></div><span class="med-voice">${m.voiceEnabled?'🔊':'🔕'}</span></div>${m.instructions?`<div class="med-instructions">${esc(m.instructions)}</div>`:''}<div class="med-next">${active&&next?`Próxima toma · <strong>${esc(fmtDate(next,true))}</strong>`:active?'Sin próxima toma programada':'Tratamiento finalizado'}</div></button><div class="record-card-actions">${recordIconAction('edit','Editar medicación',`data-open-medication="${m.id}"`)}${recordIconAction('share','Compartir medicación',`data-med-share="${m.id}"`)}${recordIconAction('trash','Eliminar medicación',`data-med-delete="${m.id}"`,'icon-action--danger')}</div></div>`;
 }
-function bindMedicationButtons(root=document){root.querySelectorAll('[data-open-medication]').forEach(b=>b.addEventListener('click',()=>openMedication(Number(b.dataset.openMedication))));root.querySelectorAll('[data-med-dose]').forEach(b=>b.addEventListener('click',()=>{const [id,at]=b.dataset.medDose.split(':').map(Number),status=b.dataset.medStatus;if(NexoNative.setMedicationDoseStatus(id,at,status)){toast(status==='taken'?'Toma marcada como realizada':'Toma marcada como omitida');renderMedicationsPanel();renderMedicationToday();}}));}
+function bindMedicationButtons(root=document){
+  root.querySelectorAll('[data-open-medication]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openMedication(Number(b.dataset.openMedication));}));
+  root.querySelectorAll('[data-med-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();shareMedicationCard(Number(b.dataset.medShare));}));
+  root.querySelectorAll('[data-med-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.medDelete),m=parseNative(NexoNative.getMedication(id),{});confirmGeneric('Eliminar medicación','Se eliminará “'+(m.name||'este medicamento')+'” y sus avisos.',()=>{if(NexoNative.deleteMedication(id)){toast('Medicación eliminada');renderMedicationsPanel();}else toast('No se pudo eliminar');},'Eliminar');}));
+  root.querySelectorAll('[data-med-dose]').forEach(b=>b.addEventListener('click',()=>{const [id,at]=b.dataset.medDose.split(':').map(Number),status=b.dataset.medStatus;if(NexoNative.setMedicationDoseStatus(id,at,status)){toast(status==='taken'?'Toma marcada como realizada':'Toma marcada como omitida');renderMedicationsPanel();renderMedicationToday();}}));
+}
 
 function renderMedicationToday(){
   const box=$('#medicationToday');if(!box)return;const doses=parseNative(NexoNative.getMedicationTodayDoses(),[]),now=Date.now();
