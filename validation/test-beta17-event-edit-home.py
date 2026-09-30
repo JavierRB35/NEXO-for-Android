@@ -52,7 +52,24 @@ assert "$('#homeCalendarCard')?.addEventListener('click',()=>{state.appointments
 assert '<button class="nav-item" data-nav="calendar">' in html
 assert "$('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));" in js
 assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
-assert "monthRaw.toLocaleUpperCase" not in js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
-assert "monthRaw.replace(/^./" in js
+month_block=js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
+assert "monthRaw.toLocaleUpperCase" not in month_block
+assert ".toLocaleLowerCase('es-ES')" in month_block
+assert "monthRaw.replace(/^./" in month_block
+
+# Logo suministrado por el usuario: cabecera + icono adaptativo Android.
+import hashlib
+screen_logo=root/'app/src/main/assets/nexo-icon.png'
+launcher_logo=root/'app/src/main/res/drawable-nodpi/nexo_icon_foreground.png'
+launcher_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml').read_text(encoding='utf-8')
+launcher_round_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml').read_text(encoding='utf-8')
+colors=(root/'app/src/main/res/values/colors.xml').read_text(encoding='utf-8')
+assert '<img class="brand-logo" src="nexo-icon.png"' in html
+assert screen_logo.exists() and launcher_logo.exists()
+assert hashlib.sha256(screen_logo.read_bytes()).hexdigest()=='a73efe53671fd2409f10c9bf64462897228c89c8cd85259cd13db1c0c09f3ff8'
+assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()=='925ca9e8b2038a81b8b4167b2e422ef7d89ad42745a995bdf798f2524f54a52d'
+assert '@drawable/nexo_icon_foreground' in launcher_xml and '@drawable/nexo_icon_foreground' in launcher_round_xml
+assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
+assert '<color name="nexo_icon_background">#000000</color>' in colors
 assert 'v3.7.0-beta17' in html
 print('Beta17: estado, guardar arriba, Maps en ubicación y Agenda desde Inicio OK')
