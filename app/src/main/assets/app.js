@@ -22,6 +22,18 @@ const TYPE_LABEL = {note:'Nota',event:'Cita',task:'Cita',reminder:'Cita',expiry:
 const RECURRENCE_LABEL = {none:'No se repite',daily:'Diaria',weekly:'Semanal',monthly:'Mensual',bimonthly:'Bimestral',quarterly:'Trimestral',semiannual:'Semestral',annual:'Anual'};
 const PLACE_LABELS = ['Quiero ir','He estado','Restaurante','Lugar bonito','Cafetería','Naturaleza','Playa','Mirador','Alojamiento','Otros'];
 const DOCUMENT_LABELS = ['Identificación','Salud','Factura','Contrato','Seguro','Garantía','Manual','Certificado','Justificante','Otros'];
+const PERSON_COLORS = [
+  {value:'#3158D4',label:'Azul'},
+  {value:'#16855B',label:'Verde'},
+  {value:'#7C3AED',label:'Morado'},
+  {value:'#D97706',label:'Naranja'},
+  {value:'#DC3F4F',label:'Rojo'},
+  {value:'#FACC15',label:'Amarillo'},
+  {value:'#FFFFFF',label:'Blanco'},
+  {value:'#0F8A9D',label:'Turquesa'},
+  {value:'#DB2777',label:'Rosa'},
+  {value:'#475569',label:'Gris'}
+];
 const state = {
   screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, calendarUpdateItemId:0, lastPanel:null, currentList:null,
   userAdjusted:false, pendingSave:false, pendingSaveTimer:null, confirmAction:null,
@@ -1344,12 +1356,77 @@ function toggleSettingsAccordion(section){
   });
 }
 
+function personInitials(name){
+  return String(name||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part.charAt(0).toUpperCase()).join('')||'?';
+}
+function personTextColor(color){
+  return ['#FFFFFF','#FACC15'].includes(String(color||'').toUpperCase())?'#182033':'#FFFFFF';
+}
+function renderPeopleSettings(){
+  const host=$('#peopleSettingsList');if(!host)return;
+  const people=parseNative(NexoNative.getPeople(),[]);
+  host.innerHTML=people.length?people.map(person=>{
+    const id=Number(person.id)||0,color=String(person.color||'#3158D4').toUpperCase(),name=String(person.name||'Persona');
+    return `<button type="button" class="nexo-person-row" data-person-id="${id}">
+      <span class="nexo-person-avatar" style="background:${escAttr(color)};color:${personTextColor(color)}">${esc(personInitials(name))}</span>
+      <span class="nexo-person-identity"><strong>${esc(name)}</strong><small>${esc(color)}</small></span>
+      <svg class="ui-icon nexo-person-chevron" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+    </button>`;
+  }).join(''):'<div class="people-empty"><strong>Aún no has añadido personas.</strong><span>Créala aquí y después podrás asociarla a tus eventos.</span></div>';
+  host.querySelectorAll('[data-person-id]').forEach(row=>row.addEventListener('click',()=>openPersonEditor(Number(row.dataset.personId))));
+}
+function openPersonEditor(id=0){
+  const person=id?parseNative(NexoNative.getPerson(id),{}):{};
+  const editing=Number(person.id)>0;
+  const initialColor=String(person.color||'#3158D4').toUpperCase();
+  const palette=PERSON_COLORS.map(option=>{
+    const light=['#FFFFFF','#FACC15'].includes(option.value),selected=option.value===initialColor;
+    return `<button type="button" class="person-color-swatch ${light?'person-color-swatch--light':''} ${selected?'person-color-swatch--selected':''}" data-person-color="${option.value}" style="background:${option.value}" aria-label="Usar color ${escAttr(option.label)}" title="${escAttr(option.label)}">${selected?uiIcon('check'):''}</button>`;
+  }).join('');
+  openModal(editing?'Editar persona':'Nueva persona',`<div class="person-editor">
+    <div class="person-editor-preview">
+      <span id="personPreviewAvatar" class="nexo-person-avatar nexo-person-avatar--large" style="background:${escAttr(initialColor)};color:${personTextColor(initialColor)}">${esc(personInitials(person.name||'P'))}</span>
+      <div><strong id="personPreviewName">${esc(person.name||'Nueva persona')}</strong><span>Se mostrará así en tus eventos.</span></div>
+    </div>
+    <label>Nombre<input id="personName" type="text" maxlength="100" value="${escAttr(person.name||'')}" placeholder="Ej.: Marta"></label>
+    <div class="person-color-block"><strong>Color de la persona</strong><p class="small muted">La misma paleta y lógica visual que Nexo Familia.</p><div id="personColorPalette" class="person-color-palette" aria-label="Seleccionar color">${palette}</div></div>
+  </div>
+  <div class="modal-actions wrap-actions"><button id="personSave" class="primary-button">${uiIcon('check')} Guardar</button>${editing?'<button id="personDelete" class="danger-button">'+uiIcon('trash')+' Eliminar</button>':''}</div>`);
+  let selectedColor=initialColor;
+  const updatePreview=()=>{
+    const name=$('#personName').value.trim()||'Nueva persona';
+    const avatar=$('#personPreviewAvatar');
+    avatar.textContent=personInitials(name);avatar.style.background=selectedColor;avatar.style.color=personTextColor(selectedColor);
+    $('#personPreviewName').textContent=name;
+    $('#personColorPalette [data-person-color]').forEach(btn=>{
+      const active=btn.dataset.personColor===selectedColor;
+      btn.classList.toggle('person-color-swatch--selected',active);
+      btn.innerHTML=active?uiIcon('check'):'';
+    });
+  };
+  $('#personName').addEventListener('input',updatePreview);
+  $('#personColorPalette [data-person-color]').forEach(btn=>btn.addEventListener('click',()=>{selectedColor=btn.dataset.personColor;updatePreview();}));
+  $('#personSave').addEventListener('click',()=>{
+    const name=$('#personName').value.trim();
+    if(!name){toast('Escribe el nombre de la persona.');$('#personName').focus();return;}
+    const result=parseNative(NexoNative.savePerson(JSON.stringify({id:editing?Number(person.id):0,name,color:selectedColor})),{});
+    if(!result.ok){toast(result.error||'No se pudo guardar la persona.');return;}
+    closeModal();renderPeopleSettings();toast(editing?'Persona actualizada':'Persona añadida');
+  });
+  $('#personDelete')?.addEventListener('click',()=>confirmGeneric('Eliminar persona',`Se quitará “${person.name||'esta persona'}” de la lista. Los eventos históricos conservarán su referencia interna.`,()=>{
+    const ok=!!NexoNative.archivePerson(Number(person.id));if(!ok){toast('No se pudo eliminar la persona.');return;}
+    closeModal();renderPeopleSettings();toast('Persona eliminada');
+  }));
+  setTimeout(()=>$('#personName')?.focus(),70);
+}
+
 function renderMore(){
   $('#startScreen').value=String(NexoNative.getStartScreen()||'today');
   const lists=parseNative(NexoNative.getLists(),[]),preferred=Number(NexoNative.getPreferredShoppingList())||0;
   $('#preferredShoppingList').innerHTML='<option value="0">Elegir al pulsar Mi compra</option>'+lists.map(l=>`<option value="${Number(l.id)}">${esc(l.title)}</option>`).join('');
   $('#preferredShoppingList').value=lists.some(l=>Number(l.id)===preferred)?String(preferred):'0';
   $$('[data-display-mode]').forEach(b=>{const selected=b.dataset.displayMode===state.displayMode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
+  renderPeopleSettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
   const backup=parseNative(NexoNative.getBackupStatus(),{}),last=Number(backup.lastExportAt)||0,total=Object.values(backup.stats||{}).reduce((a,n)=>a+(Number(n)||0),0),hint=$('#backupHint');
@@ -2183,7 +2260,8 @@ function init(){
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
-  $$('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
+  $('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
+  $('#peopleAddBtn')?.addEventListener('click',()=>openPersonEditor());
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
