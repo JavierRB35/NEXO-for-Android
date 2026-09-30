@@ -25,6 +25,7 @@ jobs:
           python3 validation/test-beta16-time-voice.py
           python3 validation/test-beta17-event-edit-home.py
           python3 validation/test-temporal-status.py
+          python3 validation/test-people-settings.py
           sh validation/regression/run-benchmark.sh validation/regression/data/beta16_time_cases.tsv
       - name: Create flat source ZIP
         shell: bash
