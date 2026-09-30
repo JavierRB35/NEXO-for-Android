@@ -1268,11 +1268,37 @@ function openCalendar(returnScreen='today',selectedDate=''){
   navigate('calendar');
 }
 
+function isGoogleMapsLocation(value){
+  const v=String(value||'').trim().toLowerCase();
+  return /^https?:\/\/(?:www\.|maps\.)?google\.[^/]+\/maps(?:\/|$)/.test(v)
+    || /^https?:\/\/maps\.app\.goo\.gl\//.test(v)
+    || /^https?:\/\/goo\.gl\/maps\//.test(v)
+    || /^(?:www\.|maps\.)google\.[^/]+\/maps(?:\/|$)/.test(v)
+    || /^maps\.app\.goo\.gl\//.test(v)
+    || /^goo\.gl\/maps\//.test(v);
+}
 function openMapsFromFields(locationSelector,mapsSelector){
   const maps=$(mapsSelector)?.value.trim()||'',place=$(locationSelector)?.value.trim()||'';
+  // mapsUrl queda oculto únicamente por compatibilidad con eventos antiguos.
+  // Mientras siga vigente conserva la precisión del enlace original.
   if(maps){NexoNative.openExternal(maps);return;}
+  if(isGoogleMapsLocation(place)){NexoNative.openPlaceMap(place);return;}
   if(place){NexoNative.openLocationDirections(place);return;}
   toast('Escribe primero una dirección o ubicación.');
+}
+function bindEventLocationField(locationSelector,mapsSelector,mapButtonSelector,onUserChange=null){
+  const location=$(locationSelector),maps=$(mapsSelector),button=$(mapButtonSelector);
+  if(!location)return;
+  location.addEventListener('input',()=>{
+    // Si el usuario cambia lo que ve, un enlace heredado deja de representar
+    // necesariamente esa ubicación y no debe imponerse al pulsar Maps.
+    if(maps)maps.value='';
+    if(typeof onUserChange==='function')onUserChange();
+  });
+  button?.addEventListener('click',()=>openMapsFromFields(locationSelector,mapsSelector));
+}
+function eventLocationValue(item){
+  return String(item?.locationText||item?.mapsUrl||'');
 }
 
 function itemEffectiveEndAt(item){
@@ -1725,7 +1751,7 @@ function openItem(id){
       <div class="form-grid"><label>Fecha inicio<div class="date-wrap"><input id="editDate" type="date" value="${i.dueAt?escAttr(iso.date):''}"></div></label><label>Fecha fin<div class="date-wrap"><input id="editEndDate" type="date" value="${endAt?escAttr(endIso.date):''}"></div></label></div>
       <label class="switch-row event-all-day-row"><input id="editAllDay" type="checkbox" ${allDay?'checked':''}><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
       <div class="form-grid"><label id="editStartTimeLabel">Hora inicio<div class="date-wrap"><input id="editTime" type="time" value="${!allDay&&i.dueAt?escAttr(iso.time):''}"></div></label><label id="editEndTimeLabel">Hora fin<div class="date-wrap"><input id="editEndTime" type="time" value="${!allDay?escAttr(endTime):''}"></div></label></div>
-      <div class="location-field"><label for="editLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="editLocation" type="text" value="${escAttr(i.locationText||'')}"><button id="editLocationMapBtn" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div><input id="editMapsUrl" type="hidden" value="${escAttr(i.mapsUrl||'')}"></div>
+      <div class="location-field"><label for="editLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="editLocation" type="text" value="${escAttr(eventLocationValue(i))}" placeholder="Dirección o enlace de Google Maps"><button id="editLocationMapBtn" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div><input id="editMapsUrl" type="hidden" value="${escAttr(i.mapsUrl||'')}"></div>
       <label>Zona horaria<input id="editTimeZone" type="text" value="${escAttr(i.timeZone||'Europe/Madrid')}"></label>
       ${i.participantsText?`<div class="details-box"><strong>Participantes</strong><div class="small muted">${esc(i.participantsText)}</div></div>`:''}
       <div class="form-grid"><label>Periodicidad<select id="editRecurrence">${recurrenceOptions(i.recurrence||'none')}</select></label><label id="editUntilLabel" class="${i.recurrence&&i.recurrence!=='none'?'':'hidden'}">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="editUntil" type="date" value="${i.recurrenceUntil?escAttr(isoFromMs(i.recurrenceUntil).date):''}"></div></label></div>
@@ -1765,7 +1791,7 @@ function openItem(id){
     const res=parseNative(NexoNative.updateItem(JSON.stringify({id,title:$('#editTitle').value.trim(),body:$('#editBody').value,category:$('#editCategory').value,type:selectedType,dueAt,endAt,hasTime:!!(date&&time&&!allDay),allDay,durationMinutes,locationText:$('#editLocation').value.trim(),mapsUrl:$('#editMapsUrl').value.trim(),timeZone:$('#editTimeZone').value.trim()||'Europe/Madrid',recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'&&$('#editUntil').value?endOfDayMs($('#editUntil').value):0,voiceEnabled:$('#editVoiceEnabled')?$('#editVoiceEnabled').checked:false,needsReview:false,...statusPayload})),{});
     if(res.ok){let alertsOk=true;if(!sameAlerts(editAlerts,originalAlerts)){const ar=parseNative(NexoNative.replaceItemReminders(id,JSON.stringify(editAlerts)),{});alertsOk=!!ar.ok;}closeModal();toast(!alertsOk?'Cambios guardados, pero no se pudieron actualizar los avisos':conflicts.length?`Cambios guardados · coincide con ${conflicts.length} elemento${conflicts.length===1?'':'s'}`:'Cambios guardados');refreshCurrent();}else toast(res.error||'No se pudieron guardar los cambios.');
   });
-  if($('#editLocationMapBtn'))$('#editLocationMapBtn').addEventListener('click',()=>openMapsFromFields('#editLocation','#editMapsUrl'));
+  bindEventLocationField('#editLocation','#editMapsUrl','#editLocationMapBtn');
   if($('#shareItemBtn'))$('#shareItemBtn').addEventListener('click',()=>openItemShareMenu(i.id,i.dueAt||0,false,!!i.dueAt));
   if($('#postponeItemBtn'))$('#postponeItemBtn').addEventListener('click',()=>{closeModal();openPostponeSheet(i.id,i.dueAt,false);});
   if(url)$('#openUrlBtn').addEventListener('click',()=>NexoNative.openExternal(url));
@@ -1788,7 +1814,7 @@ function openOccurrence(seriesId,occurrenceAt){
       <div class="form-grid"><label>Fecha inicio<div class="date-wrap"><input id="occDate" type="date" value="${escAttr(iso.date)}"></div></label><label>Fecha fin<div class="date-wrap"><input id="occEndDate" type="date" value="${escAttr(endIso.date)}"></div></label></div>
       <label class="switch-row event-all-day-row"><input id="occAllDay" type="checkbox" ${allDay?'checked':''}><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
       <div class="form-grid"><label id="occStartTimeLabel">Hora inicio<div class="date-wrap"><input id="occTime" type="time" value="${!allDay?escAttr(iso.time):''}"></div></label><label id="occEndTimeLabel">Hora fin<div class="date-wrap"><input id="occEndTime" type="time" value="${!allDay?escAttr(endTime):''}"></div></label></div>
-      <div class="location-field"><label for="occLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="occLocation" type="text" value="${escAttr(i.locationText||'')}"><button id="occLocationMapBtn" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div><input id="occMapsUrl" type="hidden" value="${escAttr(i.mapsUrl||'')}"></div>
+      <div class="location-field"><label for="occLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="occLocation" type="text" value="${escAttr(eventLocationValue(i))}" placeholder="Dirección o enlace de Google Maps"><button id="occLocationMapBtn" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div><input id="occMapsUrl" type="hidden" value="${escAttr(i.mapsUrl||'')}"></div>
       <label>Zona horaria<input id="occTimeZone" type="text" value="${escAttr(i.timeZone||'Europe/Madrid')}"></label>
       ${i.participantsText?`<div class="details-box"><strong>Participantes</strong><div class="small muted">${esc(i.participantsText)}</div></div>`:''}
       <div class="form-grid"><label>Periodicidad<select id="occRecurrence">${recurrenceOptions(i.recurrence)}</select></label><label>Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="occUntil" type="date" value="${escAttr(until||'')}"></div></label></div><div class="small muted">Si cambias la periodicidad, Nexo te preguntará si debe aplicarse desde esta aparición o a toda la serie.</div>
@@ -1818,7 +1844,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if($('#occStatus'))$('#occStatus').addEventListener('change',()=>{occStatusTouched=true;});
   if($('#occToggleDone'))$('#occToggleDone').addEventListener('click',()=>{const next=currentState==='done'?'pending':'done',r=parseNative(NexoNative.setOccurrenceStatus(seriesId,occurrenceAt,next),{});if(r.ok){closeModal();toast(next==='done'?'Cita completada':'Cita marcada pendiente');refreshCurrent();}else toast('No se pudo actualizar.');});
   if($('#occPostpone'))$('#occPostpone').addEventListener('click',()=>{closeModal();openPostponeSheet(seriesId,occurrenceAt,true);});
-  if($('#occLocationMapBtn'))$('#occLocationMapBtn').addEventListener('click',()=>openMapsFromFields('#occLocation','#occMapsUrl'));
+  bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn');
   $('#shareOccurrenceBtn').addEventListener('click',()=>openItemShareMenu(seriesId,occurrenceAt,true,true));
   $('#saveOccurrenceBtn').addEventListener('click',()=>{
     const date=$('#occDate').value,allDay=!!$('#occAllDay').checked,time=allDay?'':$('#occTime').value,endDate=$('#occEndDate').value||date,endTime=allDay?'':$('#occEndTime').value,rec=$('#occRecurrence').value,untilDate=$('#occUntil').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
@@ -2212,12 +2238,12 @@ function init(){
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
   $('#searchFilter').addEventListener('change',()=>runSearch());
   $('#captureText').addEventListener('input',()=>analyzeCapture());
-  $('#captureMapPreview')?.addEventListener('click',()=>openMapsFromFields('#captureLocation','#captureMapsUrl'));
+  bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview',()=>{state.userAdjusted=true;});
   ['captureTitle','captureDescription','captureCategory','captureTime','captureEndTime','captureLocation','capturePriority','captureRecurrence','captureRecurrenceUntil'].forEach(id=>$('#'+id).addEventListener('change',()=>{state.userAdjusted=true;}));
   $('#captureType').addEventListener('change',()=>{state.userAdjusted=true;refreshCaptureAlertEditor();});
   $('#captureVoiceEnabled').addEventListener('change',()=>{state.userAdjusted=true;if($('#captureVoiceEnabled').checked&&!state.captureAlerts.length&&$('#captureDate').value)setCaptureAlerts([0],true);else refreshCaptureAlertEditor();});
   $('#captureDate').addEventListener('change',()=>{state.userAdjusted=true;if(!$('#captureDate').value){state.captureAlerts=[];state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');}refreshCaptureAlertEditor();});
-  $('#captureTitle').addEventListener('input',()=>{state.userAdjusted=true;});$('#captureDescription').addEventListener('input',()=>{state.userAdjusted=true;});$('#captureLocation').addEventListener('input',()=>{state.userAdjusted=true;});$('#captureMapsUrl').addEventListener('input',()=>{state.userAdjusted=true;});
+  $('#captureTitle').addEventListener('input',()=>{state.userAdjusted=true;});$('#captureDescription').addEventListener('input',()=>{state.userAdjusted=true;});$('#captureMapsUrl').addEventListener('input',()=>{state.userAdjusted=true;});
   $('#captureDate').addEventListener('change',()=>{const start=$('#captureDate').value;if(start&&(!$('#captureEndDate').value||$('#captureEndDate').value<start))$('#captureEndDate').value=start;refreshCaptureAlertEditor();});
   $('#captureEndDate').addEventListener('change',()=>{state.userAdjusted=true;});
   $('#captureAllDay').addEventListener('change',()=>syncCaptureAllDay(true));
