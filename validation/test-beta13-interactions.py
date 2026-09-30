@@ -38,5 +38,5 @@ block=css[start:css.index('}',start)+1]
 assert 'display:flex' in block
 assert 'flex-direction:row' in block
 
-assert 'v3.7.0-beta13' in html
-print('Beta13: inicialización, tarjetas, herramientas, formularios y FAB: OK')
+assert 'v3.7.0-beta14' in html
+print('Beta14 conserva las correcciones beta13 de interacción: OK')
