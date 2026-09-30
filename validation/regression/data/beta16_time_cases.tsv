@@ -1,0 +1,9 @@
+# split	kind	input	expected	note
+holdout	TEMP	esta tarde a las cinco y media	2026-08-23|17:30	franja antes de hora hablada
+holdout	TEMP	Tengo que ir a casa de mis padres esta tarde a las cinco y media	2026-08-23|17:30	caso real del usuario
+holdout	TEMP	esta tarde a las 5:30	2026-08-23|17:30	franja antes de hora numérica
+holdout	TEMP	mañana por la tarde a las cinco y media	2026-08-24|17:30	mañana y tarde
+holdout	TEMP	mañana por la tarde a las 5:30	2026-08-24|17:30	mañana y tarde numérica
+holdout	TEMP	mañana por la mañana a las cinco y media	2026-08-24|05:30	mañana y franja de mañana
+holdout	TEMP	esta noche a las nueve	2026-08-23|21:00	franja noche
+holdout	TEMP	a las cinco y media de la tarde	2026-08-23|17:30	franja después de hora
