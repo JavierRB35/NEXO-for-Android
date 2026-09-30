@@ -1925,12 +1925,14 @@ main{max-width:720px}
 .fab-voice.is-recording{color:#fff;background:#c83246;box-shadow:0 8px 24px rgba(200,50,70,.34)}
 
 
-/* Nexo 3.7.0-beta13 · acciones de evento visibles y FAB horizontales */
-.event-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
-.event-form-actions .primary-button,.event-form-actions .secondary-button,.event-form-actions .danger-button{min-width:0;padding:9px 8px;min-height:44px}
-.event-form-actions .danger-button{background:#fff3f3;color:var(--red);border:1px solid #f0caca}
-@media(min-width:560px){.event-form-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(max-width:380px){.event-form-actions{gap:6px}.event-form-actions .primary-button,.event-form-actions .secondary-button,.event-form-actions .danger-button{font-size:.82rem;padding:8px 5px}.location-map-button{min-width:72px;padding:8px}}
+/* Acciones principales de una ficha editable.
+   Móvil: 2x2 para no apretar Guardar / Editar / Compartir / Eliminar.
+   Pantallas amplias: una sola fila. */
+.record-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.record-form-actions .primary-button,.record-form-actions .secondary-button,.record-form-actions .danger-button{min-width:0;padding:9px 8px;min-height:44px}
+.record-form-actions .danger-button{background:#fff3f3;color:var(--red);border:1px solid #f0caca}
+@media(min-width:560px){.record-form-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:380px){.record-form-actions{gap:6px}.record-form-actions .primary-button,.record-form-actions .secondary-button,.record-form-actions .danger-button{font-size:.82rem;padding:8px 5px}.location-map-button{min-width:72px;padding:8px}}
 
 
 /* Nexo 3.7.0-beta14 · Gmail simple */
