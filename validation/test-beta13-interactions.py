@@ -30,7 +30,7 @@ for token in [
 # Acciones visibles arriba en fichas de citas.
 for control in ['editItemTopBtn','shareItemBtn','deleteItemBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn']:
     assert control in js, control
-assert '.event-form-actions' in css
+assert '.record-form-actions' in css
 
 # FAB en horizontal.
 start=css.index('.floating-actions{')
