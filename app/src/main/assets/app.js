@@ -320,10 +320,13 @@ function updateFloatingActions(){
   const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
   if(!voice||!add)return;
   const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
-  const nonEventPanels=new Set(['backup','history','inbox']);
-  const contentPanel=state.screen==='panel'&&!nonEventPanels.has(state.lastPanel);
+  const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup';
   const voiceVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel);
   const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
+  const recording=parseNative(NexoNative.getRecordingStatus(),{});
+  voice.classList.toggle('is-recording',!!recording.active);
+  voice.setAttribute('aria-label',recording.active?'Grabación en curso':'Grabar audio');
+  voice.setAttribute('title',recording.active?'Abrir grabación en curso':'Grabar audio');
   voice.classList.toggle('hidden',!voiceVisible);
   add.classList.toggle('hidden',!eventVisible);
 }
@@ -333,10 +336,7 @@ function runEventAddFab(){
   prepareCaptureForDate(date);
 }
 function runFloatingVoice(){
-  if(state.screen==='save'){
-    startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'});
-    return;
-  }
+  // En módulos que ya utilizan dictado estructurado conservamos ese contexto.
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
@@ -346,7 +346,18 @@ function runFloatingVoice(){
     startManagedDictation('list',{listId:state.currentList,shopping,title:shopping?'LISTA DE LA COMPRA':'AÑADIR A LA LISTA',hint});
     return;
   }
-  startManagedDictation('universal',{title:'Habla con Nexo',hint:'Di qué quieres guardar o recordar. Nexo preparará la entrada para que la revises.'});
+
+  // En el resto de Nexo el flotante de micrófono es la grabadora de audio.
+  const status=parseNative(NexoNative.getRecordingStatus(),{});
+  if(status.active){
+    openPanel('recordings');
+    return;
+  }
+  state.playingRecordingId='';
+  NexoNative.stopRecordingPlayback();
+  NexoNative.startRecording();
+  toast('Grabación iniciada');
+  requestAnimationFrame(updateFloatingActions);
 }
 
 function navigate(screen, options={}) {
@@ -1790,7 +1801,7 @@ function openOccurrence(seriesId,occurrenceAt){
       
     </div></details>
     ${isAppointmentType(i.type)?`<div class="occurrence-status-actions"><button id="occToggleDone" class="secondary-button">${currentState==='done'?'Marcar pendiente':'Marcar completada'}</button>${currentState!=='done'?'<button id="occPostpone" class="secondary-button">Posponer</button>':''}<span class="small muted">Estas acciones afectan solo a esta aparición.</span></div>`:''}
-    <div class="modal-actions wrap-actions"><button id="saveOccurrenceBtn" class="primary-button">Guardar cambios</button>${i.locationText?'<button id="goOccurrenceLocationBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg> Ir</button>':''}<button id="shareOccurrenceBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button></div>
+    <div class="modal-actions wrap-actions"><button id="saveOccurrenceBtn" class="primary-button">Guardar cambios</button><button id="goOccurrenceLocationBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> Google Maps</button><button id="shareOccurrenceBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button></div>
     <button id="deleteOccurrenceBtn" class="danger-link">Eliminar</button>`);
 
   const syncOccAllDay=()=>{
@@ -1808,7 +1819,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if($('#occVoiceEnabled'))$('#occVoiceEnabled').addEventListener('change',()=>{if($('#occVoiceEnabled').checked&&!occAlerts.length){occAlerts=[0];renderOccAlerts();toast('Se ha añadido un aviso en el momento para poder leerlo por voz.');}});
   if($('#occToggleDone'))$('#occToggleDone').addEventListener('click',()=>{const next=currentState==='done'?'active':'done',r=parseNative(NexoNative.setOccurrenceStatus(seriesId,occurrenceAt,next),{});if(r.ok){closeModal();toast(next==='done'?'Cita completada':'Cita marcada pendiente');refreshCurrent();}else toast('No se pudo actualizar.');});
   if($('#occPostpone'))$('#occPostpone').addEventListener('click',()=>{closeModal();openPostponeSheet(seriesId,occurrenceAt,true);});
-  if($('#goOccurrenceLocationBtn'))$('#goOccurrenceLocationBtn').addEventListener('click',()=>{const maps=$('#occMapsUrl').value.trim(),place=$('#occLocation').value.trim();if(maps)NexoNative.openExternal(maps);else if(place)NexoNative.openLocationDirections(place);else toast('Esta aparición no tiene ubicación.');});
+  if($('#goOccurrenceLocationBtn'))$('#goOccurrenceLocationBtn').addEventListener('click',()=>openMapsFromFields('#occLocation','#occMapsUrl'));
   $('#shareOccurrenceBtn').addEventListener('click',()=>openItemShareMenu(seriesId,occurrenceAt,true,true));
   $('#saveOccurrenceBtn').addEventListener('click',()=>{
     const date=$('#occDate').value,allDay=!!$('#occAllDay').checked,time=allDay?'':$('#occTime').value,endDate=$('#occEndDate').value||date,endTime=allDay?'':$('#occEndTime').value,rec=$('#occRecurrence').value,untilDate=$('#occUntil').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
