@@ -446,7 +446,7 @@ function homeUpcomingCard(item){
     '<span class="upcoming-card__aside"><span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span><span class="upcoming-card__time">'+uiIcon('clock')+(item.allDay===true||item.hasTime===false?'Todo el día':esc(fmtTime(item.dueAt)))+'</span></span></button>';
 }
 function bindHomeUpcoming(){
-  $('[data-home-event]').forEach(b=>b.addEventListener('click',()=>{
+  $$('[data-home-event]').forEach(b=>b.addEventListener('click',()=>{
     const id=Number(b.dataset.homeEvent),occ=Number(b.dataset.homeOccurrence),rec=b.dataset.homeRecurring==='1';
     openEventInAgenda(id,occ,rec);
   }));
@@ -1338,7 +1338,7 @@ function renderCalendarDay(){
 function prepareCaptureForDate(iso){openCreationMenu(iso);}
 
 function toggleSettingsAccordion(section){
-  $('[data-settings-accordion]').forEach(card=>{
+  $$('[data-settings-accordion]').forEach(card=>{
     const open=card.dataset.settingsAccordion===section&&!card.classList.contains('settings-accordion--open');
     card.classList.toggle('settings-accordion--open',open);
     const summary=card.querySelector('[data-settings-section]');
@@ -2149,7 +2149,7 @@ function init(){
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
-  $('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
+  $$('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
