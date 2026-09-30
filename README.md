@@ -1,10 +1,10 @@
-# Nexo 3.7.0-beta14 · AndroidIDE
+# Nexo 3.7.0-beta15 · AndroidIDE
 
-Rama Release: `release/nexo-3.7.0-beta14`.
+Rama Release: `release/nexo-3.7.0-beta15`.
 
 Identidad:
-- Nexo **3.7.0-beta14**
-- `versionCode 79`
+- Nexo **3.7.0-beta15**
+- `versionCode 80`
 - `applicationId com.jruiz.nexo`
 - Base de datos `nexo.db`, esquema **20**
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta14/
+/storage/emulated/0/Download/Nexo_3_7_0_beta15/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta14"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta15"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta14.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta15.apk
 ```
 
 ## Input Hub beta4
@@ -87,7 +87,7 @@ Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)`
 ## Inicio con paridad Nexo Familia
 
 - Inicio replica la estructura visual común de Nexo Familia: buscador superior, “Lo importante ahora”, accesos rápidos y “Próximamente”.
-- “Lo importante ahora”: Hoy, 7 días, Inbox y Grabar audio.
+- “Lo importante ahora”: Hoy, 7 días, Inbox y Calendario.
 - Accesos rápidos: Notas, Medicación, Listas y Documentos.
 - “Próximamente” usa la próxima aparición vigente, orden ascendente y un máximo de 10 eventos.
 - La paleta de categorías, iconos, fecha, categoría, ubicación y participantes sigue los valores canónicos de Nexo Familia.
@@ -115,3 +115,14 @@ Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)`
 - Fichas con acciones compactas de editar, compartir y eliminar.
 - La cabecera muestra la versión real instalada.
 - Formularios de ubicación incorporan acceso directo a Google Maps.
+
+
+## Beta15 · voz inteligente y festivos
+
+- El micrófono flotante de las pantallas principales abre **Habla con Nexo** en vez de iniciar una grabación.
+- La entrada universal usa el enrutador y los clasificadores locales para distinguir alarmas, Cuaderno, medicación, compra, aparcamiento y captura estructurada.
+- La captura universal ya no se fuerza a “cita”: Nexo propone tipo, categoría, fecha, hora, ubicación, periodicidad y avisos para revisión.
+- “Lo importante ahora” sustituye **Grabar audio / REC** por acceso directo a **Calendario**. Grabaciones continúa en Herramientas.
+- El Calendario incorpora festivos nacionales, autonómicos, provinciales y locales con el mismo proveedor y el mismo tratamiento visual que Nexo Familia.
+- La localidad replica la configuración vigente de Nexo Familia: **La Pobla de Vallbona (INE 46202), Valencia, Comunitat Valenciana**.
+- La caché local dura 7 días; sin conexión se usa la última caché y, si no existe, un fallback de festivos nacionales permanentes.

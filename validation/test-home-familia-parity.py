@@ -8,9 +8,9 @@ db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(
 main=(root/'app/src/main/java/com/jruiz/nexo/MainActivity.java').read_text(encoding='utf-8')
 
 # Inicio: las cuatro decisiones acordadas.
-for token in ['homeTodayCard','homeWeekCard','homeInboxPulseCard','homeRecordCard']:
+for token in ['homeTodayCard','homeWeekCard','homeInboxPulseCard','homeCalendarCard']:
     assert token in html, f'Falta tarjeta de Inicio: {token}'
-for label in ['Hoy','7 días','Inbox','Grabar audio']:
+for label in ['Hoy','7 días','Inbox','Calendario']:
     assert label in html
 for panel in ['notes','medications','lists','documents']:
     assert f'data-panel="{panel}"' in html
@@ -59,7 +59,8 @@ assert "WHEN recurrence<>'none' THEN 'pending'" in db
 assert 'isBeforeToday(effectiveEnd) ? "done" : "pending"' in db
 assert 'getFamilyStyleSearchIndex' in db and 'getFamilyStyleSearchIndex' in main
 
-# La acción de grabar desde Inicio inicia realmente RecordingService vía el puente existente.
-assert "NexoNative.startRecording()" in js and "homeRecordCard" in js
+# Inicio reserva la cuarta tarjeta al calendario; la grabadora sigue en Herramientas.
+assert "homeCalendarCard" in html and "homeRecordCard" not in html
+assert 'data-panel="recordings"' in html and "NexoNative.startRecording()" in js
 
 print('Inicio, categorías, búsqueda, agenda y ciclo temporal con paridad Nexo Familia: OK')

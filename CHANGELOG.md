@@ -1,5 +1,17 @@
 # Changelog de Nexo
 
+## 3.7.0-beta15 · versionCode 80 · Voz inteligente y festivos
+
+- El micrófono flotante general deja de iniciar la grabadora y abre **Habla con Nexo**.
+- La voz universal vuelve a usar el enrutador local de intención y ya no fuerza todas las frases al flujo de cita.
+- Se conservan los dictados especializados de listas, Cuaderno/Frases y Medicación.
+- “Lo importante ahora” sustituye **Grabar audio / REC** por **Calendario**; Grabaciones sigue disponible en Herramientas.
+- El calendario incorpora festivos de La Pobla de Vallbona con las capas nacional, autonómica, provincial y local.
+- Se usa el mismo proveedor de Nexo Familia, caché local y fallback nacional sin conexión.
+- Los festivos se muestran con el mismo círculo granate y con nombre, nivel y fuente en el día seleccionado.
+- Se corrige el texto de Captura rápida para no afirmar que existe un micrófono flotante dentro del formulario.
+- Sin cambios en esquema de base de datos ni baseline AndroidIDE.
+
 ## 3.7.0-beta14 · versionCode 79 · Gmail sencillo
 
 - Gmail pasa a un flujo directo de usuario: **Conectar Gmail → Escanear Gmail → Desconectar**.
