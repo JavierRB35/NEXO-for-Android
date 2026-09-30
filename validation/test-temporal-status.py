@@ -8,7 +8,7 @@ importer=(r/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.java
 
 checks={
  'past nonrecurring completed':"WHEN due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) THEN 'done'" in db,
- 'manual status column':'status_manual INTEGER NOT NULL DEFAULT 0' in db and 'DB_VERSION = 22' in db,
+ 'manual status column':'status_manual INTEGER NOT NULL DEFAULT 0' in db and 'DB_VERSION = 23' in db,
  'date inference skips manual status':'in.has("dueAt") && !in.has("status") && !old.optBoolean("statusManual", false)' in db,
  'reconcile preserves manual status':'WHEN status_manual=1 THEN status' in db,
  'manual task state preserved':'AND status_manual=0 AND status IN' in db,
