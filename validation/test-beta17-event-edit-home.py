@@ -6,10 +6,11 @@ css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf-8')
 
 # Estado manual gana a la inferencia temporal.
-assert 'in.has("dueAt") && !in.has("status")' in db
-assert '"WHEN status=\'done\' THEN \'done\' "' in db
-assert '"WHEN status=\'postponed\' THEN \'postponed\' "' in db
-assert 'else if ("done".equals(current) || "postponed".equals(current))' in db
+assert 'DB_VERSION = 21' in db
+assert 'status_manual INTEGER NOT NULL DEFAULT 0' in db
+assert 'WHEN status_manual=1 THEN status' in db
+assert 'in.has("dueAt") && !in.has("status") && !old.optBoolean("statusManual", false)' in db
+assert 'o.put("statusManual"' in db
 
 # Guardar arriba y sin duplicado inferior. La misma barra se reutiliza
 # para eventos normales y apariciones recurrentes.
@@ -72,4 +73,4 @@ assert '@drawable/nexo_family_foreground' in launcher_xml and '@drawable/nexo_fa
 assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
 assert '<color name="nexo_icon_background">#000000</color>' in colors
 assert 'v3.7.0-beta17' in html
-print('Beta17: estado, guardar arriba, Maps en ubicación y Agenda desde Inicio OK')
+print('Beta17: criterios de aceptación + mes de Inicio + logo suministrado OK')
