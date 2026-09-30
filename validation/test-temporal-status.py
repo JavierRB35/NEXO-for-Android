@@ -18,7 +18,7 @@ checks={
  'editor offers four states':all(x in app for x in ['>Pendiente</option>','>Completada</option>','>Pospuesta</option>','>Cancelada</option>']),
  'editor marks explicit state manual':'statusManual:true' in app and 'editStatusTouched' in app,
  'postpone persists postponed':"status:'postponed',statusManual:true" in app,
- 'recurring manual pending is distinct':"done?'pending':'done'" in app and 'occStatus' in app,
+ 'recurring manual pending is distinct':"done?'pending':'done'" in app and 'occStatus' in app and 'occStatusTouched' in app,
  'cancelled recurring occurrence is closed':"state NOT IN ('deleted','done','cancelled')" in db,
  'birthday current year':'yearStart=LocalDate.of(today.getYear(),1,1)' in db,
  'birthday today not done':'d.isBefore(today)?"done":"active"' in db,
