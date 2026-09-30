@@ -1398,14 +1398,14 @@ function openPersonEditor(id=0){
     const avatar=$('#personPreviewAvatar');
     avatar.textContent=personInitials(name);avatar.style.background=selectedColor;avatar.style.color=personTextColor(selectedColor);
     $('#personPreviewName').textContent=name;
-    $('#personColorPalette [data-person-color]').forEach(btn=>{
+    document.querySelectorAll('#personColorPalette [data-person-color]').forEach(btn=>{
       const active=btn.dataset.personColor===selectedColor;
       btn.classList.toggle('person-color-swatch--selected',active);
       btn.innerHTML=active?uiIcon('check'):'';
     });
   };
   $('#personName').addEventListener('input',updatePreview);
-  $('#personColorPalette [data-person-color]').forEach(btn=>btn.addEventListener('click',()=>{selectedColor=btn.dataset.personColor;updatePreview();}));
+  document.querySelectorAll('#personColorPalette [data-person-color]').forEach(btn=>btn.addEventListener('click',()=>{selectedColor=btn.dataset.personColor;updatePreview();}));
   $('#personSave').addEventListener('click',()=>{
     const name=$('#personName').value.trim();
     if(!name){toast('Escribe el nombre de la persona.');$('#personName').focus();return;}
