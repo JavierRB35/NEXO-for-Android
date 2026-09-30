@@ -15,7 +15,8 @@ for label in ['Hoy','7 días','Inbox','Calendario']:
 for panel in ['notes','medications','lists','documents']:
     assert f'data-panel="{panel}"' in html
 assert 'Buscar persona, tarea, evento, lugar...' in html
-assert 'Próximamente' in html and 'homeUpcomingList' in html and 'homeAgendaLink' in html
+assert 'Próximamente' in html and 'homeUpcomingList' in html
+assert 'homeAgendaLink' not in html
 
 # Paleta canónica de Nexo Familia: texto, fondo y borde.
 themes=[
