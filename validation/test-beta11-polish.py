@@ -28,6 +28,7 @@ assert "NexoNative.startRecording()" in js
 # 3. Automático/manual real.
 assert 'id="inputHubAutoScan"' in html and 'id="inputHubScanBtn"' in html
 assert 'autoScanEnabled' in prefs and 'setAutoScanEnabled' in prefs
+assert 'getBoolean("auto_scan_enabled", false)' in prefs
 assert 'InputHubPrefs.autoScanEnabled(context)' in sms
 assert 'InputHubPrefs.autoScanEnabled(context)' in gmail
 assert 'InputHubPrefs.autoScanEnabled(context)' in calendar
@@ -75,4 +76,4 @@ assert "openMapsFromFields('#occLocation','#occMapsUrl')" in js
 assert 'data-place-map' in js
 assert '@JavascriptInterface public void openLocationDirections(String locationText)' in main
 
-print('Beta11: navegación, FAB, scan manual, ajustes, fichas, versión y Maps OK')
+print('Beta12: navegación, FAB, scan manual por defecto, ajustes, fichas, versión y Maps OK')
