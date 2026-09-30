@@ -141,41 +141,43 @@ public class MainActivity extends Activity {
                 for(int i=0;i<meds.length();i++){JSONObject m=meds.optJSONObject(i);if(m!=null)MedicationScheduler.scheduleNext(this,db,m.optLong("id"),System.currentTimeMillis()-1);}
             } catch(Exception ignored) {}
         }
-        if (CalendarCapturePrefs.isEnabled(this) &&
-                checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
-            new Thread(() -> {
-                Context app = getApplicationContext();
-                if (!CalendarCapturePrefs.isBaselined(app)) {
-                    CalendarWatchEngine.initializeBaseline(app);
-                } else {
-                    // Recupera cambios que Android/Calendar pudiera no haber entregado
-                    // mientras Nexo estaba en segundo plano y vuelve a armar el watcher.
-                    CalendarWatchEngine.scan(app);
-                    CalendarWatchScheduler.schedule(app);
-                }
-                jsCallback("onInputHubChanged", "calendar");
-            }, "nexo-calendar-resume").start();
-        }
-        if (InputHubPrefs.smsEnabled(this) &&
-                checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) {
-            new Thread(() -> {
-                if (!InputHubPrefs.smsBaselined(getApplicationContext())) SmsWatchEngine.initializeBaseline(getApplicationContext());
-                else SmsWatchEngine.scan(getApplicationContext());
-                SmsWatchScheduler.schedule(getApplicationContext());
-            }, "nexo-sms-resume").start();
-        }
-        if (InputHubPrefs.gmailEnabled(this)) {
-            if (GmailWatchEngine.hasAuthorizedAccount(this)) {
+        if (InputHubPrefs.autoScanEnabled(this)) {
+            if (CalendarCapturePrefs.isEnabled(this) &&
+                    checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
                 new Thread(() -> {
-                    if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
-                    else GmailWatchEngine.scan(getApplicationContext());
-                    GmailWatchScheduler.schedule(getApplicationContext());
-                    jsCallback("onInputHubChanged", "gmail");
-                }, "nexo-gmail-resume").start();
-            } else {
-                InputHubPrefs.setGmailError(this, "Conecta una cuenta de Gmail desde Ajustes.");
+                    Context app = getApplicationContext();
+                    if (!CalendarCapturePrefs.isBaselined(app)) {
+                        CalendarWatchEngine.initializeBaseline(app);
+                    } else {
+                        // Recupera cambios que Android/Calendar pudiera no haber entregado
+                        // mientras Nexo estaba en segundo plano y vuelve a armar el watcher.
+                        CalendarWatchEngine.scan(app);
+                        CalendarWatchScheduler.schedule(app);
+                    }
+                    jsCallback("onInputHubChanged", "calendar");
+                }, "nexo-calendar-resume").start();
             }
-        }
+            if (InputHubPrefs.smsEnabled(this) &&
+                    checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) {
+                new Thread(() -> {
+                    if (!InputHubPrefs.smsBaselined(getApplicationContext())) SmsWatchEngine.initializeBaseline(getApplicationContext());
+                    else SmsWatchEngine.scan(getApplicationContext());
+                    SmsWatchScheduler.schedule(getApplicationContext());
+                }, "nexo-sms-resume").start();
+            }
+            if (InputHubPrefs.gmailEnabled(this)) {
+                if (GmailWatchEngine.hasAuthorizedAccount(this)) {
+                    new Thread(() -> {
+                        if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
+                        else GmailWatchEngine.scan(getApplicationContext());
+                        GmailWatchScheduler.schedule(getApplicationContext());
+                        jsCallback("onInputHubChanged", "gmail");
+                    }, "nexo-gmail-resume").start();
+                } else {
+                    InputHubPrefs.setGmailError(this, "Conecta una cuenta de Gmail desde Ajustes.");
+                }
+            }
+            }
         if (pageReady) {
             jsCallback("onNotificationAccessChanged", isNotificationAccessEnabled() ? "1" : "0");
             jsCallback("onCalendarAccessChanged",
@@ -487,6 +489,20 @@ public class MainActivity extends Activity {
             GmailWatchScheduler.schedule(getApplicationContext());
             jsCallback("onInputHubChanged", "gmail");
         }, "nexo-gmail-enable").start();
+    }
+
+    private void setInputHubAutoScanEnabled(boolean enabled) {
+        InputHubPrefs.setAutoScanEnabled(getApplicationContext(), enabled);
+        Context app = getApplicationContext();
+        if (!enabled) {
+            CalendarWatchScheduler.cancel(app);
+            SmsWatchScheduler.cancel(app);
+            GmailWatchScheduler.cancel(app);
+            return;
+        }
+        if (CalendarCapturePrefs.isEnabled(app) && hasCalendarPermission()) CalendarWatchScheduler.schedule(app);
+        if (InputHubPrefs.smsEnabled(app) && hasSmsPermission()) SmsWatchScheduler.schedule(app);
+        if (InputHubPrefs.gmailEnabled(app) && GmailWatchEngine.hasAuthorizedAccount(app)) GmailWatchScheduler.schedule(app);
     }
 
     private void scanInputHubNow() {
@@ -1779,6 +1795,22 @@ public class MainActivity extends Activity {
         } catch(Exception e){runOnUiThread(() -> Toast.makeText(this,"No se pudo compartir la entrada",Toast.LENGTH_SHORT).show());}
     }
 
+    private void sharePlainText(String title, String text) {
+        final String safeTitle = title == null || title.isBlank() ? "Nexo" : title;
+        final String safeText = text == null ? "" : text;
+        runOnUiThread(() -> {
+            try {
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("text/plain");
+                share.putExtra(Intent.EXTRA_SUBJECT, safeTitle);
+                share.putExtra(Intent.EXTRA_TEXT, safeText);
+                startActivity(Intent.createChooser(share, "Compartir"));
+            } catch (Exception e) {
+                Toast.makeText(this, "No se pudo abrir el menú para compartir", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private void shareExchangeUri(Uri uri, String title) {
         runOnUiThread(() -> {
             try {
@@ -1906,6 +1938,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String getCommunicationCaptureSettings() {
             JSONObject o = CommunicationCapturePrefs.toJson(MainActivity.this);
             try {
+                o.put("autoScanEnabled", InputHubPrefs.autoScanEnabled(MainActivity.this));
                 o.put("calendarEnabled", CalendarCapturePrefs.isEnabled(MainActivity.this));
                 o.put("calendarPermission", MainActivity.this.hasCalendarPermission());
                 o.put("calendarBaselined", CalendarCapturePrefs.isBaselined(MainActivity.this));
@@ -1934,6 +1967,9 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void setCommunicationCaptureEnabled(boolean enabled) {
             CommunicationCapturePrefs.setEnabled(MainActivity.this, enabled);
+        }
+        @JavascriptInterface public void setInputHubAutoScanEnabled(boolean enabled) {
+            MainActivity.this.setInputHubAutoScanEnabled(enabled);
         }
         @JavascriptInterface public void setCommunicationAppEnabled(String key, boolean enabled) {
             CommunicationCapturePrefs.setAppEnabled(MainActivity.this, key, enabled);
@@ -2173,6 +2209,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void shareNexoItem(long itemId,long occurrenceAt,boolean wholeSeries) { MainActivity.this.shareNexoItem(itemId,occurrenceAt,wholeSeries); }
         @JavascriptInterface public void shareNexoList(long listId) { MainActivity.this.shareNexoList(listId); }
         @JavascriptInterface public void shareNexoJournal(long journalId) { MainActivity.this.shareNexoJournal(journalId); }
+        @JavascriptInterface public void sharePlainText(String title,String text) { MainActivity.this.sharePlainText(title,text); }
         @JavascriptInterface public void confirmSharedImport() { MainActivity.this.confirmSharedImport(); }
         @JavascriptInterface public void cancelSharedImport() { MainActivity.this.cancelSharedImport(); }
         @JavascriptInterface public String getBackupStatus() { return backupStatus().toString(); }
