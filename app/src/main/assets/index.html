@@ -52,9 +52,9 @@
           <span class="home-pulse-card__body"><small>Inbox</small><strong id="homeInboxCount">0</strong><span id="homeInboxHint">Todo organizado</span></span>
           <svg class="ui-icon home-pulse-card__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
         </button>
-        <button id="homeRecordCard" class="home-pulse-card home-pulse-card--record" type="button">
-          <span class="home-pulse-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></span>
-          <span class="home-pulse-card__body"><small>Grabar audio</small><strong id="homeRecordState">REC</strong><span id="homeRecordHint">Iniciar grabación local</span></span>
+        <button id="homeCalendarCard" class="home-pulse-card" type="button">
+          <span class="home-pulse-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></span>
+          <span class="home-pulse-card__body"><small>Calendario</small><strong id="homeCalendarMonth">MES</strong><span id="homeCalendarHint">Abrir calendario mensual</span></span>
           <svg class="ui-icon home-pulse-card__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
         </button>
       </div>
@@ -142,7 +142,7 @@
         <div class="capture-card">
           <div class="capture-mode-row">
             <div>
-<strong>Captura rápida</strong><div class="small muted">Escribe o usa el micrófono flotante para dictar.</div>
+<strong>Captura rápida</strong><div class="small muted">Escribe aquí o usa «Habla con Nexo» desde el micrófono de las pantallas principales.</div>
 </div>
           </div>
 
@@ -257,6 +257,7 @@
 <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
 </div>
 <div class="calendar-viewport"><div id="calendarGrid" class="calendar-grid" role="group" aria-label="Días del mes"></div></div>
+<p id="holidayCalendarNote" class="holiday-calendar-note hidden" aria-live="polite"></p>
 <div class="calendar-legend" aria-label="Colores por categoría">
 <span><i class="calendar-dot general" aria-hidden="true"></i>General</span><span><i class="calendar-dot health" aria-hidden="true"></i>Salud</span><span><i class="calendar-dot errand" aria-hidden="true"></i>Gestiones</span><span><i class="calendar-dot home" aria-hidden="true"></i>Casa / compra</span><span><i class="calendar-dot leisure" aria-hidden="true"></i>Ocio / viajes</span><span><i class="calendar-dot birthday" aria-hidden="true"></i>Cumpleaños</span></div>
 </div>
@@ -264,6 +265,7 @@
 <h2 id="calendarSelectedTitle" aria-live="polite"></h2>
 <p id="calendarSelectedMeta" class="small muted"></p>
 </div></div>
+<div id="calendarDayHolidays" class="selected-day-holidays"></div>
 <div id="calendarDayItems" class="stack"></div>
 </section><section class="screen" data-screen="more"><div class="screen-heading"><div>
 <h1>Ajustes</h1>
@@ -358,7 +360,7 @@
     <div class="settings-accordion__body hidden"><button class="menu-row" data-panel="backup"><span><svg class="ui-icon"><use href="#nx-icon-download"></use></svg><span><strong>Copia de seguridad</strong><small>Datos y adjuntos. Audios por separado.</small></span></span><svg class="ui-icon"><use href="#nx-icon-right"></use></svg></button><div id="backupHint" class="backup-hint hidden"></div></div>
   </section>
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.0-beta14</span></p></section><section class="screen" data-screen="panel">
+<p class="version-info">Nexo <span data-app-version>v3.7.0-beta15</span></p></section><section class="screen" data-screen="panel">
         <div class="panel-header">
 <button id="panelBack" class="back-button" aria-label="Volver a la pantalla anterior"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button><div>
 <h1 id="panelTitle">Panel</h1>
@@ -371,7 +373,7 @@
     </main>
 
     <div id="floatingActions" class="floating-actions" aria-label="Acciones rápidas">
-<button id="globalVoiceFab" class="fab fab-voice hidden" type="button" aria-label="Grabar audio" title="Grabar audio"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button>
+<button id="globalVoiceFab" class="fab fab-voice hidden" type="button" aria-label="Hablar con Nexo" title="Hablar con Nexo"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button>
 <button id="calendarAddFab" class="fab fab-add hidden" type="button" aria-label="Añadir evento" title="Añadir evento"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-plus"></use></svg></button>
 </div><nav class="bottom-nav" aria-label="Navegación principal">
 <button class="nav-item" data-nav="today"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-home"></use></svg><small>Inicio</small></button>

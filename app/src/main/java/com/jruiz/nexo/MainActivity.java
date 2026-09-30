@@ -30,6 +30,7 @@ import com.jruiz.nexo.calendar.CalendarImporter;
 import com.jruiz.nexo.calendar.CalendarCapturePrefs;
 import com.jruiz.nexo.calendar.CalendarWatchEngine;
 import com.jruiz.nexo.calendar.CalendarWatchScheduler;
+import com.jruiz.nexo.calendar.HolidayCalendarService;
 import com.jruiz.nexo.exchange.NexoExchangeManager;
 import com.jruiz.nexo.backup.NexoBackupManager;
 import com.jruiz.nexo.data.DatabaseHelper;
@@ -2002,12 +2003,18 @@ public class MainActivity extends Activity {
         if (webView == null) return;
         runOnUiThread(() -> webView.evaluateJavascript("window.NexoUI && window.NexoUI."+fn+"("+JSONObject.quote(msg)+");",null));
     }
+    private void requestHolidayCalendar(int year) {
+        if (year < 2000 || year > 2100) { JSONObject o=new JSONObject(); try{o.put("year",year);o.put("status","unavailable");o.put("holidays",new JSONArray());}catch(Exception ignored){} jsCallbackJson("onHolidayCalendarLoaded",o); return; }
+        new Thread(() -> jsCallbackJson("onHolidayCalendarLoaded", HolidayCalendarService.load(this, year)), "nexo-holidays-" + year).start();
+    }
+
     private void jsCallbackJson(String fn,JSONObject data) {
         if (webView == null) return;
         runOnUiThread(() -> webView.evaluateJavascript("window.NexoUI && window.NexoUI."+fn+"("+JSONObject.quote(data.toString())+");",null));
     }
     public final class Bridge {
         @JavascriptInterface public String classify(String text) { return service.classify(text).toString(); }
+        @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
         @JavascriptInterface public String getAppointments() { return db.getAppointments().toString(); }
         @JavascriptInterface public void startVoiceInput() { MainActivity.this.startVoiceInput(); }

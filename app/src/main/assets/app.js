@@ -35,6 +35,7 @@ const state = {
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
   homeSearchIndex:[], homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
+  holidayYears:{}, holidayLoading:new Set(),
   managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
 };
 
@@ -323,41 +324,21 @@ function updateFloatingActions(){
   const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup';
   const voiceVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel);
   const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
-  const recording=parseNative(NexoNative.getRecordingStatus(),{});
-  voice.classList.toggle('is-recording',!!recording.active);
-  voice.setAttribute('aria-label',recording.active?'Grabación en curso':'Grabar audio');
-  voice.setAttribute('title',recording.active?'Abrir grabación en curso':'Grabar audio');
-  voice.classList.toggle('hidden',!voiceVisible);
-  add.classList.toggle('hidden',!eventVisible);
+  voice.classList.remove('is-recording');
+  voice.setAttribute('aria-label','Hablar con Nexo');voice.setAttribute('title','Hablar con Nexo');
+  voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!eventVisible);
 }
-function runEventAddFab(){
-  const today=isoDateLocal(new Date());
-  const date=state.screen==='calendar'?(state.calendarSelected||today):today;
-  prepareCaptureForDate(date);
-}
+function runEventAddFab(){const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);}
 function runFloatingVoice(){
-  // En módulos que ya utilizan dictado estructurado conservamos ese contexto.
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
   if(state.screen==='panel'&&state.lastPanel==='lists'&&state.currentList){
     const l=parseNative(NexoNative.getList(state.currentList),{}),shopping=(l.kind||'').toLowerCase()==='compra';
     const hint=shopping?'Di los productos que quieres añadir, quitar o marcar como comprados.':'Di los elementos que quieres añadir a la lista.';
-    startManagedDictation('list',{listId:state.currentList,shopping,title:shopping?'LISTA DE LA COMPRA':'AÑADIR A LA LISTA',hint});
-    return;
+    startManagedDictation('list',{listId:state.currentList,shopping,title:shopping?'LISTA DE LA COMPRA':'AÑADIR A LA LISTA',hint});return;
   }
-
-  // En el resto de Nexo el flotante de micrófono es la grabadora de audio.
-  const status=parseNative(NexoNative.getRecordingStatus(),{});
-  if(status.active){
-    openPanel('recordings');
-    return;
-  }
-  state.playingRecordingId='';
-  NexoNative.stopRecordingPlayback();
-  NexoNative.startRecording();
-  toast('Grabación iniciada');
-  requestAnimationFrame(updateFloatingActions);
+  startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar. Nexo identificará el tipo, la fecha, la hora y el lugar para que lo revises.'});
 }
 
 function navigate(screen, options={}) {
@@ -409,10 +390,8 @@ function renderToday() {
   $('#homeInboxCount').textContent=String(inboxCount);
   $('#homeInboxHint').textContent=inboxCount?inboxCount+' pendiente'+(inboxCount===1?'':'s')+' de organizar':'Todo organizado';
 
-  const recording=parseNative(NexoNative.getRecordingStatus(),{});
-  $('#homeRecordState').textContent=recording.active?'●':'REC';
-  $('#homeRecordHint').textContent=recording.active?(recording.paused?'Grabación en pausa':'Grabación en curso'):'Iniciar grabación local';
-  $('#homeRecordCard').classList.toggle('is-recording',!!recording.active);
+  const monthShort=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(today).replace('.','').toLocaleUpperCase('es-ES');
+  $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Abrir calendario mensual';
 
   const members=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
   state.homeMemberMap=new Map(members.map(m=>[familySearchNormalize(m.full_name),m]));
@@ -916,6 +895,13 @@ function calendarDotClass(i){
   return 'other';
 }
 
+function requestHolidayYears(years){[...new Set(years.map(Number).filter(y=>y>=2000&&y<=2100))].forEach(year=>{if(state.holidayYears[year]||state.holidayLoading.has(year))return;state.holidayLoading.add(year);NexoNative.requestHolidayCalendar(year);});}
+function holidayName(h){const n=h?.name;if(typeof n==='string'&&n.trim())return n.trim();if(n&&typeof n==='object')return n.es||n['ca-valencia']||n.ca||n.gl||n.eu||Object.values(n)[0]||'Festivo';return 'Festivo';}
+function holidayLevelLabel(level){return level==='national'?'Nacional':level==='regional'?'Autonómico':level==='provincial'?'Provincial':'Local';}
+function holidayEntriesForYears(years){return [...new Set(years.map(Number))].flatMap(y=>{const r=state.holidayYears[y];return r&&Array.isArray(r.holidays)?r.holidays:[];});}
+function holidayCard(h){const s=h?.source||{},ref=String(s.ref||'').trim(),url=String(s.url||'').trim();const sourceHtml=url?`<button type="button" class="holiday-source-link" data-holiday-source="${escAttr(url)}">${esc(ref?'Fuente: '+ref:'Ver fuente')}</button>`:ref?`<small>Fuente: ${esc(ref)}</small>`:'';return `<article class="selected-day-holiday"><span class="selected-day-holiday__level selected-day-holiday__level--${escAttr(h.level||'local')}">${esc(holidayLevelLabel(h.level))}</span><div><strong>${esc(holidayName(h))}</strong>${sourceHtml}</div></article>`;}
+function bindHolidaySources(root=document){root.querySelectorAll('[data-holiday-source]').forEach(b=>b.addEventListener('click',()=>NexoNative.openExternal(String(b.dataset.holidaySource||''))));}
+
 function homeDayLabel(iso){
   const d=new Date(`${iso}T12:00:00`),today=iso===isoDateLocal(new Date());
   const full=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long'}).format(d).toLocaleUpperCase('es-ES');
@@ -1082,12 +1068,13 @@ function analyzeCapture(options={}) {
   const text=$('#captureText').value.trim();
   state.userAdjusted=false;
   if(!text){ resetAnalysis(); return; }
-  const appointment=isAppointmentType(state.capturePinnedType||'event');
+  const pinned=String(state.capturePinnedType||'');
+  const appointment=!!pinned&&isAppointmentType(pinned);
   const local=parseNative(appointment?NexoNative.classifyAppointment(text):NexoNative.classify(text),{});
   if(appointment){local.type='event';local.needsReview=false;local.reason='';}
   state.classification=local;
   renderClassification(local,true);
-  setInterpretationStatus('success',appointment?'Datos extraídos. Revisa la cita.':'Interpretación local · privada');
+  setInterpretationStatus('success',appointment?'Datos extraídos. Revisa la cita.':'Nexo ha clasificado lo que has dicho. Revisa la propuesta.');
 }
 
 function setInterpretationStatus(kind,text) {
@@ -1113,8 +1100,10 @@ function refreshCaptureAlertEditor(){
 
 function renderClassification(a, fillForm=true) {
   state.classification=a;
-  $('#classificationPreview').classList.toggle('hidden',isAppointmentType(state.capturePinnedType||'event'));
-  $('#previewType').textContent=typeLabel(state.capturePinnedType||a.type);
+  const pinned=String(state.capturePinnedType||'');
+  const inferredType=pinned||a.type||'note';
+  $('#classificationPreview').classList.toggle('hidden',!!pinned&&isAppointmentType(pinned));
+  $('#previewType').textContent=typeLabel(inferredType);
   $('#previewTitle').textContent=a.title||'Nota rápida';
   $('#previewCategory').textContent=a.category||'Otros';
   $('#previewLocation').textContent=a.locationText?`📍 ${a.locationText}`:'';
@@ -1128,7 +1117,7 @@ function renderClassification(a, fillForm=true) {
   if(fillForm && !state.userAdjusted){
     $('#captureTitle').value=a.title||'';
     $('#captureCategory').value=CATEGORIES.includes(categoryLabel(a.category))?categoryLabel(a.category):'Otros';
-    $('#captureType').value=state.capturePinnedType||'event';
+    $('#captureType').value=inferredType;
     // La fecha/hora interpretadas se escriben realmente en los controles.
     $('#captureDate').value=a.dueDate||state.capturePinnedDate||'';
     $('#captureEndDate').value=a.dueEndDate||a.dueDate||state.capturePinnedDate||'';
@@ -1287,52 +1276,19 @@ function renderCalendar(direction=0){
   const m=state.calendarMonth,first=new Date(m.getFullYear(),m.getMonth(),1);
   const leading=(first.getDay()+6)%7,days=new Date(m.getFullYear(),m.getMonth()+1,0).getDate(),cells=Math.ceil((leading+days)/7)*7;
   const start=new Date(first.getFullYear(),first.getMonth(),1-leading),end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cells);
+  const years=[...new Set(Array.from({length:cells},(_,c)=>new Date(start.getFullYear(),start.getMonth(),start.getDate()+c,12).getFullYear()))];requestHolidayYears(years);
+  const holidaysByDay={};holidayEntriesForYears(years).forEach(h=>{if(/^\d{4}-\d{2}-\d{2}$/.test(String(h.date||'')))(holidaysByDay[h.date]||(holidaysByDay[h.date]=[])).push(h);});
   const items=parseNative(NexoNative.getCalendar(start.getTime(),end.getTime()-1),[]);state.calendarItems=items;
-  const monthName=new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric'}).format(first);
-  $('#calendarMonthTitle').textContent=monthName.replace(/^./,c=>c.toUpperCase());
-  $('#calendarMonthPickerBtn').setAttribute('aria-label',monthName+'. Elegir mes y año');
-  const today=isoDateLocal(new Date()),byDay={};
-  items.forEach(i=>{
-    if(!i.dueAt)return;
-    const startDay=new Date(isoDateLocal(new Date(i.dueAt))+'T12:00:00');
-    const endDay=new Date(isoDateLocal(new Date(itemEffectiveEndAt(i)))+'T12:00:00');
-    for(let d=new Date(startDay),guard=0;d<=endDay&&guard<730;d.setDate(d.getDate()+1),guard++){
-      const key=isoDateLocal(d);(byDay[key]||(byDay[key]=[])).push(i);
-    }
-  });
-  let html='';
-  for(let cell=0;cell<cells;cell++){
-    const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],selected=iso===state.calendarSelected;
-    const label=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)+` · ${list.length?list.length+' elementos':'sin elementos'}`;
-    const dots=list.slice(0,3).map(event=>calendarDotClass(event)==='birthday'
-      ? '<span class="calendar-event-birthday" title="Cumpleaños" aria-hidden="true">🎂</span>'
-      : `<span class="calendar-dot ${calendarDotClass(event)}"></span>`).join('');
-    html+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
-  }
-  $('#calendarGrid').innerHTML=html;
-  $$('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>{
-    const d=new Date(b.dataset.calendarDay+'T12:00:00');state.calendarSelected=b.dataset.calendarDay;
-    if(d.getMonth()!==state.calendarMonth.getMonth()||d.getFullYear()!==state.calendarMonth.getFullYear()){state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();}
-    else {renderCalendarDay();$$('[data-calendar-day]').forEach(x=>{const selected=x.dataset.calendarDay===state.calendarSelected;x.classList.toggle('selected',selected);x.setAttribute('aria-pressed',String(selected));});}
-  }));
-  renderCalendarDay();
-  const grid=$('#calendarGrid');
-  if(direction&&typeof grid.animate==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    grid.getAnimations?.().forEach(a=>a.cancel());
-    grid.animate([{transform:`translateX(${direction*36}px)`,opacity:.45},{transform:'translateX(0)',opacity:1}],{duration:220,easing:'cubic-bezier(.2,0,0,1)'});
-  }
+  const monthName=new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric'}).format(first);$('#calendarMonthTitle').textContent=monthName.replace(/^./,c=>c.toUpperCase());$('#calendarMonthPickerBtn').setAttribute('aria-label',monthName+'. Elegir mes y año');
+  const today=isoDateLocal(new Date()),byDay={};items.forEach(i=>{if(!i.dueAt)return;const a=new Date(isoDateLocal(new Date(i.dueAt))+'T12:00:00'),z=new Date(isoDateLocal(new Date(itemEffectiveEndAt(i)))+'T12:00:00');for(let d=new Date(a),g=0;d<=z&&g<730;d.setDate(d.getDate()+1),g++){const k=isoDateLocal(d);(byDay[k]||(byDay[k]=[])).push(i);}});
+  let html='';for(let cell=0;cell<cells;cell++){const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],hs=holidaysByDay[iso]||[],selected=iso===state.calendarSelected;const base=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');const dots=list.slice(0,3).map(e=>calendarDotClass(e)==='birthday'?'<span class="calendar-event-birthday" title="Cumpleaños" aria-hidden="true">🎂</span>':`<span class="calendar-dot ${calendarDotClass(e)}"></span>`).join('');html+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;}
+  $('#calendarGrid').innerHTML=html;const partial=years.map(y=>state.holidayYears[y]).filter(Boolean).some(r=>r.status==='partial'||r.status==='unavailable');const note=$('#holidayCalendarNote');if(note){note.classList.toggle('hidden',!partial);note.textContent=partial?'Festivos parciales: se muestran los datos disponibles y Nexo volverá a actualizar cuando haya conexión.':'';}
+  $$('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>{const d=new Date(b.dataset.calendarDay+'T12:00:00');state.calendarSelected=b.dataset.calendarDay;if(d.getMonth()!==state.calendarMonth.getMonth()||d.getFullYear()!==state.calendarMonth.getFullYear()){state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();}else{renderCalendarDay();$$('[data-calendar-day]').forEach(x=>{const s=x.dataset.calendarDay===state.calendarSelected;x.classList.toggle('selected',s);x.setAttribute('aria-pressed',String(s));});}}));renderCalendarDay();
+  const grid=$('#calendarGrid');if(direction&&typeof grid.animate==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){grid.getAnimations?.().forEach(a=>a.cancel());grid.animate([{transform:`translateX(${direction*36}px)`,opacity:.45},{transform:'translateX(0)',opacity:1}],{duration:220,easing:'cubic-bezier(.2,0,0,1)'});}
 }
 
 function renderCalendarDay(){
-  const iso=state.calendarSelected||isoDateLocal(new Date()),d=new Date(iso+'T12:00:00');
-  const items=(state.calendarItems||[]).filter(i=>itemCoversIsoDate(i,iso)).sort((a,b)=>{if((a.allDay===true||a.hasTime===false)&&(b.allDay!==true&&b.hasTime!==false))return -1;if((a.allDay!==true&&a.hasTime!==false)&&(b.allDay===true||b.hasTime===false))return 1;return (a.dueAt||0)-(b.dueAt||0);});
-  const label=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(d);
-  $('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());
-  $('#calendarSelectedMeta').textContent=items.length?`${items.length} cita${items.length===1?'':'s'}`:'Sin citas';
-  $('#calendarDayItems').innerHTML=items.length?items.map(i=>agendaCard(i)).join(''):'<div class="empty-state">Sin citas para este día.</div>';
-  const addFab=$('#calendarAddFab');
-  if(addFab)addFab.setAttribute('aria-label','Añadir una cita el '+label);
-  bindItemButtons($('#calendarDayItems'));
+  const iso=state.calendarSelected||isoDateLocal(new Date()),d=new Date(iso+'T12:00:00');const items=(state.calendarItems||[]).filter(i=>itemCoversIsoDate(i,iso)).sort((a,b)=>{if((a.allDay===true||a.hasTime===false)&&(b.allDay!==true&&b.hasTime!==false))return -1;if((a.allDay!==true&&a.hasTime!==false)&&(b.allDay===true||b.hasTime===false))return 1;return (a.dueAt||0)-(b.dueAt||0);});const hs=holidayEntriesForYears([Number(iso.slice(0,4))]).filter(h=>h.date===iso);const label=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(d);$('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());const ap=items.length?`${items.length} cita${items.length===1?'':'s'}`:'Sin citas';$('#calendarSelectedMeta').textContent=hs.length?`${ap} · ${hs.length===1?'Festivo':'Festivos'}`:ap;const host=$('#calendarDayHolidays');if(host){host.innerHTML=hs.map(holidayCard).join('');host.classList.toggle('hidden',!hs.length);bindHolidaySources(host);}$('#calendarDayItems').innerHTML=items.length?items.map(i=>agendaCard(i)).join(''):'<div class="empty-state">Sin citas para este día.</div>';const add=$('#calendarAddFab');if(add)add.setAttribute('aria-label','Añadir una cita el '+label);bindItemButtons($('#calendarDayItems'));
 }
 
 function prepareCaptureForDate(iso){openCreationMenu(iso);}
@@ -1973,11 +1929,15 @@ function looksLikeJournalQuoteVoice(text){
   }
   return false;
 }
+function prepareUniversalCapture(raw){navigate('save');clearCapture();state.capturePinnedType='';state.capturePinnedDate='';$('#captureHeading').textContent='Habla con Nexo';$('#captureText').value=String(raw||'').trim();analyzeCapture({immediate:true,universal:true});}
 function routeUniversalVoice(text){
-  const raw=String(text||'').trim();if(!raw)return;
-  if(looksLikeJournalQuoteVoice(raw)){openJournalComposer(stripJournalVoicePrefix(raw),'quote');return;}
-  prepareQuickNoteForType('event');
-  $('#captureText').value=raw;analyzeCapture({immediate:true});
+  const raw=String(text||'').trim();if(!raw)return;const route=parseNative(NexoNative.interpretIntent(raw),{intent:'capture'});
+  if(route.intent==='alarm'){openAlarmConfirmation(route.alarm||parseNative(NexoNative.parseAlarm(raw),{}));return;}
+  if(route.intent==='journal'){openJournalComposer(stripJournalVoicePrefix(raw),looksLikeJournalQuoteVoice(raw)?'quote':'');return;}
+  if(route.intent==='medication'){openMedicationComposer(raw);return;}
+  if(route.intent==='shopping'){const id=getShoppingListId();handleListVoice(raw,id,true);return;}
+  if(route.intent==='parking'){openParkingModal(raw);return;}
+  prepareUniversalCapture(raw);
 }
 
 function listMatch(entries,spoken){const q=normVoiceText(spoken).replace(/^(?:el|la|los|las)\s+/,'');if(!q)return null;return entries.find(e=>{const x=normVoiceText(e.text).replace(/^(?:el|la|los|las)\s+/,'');return x===q||x.includes(q)||q.includes(x);})||null;}
@@ -2074,6 +2034,7 @@ window.NexoUI={
   },
   onSharedImportDone(raw){const r=parseNative(raw,{});closeModal();toast(`${r.title||'Contenido'} añadido a Nexo`,'',null,5000);if(r.entity==='list'&&r.id){openPanel('lists');setTimeout(()=>openList(Number(r.id)),80);}else if(r.entity==='journal'&&r.id){const j=parseNative(NexoNative.getJournal(Number(r.id)),{});openPanel(j.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(Number(r.id)),80);}else if(r.entity==='item'&&r.id){refreshCurrent();setTimeout(()=>openItem(Number(r.id)),80);}else refreshCurrent();},
   onSharedImportError(msg){closeModal();toast(msg||'No se pudo importar el contenido.','',null,6000);},
+  onHolidayCalendarLoaded(raw){const r=parseNative(raw,{}),y=Number(r.year||0);if(!y)return;state.holidayLoading.delete(y);state.holidayYears[y]=r;if(state.screen==='calendar')renderCalendar();},
   onRecordingStateChanged(raw){if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();if(state.screen==='today')renderToday();updateFloatingActions();},
   onRecordingError(msg){toast(msg||'No se pudo completar la acción de grabación.','',null,5500);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   onRecordingPlaybackStarted(id){state.playingRecordingId=String(id||'');refreshRecordingSurface();setTimeout(startRecordingPlaybackPolling,80);},
@@ -2175,11 +2136,7 @@ function init(){
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
   $('#homeInboxPulseCard')?.addEventListener('click',()=>openPanel('inbox'));
-  $('#homeRecordCard')?.addEventListener('click',()=>{
-    const status=parseNative(NexoNative.getRecordingStatus(),{});
-    if(status.active){openPanel('recordings');return;}
-    state.playingRecordingId='';NexoNative.stopRecordingPlayback();NexoNative.startRecording();toast('Iniciando grabación…');openPanel('recordings');
-  });
+  $('#homeCalendarCard')?.addEventListener('click',()=>openCalendar('today',isoDateLocal(new Date())));
   $('#homeAgendaLink')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});
   $('#searchHistorical')?.addEventListener('change',e=>{state.searchHistorical=!!e.target.checked;if($('#searchInput').value.trim())runSearch();});
   $('#globalVoiceFab').addEventListener('click',runFloatingVoice);

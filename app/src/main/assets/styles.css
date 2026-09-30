@@ -1942,3 +1942,10 @@ main{max-width:720px}
 .gmail-diagnostic summary{cursor:pointer;font-weight:750;color:var(--text)}
 .gmail-diagnostic>div{margin-top:8px;overflow-wrap:anywhere}
 @media(max-width:460px){.gmail-actions{grid-template-columns:1fr}.gmail-connect-head{display:grid}.gmail-status-badge{justify-self:start}}
+
+/* beta15 · festivos */
+.calendar-day--holiday .day-number{display:grid;place-items:center;width:24px;height:24px;min-width:24px;min-height:24px;border-radius:50%;color:#fff!important;background:#b4233a!important;box-shadow:0 1px 3px rgba(180,35,58,.24)}
+.calendar-day.selected.calendar-day--holiday .day-number{box-shadow:0 0 0 2px #fff,0 1px 3px rgba(180,35,58,.24)}
+.calendar-day.outside-month.calendar-day--holiday{opacity:1}.calendar-day.outside-month.calendar-day--holiday .day-dots{opacity:.48}
+.holiday-calendar-note{margin:10px 2px 0;padding:8px 10px;border-radius:10px;color:var(--muted);background:#f7f9ff;font-size:.72rem;line-height:1.4}
+.selected-day-holidays{display:grid;gap:7px;margin:0 0 10px}.selected-day-holidays.hidden{display:none}.selected-day-holiday{display:flex;align-items:flex-start;gap:10px;padding:10px 11px;border:1px solid #eadce0;border-radius:13px;background:#fffafb}.selected-day-holiday>div{display:grid;gap:2px;min-width:0}.selected-day-holiday strong{font-size:.86rem}.selected-day-holiday small,.holiday-source-link{color:var(--muted);font-size:.68rem;line-height:1.35}.holiday-source-link{border:0;padding:0;background:transparent;color:var(--primary);font-weight:750;text-align:left}.selected-day-holiday__level{flex:0 0 auto;min-width:72px;padding:4px 7px;border-radius:999px;text-align:center;font-size:.64rem;font-weight:850}.selected-day-holiday__level--national{color:#9d2940;background:#fff0f2}.selected-day-holiday__level--regional{color:#3158d4;background:#eef3ff}.selected-day-holiday__level--provincial{color:#6d28d9;background:#f3efff}.selected-day-holiday__level--local{color:#0f6f4a;background:#edf9f1}
