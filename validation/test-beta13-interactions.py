@@ -10,7 +10,7 @@ html=(root/'app/src/main/assets/index.html').read_text(encoding='utf-8')
 assert not re.search(r"(?<!\\$)\\$\\([^\\n;]+?\\)\\.forEach", js), 'No debe usarse un selector simple con forEach'
 
 for fixed in [
-    "$$('[data-settings-section]').forEach",
+    "document.querySelectorAll('[data-settings-section]').forEach",
     "$$('[data-settings-accordion]').forEach",
     "$$('[data-home-event]').forEach",
 ]:
