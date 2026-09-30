@@ -51,7 +51,7 @@ assert 'id="homeAgendaLink"' not in html
 assert 'Ver agenda' not in html
 assert "$('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});" in js
 assert '<button class="nav-item" data-nav="calendar">' in html
-assert ('
+assert (chr(36)*2+"('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));") in js
 assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
 month_block=js[js.index('const monthRaw='):js.index('const members=',js.index('const monthRaw='))]
 assert "monthRaw.toLocaleUpperCase" not in month_block
