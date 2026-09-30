@@ -2007,3 +2007,20 @@ main{max-width:720px}
   .people-settings__head{display:grid}
   .people-settings__head .primary-button{width:100%;justify-content:center}
 }
+
+
+/* Personas incluidas · misma interacción visual que Nexo Familia */
+.event-people-assignment{margin:14px 0 0;padding:0;border:0}
+.member-assignment{margin:0;padding:0;border:0}
+.member-assignment legend{margin-bottom:7px;color:var(--text);font-size:.84rem;font-weight:750}
+.member-chips{display:flex;flex-wrap:wrap;gap:8px}
+.member-chip{
+  display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 11px;
+  border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--bg);
+  font:inherit;font-size:.78rem;font-weight:750
+}
+.member-chip--active{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+.member-color-dot{display:inline-block;flex:0 0 auto;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1px rgba(24,32,51,.08)}
+.form-helper{margin:7px 0 0;color:var(--muted);font-size:.76rem;line-height:1.4}
+.member-assignment-empty{display:block;width:100%;padding:10px 12px;border:1px dashed var(--line);border-radius:13px;color:var(--muted);background:#fafbfc;font-size:.78rem;line-height:1.4}
+.detail-grid>.event-people-assignment{margin-top:2px}
