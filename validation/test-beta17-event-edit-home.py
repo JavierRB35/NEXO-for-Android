@@ -27,14 +27,22 @@ assert '<div class="modal-actions wrap-actions"></div>' not in occ
 assert '.record-form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' in css
 assert '@media(min-width:560px){.record-form-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}' in css
 
-# Maps integrado en ubicación y sin campo visible de enlace.
+# Maps integrado en ubicación y sin campo visible independiente de enlace.
 assert 'class="location-input-row"' in html
 assert 'id="captureMapPreview"' in html and 'id="captureMapsUrl" type="hidden"' in html
+assert 'placeholder="Dirección o enlace de Google Maps"' in html
 for token in ['id="editLocationMapBtn"','id="occLocationMapBtn"','id="editMapsUrl" type="hidden"','id="occMapsUrl" type="hidden"']:
     assert token in js, token
+assert 'function bindEventLocationField' in js
+assert "bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview'" in js
+assert "bindEventLocationField('#editLocation','#editMapsUrl','#editLocationMapBtn')" in item
+assert "bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn')" in occ
+assert "if(maps)maps.value='';" in js  # al editar ubicación no prevalece un enlace heredado obsoleto
+assert "item?.locationText||item?.mapsUrl" in js  # enlaces antiguos siguen siendo visibles/compatibles
+assert "if(isGoogleMapsLocation(place)){NexoNative.openPlaceMap(place);return;}" in js
 assert 'Enlace de Google Maps' not in html
-assert 'Enlace de Google Maps' not in item
-assert 'Enlace de Google Maps' not in occ
+assert '<label>Enlace de Google Maps' not in item
+assert '<label>Enlace de Google Maps' not in occ
 
 # Inicio: Calendario abre Agenda, Ver agenda desaparece y mes no se fuerza a mayúsculas.
 assert 'id="homeAgendaLink"' not in html
