@@ -1302,6 +1302,17 @@ function renderCalendarDay(){
 
 function prepareCaptureForDate(iso){openCreationMenu(iso);}
 
+function toggleSettingsAccordion(section){
+  $('[data-settings-accordion]').forEach(card=>{
+    const open=card.dataset.settingsAccordion===section&&!card.classList.contains('settings-accordion--open');
+    card.classList.toggle('settings-accordion--open',open);
+    const summary=card.querySelector('[data-settings-section]');
+    const body=card.querySelector('.settings-accordion__body');
+    summary?.setAttribute('aria-expanded',String(open));
+    body?.classList.toggle('hidden',!open);
+  });
+}
+
 function renderMore(){
   $('#startScreen').value=String(NexoNative.getStartScreen()||'today');
   const lists=parseNative(NexoNative.getLists(),[]),preferred=Number(NexoNative.getPreferredShoppingList())||0;
@@ -1317,10 +1328,15 @@ function renderMore(){
 
 function renderCommunicationCaptureSettings(){
   const settings=parseNative(NexoNative.getCommunicationCaptureSettings(),{
-    enabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false,
+    enabled:true,autoScanEnabled:true,apps:[],calendarEnabled:false,calendarPermission:false,calendarBaselined:false,
     smsDirectEnabled:false,smsPermission:false,smsBaselined:false,smsLastSync:0,smsError:'',smsSeen:0,smsCaptured:0,smsRejected:0,smsErrors:0,
     gmailDirectEnabled:false,gmailAuthorized:false,gmailEmail:'',gmailBaselined:false,gmailLastSync:0,gmailError:'',gmailSeen:0,gmailCaptured:0,gmailRejected:0,gmailErrors:0
   });
+  const auto=$('#inputHubAutoScan'),autoStatus=$('#inputHubAutoScanStatus');
+  if(auto)auto.checked=settings.autoScanEnabled!==false;
+  if(autoStatus)autoStatus.textContent=settings.autoScanEnabled===false
+    ? 'Modo manual · sin jobs periódicos ni escaneo directo al volver a Nexo.'
+    : 'Modo automático · Nexo vigila las fuentes directas en segundo plano.';
   const access=!!NexoNative.hasNotificationAccess();
   const status=$('#notificationAccessStatus'),master=$('#communicationCaptureEnabled'),apps=$('#communicationApps');
   if(status){
@@ -1340,7 +1356,7 @@ function renderCommunicationCaptureSettings(){
   if(smsStatus){
     if(settings.smsDirectEnabled&&settings.smsPermission&&settings.smsBaselined){
       const last=settings.smsLastSync?(' · última consulta '+fmtDate(Number(settings.smsLastSync),true)):'';
-      smsStatus.textContent='Activo · lectura directa + respaldo por notificación'+last+' · '+Number(settings.smsSeen||0)+' vistos · '+Number(settings.smsCaptured||0)+' candidatos · '+Number(settings.smsRejected||0)+' descartados'+(Number(settings.smsErrors||0)?' · '+Number(settings.smsErrors||0)+' con error':'');
+      smsStatus.textContent=(settings.autoScanEnabled===false?'Preparado para escaneo manual':'Activo · lectura directa automática')+last+' · '+Number(settings.smsSeen||0)+' vistos · '+Number(settings.smsCaptured||0)+' candidatos · '+Number(settings.smsRejected||0)+' descartados'+(Number(settings.smsErrors||0)?' · '+Number(settings.smsErrors||0)+' con error':'');
     }else if(settings.smsError)smsStatus.textContent=String(settings.smsError);
     else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent='Preparando referencia inicial de SMS…';
     else if(settings.smsDirectEnabled&&!settings.smsPermission)smsStatus.textContent='Falta conceder permiso para leer SMS.';
@@ -1352,7 +1368,7 @@ function renderCommunicationCaptureSettings(){
   if(gmailStatus){
     const account=settings.gmailEmail?String(settings.gmailEmail):'';
     if(settings.gmailDirectEnabled&&settings.gmailAuthorized&&settings.gmailBaselined){
-      gmailStatus.textContent=`Activo · API + respaldo por notificación${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''} · ${Number(settings.gmailSeen||0)} vistos · ${Number(settings.gmailCaptured||0)} candidatos · ${Number(settings.gmailRejected||0)} descartados${Number(settings.gmailErrors||0)?' · '+Number(settings.gmailErrors||0)+' con error':''}`;
+      gmailStatus.textContent=`${settings.autoScanEnabled===false?'Preparado para escaneo manual':'Activo · Gmail API automática'}${account?' · '+account:''}${settings.gmailLastSync?' · última consulta '+fmtDate(Number(settings.gmailLastSync),true):''} · ${Number(settings.gmailSeen||0)} vistos · ${Number(settings.gmailCaptured||0)} candidatos · ${Number(settings.gmailRejected||0)} descartados${Number(settings.gmailErrors||0)?' · '+Number(settings.gmailErrors||0)+' con error':''}`;
     }else if(settings.gmailDirectEnabled&&settings.gmailAuthorized){
       gmailStatus.textContent=`Cuenta autorizada${account?' · '+account:''} · preparando referencia inicial…`;
     }else if(settings.gmailError){
@@ -1366,7 +1382,7 @@ function renderCommunicationCaptureSettings(){
   const calendar=$('#calendarCaptureEnabled'),calendarStatus=$('#calendarAccessStatus');
   if(calendar)calendar.checked=!!settings.calendarEnabled;
   if(calendarStatus){
-    if(settings.calendarEnabled&&settings.calendarPermission&&settings.calendarBaselined)calendarStatus.textContent='Activo · observando nuevos eventos y cambios de Calendar.';
+    if(settings.calendarEnabled&&settings.calendarPermission&&settings.calendarBaselined)calendarStatus.textContent=settings.autoScanEnabled===false?'Preparado para escaneo manual.':'Activo · observando nuevos eventos y cambios de Calendar.';
     else if(settings.calendarEnabled&&settings.calendarPermission)calendarStatus.textContent='Preparando la referencia inicial del calendario…';
     else if(settings.calendarEnabled&&!settings.calendarPermission)calendarStatus.textContent='Falta conceder permiso de calendario.';
     else calendarStatus.textContent='Desactivado.';
