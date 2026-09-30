@@ -12,7 +12,7 @@ public final class GmailWatchScheduler {
     private GmailWatchScheduler() {}
 
     public static void schedule(Context context) {
-        if (!InputHubPrefs.gmailEnabled(context)) return;
+        if (!InputHubPrefs.autoScanEnabled(context) || !InputHubPrefs.gmailEnabled(context)) return;
         JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (scheduler == null) return;
         JobInfo job = new JobInfo.Builder(JOB_ID, new ComponentName(context, GmailWatchJob.class))
