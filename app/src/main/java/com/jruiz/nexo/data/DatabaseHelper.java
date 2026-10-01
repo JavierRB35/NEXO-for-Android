@@ -1121,6 +1121,93 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static boolean isAppointmentTypeForStatus(String type){return "event".equals(type)||"task".equals(type)||"reminder".equals(type)||"expiry".equals(type);}
     private static boolean isBeforeToday(long at){if(at<=0)return false;ZoneId z=ZoneId.systemDefault();return Instant.ofEpochMilli(at).atZone(z).toLocalDate().isBefore(LocalDate.now(z));}
 
+    /**
+     * Datos mínimos de Inicio. Evita expandir cientos de días de recurrencias y
+     * devuelve únicamente lo necesario para pintar la pantalla principal.
+     */
+    public JSONObject getHomeDashboardData() {
+        JSONObject out = new JSONObject();
+        try {
+            ZoneId zone = ZoneId.systemDefault();
+            LocalDate today = LocalDate.now(zone);
+            long start = today.atStartOfDay(zone).toInstant().toEpochMilli();
+            long endToday = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1;
+            long end7 = today.plusDays(7).atStartOfDay(zone).toInstant().toEpochMilli() - 1;
+
+            LinkedHashMap<Long, JSONObject> firstBySeries = new LinkedHashMap<>();
+            JSONArray near = getCalendar(start, end7);
+            for (int i=0;i<near.length();i++) {
+                JSONObject item = near.optJSONObject(i);
+                if (item == null || !isAppointmentTypeForStatus(item.optString("type"))) continue;
+                String status = item.optString("status","active");
+                String occurrenceStatus = item.optString("occurrenceStatus","");
+                if ("cancelled".equals(status) || "done".equals(status) ||
+                        "deleted".equals(occurrenceStatus) || "cancelled".equals(occurrenceStatus) || "done".equals(occurrenceStatus)) continue;
+                long due = item.optLong("dueAt",0L);
+                if (due < start) continue;
+                long key = item.optLong("seriesId", item.optLong("id",0L));
+                if (key > 0 && !firstBySeries.containsKey(key)) firstBySeries.put(key,item);
+            }
+
+            int todayCount = 0, weekCount = 0;
+            for (JSONObject item : firstBySeries.values()) {
+                long due = item.optLong("dueAt",0L);
+                if (due >= start && due <= endToday) todayCount++;
+                if (due >= start && due <= end7) weekCount++;
+            }
+
+            ArrayList<JSONObject> upcoming = new ArrayList<>(firstBySeries.values());
+
+            // Completa la lista con eventos no recurrentes posteriores a esta semana.
+            if (upcoming.size() < 10) {
+                JSONArray later = queryItems(
+                        "type IN ('event','task','reminder','expiry') AND due_at>? AND recurrence='none' AND status NOT IN ('done','cancelled')",
+                        new String[]{String.valueOf(end7)},
+                        "due_at ASC", 40);
+                for (int i=0;i<later.length();i++) {
+                    JSONObject item=later.optJSONObject(i); if(item==null)continue;
+                    long key=item.optLong("id",0L);
+                    if(key>0 && !firstBySeries.containsKey(key)){
+                        firstBySeries.put(key,item);upcoming.add(item);
+                    }
+                    if(upcoming.size()>=10)break;
+                }
+            }
+
+            // Para cada serie recurrente solo calcula su próxima aparición efectiva.
+            if (upcoming.size() < 10) {
+                JSONArray series = queryItems(
+                        "type IN ('event','task','reminder','expiry') AND due_at>0 AND recurrence<>'none' AND status<>'cancelled'",
+                        null, "due_at ASC", 500);
+                for (int i=0;i<series.length() && upcoming.size()<10;i++) {
+                    JSONObject base=series.optJSONObject(i); if(base==null)continue;
+                    long id=base.optLong("id",0L);
+                    if(id<=0 || firstBySeries.containsKey(id))continue;
+                    long occurrenceKey=findNextOccurrence(id,end7);
+                    if(occurrenceKey<=0)continue;
+                    JSONObject item=getOccurrence(id,occurrenceKey);
+                    if(item.length()==0)continue;
+                    String status=item.optString("status","active"), occurrenceStatus=item.optString("occurrenceStatus","");
+                    if("done".equals(status)||"cancelled".equals(status)||"deleted".equals(occurrenceStatus)||
+                            "done".equals(occurrenceStatus)||"cancelled".equals(occurrenceStatus))continue;
+                    firstBySeries.put(id,item);upcoming.add(item);
+                }
+            }
+
+            upcoming.sort(Comparator.comparingLong(o -> o.optLong("dueAt",Long.MAX_VALUE)));
+            JSONArray shown=new JSONArray();
+            for(int i=0;i<upcoming.size() && i<10;i++)shown.put(upcoming.get(i));
+
+            out.put("upcoming",shown);
+            out.put("todayCount",todayCount);
+            out.put("weekCount",weekCount);
+            out.put("inboxCount",
+                    scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1") +
+                    getPendingInboxCaptureCount());
+        } catch (Exception ignored) {}
+        return out;
+    }
+
     public JSONObject getTodayData() {
         reconcileTemporalStatuses();
         JSONObject out = new JSONObject();
