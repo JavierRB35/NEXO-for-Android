@@ -80,6 +80,7 @@ public final class TemporalParser {
         Result out = new Result();
         String n = norm(raw == null ? "" : raw);
         if (n.isBlank()) return out;
+        String dateScope = EventSemanticParser.maskNonEventDateReferences(n);
         ZoneId zone = ZoneId.systemDefault();
         LocalDate today = now.toLocalDate();
 
@@ -92,10 +93,10 @@ public final class TemporalParser {
             out.endTimeSource = "duración explícita";
         }
 
-        Matcher numeric = Pattern.compile("(?<!\\d)(\\d{1,2})\\s*[./-]\\s*(\\d{1,2})(?:\\s*[./-]\\s*(\\d{2,4}))?(?!\\d)").matcher(n);
+        Matcher numeric = Pattern.compile("(?<!\\d)(\\d{1,2})\\s*[./-]\\s*(\\d{1,2})(?:\\s*[./-]\\s*(\\d{2,4}))?(?!\\d)").matcher(dateScope);
         while (numeric.find() && !out.hasDate && !out.invalidDate) {
             String token = numeric.group(0);
-            String prefix = n.substring(Math.max(0, numeric.start()-14), numeric.start());
+            String prefix = dateScope.substring(Math.max(0, numeric.start()-14), numeric.start());
             if (token.contains(".") && numeric.group(3) == null &&
                     (prefix.matches(".*\\ba\\s+las?\\s*$") || prefix.matches(".*\\bhora\\s*$"))) continue;
             try {
@@ -112,7 +113,7 @@ public final class TemporalParser {
             }
         }
 
-        if (!out.hasDate && !out.invalidDate) parseMonthWords(n, today, out);
+        if (!out.hasDate && !out.invalidDate) parseMonthWords(dateScope, today, out);
         if (!out.hasDate && !out.invalidDate) parseWeekday(n, today, out);
 
         if (!out.hasDate && !out.invalidDate && n.contains("pasado manana")) {
