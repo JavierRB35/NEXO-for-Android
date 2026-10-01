@@ -377,35 +377,74 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
 }
 
 
+
 function updateFloatingActions(){
   const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
   if(!voice||!add)return;
+  const panel=state.screen==='panel'?state.lastPanel:'';
   const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
-  const journalEditorActive=!!state.journalEditor&&state.screen==='panel'&&state.lastPanel==='journal'&&!$('#modal')?.classList.contains('hidden');
-  const medicationEditorActive=!!state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'&&!$('#modal')?.classList.contains('hidden');
-  const contextualEditorActive=journalEditorActive||medicationEditorActive;
-  const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup';
-  const voiceVisible=(!modalOpen||contextualEditorActive)&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
-  const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
-  const notesContext=state.screen==='panel'&&state.lastPanel==='notes';
-  const listsContext=state.screen==='panel'&&state.lastPanel==='lists';
-  const journalContext=state.screen==='panel'&&state.lastPanel==='journal';
-  const medicationsContext=state.screen==='panel'&&state.lastPanel==='medications';
-  const voiceLabel=medicationEditorActive?'Completar pauta por voz':journalEditorActive?'Dictar contenido':notesContext?'Dictar nota':listsContext?'Añadir elementos por voz':journalContext?'Dictar entrada':medicationsContext?'Hablar con Medicación':'Hablar con Nexo';
-  const addLabel=notesContext?'Nueva nota':listsContext?'Nueva lista':journalContext?'Nueva entrada':medicationsContext?'Nuevo medicamento':'Añadir evento';
+  const journalEditorActive=!!state.journalEditor&&panel==='journal'&&!$('#modal')?.classList.contains('hidden');
+  const quoteEditorActive=!!state.quoteEditor&&panel==='quotes'&&!$('#modal')?.classList.contains('hidden');
+  const medicationEditorActive=!!state.medicationEditor&&panel==='medications'&&!$('#modal')?.classList.contains('hidden');
+  const placeEditorActive=!!state.placeEditor&&panel==='places'&&!$('#modal')?.classList.contains('hidden');
+  const documentEditorActive=!!state.documentEditor&&panel==='documents'&&!$('#modal')?.classList.contains('hidden');
+  const contextualEditorActive=journalEditorActive||quoteEditorActive||medicationEditorActive||placeEditorActive||documentEditorActive;
+  let recordingActive=false;
+  if(panel==='recordings')recordingActive=!!parseNative(NexoNative.getRecordingStatus(),{}).active;
+
+  const contentPanel=state.screen==='panel'&&panel!=='backup';
+  let voiceVisible=(!modalOpen||contextualEditorActive)&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
+  let addVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||panel==='appointments');
+
+  if(panel==='parking')voiceVisible=false;
+  if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}
+  if(panel==='backup')addVisible=false;
+
+  const voiceLabel=
+    medicationEditorActive?'Completar pauta por voz':
+    journalEditorActive?'Dictar contenido':
+    quoteEditorActive?'Dictar frase':
+    placeEditorActive?'Completar lugar por voz':
+    documentEditorActive?'Dictar descripción':
+    panel==='notes'?'Dictar nota':
+    panel==='lists'?'Añadir elementos por voz':
+    panel==='journal'?'Dictar entrada':
+    panel==='quotes'?'Dictar frase':
+    panel==='medications'?'Hablar con Medicación':
+    panel==='places'?'Guardar lugar por voz':
+    panel==='documents'?'Buscar documento por voz':
+    panel==='recordings'?'Iniciar grabación':'Hablar con Nexo';
+  const parking=panel==='parking'?parseNative(NexoNative.getLastParking(),{}):{};
+  const addLabel=
+    panel==='notes'?'Nueva nota':
+    panel==='lists'?'Nueva lista':
+    panel==='journal'?'Nueva entrada':
+    panel==='quotes'?'Nueva frase':
+    panel==='medications'?'Nuevo medicamento':
+    panel==='places'?'Nuevo lugar':
+    panel==='documents'?'Guardar documento':
+    panel==='parking'?(parking.id?'Actualizar aparcamiento':'Guardar aparcamiento'):'Añadir evento';
+
   voice.classList.remove('is-recording');
-  voice.setAttribute('aria-label',voiceLabel);
-  voice.setAttribute('title',voiceLabel);
-  add.setAttribute('aria-label',addLabel);
-  add.setAttribute('title',addLabel);
-  voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!eventVisible);
+  voice.setAttribute('aria-label',voiceLabel);voice.setAttribute('title',voiceLabel);
+  add.setAttribute('aria-label',addLabel);add.setAttribute('title',addLabel);
+  voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!addVisible);
 }
 
 function runEventAddFab(){
   if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
   if(state.screen==='panel'&&state.lastPanel==='lists'){openNewListModal();return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){openJournalComposer();return;}
+  if(state.screen==='panel'&&state.lastPanel==='quotes'){openJournalComposer('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){openMedicationComposer();return;}
+  if(state.screen==='panel'&&state.lastPanel==='places'){openPlaceEditor();return;}
+  if(state.screen==='panel'&&state.lastPanel==='documents'){openDocumentEditor();return;}
+  if(state.screen==='panel'&&state.lastPanel==='parking'){
+    const p=parseNative(NexoNative.getLastParking(),{});
+    if(p.id)confirmGeneric('Actualizar aparcamiento','Se sustituirá la ubicación guardada actualmente por tu posición actual.',()=>openParkingModal(),'Actualizar');
+    else openParkingModal();
+    return;
+  }
   const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);
 }
 function startListVoiceFor(listId){
@@ -426,22 +465,29 @@ function chooseListForVoice(){
 }
 
 
+
 function runFloatingVoice(){
   if(state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'){startMedicationEditorVoice();return;}
   if(state.journalEditor&&state.screen==='panel'&&state.lastPanel==='journal'){startJournalEditorVoice();return;}
+  if(state.quoteEditor&&state.screen==='panel'&&state.lastPanel==='quotes'){startQuoteEditorVoice();return;}
+  if(state.placeEditor&&state.screen==='panel'&&state.lastPanel==='places'){startPlaceEditorVoice();return;}
+  if(state.documentEditor&&state.screen==='panel'&&state.lastPanel==='documents'){startDocumentEditorVoice();return;}
   if(state.screen==='save'){
     const base=$('#captureText')?.value.trim()||'';
-    startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});
-    return;
+    startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});return;
   }
   if(state.screen==='panel'&&state.lastPanel==='notes'){startNoteVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
+  if(state.screen==='panel'&&state.lastPanel==='places'){startPlaceVoice();return;}
+  if(state.screen==='panel'&&state.lastPanel==='documents'){startDocumentSearchVoice();return;}
+  if(state.screen==='panel'&&state.lastPanel==='recordings'){
+    state.playingRecordingId='';NexoNative.stopRecordingPlayback();NexoNative.startRecording();toast('Iniciando grabación…');setTimeout(()=>{if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},350);return;
+  }
+  if(state.screen==='panel'&&state.lastPanel==='parking')return;
   if(state.screen==='panel'&&state.lastPanel==='lists'){
-    if(state.currentList)startListVoiceFor(state.currentList);
-    else chooseListForVoice();
-    return;
+    if(state.currentList)startListVoiceFor(state.currentList);else chooseListForVoice();return;
   }
   startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar. Nexo identificará el tipo, la fecha, la hora y el lugar para que lo revises.'});
 }
@@ -2294,12 +2340,14 @@ function openModal(title,html){
 }
 
 
+
 function closeModal(){
   discardDocumentDraft();
   const noteWasOpen=!!state.noteEditor;if(noteWasOpen){flushNoteAutosave();state.noteEditor=null;}
   const journalWasOpen=!!state.journalEditor;if(journalWasOpen){flushJournalAutosave();state.journalEditor=null;}
   const medicationWasOpen=!!state.medicationEditor;if(medicationWasOpen)state.medicationEditor=null;
-  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','journal-editor-open','medication-editor-open');
+  state.quoteEditor=null;state.placeEditor=null;
+  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
   if(noteWasOpen)refreshNotesSurface();
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
   if(state.modalReturnFocus?.isConnected)state.modalReturnFocus.focus({preventScroll:true});state.modalReturnFocus=null;
@@ -2359,8 +2407,9 @@ function applyCaptureVoiceText(text){
   toast('Voz transcrita. Revisa lo que Nexo ha entendido.');
 }
 
+
 function finalizeManagedDictation(){
-  let text=managedVoiceFullText(true);
+  const text=managedVoiceFullText(true);
   const target=state.managedVoiceTarget,listId=state.managedVoiceListId,shopping=state.managedVoiceShopping,noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual;
   const medicationEditorVoice=!!state.medicationVoiceEditor;
   const journalKind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit;
@@ -2370,6 +2419,11 @@ function finalizeManagedDictation(){
   else if(target==='capture-edit')applyCaptureVoiceText(text);
   else if(target==='list')handleListVoice(text,listId,shopping);
   else if(target==='journal')openJournalComposer(text,journalKind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});
+  else if(target==='quote-editor')applyQuoteEditorVoice(text);
+  else if(target==='place')openPlaceEditor(0,parsePlaceVoice(text));
+  else if(target==='place-editor')applyPlaceEditorVoice(text);
+  else if(target==='document-search'){state.documentSearch=String(text).trim();renderCollectionPanel('documents');}
+  else if(target==='document-editor')applyDocumentEditorVoice(text);
   else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);
   else if(target==='medication'){state.medicationVoiceEditor=false;if(medicationEditorVoice)applyMedicationVoiceToEditor(text);else handleMedicationVoice(text);}
   else{navigate('save');clearCapture();$('#captureText').value=text;analyzeCapture({immediate:true});}
@@ -2996,6 +3050,7 @@ function openDocumentEditor(id=0,incoming=null){
   openModal(editing?'Editar documento':'Guardar documento',`<div class="modal-form document-form"><label>Descripción<textarea id="documentDescription" rows="4" placeholder="Ej. Seguro del coche o factura de la lavadora" required></textarea></label><label>Tipo de documento <span class="optional">(opcional)</span><select id="documentLabel"><option value="">Sin etiqueta</option>${labels.map(value=>`<option value="${escAttr(value)}" ${value===label?'selected':''}>${esc(value)}</option>`).join('')}</select></label><div class="document-file-field"><span class="document-field-label">Archivo</span><span id="documentFileName" class="document-file-name" aria-live="polite"></span><div class="document-file-buttons"><button id="documentChoose" type="button" class="secondary-button">Seleccionar archivo</button><button id="documentPreview" type="button" class="secondary-button hidden">Abrir archivo</button></div><p class="document-file-help">PDF, JPG, PNG, Word u otro formato.</p></div><p id="documentSaveError" class="document-error hidden" role="alert"></p></div><div class="modal-actions"><button id="documentCancel" type="button" class="secondary-button">Cancelar</button><button id="documentSave" type="button" class="primary-button">Guardar documento</button></div>${editing?'<button id="documentDelete" type="button" class="danger-link">Eliminar documento</button>':''}`);
   $('#documentDescription').value=editing?documentDescription(i):incoming?.description||'';
   state.documentEditor={id:Number(id)||0,originalPath:i.attachmentPath||'',file:incoming?.path?incoming:i.attachmentPath?{path:i.attachmentPath,name:i.attachmentName,mime:i.attachmentMime}:null,request:'',busy:false};
+  document.body.classList.add('document-editor-open');requestAnimationFrame(updateFloatingActions);
   renderDocumentFile();
   $('#documentChoose').addEventListener('click',()=>{
     const editor=state.documentEditor;if(!editor||editor.busy)return;
@@ -3048,26 +3103,66 @@ function renderPlacesList(){
   bindPlaceButtons($('#placeList'));
   $('#placeResetFilter')?.addEventListener('click',()=>{state.placeFilter='all';state.placeSearch='';$('#placeFilter').value='all';$('#placeSearch').value='';renderPlacesList();});
 }
-function openPlaceEditor(id=0){
+function parsePlaceVoice(text){
+  const raw=String(text||'').trim(),n=normVoiceText(raw);
+  let label='Quiero ir';
+  if(/\brestaurante|bar|cafeteria|comer|cenar\b/.test(n))label='Restaurante';
+  else if(/\bhotel|alojamiento\b/.test(n))label='Alojamiento';
+  else if(/\bpaseo|ruta|mirador|parque|naturaleza\b/.test(n))label='Naturaleza';
+  else if(/\btienda|compras\b/.test(n))label='Compras';
+  let title=raw
+    .replace(/^\s*(?:guarda|guardar|anota|apunta|añade|agrega)\s+(?:el\s+)?(?:lugar\s+)?/i,'')
+    .replace(/\s+como\s+(?:restaurante|bar|cafeter[ií]a|alojamiento|hotel|naturaleza|compras?|quiero ir)\s*$/i,'')
+    .trim();
+  if(!title)title=raw;
+  return {title,body:'',label};
+}
+function startPlaceVoice(){
+  startManagedDictation('place',{title:'GUARDAR LUGAR',hint:'Di el nombre del lugar y, si quieres, qué tipo de sitio es.'});
+}
+function startPlaceEditorVoice(){
+  startManagedDictation('place-editor',{title:'COMPLETAR LUGAR',hint:'Di el nombre, una descripción o la etiqueta que quieras aplicar a este lugar.'});
+}
+function applyPlaceEditorVoice(text){
+  const parsed=parsePlaceVoice(text),raw=String(text||'').trim(),n=normVoiceText(raw);
+  let changed=false;
+  if(parsed.title&&(/\b(?:se llama|nombre|lugar|guarda|guardar|anota|apunta|añade|agrega)\b/.test(n)||!$('#placeTitle')?.value.trim())){$('#placeTitle').value=parsed.title;changed=true;}
+  if(/\b(?:descripcion|descripción|nota|recuerda|merece|quiero probar)\b/.test(n)){const el=$('#placeDescription');if(el){el.value=[el.value.trim(),raw].filter(Boolean).join(' ');changed=true;}}
+  if(parsed.label&&$('#placeLabel')){$('#placeLabel').value=parsed.label;changed=true;}
+  toast(changed?'He actualizado el lugar. Revísalo antes de guardar.':'No he identificado qué dato del lugar quieres cambiar.');
+}
+function startDocumentSearchVoice(){
+  startManagedDictation('document-search',{title:'BUSCAR DOCUMENTO',hint:'Di qué documento quieres encontrar.'});
+}
+function startDocumentEditorVoice(){
+  startManagedDictation('document-editor',{title:'DICTAR DESCRIPCIÓN',hint:'Di la descripción que quieres añadir a este documento.'});
+}
+function applyDocumentEditorVoice(text){
+  const el=$('#documentDescription');if(!el)return;
+  const spoken=String(text||'').trim();if(!spoken)return;
+  el.value=[el.value.trim(),spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+  el.dispatchEvent(new Event('input'));toast('Descripción actualizada.');
+}
+
+
+function openPlaceEditor(id=0,prefill=null){
   const editing=Number(id)>0,i=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
   if(editing&&(!i.id||!isPlaceType(i.type))){toast('No se encuentra este lugar.');return;}
-  const label=editing?placeLabel(i):(state.placeFilter!=='all'?state.placeFilter:'Quiero ir'),labels=[...new Set([...PLACE_LABELS,label])];
-  openModal(editing?'Editar lugar':'Guardar lugar',`<div class="modal-form place-form"><label>Título<input id="placeTitle" type="text" value="${escAttr(i.title||'')}" placeholder="Ej. Mirador del Garbí" required></label><label>Descripción <span class="optional">(opcional)</span><textarea id="placeDescription" rows="4" placeholder="Qué te gustó, qué quieres probar o qué merece la pena recordar">${esc(i.body||'')}</textarea></label><label>Ubicación en Google Maps <span class="optional">(opcional)</span><input id="placeLocation" type="text" value="${escAttr(i.locationText||'')}" placeholder="Pega el enlace de Maps o escribe la dirección" autocomplete="off" autocapitalize="off" spellcheck="false"></label><p class="place-map-help">En Google Maps puedes usar Compartir y Copiar enlace. También puedes escribir una dirección o coordenadas.</p><button id="placePreviewMap" type="button" class="secondary-button">${uiIcon('pin')} Comprobar en Maps</button><label>Etiqueta<select id="placeLabel">${labels.map(value=>`<option value="${escAttr(value)}" ${value===label?'selected':''}>${esc(value)}</option>`).join('')}</select></label><p id="placeSaveError" class="place-error hidden" role="alert"></p></div><div class="modal-actions"><button id="placeCancel" type="button" class="secondary-button">Cancelar</button><button id="placeSave" type="button" class="primary-button">Guardar lugar</button></div>${editing?'<button id="placeDelete" type="button" class="danger-link">Eliminar lugar</button>':''}`);
-  const syncMap=()=>{$('#placePreviewMap').classList.toggle('hidden',!$('#placeLocation').value.trim());};syncMap();
-  $('#placeLocation').addEventListener('input',syncMap);
-  $('#placePreviewMap').addEventListener('click',()=>NexoNative.openPlaceMap($('#placeLocation').value.trim()));
+  const initial=prefill||{},label=initial.label||(editing?placeLabel(i):(state.placeFilter!=='all'?state.placeFilter:'Quiero ir')),labels=[...new Set([...PLACE_LABELS,label])];
+  state.placeEditor={id:Number(id)||0,editing,legacyLocation:String(i.locationText||'')};
+  openModal(editing?'Editar lugar':'Guardar lugar',`<div class="modal-form place-form"><label>Nombre<input id="placeTitle" type="text" value="${escAttr(initial.title||i.title||'')}" placeholder="Ej. Mirador del Garbí" required></label><label>Descripción <span class="optional">(opcional)</span><textarea id="placeDescription" rows="4" placeholder="Qué te gustó, qué quieres probar o qué merece la pena recordar">${esc(initial.body!==undefined?initial.body:(i.body||''))}</textarea></label><label>Etiqueta<select id="placeLabel">${labels.map(value=>`<option value="${escAttr(value)}" ${value===label?'selected':''}>${esc(value)}</option>`).join('')}</select></label><div class="small muted">El botón Maps buscará este sitio por su nombre; no necesitas guardar un enlace ni una dirección.</div><p id="placeSaveError" class="place-error hidden" role="alert"></p></div><div class="modal-actions"><button id="placeCancel" type="button" class="secondary-button">Cancelar</button><button id="placeSave" type="button" class="primary-button">Guardar lugar</button></div>${editing?'<button id="placeDelete" type="button" class="danger-link">Eliminar lugar</button>':''}`);
+  document.body.classList.add('place-editor-open');requestAnimationFrame(updateFloatingActions);
   $('#placeCancel').addEventListener('click',closeModal);
   $('#placeSave').addEventListener('click',()=>{
-    const payload={id:Number(id)||0,title:$('#placeTitle').value.trim(),body:$('#placeDescription').value.trim(),locationText:$('#placeLocation').value.trim(),label:$('#placeLabel').value};
+    const payload={id:Number(id)||0,title:$('#placeTitle').value.trim(),body:$('#placeDescription').value.trim(),locationText:String(i.locationText||''),label:$('#placeLabel').value};
     const error=$('#placeSaveError');error.classList.add('hidden');
-    if(!payload.title){error.textContent='Escribe un título para el lugar.';error.classList.remove('hidden');$('#placeTitle').focus();return;}
+    if(!payload.title){error.textContent='Escribe un nombre para el lugar.';error.classList.remove('hidden');$('#placeTitle').focus();return;}
     const result=parseNative(NexoNative.savePlace(JSON.stringify(payload)),{});
     if(!result.ok){error.textContent=result.error||'No se pudo guardar el lugar.';error.classList.remove('hidden');return;}
-    closeModal();refreshCurrent();toast('Lugar guardado');
+    state.placeEditor=null;closeModal();refreshCurrent();toast('Lugar guardado');
   });
   $('#placeDelete')?.addEventListener('click',()=>confirmDeleteItem(i));
 }
-
 function renderParkingPanel(){
   const p=parseNative(NexoNative.getLastParking(),{});$('#panelTitle').textContent='Aparcamiento';$('#panelSubtitle').textContent='El último lugar donde has dejado el coche';
   $('#panelAction').innerHTML='';
