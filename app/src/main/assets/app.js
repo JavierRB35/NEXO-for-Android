@@ -46,7 +46,7 @@ const state = {
   documentFilter:'all', documentSearch:'', documents:[], documentEditor:null, documentRequest:0,
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
-  homeSearchIndex:[], homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
+  homeSearchIndex:[], homeSearchIndexReady:false, homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
   holidayYears:{}, holidayLoading:new Set(),
   managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
 };
@@ -136,7 +136,7 @@ function buildFamilyStyleSearchIndex(){
   (data.inbox||[]).forEach(x=>out.push({kind:'inbox',id:Number(x.id),type:'Inbox',title:String(x.detectedTitle||x.subject||x.attachmentName||String(x.rawText||'').split(/\n/)[0]||'Entrada'),detail:[x.source,x.sender].filter(Boolean).join(' · '),searchText:[x.detectedTitle,x.subject,x.rawText,x.sender,x.source,x.sourcePackage,x.attachmentName].filter(Boolean).join(' '),historical:false,raw:x}));
   (data.recordings||[]).forEach(x=>{let transcription='';try{if(NexoNative.hasTranscription(String(x.id)))transcription=String(NexoNative.getTranscription(String(x.id))||'');}catch(_){}
     out.push({kind:'recording',id:String(x.id||''),type:'Grabación',title:String(x.title||'Grabación'),detail:x.startedAt?fmtDate(Number(x.startedAt),true):'',searchText:[x.title,transcription].filter(Boolean).join(' '),historical:false,raw:x});});
-  state.homeSearchIndex=out;return out;
+  state.homeSearchIndex=out;state.homeSearchIndexReady=true;return out;
 }
 function familyStyleSearch(query,includeHistorical=false){
   const items=state.homeSearchIndex.length?state.homeSearchIndex:buildFamilyStyleSearchIndex(),normalizedQuery=familySearchNormalize(query);
@@ -593,36 +593,26 @@ function navigate(screen, options={}) {
 }
 
 function renderToday() {
-  const today=new Date();today.setHours(0,0,0,0);
-  const start=today.getTime(),end7=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7).getTime()-1;
-  const horizon=start+740*86400000;
-  const all=parseNative(NexoNative.getCalendar(start,horizon),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted');
-  const firstBySeries=new Map();
-  all.sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)).forEach(i=>{
-    const key=String(i.seriesId||i.id);
-    if(!firstBySeries.has(key)&&!(i.status==='done'&&!i.recurring&&(!i.recurrence||i.recurrence==='none')))firstBySeries.set(key,i);
-  });
-  state.homeUpcoming=[...firstBySeries.values()].filter(i=>Number(i.dueAt)>=start).sort((a,b)=>(a.dueAt||0)-(b.dueAt||0)).slice(0,10);
-  const todayKey=isoDateLocal(today);
-  const todayItems=state.homeUpcoming.filter(i=>localDateKeyFromMs(i.dueAt)===todayKey);
-  const weekItems=state.homeUpcoming.filter(i=>Number(i.dueAt)>=start&&Number(i.dueAt)<=end7);
-  const inboxCount=Number(NexoNative.getInboxCaptureCount())+(parseNative(NexoNative.getInbox(),[])||[]).length;
+  const dashboard=parseNative(NexoNative.getHomeDashboard(),{});
+  state.homeUpcoming=Array.isArray(dashboard.upcoming)?dashboard.upcoming:[];
 
-  $('#homeTodayCount').textContent=String(todayItems.length);
-  $('#homeTodayHint').textContent=todayItems.length?String(todayItems[0].title||'Evento'):'Sin eventos previstos';
-  $('#homeWeekCount').textContent=String(weekItems.length);
-  $('#homeWeekHint').textContent=weekItems.length?'Eventos después de hoy':'Semana tranquila';
+  const todayCount=Math.max(0,Number(dashboard.todayCount||0));
+  const weekCount=Math.max(0,Number(dashboard.weekCount||0));
+  const inboxCount=Math.max(0,Number(dashboard.inboxCount||0));
+
+  $('#homeTodayCount').textContent=String(todayCount);
+  $('#homeTodayHint').textContent=todayCount&&state.homeUpcoming.length?String(state.homeUpcoming[0].title||'Evento'):'Sin eventos previstos';
+  $('#homeWeekCount').textContent=String(weekCount);
+  $('#homeWeekHint').textContent=weekCount?'Eventos después de hoy':'Semana tranquila';
   $('#homeInboxCount').textContent=String(inboxCount);
   $('#homeInboxHint').textContent=inboxCount?inboxCount+' pendiente'+(inboxCount===1?'':'s')+' de organizar':'Todo organizado';
 
   $('#homeCalendarMonth').textContent='Completa';$('#homeCalendarHint').textContent='Ver todos';
-
-  const localPeople=parseNative(NexoNative.getPeople(),[]).map(p=>({full_name:p.name,color:p.color,id:p.id}));
-  const legacyMembers=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
-  state.homeMemberMap=new Map([...legacyMembers,...localPeople].map(m=>[familySearchNormalize(m.full_name),m]));
   $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card">No hay próximos eventos. Añade el primero desde Agenda.</div>';
   bindHomeUpcoming();
-  buildFamilyStyleSearchIndex();
+
+  // El índice global puede leer miles de filas y transcripciones. Solo se crea
+  // cuando el usuario utiliza realmente el buscador de Inicio.
   const q=$('#homeSearchInput')?.value.trim()||'';
   if(q)runHomeSearch(q);
   requestAnimationFrame(updateFloatingActions);
@@ -673,6 +663,7 @@ function bindHomeUpcoming(){
 function runHomeSearch(query){
   const q=String(query||'').trim(),section=$('#homeSearchResultsSection'),dash=$('#homeDashboardContent');
   if(!q){section.classList.add('hidden');dash.classList.remove('hidden');$('#homeSearchResults').innerHTML='';return;}
+  if(!state.homeSearchIndexReady)buildFamilyStyleSearchIndex();
   const results=familyStyleSearch(q,false);state.homeSearchResults=results;
   dash.classList.add('hidden');section.classList.remove('hidden');$('#homeSearchCount').textContent=String(results.length);
   $('#homeSearchResults').innerHTML=results.length?results.map((x,i)=>familySearchCard(x,i,true)).join(''):'<div class="empty-card">No hay coincidencias en tus datos.</div>';
@@ -2991,7 +2982,21 @@ window.NexoUI={
   }
 };
 
+function bindPanelNavigation(){
+  if(bindPanelNavigation.bound)return;
+  bindPanelNavigation.bound=true;
+  document.addEventListener('click',event=>{
+    const button=event.target?.closest?.('[data-panel]');
+    if(!button||button.disabled)return;
+    const panel=String(button.dataset.panel||'').trim();
+    if(!panel)return;
+    event.preventDefault();
+    openPanel(panel);
+  });
+}
+
 function init(){
+  bindPanelNavigation();
   const appVersion=String(NexoNative.getAppVersion());
   $$('[data-app-version]').forEach(el=>{el.textContent='v'+appVersion;el.setAttribute('aria-label','Versión '+appVersion);});
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
@@ -3094,7 +3099,7 @@ function init(){
   attachMonthSwipe(document.querySelector('.calendar-viewport'),()=>changeCalendarMonth(-1),()=>changeCalendarMonth(1));
   $('#captureRecurrence').addEventListener('change',()=>{const recurring=$('#captureRecurrence').value!=='none';$('#captureRecurrenceUntilLabel').classList.toggle('hidden',!recurring);});
   $$('.quick-action').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.action;if(a==='voice')startManagedDictation('universal',{title:'Habla con Nexo'});else if(a==='quick-task')prepareQuickNoteForType('task');else if(a==='shopping-list')ensureShoppingList();else if(a==='parking')openParkingModal();}));
-  $$('[data-panel]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.panel)));$('#panelBack').addEventListener('click',()=>navigateBack());
+  $('#panelBack').addEventListener('click',()=>navigateBack());
   $('#managedVoiceStop').addEventListener('click',stopManagedDictation);
   $('#modalClose').addEventListener('click',closeModal);$('#modal').addEventListener('click',e=>{if(e.target===$('#modal'))closeModal();});
   $('#confirmCancel').addEventListener('click',()=>{$('#confirmModal').classList.add('hidden');state.confirmAction=null;});
