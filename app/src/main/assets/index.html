@@ -140,7 +140,7 @@
         <div class="screen-heading">
 <div>
 <h1 id="captureHeading">Nueva cita</h1>
-<p class="muted">Escribe, dicta o rellena los campos. La fecha y el lugar son opcionales.</p>
+<p id="captureSubtitle" class="muted">Describe lo que quieres guardar y revisa la propuesta antes de confirmar.</p>
 </div>
 <button id="captureBackBtn" class="secondary-button">Volver</button>
 </div>
@@ -179,10 +179,18 @@
             <button id="acceptReminderSuggestion" class="secondary-button">Añadir</button>
           </div>
 
-          <div id="captureDateContext" class="capture-context hidden" role="status"></div>
-<div class="form-grid capture-basics event-form-grid">
-              <label class="form-span-2">Título<input id="captureTitle" type="text"></label>
-              <label class="form-span-2">Descripción <span class="optional">(solo detalles relevantes)</span><textarea id="captureDescription" rows="3" placeholder="Detalle completo de lo que necesitas hacer. Puedes editarlo o ampliarlo."></textarea></label>
+          <div id="captureRouteHint" class="capture-context hidden" role="status"></div>
+          <div class="form-grid capture-basics">
+            <label class="form-span-2">Título<input id="captureTitle" type="text"></label>
+            <label class="form-span-2">Descripción <span class="optional">(solo detalles relevantes)</span><textarea id="captureDescription" rows="3" placeholder="Detalle completo de lo que necesitas guardar. Puedes editarlo o ampliarlo."></textarea></label>
+            <label class="form-span-2">Categoría<select id="captureCategory"></select></label>
+          </div>
+          <input id="captureType" type="hidden" value="event">
+          <input id="captureMapsUrl" type="hidden">
+
+          <div id="captureEventFields">
+            <div id="captureDateContext" class="capture-context hidden" role="status"></div>
+            <div class="form-grid event-form-grid">
               <div class="form-span-2 event-range-grid">
                 <label>Fecha inicio<div class="date-wrap"><input id="captureDate" type="date"></div></label>
                 <label>Fecha fin<div class="date-wrap"><input id="captureEndDate" type="date"></div></label>
@@ -201,8 +209,7 @@
               <p class="form-helper">Selecciona una, varias o todas las personas que también están involucradas en el evento.</p>
             </fieldset>
             <div class="form-grid event-settings-grid">
-              <label>Categoría<select id="captureCategory"></select></label>
-              <label>Repetición<select id="captureRecurrence"><option value="none">No se repite</option>
+              <label class="form-span-2">Repetición<select id="captureRecurrence"><option value="none">No se repite</option>
 <option value="daily">Diaria</option>
 <option value="weekly">Semanal</option>
 <option value="monthly">Mensual</option>
@@ -212,8 +219,6 @@
 <option value="annual">Anual</option></select></label>
               <label id="captureRecurrenceUntilLabel" class="hidden form-span-2">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="captureRecurrenceUntil" type="date"></div></label>
             </div>
-            <input id="captureType" type="hidden" value="event">
-            <input id="captureMapsUrl" type="hidden">
             <div id="captureAlertsSection" class="alert-editor hidden">
               <div class="alert-editor-head">
                 <div><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-bell"></use></svg> Avisos</strong><div class="small muted">Puedes añadir varios avisos a la misma cita.</div></div>
@@ -223,13 +228,14 @@
             </div>
             <label id="captureVoiceRow" class="switch-row voice-reminder-row hidden"><input id="captureVoiceEnabled" type="checkbox"><span><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg> Aviso por voz</strong><small>Nexo leerá en voz alta cada aviso configurado. Desactivado por defecto.</small></span></label>
             <details id="captureDetails" class="details-box">
-              <summary>Más opciones</summary>
+              <summary>Más opciones de la cita</summary>
               <div class="form-grid">
                 <label class="form-span-2">Prioridad<select id="capturePriority"><option value="1">Normal</option>
 <option value="2">Importante</option>
 <option value="3">Alta</option></select></label>
               </div>
             </details>
+          </div>
 
           <button id="saveCaptureBtn" class="primary-button large">Guardar en Nexo</button>
           <div class="secondary-actions">
@@ -332,28 +338,26 @@
   <section class="settings-accordion" data-settings-accordion="input">
     <button class="settings-accordion__summary" type="button" data-settings-section="input" aria-expanded="false">
       <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-inbox"></use></svg></span>
-      <span class="settings-accordion__label"><strong>Input Hub</strong><small>Escaneo automático, manual y fuentes</small></span>
+      <span class="settings-accordion__label"><strong>Capturas e Inbox</strong><small>Fuentes que alimentan tu bandeja de entrada</small></span>
       <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
     </button>
     <div class="settings-accordion__body hidden">
       <div class="settings-card settings-card--embedded communication-capture-settings">
-        <label class="toggle-row input-hub-mode"><span><strong>Escaneo automático</strong><small>Si lo desactivas, Nexo no programa consultas directas en segundo plano ni escanea al volver a la app. Usa “Escanear ahora” cuando quieras.</small></span><input id="inputHubAutoScan" type="checkbox"></label>
+        <label class="toggle-row input-hub-mode"><span><strong>Escaneo automático</strong><small>Si lo desactivas, Nexo no consulta las fuentes directas en segundo plano ni al volver a la app. Para revisar manualmente, usa Inbox → Escanear ahora.</small></span><input id="inputHubAutoScan" type="checkbox"></label>
         <div id="inputHubAutoScanStatus" class="small muted"></div>
-        <div class="modal-actions"><button id="inputHubScanBtn" class="primary-button" type="button">Escanear ahora</button></div>
 
         <div class="calendar-capture-section">
           <div class="search-section-label">Fuentes directas</div>
           <label class="toggle-row"><span><strong>SMS recibidos</strong><small>Lee directamente la bandeja SMS de Android.</small></span><input id="smsDirectEnabled" type="checkbox"></label><div id="smsDirectStatus" class="small muted"></div>
           <div class="gmail-connect-card">
             <div class="gmail-connect-head">
-              <div><strong>Gmail</strong><small>Nexo puede revisar tu correo cuando pulses “Escanear Gmail”. El escaneo automático sigue siendo opcional.</small></div>
+              <div><strong>Gmail</strong><small>Nexo puede revisar tu correo desde Inbox → Escanear ahora. El escaneo automático sigue siendo opcional.</small></div>
               <span id="gmailConnectionBadge" class="gmail-status-badge">No conectado</span>
             </div>
             <div id="gmailAccount" class="gmail-account hidden"></div>
             <div id="gmailDirectStatus" class="small muted"></div>
             <div class="gmail-actions">
               <button id="gmailConnectBtn" class="primary-button" type="button">Conectar Gmail</button>
-              <button id="gmailScanNowBtn" class="secondary-button hidden" type="button">Escanear Gmail</button>
               <button id="gmailDisconnectBtn" class="ghost-button hidden" type="button">Desconectar</button>
             </div>
             <details id="gmailDiagnostic" class="gmail-diagnostic hidden">
@@ -363,7 +367,7 @@
             </details>
           </div>
           <label class="toggle-row"><span><strong>Calendar Android</strong><small>Detecta eventos nuevos y cambios escritos por otras aplicaciones.</small></span><input id="calendarCaptureEnabled" type="checkbox"></label><div id="calendarAccessStatus" class="small muted"></div>
-          <p class="small muted">En modo Manual estas fuentes solo se consultan al pulsar “Escanear ahora”.</p>
+          <p class="small muted">En modo manual estas fuentes solo se consultan desde Inbox → Escanear ahora.</p>
         </div>
 
         <div class="calendar-capture-section">
@@ -386,14 +390,6 @@
     <div class="settings-accordion__body hidden"><div class="settings-card settings-card--embedded medication-message-settings"><p class="muted">Personaliza los seis avisos. Usa <code>{medicacion}</code> para nombre y dosis y <code>{hora}</code> para la hora prevista.</p><div id="medicationMessageFields"></div><div class="modal-actions"><button id="resetMedicationMessages" class="secondary-button" type="button">Restaurar frases por defecto</button></div></div></div>
   </section>
 
-  <section class="settings-accordion" data-settings-accordion="data">
-    <button class="settings-accordion__summary" type="button" data-settings-section="data" aria-expanded="false">
-      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-download"></use></svg></span>
-      <span class="settings-accordion__label"><strong>Datos y copias</strong><small>Copias y Nexo Familia</small></span>
-      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
-    </button>
-    <div class="settings-accordion__body hidden"><button class="menu-row" data-panel="backup"><span><svg class="ui-icon"><use href="#nx-icon-download"></use></svg><span><strong>Copia de seguridad</strong><small>Datos y adjuntos. Audios por separado.</small></span></span><svg class="ui-icon"><use href="#nx-icon-right"></use></svg></button><div id="backupHint" class="backup-hint hidden"></div></div>
-  </section>
 </div>
 <p class="version-info">Nexo <span data-app-version>v3.7.0-beta22-notes</span></p></section><section class="screen" data-screen="panel">
         <div class="panel-header">
