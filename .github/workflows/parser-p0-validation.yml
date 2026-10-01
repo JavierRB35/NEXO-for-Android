@@ -23,16 +23,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
       - name: Verify runner Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           test -d "$ANDROID_HOME/platforms/android-34"
           ls "$ANDROID_HOME/build-tools"
-
-      - name: Compile Android debug
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --max-workers=1
 
       - name: Temporal parser smoke tests
         shell: bash
@@ -83,3 +83,6 @@ jobs:
           mkdir -p /tmp/nexo-parser-smoke
           javac -d /tmp/nexo-parser-smoke             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java             /tmp/TemporalParserSmoke.java
           java -cp /tmp/nexo-parser-smoke TemporalParserSmoke
+
+      - name: Compile Android debug
+        run: gradle assembleDebug --no-daemon --max-workers=1
