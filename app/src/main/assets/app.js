@@ -57,6 +57,14 @@ function ensureCaptureManualFields(){if(!(state.captureManualFields instanceof S
 function markCaptureManual(...fields){const set=ensureCaptureManualFields();fields.filter(Boolean).forEach(f=>set.add(f));state.userAdjusted=set.size>0;}
 function captureFieldLocked(field){return ensureCaptureManualFields().has(field);}
 function resetCaptureManualFields(){state.captureManualFields=new Set();state.userAdjusted=false;}
+function captureNeedsReview(){
+  const a=state.classification||{};
+  if(!a.needsReview)return false;
+  const type=$('#captureType')?.value||a.type||'event';
+  const temporalIssue=!!a.invalidDate||!!a.invalidTime||!!a.ambiguousTime||(!a.dueDate&&isAppointmentType(type));
+  if(temporalIssue&&captureFieldLocked('dateTime')&&!!$('#captureDate')?.value)return false;
+  return true;
+}
 const parseNative = (raw,fallback) => { try { return JSON.parse(raw); } catch (_) { return fallback; } };
 const esc = s => String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const escAttr = s => esc(s).replace(/`/g,'&#96;');
@@ -1296,7 +1304,7 @@ function commitCapture() {
     dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:zone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
     recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value,zone):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
-    needsReview:false,
+    needsReview:captureNeedsReview(),
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
     inboxCaptureId:state.inboxCaptureId||0,
     updateItemId:state.calendarUpdateItemId||0
