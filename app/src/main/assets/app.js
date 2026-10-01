@@ -3075,7 +3075,7 @@ function init(){
   $('#searchBtn')?.addEventListener('click',()=>runSearch());
   $('#searchInput').addEventListener('input',e=>{clearTimeout(runSearch._inputTimer);runSearch._inputTimer=setTimeout(()=>runSearch(e.target.value),180);});
   $('#searchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){clearTimeout(runSearch._inputTimer);runSearch();}});
-  $('.query-chips button').forEach(b=>b.addEventListener('click',()=>runSearch(b.textContent)));
+  $$('.query-chips button').forEach(b=>b.addEventListener('click',()=>runSearch(b.textContent)));
   $('#todaySummaryMore')?.addEventListener('click',()=>{state.todaySummaryExpanded=!state.todaySummaryExpanded;renderTodaySummary();});
 
   $('#journalPromptOpen')?.addEventListener('click',()=>{if(state.journalPick?.id)openJournal(Number(state.journalPick.id));});
