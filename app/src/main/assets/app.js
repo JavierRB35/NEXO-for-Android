@@ -378,6 +378,7 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
 
 
 
+
 function updateFloatingActions(){
   const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
   if(!voice||!add)return;
@@ -392,13 +393,23 @@ function updateFloatingActions(){
   let recordingActive=false;
   if(panel==='recordings')recordingActive=!!parseNative(NexoNative.getRecordingStatus(),{}).active;
 
-  const contentPanel=state.screen==='panel'&&panel!=='backup';
-  let voiceVisible=(!modalOpen||contextualEditorActive)&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
-  let addVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||panel==='appointments');
+  let voiceVisible=false,addVisible=false;
+  if(!modalOpen||contextualEditorActive){
+    if(state.screen==='today'){voiceVisible=true;addVisible=!modalOpen;}
+    else if(state.screen==='calendar'){voiceVisible=!modalOpen;addVisible=!modalOpen;}
+    else if(state.screen==='search'){voiceVisible=!modalOpen;addVisible=false;}
+    else if(state.screen==='save'){voiceVisible=!modalOpen;addVisible=false;}
+    else if(state.screen==='panel'){
+      voiceVisible=!modalOpen||contextualEditorActive;
+      addVisible=!modalOpen;
+    }
+  }
 
-  if(panel==='parking')voiceVisible=false;
+  // Navigation/system/read-only contexts do not create content.
+  if(state.screen==='tools'||state.screen==='more'){voiceVisible=false;addVisible=false;}
+  if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}
+  if(panel==='parking'){voiceVisible=false;}
   if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}
-  if(panel==='backup')addVisible=false;
 
   const voiceLabel=
     medicationEditorActive?'Completar pauta por voz':
@@ -406,6 +417,9 @@ function updateFloatingActions(){
     quoteEditorActive?'Dictar frase':
     placeEditorActive?'Completar lugar por voz':
     documentEditorActive?'Dictar descripción':
+    state.screen==='search'?'Buscar por voz':
+    state.screen==='calendar'?'Añadir cita por voz':
+    panel==='appointments'?'Añadir a Agenda por voz':
     panel==='notes'?'Dictar nota':
     panel==='lists'?'Añadir elementos por voz':
     panel==='journal'?'Dictar entrada':
@@ -414,8 +428,11 @@ function updateFloatingActions(){
     panel==='places'?'Guardar lugar por voz':
     panel==='documents'?'Buscar documento por voz':
     panel==='recordings'?'Iniciar grabación':'Hablar con Nexo';
+
   const parking=panel==='parking'?parseNative(NexoNative.getLastParking(),{}):{};
   const addLabel=
+    state.screen==='calendar'?'Nueva cita':
+    panel==='appointments'?'Nueva cita':
     panel==='notes'?'Nueva nota':
     panel==='lists'?'Nueva lista':
     panel==='journal'?'Nueva entrada':
@@ -430,7 +447,6 @@ function updateFloatingActions(){
   add.setAttribute('aria-label',addLabel);add.setAttribute('title',addLabel);
   voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!addVisible);
 }
-
 function runEventAddFab(){
   if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
   if(state.screen==='panel'&&state.lastPanel==='lists'){openNewListModal();return;}
@@ -466,16 +482,45 @@ function chooseListForVoice(){
 
 
 
+function startAppointmentVoice(date=''){
+  state.voicePinnedDate=String(date||'');
+  state.voicePinnedType='event';
+  startManagedDictation('appointment',{title:'AÑADIR A AGENDA',hint:date?'Describe la cita para este día.':'Describe la cita, tarea o compromiso que quieres añadir a la Agenda.'});
+}
+function applyAppointmentVoice(text,date=''){
+  const spoken=String(text||'').trim();if(!spoken)return;
+  prepareQuickNoteForType('event',String(date||''));
+  $('#captureText').value=spoken;
+  setInterpretationStatus('working','Voz transcrita · interpretando la cita…');
+  analyzeCapture({immediate:true});
+  toast('Revisa la cita antes de guardarla.');
+}
+function startSearchVoice(){
+  startManagedDictation('search',{title:'BUSCAR EN NEXO',hint:'Di lo que quieres encontrar.'});
+}
+function applySearchVoice(text){
+  const q=String(text||'').trim();if(!q)return;
+  navigate('search');
+  $('#searchInput').value=q;
+  runSearch(q);
+}
+
 function runFloatingVoice(){
   if(state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'){startMedicationEditorVoice();return;}
   if(state.journalEditor&&state.screen==='panel'&&state.lastPanel==='journal'){startJournalEditorVoice();return;}
   if(state.quoteEditor&&state.screen==='panel'&&state.lastPanel==='quotes'){startQuoteEditorVoice();return;}
   if(state.placeEditor&&state.screen==='panel'&&state.lastPanel==='places'){startPlaceEditorVoice();return;}
   if(state.documentEditor&&state.screen==='panel'&&state.lastPanel==='documents'){startDocumentEditorVoice();return;}
+
   if(state.screen==='save'){
     const base=$('#captureText')?.value.trim()||'';
-    startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});return;
+    startManagedDictation('capture-edit',{base,title:'AMPLIAR CAPTURA',hint:'Dicta o amplía lo que estás preparando. Nexo volverá a interpretar los datos.'});return;
   }
+  if(state.screen==='search'){startSearchVoice();return;}
+  if(state.screen==='calendar'){startAppointmentVoice(state.calendarSelected||isoDateLocal(new Date()));return;}
+  if(state.screen==='today'){startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar.'});return;}
+
+  if(state.screen==='panel'&&state.lastPanel==='appointments'){startAppointmentVoice('');return;}
   if(state.screen==='panel'&&state.lastPanel==='notes'){startNoteVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
@@ -485,11 +530,9 @@ function runFloatingVoice(){
   if(state.screen==='panel'&&state.lastPanel==='recordings'){
     state.playingRecordingId='';NexoNative.stopRecordingPlayback();NexoNative.startRecording();toast('Iniciando grabación…');setTimeout(()=>{if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},350);return;
   }
-  if(state.screen==='panel'&&state.lastPanel==='parking')return;
   if(state.screen==='panel'&&state.lastPanel==='lists'){
     if(state.currentList)startListVoiceFor(state.currentList);else chooseListForVoice();return;
   }
-  startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar. Nexo identificará el tipo, la fecha, la hora y el lugar para que lo revises.'});
 }
 function navigate(screen, options={}) {
   if(!['today','save','search','more','calendar','tools','panel'].includes(screen))return;
@@ -541,9 +584,7 @@ function renderToday() {
   $('#homeInboxCount').textContent=String(inboxCount);
   $('#homeInboxHint').textContent=inboxCount?inboxCount+' pendiente'+(inboxCount===1?'':'s')+' de organizar':'Todo organizado';
 
-  const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(today).replace('.','').toLocaleLowerCase('es-ES');
-  const monthShort=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
-  $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Ver calendario';
+  $('#homeCalendarMonth').textContent='Completa';$('#homeCalendarHint').textContent='Ver todos';
 
   const localPeople=parseNative(NexoNative.getPeople(),[]).map(p=>({full_name:p.name,color:p.color,id:p.id}));
   const legacyMembers=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
@@ -2421,14 +2462,18 @@ function applyCaptureVoiceText(text){
 }
 
 
+
 function finalizeManagedDictation(){
   const text=managedVoiceFullText(true);
   const target=state.managedVoiceTarget,listId=state.managedVoiceListId,shopping=state.managedVoiceShopping,noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual;
   const medicationEditorVoice=!!state.medicationVoiceEditor;
+  const appointmentDate=state.voicePinnedDate;
   const journalKind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit;
-  resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;
+  resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';
   if(!text){toast('No he podido recoger ninguna frase. Inténtalo de nuevo.');return;}
   if(target==='universal')routeUniversalVoice(text);
+  else if(target==='appointment')applyAppointmentVoice(text,appointmentDate);
+  else if(target==='search')applySearchVoice(text);
   else if(target==='capture-edit')applyCaptureVoiceText(text);
   else if(target==='list')handleListVoice(text,listId,shopping);
   else if(target==='journal')openJournalComposer(text,journalKind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});
@@ -2439,7 +2484,6 @@ function finalizeManagedDictation(){
   else if(target==='document-editor')applyDocumentEditorVoice(text);
   else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);
   else if(target==='medication'){state.medicationVoiceEditor=false;if(medicationEditorVoice)applyMedicationVoiceToEditor(text);else handleMedicationVoice(text);}
-  else{navigate('save');clearCapture();$('#captureText').value=text;analyzeCapture({immediate:true});}
 }
 function stripJournalVoicePrefix(text){return String(text||'').replace(/^\s*(?:guarda|apunta|anota)\s+(?:un\s+)?(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]?\s*/i,'').replace(/^\s*(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]\s*/i,'').trim();}
 function looksLikeShoppingVoice(text){const n=normVoiceText(text),product=/(leche|huevos?|pan|agua|azucar|mantequilla|cafe|detergente|jamon|queso|yogur|papel|arroz|pasta|pollo|carne|pescado|tomate|lechuga|patata|cebolla|manzana|platano|aceite|harina|galleta|cereal)/.test(n);return /lista (?:de la )?compra|a la compra|en la compra/.test(n)||/^(?:comprar|compra|anade|añade|agrega|apunta|pon|mete)\b/.test(n)&&product||/^(?:quita|elimina|borra|saca|cambia|sustituye|reemplaza)\b/.test(n)&&product||/(?:ya he comprado|he comprado|todavia no|aun no|no he comprado)/.test(n)&&product||/(?:elimina|borra|quita|vacia) (?:lo|los) comprad/.test(n);}
@@ -2844,7 +2888,7 @@ function init(){
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
   $('#homeInboxPulseCard')?.addEventListener('click',()=>openPanel('inbox'));
-  $('#homeCalendarCard')?.addEventListener('click',()=>{const now=new Date();state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);state.calendarSelected=isoDateLocal(now);navigate('calendar',{root:false});});
+  $('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';state.appointmentsFilter='pending';openPanel('appointments');});
   $('#searchHistorical')?.addEventListener('change',e=>{state.searchHistorical=!!e.target.checked;if($('#searchInput').value.trim())runSearch();});
   $('#globalVoiceFab').addEventListener('click',runFloatingVoice);
   $('#calendarAddFab').addEventListener('click',runEventAddFab);
