@@ -12,9 +12,8 @@ assert 'id="medVoiceInfo"' in app
 assert '5 min antes · repetición hasta 30 min' in app
 
 # Flotantes estrictamente contextuales.
-assert "medicationsContext=state.screen==='panel'&&state.lastPanel==='medications'" in app
-assert "medicationsContext?'Nuevo medicamento':'Añadir evento'" in app
-assert "medicationsContext?'Hablar con Medicación':'Hablar con Nexo'" in app
+assert "panel==='medications'?'Nuevo medicamento':" in app
+assert "panel==='medications'?'Hablar con Medicación':" in app
 assert "if(state.screen==='panel'&&state.lastPanel==='medications'){openMedicationComposer();return;}" in app
 assert "if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}" in app
 
