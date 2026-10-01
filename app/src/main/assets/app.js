@@ -461,7 +461,12 @@ function runEventAddFab(){
     else openParkingModal();
     return;
   }
-  const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);
+  const today=isoDateLocal(new Date());
+  if(state.screen==='panel'&&state.lastPanel==='appointments'){
+    prepareCaptureForDate(state.appointmentsWindow==='today'?today:'');
+    return;
+  }
+  prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);
 }
 function startListVoiceFor(listId){
   const id=Number(listId)||0;
@@ -520,7 +525,7 @@ function runFloatingVoice(){
   if(state.screen==='calendar'){startAppointmentVoice(state.calendarSelected||isoDateLocal(new Date()));return;}
   if(state.screen==='today'){startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar.'});return;}
 
-  if(state.screen==='panel'&&state.lastPanel==='appointments'){startAppointmentVoice('');return;}
+  if(state.screen==='panel'&&state.lastPanel==='appointments'){startAppointmentVoice(state.appointmentsWindow==='today'?isoDateLocal(new Date()):'');return;}
   if(state.screen==='panel'&&state.lastPanel==='notes'){startNoteVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
