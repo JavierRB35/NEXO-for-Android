@@ -11,7 +11,9 @@ for field_id in ("captureDate", "captureEndDate"):
 for field_id in ("captureTime", "captureEndTime"):
     assert f'id="{field_id}" type="time"' in html
 
-assert 'class="form-grid capture-basics event-form-grid"' in html
+assert 'class="form-grid capture-basics"' in html
+assert 'id="captureEventFields"' in html
+assert 'class="form-grid event-form-grid"' in html
 assert html.count('class="form-span-2 event-range-grid"') >= 2
 assert 'class="form-grid event-settings-grid"' in html
 assert '>Repetición<select id="captureRecurrence"' in html
