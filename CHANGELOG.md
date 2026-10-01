@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.7.0-beta21 · versionCode 86 · Formularios compactos y nuevo branding
+
+- Fecha inicio + Fecha fin se muestran en la misma línea en móvil.
+- Hora inicio + Hora fin se muestran en la misma línea en móvil.
+- La misma composición compacta se aplica al alta, edición y apariciones recurrentes.
+- Los selectores de hora usan el control nativo de Android.
+- Los eventos nuevos arrancan con **Todo el día desactivado** y horario visible 09:00–10:00.
+- Medicación sustituye las horas escritas a mano por selectores horarios nativos.
+- Se integra el nuevo branding de Nexo en launcher, cabecera e iconos de notificación.
+- Se mantienen JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta18 · versionCode 83 · Sincronización directa con Nexo Familia
 
 - Sustituye el panel antiguo de reparación/JSON por una vinculación directa con **Nexo Familia mediante Supabase Auth**.
