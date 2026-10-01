@@ -15,6 +15,7 @@ checks={
  'export txt':'exportTranscription' in main,
  'model download ui':'downloadTranscriptionModel' in js,
  'visible transcribe button':'recording-transcribe-button' in js and 'data-transcription-start=' in js,
+ 'visible before model':'data-transcription-needs-model=' in js and 'Preparar transcripción' in js,
  'recording options restored':'data-recording-menu=' in js and '⋯ Opciones' in js,
  'direct start does not blindly close modal':"fromModal=!!b.closest('#modalBody')" in js and 'if(fromModal)closeModal()' in js,
  'card gets model once':"rows.map(r=>recordingCard(r,model))" in js,
