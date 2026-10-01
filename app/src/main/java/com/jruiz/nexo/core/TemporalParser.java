@@ -268,7 +268,8 @@ public final class TemporalParser {
             int h=adjustDayPartFromContext(rawHour,n,m.start(),m.end());
             if (validTime(h,min)) {
                 out.time=LocalTime.of(h,min); out.hasTime=true; out.timeSource="hora numérica";
-                out.ambiguousTime=rawHour>=1 && rawHour<=11 && !hasDayPartAround(n,m.start(),m.end());
+                // HH:mm es una hora explícita de 24 horas; no necesita AM/PM.
+                out.ambiguousTime=false;
                 return;
             }
             out.invalidTime=true; out.timeSource="hora explícita inválida"; return;
@@ -312,7 +313,11 @@ public final class TemporalParser {
 
     private static boolean hasDayPartAround(String n, int start, int end) {
         String around=n.substring(Math.max(0,start-28),Math.min(n.length(),end+40));
-        return Pattern.compile("\\b(?:manana|tarde|noche|madrugada|mediodia)\\b").matcher(around).find();
+        // "mañana a las cinco" fija el día, pero no distingue 05:00/17:00.
+        // Solo una franja explícita ("de la tarde", "por la mañana", "esta noche"...)
+        // desambigua una hora hablada de 1 a 11.
+        return Pattern.compile("\\b(?:(?:de|por)\\s+la|esta)\\s+(?:manana|tarde|noche|madrugada)\\b|\\b(?:mediodia|medianoche)\\b")
+                .matcher(around).find();
     }
 
     private static String correctedTimeScope(String n) {
