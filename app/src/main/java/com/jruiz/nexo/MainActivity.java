@@ -57,7 +57,8 @@ import com.jruiz.nexo.input.SmsWatchEngine;
 import com.jruiz.nexo.input.SmsWatchScheduler;
 import com.jruiz.nexo.input.GmailWatchEngine;
 import com.jruiz.nexo.input.GmailWatchScheduler;
-import com.jruiz.nexo.migration.NexoFamiliaImporter;\nimport com.jruiz.nexo.migration.NexoFamiliaCloudSync;
+import com.jruiz.nexo.migration.NexoFamiliaImporter;
+import com.jruiz.nexo.migration.NexoFamiliaCloudSync;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -123,7 +124,8 @@ public class MainActivity extends Activity {
     private String playingRecordingId = "";
     private float recordingPlaybackSpeed = 1.0f;
     private String pendingRecordingExportId = "";
-    private volatile boolean transcriptionModelDownloadActive = false;\n    private NexoFamiliaCloudSync familiaCloudSync;
+    private volatile boolean transcriptionModelDownloadActive = false;
+    private NexoFamiliaCloudSync familiaCloudSync;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
