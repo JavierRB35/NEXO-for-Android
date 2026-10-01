@@ -1,5 +1,7 @@
 package com.jruiz.nexo.core;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -13,9 +15,23 @@ public final class DescriptionExtractor {
     public static String extract(String raw, String locationText) {
         if (raw == null || raw.isBlank()) return "";
         String s = raw.replace('\n', ' ').replaceAll("\\s+", " ").trim();
+        EventInterpretation semantic = EventSemanticParser.parse(s);
 
         String structuredAppointment = extractStructuredAppointmentDetails(s);
         if (!structuredAppointment.isBlank()) return structuredAppointment;
+
+        // Protege referencias documentales antes de eliminar fechas del evento.
+        List<String> documentTokens = new ArrayList<>();
+        List<String> documentEvidence = new ArrayList<>();
+        for (EventInterpretation.DocumentReference document : semantic.documentsView()) {
+            if (document.evidence == null || document.evidence.isBlank()) continue;
+            String token = "NXDOCREF" + documentTokens.size();
+            if (s.contains(document.evidence)) {
+                s = s.replace(document.evidence, token);
+                documentTokens.add(token);
+                documentEvidence.add(document.evidence);
+            }
+        }
 
         // Ubicación ya extraída a su propio campo.
         if (locationText != null && !locationText.isBlank()) {
@@ -31,7 +47,8 @@ public final class DescriptionExtractor {
         s = s.replaceAll("(?iu)\\b(?:el\\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)?\\s*(?:\\d{1,2}|primero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veinti(?:uno|d[oó]s|tr[eé]s|cuatro|cinco|seis|siete|ocho|nueve)|treinta(?:\\s+y\\s+uno)?)\\s+de\\s+(?:"+months+")(?:\\s+de\\s+(?:\\d{2,4}|(?:mil|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veinti\\w+|treinta|cien|ciento|doscientos|trescientos|cuatrocientos|quinientos|seiscientos|setecientos|ochocientos|novecientos|y)\\s*){1,8})?", " ");
 
         // Fechas relativas y días de semana usados como fecha.
-        s = s.replaceAll("(?iu)\\b(?:pasado\\s+ma[nñ]ana|ma[nñ]ana|hoy|esta\\s+ma[nñ]ana|esta\\s+tarde|esta\\s+noche)\\b", " ");
+        s = s.replaceAll("(?iu)\\b(?:pasado\\s+ma[nñ]ana|hoy|esta\\s+ma[nñ]ana|esta\\s+tarde|esta\\s+noche)\\b", " ");
+        s = s.replaceAll("(?iu)(?<!de la )\\bma[nñ]ana\\b", " ");
         s = s.replaceAll("(?iu)\\b(?:el\\s+)?(?:pr[oó]ximo|siguiente|este|esta)?\\s*(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\\b", " ");
         s = s.replaceAll("(?iu)\\bdentro\\s+de\\s+(?:\\d+|[a-záéíóúüñ]+(?:\\s+y\\s+[a-záéíóúüñ]+)?)\\s+(?:d[ií]as?|semanas?|meses?)\\b", " ");
 
@@ -49,7 +66,7 @@ public final class DescriptionExtractor {
         s = s.replaceAll("(?iu)\\b(?:a\\s+las?|a\\s+la)\\s+\\d{1,2}(?:[:.]\\d{2})?(?:\\s*(?:h|horas?))?(?:\\s+de\\s+la\\s+(?:ma[nñ]ana|tarde|noche))?\\b", " ");
         s = s.replaceAll("(?iu)\\b(?:a\\s+las?|a\\s+la)\\s+(?:una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veinti\\w+)(?:\\s+y\\s+(?:cuarto|media|\\d+|[a-záéíóúüñ]+))?(?:\\s+menos\\s+cuarto)?(?:\\s+de\\s+la\\s+(?:ma[nñ]ana|tarde|noche))?\\b", " ");
         s = s.replaceAll("(?iu)\\b(?:por\\s+la\\s+ma[nñ]ana|por\\s+la\\s+tarde|por\\s+la\\s+noche|al\\s+mediod[ií]a|a\\s+medianoche)\\b", " ");
-        s = s.replaceAll("(?iu)\\bde\\s+la\\s+(?:ma[nñ]ana|tarde|noche)\\b", " ");
+        s = s.replaceAll("(?iu)(?<!informe )(?<!resultado )(?<!documento )\\bde\\s+la\\s+(?:ma[nñ]ana|tarde|noche)\\b", " ");
 
         // Avisos: quita la instrucción de aviso, pero intenta conservar el motivo posterior.
         s = s.replaceAll("(?iu)\\b(?:(?:quiero\\s+que\\s+)?me\\s+avises|av[ií]same|avisarme|avisar|recu[eé]rdame|recordarme|recordar|acu[eé]rdate)(?:\\s+de\\s+que)?\\s*(?:\\d+|[a-záéíóúüñ]+(?:\\s+y\\s+[a-záéíóúüñ]+)?)?\\s*(?:minutos?|horas?|d[ií]as?|semanas?|meses?)?\\s*antes\\b", " ");
@@ -88,11 +105,22 @@ public final class DescriptionExtractor {
         s = s.replaceAll("(?iu)^\\s*(?:un|una|el|la)\\s+", "");
         s = s.replaceAll("\\s{2,}", " ").trim();
 
-        if (s.length() > 420) s = s.substring(0, 417).trim() + "…";
+        for (int i=0; i<documentTokens.size(); i++) {
+            s = s.replace(documentTokens.get(i), documentEvidence.get(i));
+        }
+
+        String professional = semantic.firstProfessional();
+        if (!professional.isBlank() && !TemporalParser.norm(s).contains(TemporalParser.norm(professional))) {
+            if (!s.isBlank() && !s.endsWith(".") && !s.endsWith(";")) s += ".";
+            if (!s.isBlank()) s += " ";
+            s += "Profesional: " + professional;
+        }
+
+        // No se truncan instrucciones silenciosamente: el almacenamiento conserva el detalle completo.
         if (s.length() < 3) return "";
         int words = s.split("\\s+").length;
         String n = TemporalParser.norm(s);
-        boolean detailMarker = n.matches(".*\\b(?:ayunas|llevar|comparar|precio|nota|importante|documentacion|tarjeta|sin|con|preguntar|recordar)\\b.*");
+        boolean detailMarker = n.matches(".*\\b(?:ayunas|llevar|comparar|precio|nota|importante|documentacion|tarjeta|sin|con|preguntar|recordar|profesional|informe|documento|resultado)\\b.*");
         if (words <= 4 && !detailMarker) return "";
         return capitalize(s);
     }
