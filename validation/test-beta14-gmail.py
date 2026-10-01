@@ -7,19 +7,24 @@ main=(root/'app/src/main/java/com/jruiz/nexo/MainActivity.java').read_text(encod
 prefs=(root/'app/src/main/java/com/jruiz/nexo/input/InputHubPrefs.java').read_text(encoding='utf-8')
 gmail=(root/'app/src/main/java/com/jruiz/nexo/input/GmailWatchEngine.java').read_text(encoding='utf-8')
 
-# UI sencilla: conectar, escanear solo Gmail y desconectar.
-for control in ['gmailConnectionBadge','gmailAccount','gmailConnectBtn','gmailScanNowBtn','gmailDisconnectBtn','gmailDiagnostic','gmailDiagnosticText']:
+# Ajustes configura Gmail; el escaneo manual pertenece al Inbox.
+for control in ['gmailConnectionBadge','gmailAccount','gmailConnectBtn','gmailDisconnectBtn','gmailDiagnostic','gmailDiagnosticText']:
     assert f'id="{control}"' in html, control
+assert 'id="gmailScanNowBtn"' not in html
 assert 'id="gmailDirectEnabled"' not in html
-assert 'Conectar Gmail' in html and 'Escanear Gmail' in html and 'Desconectar' in html
+assert 'Conectar Gmail' in html and 'Desconectar' in html
+assert 'Inbox → Escanear ahora' in html
 
-# Puente JS -> Android.
-for token in ['NexoNative.connectGmail()','NexoNative.scanGmailNow()','NexoNative.disconnectGmail()']:
+# Puente JS -> Android para conexión; escaneo manual centralizado en Input Hub/Inbox.
+for token in ['NexoNative.connectGmail()','NexoNative.disconnectGmail()']:
     assert token in js, token
+assert 'NexoNative.scanGmailNow()' not in js
+assert 'id="inboxScanNowBtn"' in js
+assert "$('#inboxScanNowBtn')?.addEventListener('click',()=>{NexoNative.scanInputHubNow();" in js
 for token in ['@JavascriptInterface public void connectGmail()','@JavascriptInterface public void scanGmailNow()','@JavascriptInterface public void disconnectGmail()']:
     assert token in main, token
 
-# Manual por defecto y escaneo Gmail independiente.
+# Manual por defecto y motor Gmail disponible para el escaneo centralizado.
 assert 'autoScanEnabled:false' in js
 assert 'private void scanGmailNow()' in main
 assert '"nexo-gmail-manual-scan"' in main
@@ -37,4 +42,4 @@ end=main.index('private void disconnectGmail()', start)
 assert 'ensureNotificationPermission()' not in main[start:end]
 
 assert 'v3.7.0-beta22' in html
-print('Beta14: Gmail conectar/escanear/desconectar y diagnóstico: OK')
+print('Beta14: Gmail configurado en Ajustes y escaneo manual centralizado en Inbox: OK')
