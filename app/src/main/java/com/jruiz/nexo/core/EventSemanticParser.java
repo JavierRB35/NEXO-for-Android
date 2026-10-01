@@ -78,6 +78,10 @@ public final class EventSemanticParser {
         String professional = professional(raw);
         if (!professional.isBlank()) details.add("Profesional: " + capitalize(professional));
 
+        VirtualMeeting virtual = virtualMeeting(raw);
+        if (!virtual.modality.isBlank()) details.add("Modalidad: " + virtual.modality);
+        if (!virtual.url.isBlank()) details.add("Enlace: " + virtual.url);
+
         Matcher docs = Pattern.compile(
                 "(?iu)\\b(?:" + DOCUMENT + ")\\s+(?:del|de\\s+fecha|de)\\s+" +
                         "(?:\\d{1,2}\\s*[./-]\\s*\\d{1,2}(?:\\s*[./-]\\s*\\d{2,4})?" +
@@ -87,6 +91,61 @@ public final class EventSemanticParser {
         while (docs.find()) details.add(capitalize(cleanDetail(docs.group())));
 
         return String.join(". ", details);
+    }
+
+    public static VirtualMeeting virtualMeeting(String raw) {
+        if (raw == null || raw.isBlank()) return new VirtualMeeting("", "");
+        String text = compact(raw);
+        String n = TemporalParser.norm(text);
+
+        String url = "";
+        Matcher links = Pattern.compile("(?i)\\bhttps?://[^\\s<>]+").matcher(text);
+        while (links.find()) {
+            String candidate = trimUrlPunctuation(links.group());
+            String lower = candidate.toLowerCase();
+            if (lower.contains("teams.microsoft.com") || lower.contains("teams.live.com") ||
+                    lower.contains("zoom.us") || lower.contains("meet.google.com")) {
+                url = candidate;
+                break;
+            }
+            if (url.isBlank() && isVirtualCue(n)) url = candidate;
+        }
+
+        String modality = "";
+        String lowerUrl = url.toLowerCase();
+        if (n.matches(".*\\b(?:microsoft\\s+)?teams\\b.*") || lowerUrl.contains("teams.microsoft.com") || lowerUrl.contains("teams.live.com")) {
+            modality = "Microsoft Teams";
+        } else if (n.matches(".*\\bzoom\\b.*") || lowerUrl.contains("zoom.us")) {
+            modality = "Zoom";
+        } else if (n.matches(".*\\bgoogle\\s+meet\\b.*") || n.matches(".*\\bmeet\\b.*") || lowerUrl.contains("meet.google.com")) {
+            modality = "Google Meet";
+        } else if (isVirtualCue(n)) {
+            modality = "Online";
+        }
+
+        return new VirtualMeeting(modality, url);
+    }
+
+    private static boolean isVirtualCue(String n) {
+        return n.matches(".*\\b(?:online|virtual|videollamada|video\\s+llamada|videoconferencia|teams|zoom|google\\s+meet)\\b.*");
+    }
+
+    private static String trimUrlPunctuation(String raw) {
+        if (raw == null) return "";
+        String x = raw.trim();
+        while (!x.isEmpty() && ".,;:!?)]}".indexOf(x.charAt(x.length()-1)) >= 0) {
+            x = x.substring(0, x.length()-1);
+        }
+        return x;
+    }
+
+    public static final class VirtualMeeting {
+        public final String modality;
+        public final String url;
+        public VirtualMeeting(String modality, String url) {
+            this.modality = modality == null ? "" : modality;
+            this.url = url == null ? "" : url;
+        }
     }
 
     /**
