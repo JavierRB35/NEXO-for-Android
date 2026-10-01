@@ -165,6 +165,24 @@ jobs:
           javac -cp "/tmp/nexo-parser-surface:$ANDROID_JAR" -d /tmp/nexo-parser-surface /tmp/RuleClassifierSmoke.java
           java -cp "/tmp/nexo-parser-surface:$ANDROID_JAR" RuleClassifierSmoke
 
+      - name: Review-state and UI syntax guards
+        shell: bash
+        run: |
+          node --check app/src/main/assets/app.js
+          python3 - <<'PY'
+          from pathlib import Path
+          service = Path("app/src/main/java/com/jruiz/nexo/core/NexoService.java").read_text()
+          app = Path("app/src/main/assets/app.js").read_text()
+
+          classify = service.split("public JSONObject classifyAppointment",1)[1].split("private void applyLearnedCategory",1)[0]
+          assert "r.needsReview = false" not in classify
+          save = service.split("public JSONObject saveCapture",1)[1]
+          appointment_block = save.split("if (appointmentCapture)",1)[1].split("}",1)[0]
+          assert 'in.put("needsReview", false)' not in appointment_block
+          assert "needsReview:captureNeedsReview()" in app
+          assert "function captureNeedsReview()" in app
+          PY
+
       - name: Note Android build limitation
         run: |
           if [ -f app/libs/sherpa-onnx-1.13.7.aar ]; then
