@@ -99,13 +99,17 @@ jobs:
 
                   RuleClassifier.Result invalid=RuleClassifier.classify(
                       "Cita el 31 de febrero de 2027 a las 10:00");
-                  JSONObject meta=invalid.toJson().getJSONObject("fieldMeta");
-                  check("invalid".equals(meta.getJSONObject("date").getString("state")),"estado fecha inválida");
+                  JSONObject meta=invalid.toJson().optJSONObject("fieldMeta");
+                  check(meta!=null,"fieldMeta presente");
+                  JSONObject dateMeta=meta.optJSONObject("date");
+                  check(dateMeta!=null && "invalid".equals(dateMeta.optString("state")),"estado fecha inválida");
                   check(invalid.needsReview,"fecha inválida requiere revisión");
               }
           }
           JAVA
-          javac -encoding UTF-8 -cp /tmp/nexo-parser-regression -d /tmp/nexo-parser-regression /tmp/ParserP2Smoke.java
+          javac -encoding UTF-8 -cp /tmp/nexo-parser-regression -d /tmp/nexo-parser-regression \
+            app/src/main/java/com/jruiz/nexo/core/AppointmentParser.java \
+            /tmp/ParserP2Smoke.java
           java -cp /tmp/nexo-parser-regression com.jruiz.nexo.core.ParserP2Smoke
 
       - name: Service review-state guard
