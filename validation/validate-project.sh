@@ -31,6 +31,7 @@ python validation/test-temporal-status.py
 python validation/test-version-identity.py
 python validation/test-input-hub-reliability.py
 python validation/test-nexo-familia-migration.py
+python validation/test-nexo-familia-cloud-sync.py
 python validation/test-release-config.py
 python validation/test-calendar-swipe.py
 python validation/test-calendar-nonrecurring-range.py
