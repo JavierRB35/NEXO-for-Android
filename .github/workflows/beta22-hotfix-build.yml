@@ -92,6 +92,7 @@ jobs:
           python3 validation/test-contextual-navigation.py
           python3 validation/test-contextual-tools.py
           python3 validation/test-contextual-fabs-notes.py
+          python3 validation/test-notes-card-scroll.py
           python3 validation/test-contextual-medication.py
           python3 validation/test-cuaderno-context.py
           python3 validation/test-nexo-familia-migration.py
