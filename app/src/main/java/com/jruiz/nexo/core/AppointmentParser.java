@@ -16,8 +16,13 @@ public final class AppointmentParser {
             "(?iu)(?:[.;]\\s*|\\s+y\\s+)(?=(?:tengo\\s+)?(?:otra?\\s+)?(?:cita|consulta|reuni[oó]n|evento|dentista|m[eé]dico|anal[ií]tica|revisi[oó]n)\\b)");
 
     public static RuleClassifier.Result parse(String raw) {
+        return parse(raw, ParseContext.now());
+    }
+
+    public static RuleClassifier.Result parse(String raw, ParseContext context) {
+        ParseContext ctx = context == null ? ParseContext.now() : context;
         String text = raw == null ? "" : raw.trim();
-        RuleClassifier.Result result = RuleClassifier.classify(text);
+        RuleClassifier.Result result = RuleClassifier.classify(text, ctx);
         result.type = "event";
         if ("Tareas".equals(result.category) || "Recordatorios".equals(result.category)) result.category = "Personal";
 
@@ -38,10 +43,15 @@ public final class AppointmentParser {
      * No divide "lunes y miércoles", ni listas de personas, ni cláusulas descriptivas.
      */
     public static List<Proposal> parseProposals(String raw) {
+        return parseProposals(raw, ParseContext.now());
+    }
+
+    public static List<Proposal> parseProposals(String raw, ParseContext context) {
+        ParseContext ctx = context == null ? ParseContext.now() : context;
         String text = raw == null ? "" : raw.replace('\n',' ').replaceAll("\\s+"," ").trim();
         ArrayList<Proposal> out = new ArrayList<>();
         if (text.isBlank()) {
-            out.add(new Proposal("", parse("")));
+            out.add(new Proposal("", parse("", ctx)));
             return out;
         }
 
@@ -66,16 +76,16 @@ public final class AppointmentParser {
                 boolean eventLike = EVENT_START.matcher(probe).find() ||
                         Pattern.compile("(?iu)\\b(?:cita|consulta|reuni[oó]n|dentista|m[eé]dico|anal[ií]tica|revisi[oó]n)\\b").matcher(probe).find();
                 if (!eventLike) { allEventLike = false; break; }
-                TemporalParser.Result tr = TemporalParser.parse(probe);
+                TemporalParser.Result tr = TemporalParser.parse(probe, ctx.localDateTime());
                 if (tr.hasDate || tr.hasTime || tr.invalidDate || tr.invalidTime) temporal++;
             }
             if (allEventLike && temporal >= 2) {
-                for (String clause : clauses) out.add(new Proposal(clause, parse(clause)));
+                for (String clause : clauses) out.add(new Proposal(clause, parse(clause, ctx)));
                 return out;
             }
         }
 
-        out.add(new Proposal(text, parse(text)));
+        out.add(new Proposal(text, parse(text, ctx)));
         return out;
     }
 
