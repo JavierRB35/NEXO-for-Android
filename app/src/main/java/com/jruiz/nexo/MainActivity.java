@@ -1081,6 +1081,48 @@ public class MainActivity extends Activity {
         return m;
     }
 
+    private ArrayList<String> speechBiasingStrings() {
+        ArrayList<String> out = new ArrayList<>();
+        try {
+            JSONArray people = db.getPeople();
+            for (int i=0;i<people.length() && out.size()<24;i++) {
+                JSONObject person=people.optJSONObject(i);
+                if(person==null)continue;
+                String name=person.optString("name","").trim();
+                if(!name.isBlank()&&!out.contains(name))out.add(name);
+            }
+        } catch(Exception ignored) {}
+        for(String value:new String[]{"Nexo","Google Meet","Microsoft Teams","Zoom"}) {
+            if(!out.contains(value))out.add(value);
+        }
+        return out;
+    }
+
+    private JSONObject speechRecognitionPayload(ArrayList<String> values, float[] confidence) {
+        JSONObject out=new JSONObject();
+        JSONArray hypotheses=new JSONArray();
+        try {
+            ArrayList<String> unique=new ArrayList<>();
+            if(values!=null)for(String raw:values){
+                String value=raw==null?"":raw.trim();
+                if(value.isBlank())continue;
+                boolean exists=false;
+                for(String seen:unique)if(seen.equalsIgnoreCase(value)){exists=true;break;}
+                if(!exists)unique.add(value);
+                if(unique.size()>=3)break;
+            }
+            if(!unique.isEmpty())out.put("primary",unique.get(0));
+            for(int i=0;i<unique.size();i++){
+                JSONObject h=new JSONObject();
+                h.put("text",unique.get(i));
+                if(confidence!=null&&i<confidence.length&&confidence[i]>=0f)h.put("confidence",confidence[i]);
+                hypotheses.put(h);
+            }
+            out.put("hypotheses",hypotheses);
+        } catch(Exception ignored) {}
+        return out;
+    }
+
     private void startVoiceInput() {
         runOnUiThread(() -> {
             if (RecordingService.isRecordingActive()) {
@@ -1092,7 +1134,7 @@ public class MainActivity extends Activity {
                 i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
                 i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-ES");
                 i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Habla con Nexo · puedes hacer pausas cortas");
-                i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+                i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
                 // Pedimos al reconocedor del sistema que tolere mejor las pausas naturales.
                 // Algunos proveedores pueden ignorar estos valores, por eso Nexo también permite
                 // continuar el dictado pulsando Hablar de nuevo sin sustituir el texto anterior.
@@ -1100,6 +1142,8 @@ public class MainActivity extends Activity {
                 i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L);
                 if (Build.VERSION.SDK_INT >= 33) {
                     i.putExtra(RecognizerIntent.EXTRA_ENABLE_FORMATTING, RecognizerIntent.FORMATTING_OPTIMIZE_QUALITY);
+                    ArrayList<String> bias = speechBiasingStrings();
+                    if (!bias.isEmpty()) i.putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, bias);
                 }
                 startActivityForResult(i, REQ_SPEECH);
             } catch (ActivityNotFoundException e) {
@@ -1182,12 +1226,14 @@ public class MainActivity extends Activity {
             managedSpeechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-ES");
-            managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
             managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
             managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L);
             managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L);
             if (Build.VERSION.SDK_INT >= 33) {
                 managedSpeechIntent.putExtra(RecognizerIntent.EXTRA_ENABLE_FORMATTING, RecognizerIntent.FORMATTING_OPTIMIZE_QUALITY);
+                ArrayList<String> bias = speechBiasingStrings();
+                if (!bias.isEmpty()) managedSpeechIntent.putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, bias);
             }
             managedDictationActive = true;
             managedDictationStopRequested = false;
@@ -1344,8 +1390,9 @@ public class MainActivity extends Activity {
         if (requestCode == REQ_SPEECH) {
             if (resultCode == RESULT_OK && data != null) {
                 ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                float[] confidence = data.getFloatArrayExtra(RecognizerIntent.EXTRA_CONFIDENCE_SCORES);
                 if (results != null && !results.isEmpty() && results.get(0) != null && !results.get(0).trim().isEmpty()) {
-                    jsCallback("onVoiceTranscribed", results.get(0).trim());
+                    jsCallbackJson("onVoiceRecognition", speechRecognitionPayload(results, confidence));
                 } else {
                     jsCallback("onVoiceError", "No he podido entender el audio. Prueba de nuevo.");
                 }
