@@ -992,7 +992,7 @@ function noteSnippet(body){
 }
 
 function noteCard(n){
-  return `<div class="note-card"><button type="button" class="note-card-open" data-open-note="${n.id}"><span class="note-card-head"><strong>${esc(n.title||'Nota sin título')}</strong><small>${esc(fmtDate(n.createdAt,true))}</small></span>${n.body?`<span class="note-card-body">${esc(noteSnippet(n.body))}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar nota',`data-open-note="${n.id}"`)}${recordIconAction('share','Compartir nota',`data-note-share="${n.id}"`)}${recordIconAction('trash','Eliminar nota',`data-note-delete="${n.id}"`,'icon-action--danger')}</div></div>`;
+  return `<div class="note-card"><div class="note-card-open note-card-read" aria-label="Lectura de nota"><span class="note-card-head"><strong>${esc(n.title||'Nota sin título')}</strong><small>${esc(fmtDate(n.createdAt,true))}</small></span>${n.body?`<div class="note-card-body" tabindex="0" aria-label="Contenido de la nota">${esc(String(n.body||''))}</div>`:''}</div><div class="record-card-actions">${recordIconAction('edit','Editar nota',`data-open-note="${n.id}"`)}${recordIconAction('share','Compartir nota',`data-note-share="${n.id}"`)}${recordIconAction('trash','Eliminar nota',`data-note-delete="${n.id}"`,'icon-action--danger')}</div></div>`;
 }
 
 function bindNoteButtons(root=document){
