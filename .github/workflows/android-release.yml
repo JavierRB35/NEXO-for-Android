@@ -30,10 +30,28 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+      - name: Install official Gradle 8.9
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_ZIP="${RUNNER_TEMP}/gradle-8.9-bin.zip"
+          GRADLE_DIR="${RUNNER_TEMP}/gradle-8.9"
+          EXPECTED_SHA256="d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab"
+
+          curl -L --fail --retry 3 \
+            -o "${GRADLE_ZIP}" \
+            "https://services.gradle.org/distributions/gradle-8.9-bin.zip"
+
+          ACTUAL_SHA256="$(sha256sum "${GRADLE_ZIP}" | awk '{print $1}')"
+          if [ "${ACTUAL_SHA256}" != "${EXPECTED_SHA256}" ]; then
+            echo "ERROR: SHA-256 incorrecto para Gradle 8.9."
+            exit 1
+          fi
+
+          rm -rf "${GRADLE_DIR}"
+          unzip -q "${GRADLE_ZIP}" -d "${RUNNER_TEMP}"
+          "${GRADLE_DIR}/bin/gradle" --version
+          echo "GRADLE_89=${GRADLE_DIR}/bin/gradle" >> "${GITHUB_ENV}"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -147,7 +165,7 @@ jobs:
         run: |
           set -euo pipefail
           export JAVA_OPTS="-Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8"
-          gradle assembleRelease --no-daemon --max-workers=1
+          "${GRADLE_89}" assembleRelease --no-daemon --max-workers=1
 
       - name: Verify and name APK
         id: apk
