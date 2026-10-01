@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.0 · versionCode 93 · Base estable
+
+- Se consolida como versión estable la línea validada hasta **3.7.0-beta22.4**.
+- Inicio usa un resumen ligero para evitar expansiones costosas del calendario y mantiene accesos directos operativos.
+- Splash de Nexo con fondo pastel, logo estático y puntos animados; permanece visible un mínimo de 3,5 s y tiene salida de seguridad a los 5 s.
+- Durante el splash se ejecuta un escaneo resiliente de Inbox y se precarga en paralelo la información necesaria de Inicio.
+- Notas recupera la lectura completa y el desplazamiento vertical dentro de la ficha sin entrar en edición.
+- Se mantienen la navegación contextual, voz por pantalla, Agenda/Calendario, Medicación, Listas, Documentos, Cuaderno, Frases, Grabaciones, Lugares, Aparcamiento, Inbox, Historial y Copia de seguridad.
+- Se conserva la sincronización/importación de Nexo Familia y el esquema local **nexo.db v24**.
+- La APK Release conserva la identidad de firma permanente de Nexo.
+- GitHub Actions pasa a ser el flujo oficial de validación y compilación; AndroidIDE se mantiene como fallback.
+- Baseline: JDK 17, SDK 34, targetSdk 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta21 · versionCode 86 · Formularios compactos y nuevo branding
 
 - Fecha inicio + Fecha fin se muestran en la misma línea en móvil.
