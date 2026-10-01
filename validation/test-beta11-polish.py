@@ -75,9 +75,10 @@ assert 'NexoNative.getAppVersion()' in js
 
 # 10. Maps desde formularios con ubicación.
 assert 'id="captureMapPreview"' in html
-assert "openMapsFromFields('#captureLocation','#captureMapsUrl')" in js
-assert "openMapsFromFields('#editLocation','#editMapsUrl')" in js
-assert "openMapsFromFields('#occLocation','#occMapsUrl')" in js
+assert "bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview'" in js
+assert "bindEventLocationField('#editLocation','#editMapsUrl','#editLocationMapBtn')" in js
+assert "bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn')" in js
+assert "button?.addEventListener('click',()=>openMapsFromFields(locationSelector,mapsSelector));" in js
 assert 'data-place-map' in js
 assert '@JavascriptInterface public void openLocationDirections(String locationText)' in main
 
