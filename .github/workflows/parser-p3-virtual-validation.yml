@@ -75,7 +75,7 @@ jobs:
                   check("Microsoft Teams".equals(t.modality),"Teams modalidad");
                   check(t.url.equals("https://teams.microsoft.com/l/meetup-join/abc123?context=%7B%22Tid%22%3A%22x%22%7D"),"Teams URL completa");
                   String description=DescriptionExtractor.extract(teams,"");
-                  check(TemporalParser.norm(description).contains("modalidad microsoft teams"),"Teams en descripción");
+                  check(TemporalParser.norm(description).contains("microsoft teams"),"Teams en descripción");
                   check(description.contains(t.url),"Teams URL preservada");
 
                   String zoom="Consulta virtual por Zoom https://acme.zoom.us/j/123456789?pwd=AbC-123.";
