@@ -722,7 +722,7 @@ function startJournalVoice(base='',kind='',context={}){
   startManagedDictation('journal',{
     base:String(base||'').trim(),
     title:kind==='quote'?'DICTAR CITA':'DICTAR EN CUADERNO',
-    hint:kind==='quote'?'Di únicamente el texto de la cita. Después podrás poner título y autor o referencia.':'Habla con libertad. Lo que digas se añadirá a esta entrada del Cuaderno.'
+    hint:kind==='quote'?'Di la frase que quieres conservar. Después podrás indicar autor o referencia.':'Habla con libertad. Lo que digas se añadirá a esta entrada del Cuaderno.'
   });
 }
 
@@ -1130,7 +1130,7 @@ function renderRecordingsPanel(){
   state.lastPanel='recordings';
   const status=parseNative(NexoNative.getRecordingStatus(),{}),all=parseNative(NexoNative.getRecordings(),[]),rows=all.filter(r=>String(r.id)!==String(status.id||''));
   $('#panelTitle').textContent='Grabaciones';$('#panelSubtitle').textContent='Audio local · reuniones y conversaciones autorizadas';
-  $('#panelAction').innerHTML=status.active?'<button class="recording-active-pill" type="button" disabled>● EN CURSO</button>':'';
+  $('#panelAction').innerHTML='';
   const live=status.active?`<div class="recording-live-card ${status.paused?'paused':''}"><div class="recording-live-head"><span class="recording-live-dot"></span><div><strong id="recordingLiveState">${status.paused?'EN PAUSA':'GRABANDO'}</strong><span>${esc(status.title||'Grabación')}</span></div><div id="recordingLiveTimer" class="recording-timer">${esc(recordingDuration(status.elapsedMs||0))}</div></div><div class="recording-live-actions"><button id="recordingPauseBtn" class="secondary-button" type="button">${status.paused?'▶ Continuar':'Ⅱ Pausar'}</button><button id="recordingStopBtn" class="danger-button solid" type="button">■ Terminar</button></div><div class="small muted">La grabación continúa con la pantalla apagada. Android mostrará el indicador de micrófono y una notificación silenciosa.</div></div>`:'';
   const empty=!rows.length&&!status.active?'<div class="empty-state">Todavía no tienes grabaciones. Usa el micrófono flotante para comenzar.</div>':'';
   const model=parseNative(NexoNative.getTranscriptionModelStatus(),{});const modelCard=model.installed?`<div class="recording-info-card transcription-model-ready"><strong>Transcripción local preparada</strong><span>${esc(model.name||'Whisper Base INT8')} · el audio no sale del teléfono.</span></div>`:`<div class="recording-info-card"><strong>Transcripción local</strong><span>Descarga una vez Whisper Base multilingüe INT8 (~161 MB) para transcribir sin enviar audio a Internet.</span><button id="downloadTranscriptionModel" class="secondary-button" type="button">Descargar modelo</button><div id="transcriptionModelProgress" class="small muted"></div></div>`;
@@ -3117,7 +3117,9 @@ function parsePlaceVoice(text){
   else if(/\btienda|compras\b/.test(n))label='Compras';
   let title=raw
     .replace(/^\s*(?:guarda|guardar|anota|apunta|añade|agrega)\s+(?:el\s+)?(?:lugar\s+)?/i,'')
-    .replace(/\s+como\s+(?:restaurante|bar|cafeter[ií]a|alojamiento|hotel|naturaleza|compras?|quiero ir)\s*$/i,'')
+    .replace(/^\s*(?:cambia|pon)\s+(?:el\s+)?nombre\s+(?:a|por)\s+/i,'')
+    .replace(/\s+como\s+(?:restaurante|bar|cafeter[ií]a|alojamiento|hotel|naturaleza|compras?)(?:\s*,?\s*quiero ir)?\s*$/i,'')
+    .replace(/\s*,?\s*quiero ir\s*$/i,'')
     .trim();
   if(!title)title=raw;
   return {title,body:'',label};
