@@ -36,7 +36,7 @@ const PERSON_COLORS = [
 ];
 const state = {
   screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, calendarUpdateItemId:0, lastPanel:null, currentList:null,
-  userAdjusted:false, captureManualFields:new Set(), pendingSave:false, pendingSaveTimer:null, confirmAction:null,
+  userAdjusted:false, captureManualFields:new Set(), captureProposals:[], captureProposalIndex:0, pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
@@ -332,6 +332,13 @@ function durationMinutesFromTimes(start,end){
 }
 function recurrenceRuleFor(value){
   return ({daily:'FREQ=DAILY',weekly:'FREQ=WEEKLY',monthly:'FREQ=MONTHLY',bimonthly:'FREQ=MONTHLY;INTERVAL=2',quarterly:'FREQ=MONTHLY;INTERVAL=3',semiannual:'FREQ=MONTHLY;INTERVAL=6',annual:'FREQ=YEARLY'})[value]||'';
+}
+function recurrenceRuleHint(rule){
+  const m=String(rule||'').match(/(?:^|;)BYDAY=([^;]+)/i);
+  if(!m)return '';
+  const labels={MO:'lun',TU:'mar',WE:'mié',TH:'jue',FR:'vie',SA:'sáb',SU:'dom'};
+  const days=m[1].split(',').map(x=>labels[x.trim().toUpperCase()]).filter(Boolean);
+  return days.length?days.join(' · '):'';
 }
 function addOneHourTime(value){
   if(!value)return '10:00';
@@ -1167,14 +1174,62 @@ function analyzeCapture(options={}) {
   if(!text){ resetAnalysis(); return; }
   const pinned=String(state.capturePinnedType||'');
   const appointment=!!pinned&&isAppointmentType(pinned);
-  const local=parseNative(appointment?NexoNative.classifyAppointment(text):NexoNative.classify(text),{});
+  let proposals=[];
+  if(appointment&&typeof NexoNative.classifyAppointmentProposals==='function'){
+    proposals=parseNative(NexoNative.classifyAppointmentProposals(text),[]);
+  }
+  const local=(appointment&&proposals.length)?proposals[0]:
+    parseNative(appointment?NexoNative.classifyAppointment(text):NexoNative.classify(text),{});
   if(appointment)local.type='event';
+  state.captureProposals=appointment&&Array.isArray(proposals)?proposals:[];
+  state.captureProposalIndex=0;
   state.classification=local;
   renderClassification(local,true);
+
+  if(state.captureProposals.length>1){
+    setInterpretationStatus('review',`He detectado ${state.captureProposals.length} citas distintas. Elige cuál quieres revisar.`);
+    setTimeout(()=>showAppointmentProposalPicker(state.captureProposals),0);
+    return;
+  }
   const review=!!local.needsReview;
-  const message=review?(local.reason||'Hay un dato que conviene revisar.'):
+  const message=review?(local.reason||fieldReviewMessage(local)||'Hay un dato que conviene revisar.'):
     (appointment?'Datos extraídos. Revisa la cita.':'Nexo ha clasificado lo que has dicho. Revisa la propuesta.');
   setInterpretationStatus(review?'review':'success',message);
+}
+
+function fieldReviewMessage(proposal){
+  const fields=proposal?.fieldMeta||{},names={date:'fecha',time:'hora',location:'lugar',recurrence:'repetición',reminders:'aviso'};
+  const issues=[];
+  Object.entries(names).forEach(([key,label])=>{
+    const state=String(fields?.[key]?.state||'');
+    if(state==='invalid')issues.push(`${label} no válida`);
+    else if(state==='ambiguous')issues.push(`${label} ambigua`);
+  });
+  return issues.length?`Revisa: ${issues.join(', ')}.`:'';
+}
+
+function showAppointmentProposalPicker(proposals){
+  if(!Array.isArray(proposals)||proposals.length<2)return;
+  const cards=proposals.map((p,i)=>{
+    const date=p.dueDate?(displayAnalysisDate(p)||p.dueDate):'Sin fecha';
+    const location=p.locationText?` · ${esc(p.locationText)}`:'';
+    const review=p.needsReview?`<small class="muted">${esc(p.reason||fieldReviewMessage(p)||'Revisar datos')}</small>`:'';
+    return `<button type="button" class="secondary-button" data-appointment-proposal="${i}"><strong>${esc(p.title||('Cita '+(i+1)))}</strong><span>${esc(date)}${location}</span>${review}</button>`;
+  }).join('');
+  openModal(`He detectado ${proposals.length} citas`,`<div class="modal-form"><p class="muted">Nexo las ha separado para no mezclar fechas ni datos. Selecciona la que quieres revisar primero.</p><div class="scope-buttons">${cards}</div></div>`);
+  $('[data-appointment-proposal]').forEach(button=>button.addEventListener('click',()=>{
+    const index=Number(button.dataset.appointmentProposal);
+    const selected=state.captureProposals[index];
+    if(!selected)return;
+    state.captureProposalIndex=index;
+    resetCaptureManualFields();
+    state.classification=selected;
+    renderClassification(selected,true);
+    closeModal();
+    setInterpretationStatus(selected.needsReview?'review':'success',
+      selected.needsReview?(selected.reason||fieldReviewMessage(selected)||'Revisa esta cita antes de guardarla.'):
+        `Propuesta ${index+1} de ${state.captureProposals.length}. Revisa y guarda cuando esté correcta.`);
+  }));
 }
 
 function setInterpretationStatus(kind,text) {
@@ -1211,7 +1266,8 @@ function renderClassification(a, fillForm=true) {
   $('#previewDescription').textContent=a.description?`DESCRIPCIÓN: ${a.description}`:'';
   $('#previewDescription').classList.toggle('hidden',!a.description);
   $('#previewDate').textContent=a.dueDate?displayAnalysisDate(a):(state.capturePinnedDate?fmtDate(dateTimeToMs(state.capturePinnedDate,''),false):'Sin fecha');
-  $('#previewRecurrence').textContent=a.recurrence&&a.recurrence!=='none'?`↻ ${recurrenceLabel(a.recurrence)}`:'';
+  const recurrenceHint=recurrenceRuleHint(a.recurrenceRule);
+  $('#previewRecurrence').textContent=a.recurrence&&a.recurrence!=='none'?`↻ ${recurrenceLabel(a.recurrence)}${recurrenceHint?` · ${recurrenceHint}`:''}`:'';
   $('#previewReason').textContent=a.reason||'';
 
   if(fillForm){
@@ -1269,7 +1325,7 @@ function renderClassification(a, fillForm=true) {
 }
 
 function resetAnalysis() {
-  state.classification=null;
+  state.classification=null;state.captureProposals=[];state.captureProposalIndex=0;
   state.captureAlerts=[];state.captureSuggestedAlert=null;
   $('#classificationPreview').classList.add('hidden'); $('#reminderSuggestion').classList.add('hidden');
   $('#captureTitle').value=''; $('#captureDescription').value=''; $('#captureCategory').value='Otro'; $('#captureType').value=state.capturePinnedType||'event'; $('#captureDate').value=state.capturePinnedDate||''; $('#captureEndDate').value=state.capturePinnedDate||''; $('#captureAllDay').checked=false; $('#captureTime').value='09:00'; $('#captureEndTime').value='10:00'; $('#captureLocation').value=''; $('#captureMapsUrl').value=''; $('#captureTimeZone').value='Europe/Madrid'; $('#capturePriority').value='1'; if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=false; $('#captureRecurrence').value='none'; $('#captureRecurrenceUntil').value=''; $('#captureRecurrenceUntilLabel').classList.add('hidden'); syncCaptureAllDay(false);
@@ -1312,11 +1368,13 @@ function commitCapture() {
     openMedicationComposer(text||$('#captureDescription').value.trim());
     return;
   }
+  const recurrence=$('#captureRecurrence').value||'none';
+  const detectedRecurrenceRule=(!captureFieldLocked('recurrence')&&state.classification?.recurrence===recurrence)?String(state.classification?.recurrenceRule||''):'';
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
     dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
-    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
+    recurrence, recurrenceRule:detectedRecurrenceRule||recurrenceRuleFor(recurrence), recurrenceUntil:recurrence!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
     needsReview:false,
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
