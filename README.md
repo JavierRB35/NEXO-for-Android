@@ -1,4 +1,4 @@
-# Nexo 3.4.9 Release · AndroidIDE
+# Nexo 3.4.9 Release · GitHub Actions + AndroidIDE fallback
 
 Nexo es una aplicación Android local-first para agenda, tareas, recordatorios, medicamentos, notas, documentos, lugares, listas, cuaderno, aparcamiento y grabaciones.
 
@@ -18,7 +18,20 @@ Esta rama corresponde a **Nexo 3.4.9**, `versionCode 55`, `applicationId com.jru
 
 No actualices estas versiones salvo necesidad.
 
-## Compilar en el teléfono
+## Flujo oficial de compilación
+
+El método normal de compilación y distribución es **GitHub Actions**:
+
+- cada `push` a `main` genera una APK Release firmada como artefacto;
+- una ejecución manual desde Actions genera la misma APK;
+- cada tag `vX.Y.Z` genera además una GitHub Release con el APK listo para descargar e instalar;
+- la firma Release se mantiene fuera del repositorio mediante GitHub Secrets.
+
+Procedimiento completo: [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md).
+
+AndroidIDE queda como método de contingencia.
+
+## Compilar en el teléfono (fallback)
 
 Descomprime el proyecto directamente como:
 
