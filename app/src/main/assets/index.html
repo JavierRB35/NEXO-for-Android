@@ -174,14 +174,15 @@
           </div>
 
           <div id="captureDateContext" class="capture-context hidden" role="status"></div>
-<div class="form-grid capture-basics">
-<label>Título<input id="captureTitle" type="text"></label>
+<div class="form-grid capture-basics event-form-grid">
+<label class="form-span-2">Título<input id="captureTitle" type="text"></label>
               <label class="form-span-2">Descripción <span class="optional">(solo detalles relevantes)</span><textarea id="captureDescription" rows="3" placeholder="Detalle completo de lo que necesitas hacer. Puedes editarlo o ampliarlo."></textarea></label>
               <label>Fecha inicio<div class="date-wrap"><input id="captureDate" type="date"></div></label>
               <label>Fecha fin<div class="date-wrap"><input id="captureEndDate" type="date"></div></label>
-              <label class="switch-row form-span-2 event-all-day-row"><input id="captureAllDay" type="checkbox"><span><strong>Todo el día</strong><small>Desactívalo para indicar hora de inicio y fin.</small></span></label>
               <label id="captureStartTimeLabel">Hora inicio<div class="date-wrap"><input id="captureTime" type="time"></div></label>
               <label id="captureEndTimeLabel">Hora fin<div class="date-wrap"><input id="captureEndTime" type="time"></div></label>
+              <label class="switch-row form-span-2 event-all-day-row"><input id="captureAllDay" type="checkbox"><span><strong>Evento de día completo</strong><small>Márcalo para ocultar las horas de inicio y fin.</small></span></label>
+              <label class="form-span-2">Zona horaria <span class="optional">(normalmente no hace falta cambiarla)</span><input id="captureTimeZone" type="text" value="Europe/Madrid"></label>
               <div class="form-span-2 location-field"><label for="captureLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="captureLocation" type="text" placeholder="Dirección o enlace de Google Maps"><button id="captureMapPreview" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div></div>
               </div>
               <fieldset id="capturePeopleAssignment" class="member-assignment event-people-assignment">
@@ -189,6 +190,20 @@
                 <div id="capturePeopleChips" class="member-chips"></div>
                 <p class="form-helper">Selecciona una, varias o todas las personas que también están involucradas en el evento.</p>
               </fieldset>
+              <div class="form-grid event-settings-grid">
+                <label>Categoría<select id="captureCategory"></select></label>
+                <label>Repetición<select id="captureRecurrence"><option value="none">No se repite</option>
+<option value="daily">Diaria</option>
+<option value="weekly">Semanal</option>
+<option value="monthly">Mensual</option>
+<option value="bimonthly">Bimestral</option>
+<option value="quarterly">Trimestral</option>
+<option value="semiannual">Semestral</option>
+<option value="annual">Anual</option></select></label>
+                <label id="captureRecurrenceUntilLabel" class="hidden form-span-2">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="captureRecurrenceUntil" type="date"></div></label>
+              </div>
+              <input id="captureType" type="hidden" value="event">
+              <input id="captureMapsUrl" type="hidden">
 <div id="captureAlertsSection" class="alert-editor hidden">
               <div class="alert-editor-head">
 <div>
@@ -202,21 +217,9 @@
           <details id="captureDetails" class="details-box">
             <summary>Más opciones</summary>
             <div class="form-grid">
-              <label>Categoría (color)<select id="captureCategory"></select></label>
-              <input id="captureType" type="hidden" value="event"><label>Prioridad<select id="capturePriority"><option value="1">Normal</option>
+              <label class="form-span-2">Prioridad<select id="capturePriority"><option value="1">Normal</option>
 <option value="2">Importante</option>
 <option value="3">Alta</option></select></label>
-              <label>Periodicidad<select id="captureRecurrence"><option value="none">No se repite</option>
-<option value="daily">Diaria</option>
-<option value="weekly">Semanal</option>
-<option value="monthly">Mensual</option>
-<option value="bimonthly">Bimestral</option>
-<option value="quarterly">Trimestral</option>
-<option value="semiannual">Semestral</option>
-<option value="annual">Anual</option></select></label>
-              <label id="captureRecurrenceUntilLabel" class="hidden">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="captureRecurrenceUntil" type="date"></div></label>
-              <input id="captureMapsUrl" type="hidden">
-              <label class="form-span-2">Zona horaria <span class="optional">(normalmente no hace falta cambiarla)</span><input id="captureTimeZone" type="text" value="Europe/Madrid"></label>
             </div>
             </details>
 
