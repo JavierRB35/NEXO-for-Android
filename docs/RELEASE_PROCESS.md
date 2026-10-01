@@ -6,7 +6,7 @@ Este documento define el proceso estándar del repositorio `JavierRB35/NEXO-for-
 
 La compilación normal de Nexo Android se realiza en **GitHub Actions**.
 
-- Cada `push` a `main` compila una APK **Release firmada** y la publica como artefacto de GitHub Actions.
+- Cada `push` a cualquier rama que contenga este workflow compila una APK **Release firmada** y la publica como artefacto de GitHub Actions.
 - Una ejecución manual desde **Actions > Nexo Android · APK Release** hace lo mismo.
 - Cada tag con formato `vX.Y.Z` compila la misma APK firmada y además la publica en **GitHub Releases**.
 - AndroidIDE y `build-on-phone.sh` se mantienen como método de contingencia, no como flujo normal de distribución.
