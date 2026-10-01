@@ -139,7 +139,7 @@ function buildFamilyStyleSearchIndex(){
   state.homeSearchIndex=out;state.homeSearchIndexReady=true;return out;
 }
 function familyStyleSearch(query,includeHistorical=false){
-  const items=state.homeSearchIndex.length?state.homeSearchIndex:buildFamilyStyleSearchIndex(),normalizedQuery=familySearchNormalize(query);
+  const items=state.homeSearchIndexReady?state.homeSearchIndex:buildFamilyStyleSearchIndex(),normalizedQuery=familySearchNormalize(query);
   const candidates=includeHistorical?items:items.filter(i=>!i.historical);
   if(!normalizedQuery)return candidates;
   const tokens=familySearchTokens(query);
