@@ -40,7 +40,7 @@ const state = {
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
-  journalFilter:'all', journalSearch:'', journalPick:null, journalEditor:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', journalVoiceId:0, journalVoiceTitle:'', journalVoiceTitleManual:false, journalVoiceFavorite:false, journalVoiceRevisit:false, medicationVoiceBase:'',
+  journalFilter:'all', journalSearch:'', journalPick:null, journalEditor:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', journalVoiceId:0, journalVoiceTitle:'', journalVoiceTitleManual:false, journalVoiceFavorite:false, journalVoiceRevisit:false, medicationVoiceBase:'', medicationEditor:null, medicationVoiceEditor:false,
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
   placeFilter:'all', placeSearch:'', places:[],
   documentFilter:'all', documentSearch:'', documents:[], documentEditor:null, documentRequest:0,
@@ -382,14 +382,17 @@ function updateFloatingActions(){
   if(!voice||!add)return;
   const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
   const journalEditorActive=!!state.journalEditor&&state.screen==='panel'&&state.lastPanel==='journal'&&!$('#modal')?.classList.contains('hidden');
+  const medicationEditorActive=!!state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'&&!$('#modal')?.classList.contains('hidden');
+  const contextualEditorActive=journalEditorActive||medicationEditorActive;
   const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup';
-  const voiceVisible=(!modalOpen||journalEditorActive)&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
+  const voiceVisible=(!modalOpen||contextualEditorActive)&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
   const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
   const notesContext=state.screen==='panel'&&state.lastPanel==='notes';
   const listsContext=state.screen==='panel'&&state.lastPanel==='lists';
   const journalContext=state.screen==='panel'&&state.lastPanel==='journal';
-  const voiceLabel=journalEditorActive?'Dictar contenido':notesContext?'Dictar nota':listsContext?'Añadir elementos por voz':journalContext?'Dictar entrada':'Hablar con Nexo';
-  const addLabel=notesContext?'Nueva nota':listsContext?'Nueva lista':journalContext?'Nueva entrada':'Añadir evento';
+  const medicationsContext=state.screen==='panel'&&state.lastPanel==='medications';
+  const voiceLabel=medicationEditorActive?'Completar pauta por voz':journalEditorActive?'Dictar contenido':notesContext?'Dictar nota':listsContext?'Añadir elementos por voz':journalContext?'Dictar entrada':medicationsContext?'Hablar con Medicación':'Hablar con Nexo';
+  const addLabel=notesContext?'Nueva nota':listsContext?'Nueva lista':journalContext?'Nueva entrada':medicationsContext?'Nuevo medicamento':'Añadir evento';
   voice.classList.remove('is-recording');
   voice.setAttribute('aria-label',voiceLabel);
   voice.setAttribute('title',voiceLabel);
@@ -402,6 +405,7 @@ function runEventAddFab(){
   if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
   if(state.screen==='panel'&&state.lastPanel==='lists'){openNewListModal();return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){openJournalComposer();return;}
+  if(state.screen==='panel'&&state.lastPanel==='medications'){openMedicationComposer();return;}
   const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);
 }
 function startListVoiceFor(listId){
@@ -423,6 +427,7 @@ function chooseListForVoice(){
 
 
 function runFloatingVoice(){
+  if(state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'){startMedicationEditorVoice();return;}
   if(state.journalEditor&&state.screen==='panel'&&state.lastPanel==='journal'){startJournalEditorVoice();return;}
   if(state.screen==='save'){
     const base=$('#captureText')?.value.trim()||'';
@@ -2493,10 +2498,17 @@ function openMedicationComposer(prefill='',existing=null){
 function openMedication(id){const m=parseNative(NexoNative.getMedication(id),{});if(m.id)openMedicationComposer('',m);}
 function medicationDoseRows(rows){if(!rows.length)return '<div class="empty-state">No hay tomas previstas para hoy.</div>';return `<div class="med-dose-list">${rows.map(d=>`<div class="med-dose-row ${esc(d.status)}"><div class="med-dose-time">${esc(fmtTime(d.scheduledAt))}</div><div class="med-dose-main"><strong>${esc(d.name)}</strong><span>${d.dose?esc(d.dose):'Dosis no indicada'} · ${esc(medicationStatusLabel(d.status))}</span></div>${d.status==='pending'||d.status==='snoozed'?`<div class="med-dose-actions"><button class="mini-button primary" data-med-dose="${d.medicationId}:${d.scheduledAt}" data-med-status="taken">✓ Tomado</button><button class="mini-button" data-med-dose="${d.medicationId}:${d.scheduledAt}" data-med-status="skipped">Omitir</button></div>`:''}</div>`).join('')}</div>`;}
 function renderMedicationsPanel(){
-  state.lastPanel='medications';const active=parseNative(NexoNative.getMedications('','active'),[]),history=parseNative(NexoNative.getMedications('','history'),[]),today=parseNative(NexoNative.getMedicationTodayDoses(),[]);$('#panelTitle').textContent='Medicación';$('#panelSubtitle').textContent='Pautas introducidas por ti · avisos locales';$('#panelAction').innerHTML='<div class="panel-multi-action"><button id="medPanelVoice" class="secondary-button" aria-label="Dictar medicación"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button><button id="medPanelAdd" class="primary-button">+ Medicamento</button></div>';$('#medPanelAdd').addEventListener('click',()=>openMedicationComposer());$('#medPanelVoice').addEventListener('click',()=>startMedicationVoice());
+  state.lastPanel='medications';
+  const active=parseNative(NexoNative.getMedications('','active'),[]),history=parseNative(NexoNative.getMedications('','history'),[]),today=parseNative(NexoNative.getMedicationTodayDoses(),[]);
+  $('#panelTitle').textContent='Medicación';
+  $('#panelSubtitle').textContent='Tus tratamientos y tomas de hoy.';
+  $('#panelAction').innerHTML='';
   const exact=!!NexoNative.canScheduleExactAlarms();
-  $('#panelContent').innerHTML=`${!exact?'<div class="med-exact-warning"><strong>Mejorar puntualidad de avisos</strong><span>Android puede retrasar alarmas en ahorro de energía. Permite alarmas exactas para que Nexo intente avisarte a la hora prevista.</span><button id="medExactBtn" class="secondary-button">Permitir alarmas exactas</button></div>':''}<div class="med-module-note"><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg> Aviso hablado</strong><span>Nexo avisa 5 minutos antes. Si no marcas TOMADO u OMITIR, vuelve a avisar por voz a la hora de la toma y cada 5 minutos, como máximo hasta 30 minutos después de la hora prevista.</span></div><div class="section-title"><h2>Hoy</h2></div>${medicationDoseRows(today)}<div class="section-title"><h2>Tratamientos activos</h2></div><div class="stack">${active.length?active.map(medicationCard).join(''):'<div class="empty-state">No tienes tratamientos activos.</div>'}</div>${history.length?`<div class="section-title"><h2>Historial</h2></div><div class="stack">${history.map(medicationCard).join('')}</div>`:''}`;
-  if($('#medExactBtn'))$('#medExactBtn').addEventListener('click',()=>NexoNative.requestExactAlarms());bindMedicationButtons($('#panelContent'));
+  $('#panelContent').innerHTML=`${!exact?'<div class="med-exact-warning"><strong>Mejorar puntualidad de avisos</strong><span>Android puede retrasar alarmas en ahorro de energía. Permite alarmas exactas para que Nexo intente avisarte a la hora prevista.</span><button id="medExactBtn" class="secondary-button">Permitir alarmas exactas</button></div>':''}<button id="medVoiceInfo" type="button" class="med-module-note med-module-note--compact"><span class="med-module-note-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg></span><span class="med-module-note-copy"><strong>Avisos por voz activados</strong><small>5 min antes · repetición hasta 30 min</small></span><span class="med-module-note-chevron">›</span></button><div class="section-title"><h2>Hoy</h2></div>${medicationDoseRows(today)}<div class="section-title"><h2>Tratamientos activos</h2></div><div class="stack">${active.length?active.map(medicationCard).join(''):'<div class="empty-state">No tienes tratamientos activos.</div>'}</div>${history.length?`<div class="section-title"><h2>Historial</h2></div><div class="stack">${history.map(medicationCard).join('')}</div>`:''}`;
+  if($('#medExactBtn'))$('#medExactBtn').addEventListener('click',()=>NexoNative.requestExactAlarms());
+  $('#medVoiceInfo').addEventListener('click',()=>openModal('Avisos por voz',`<div class="med-safety med-voice-explanation"><strong>Nexo te avisa según la pauta que tú has guardado.</strong><span>El primer aviso se produce 5 minutos antes. Si la toma sigue pendiente, Nexo vuelve a avisar a la hora prevista y cada 5 minutos, como máximo hasta 30 minutos después.</span><span>Marcar <strong>TOMADO</strong> u <strong>OMITIR</strong> detiene los avisos de esa toma.</span></div>`));
+  bindMedicationButtons($('#panelContent'));
+  updateFloatingActions();
 }
 
 window.NexoUI={
