@@ -9,6 +9,7 @@
 - Los eventos nuevos arrancan con **Todo el día desactivado** y horario visible 09:00–10:00.
 - Medicación sustituye las horas escritas a mano por selectores horarios nativos.
 - Se integra el nuevo branding de Nexo en launcher, cabecera e iconos de notificación.
+- La validación de release cubre también formularios compactos y branding.
 - Se mantienen JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
 
 ## 3.7.0-beta18 · versionCode 83 · Sincronización directa con Nexo Familia
