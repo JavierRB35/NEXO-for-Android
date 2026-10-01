@@ -47,7 +47,8 @@ const state = {
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
   homeSearchIndex:[], homeSearchIndexReady:false, homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
-  startupSplashActive:true, startupInboxReady:false, startupHomeReady:false, startupHomeDashboard:null, startupSplashTimeout:0,
+  startupSplashActive:true, startupInboxReady:false, startupHomeReady:false, startupHomeDashboard:null,
+  startupSplashMinReady:false, startupSplashMinTimer:0, startupSplashTimeout:0,
   holidayYears:{}, holidayLoading:new Set(),
   managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
 };
@@ -3014,6 +3015,7 @@ function bindPanelNavigation(){
 function finishStartupSplash(){
   if(!state.startupSplashActive)return;
   state.startupSplashActive=false;
+  if(state.startupSplashMinTimer){clearTimeout(state.startupSplashMinTimer);state.startupSplashMinTimer=0;}
   if(state.startupSplashTimeout){clearTimeout(state.startupSplashTimeout);state.startupSplashTimeout=0;}
   const splash=$('#startupSplash');
   document.body.classList.remove('startup-loading');
@@ -3026,7 +3028,7 @@ function finishStartupSplash(){
 }
 
 function maybeFinishStartupSplash(){
-  if(state.startupHomeReady&&state.startupInboxReady)finishStartupSplash();
+  if(state.startupSplashMinReady&&state.startupHomeReady&&state.startupInboxReady)finishStartupSplash();
 }
 
 function preloadStartupHomeDashboard(){
@@ -3043,8 +3045,16 @@ function beginStartupSequence(startScreen){
   state.startupSplashActive=!!$('#startupSplash');
   state.startupInboxReady=false;
   state.startupHomeReady=false;
+  state.startupSplashMinReady=!state.startupSplashActive;
   if(state.startupSplashActive){
-    state.startupSplashTimeout=setTimeout(()=>finishStartupSplash(),3000);
+    state.startupSplashMinTimer=setTimeout(()=>{
+      state.startupSplashMinReady=true;
+      maybeFinishStartupSplash();
+    },3500);
+    state.startupSplashTimeout=setTimeout(()=>{
+      state.startupSplashMinReady=true;
+      finishStartupSplash();
+    },5000);
   }
 
   let inboxStarted=false;
