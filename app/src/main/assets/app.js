@@ -242,6 +242,41 @@ function dateTimeToMs(date,time='') {
   const d=new Date(`${date}T${t}:00`);
   return Number.isFinite(d.getTime()) ? d.getTime() : 0;
 }
+function zonedDateParts(ms,zone){
+  const formatter=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+  const out={};
+  formatter.formatToParts(new Date(ms)).forEach(p=>{if(p.type!=='literal')out[p.type]=p.value;});
+  return {year:Number(out.year),month:Number(out.month),day:Number(out.day),hour:Number(out.hour),minute:Number(out.minute)};
+}
+function dateTimeToMsInZone(date,time='',zone=''){
+  if(!date)return 0;
+  const z=String(zone||'').trim();
+  if(!z)return dateTimeToMs(date,time);
+  const [year,month,day]=date.split('-').map(Number),[hour,minute]=(time||'09:00').split(':').map(Number);
+  if(![year,month,day,hour,minute].every(Number.isFinite))return 0;
+  const target=Date.UTC(year,month-1,day,hour,minute,0,0);
+  let guess=target;
+  try{
+    for(let i=0;i<4;i++){
+      const p=zonedDateParts(guess,z);
+      const shown=Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,0,0);
+      const delta=shown-target;
+      if(delta===0)break;
+      guess-=delta;
+    }
+    const p=zonedDateParts(guess,z);
+    return p.year===year&&p.month===month&&p.day===day&&p.hour===hour&&p.minute===minute?guess:0;
+  }catch(_){return 0;}
+}
+function addIsoDays(date,days){
+  if(!date)return '';
+  const [y,m,d]=date.split('-').map(Number),x=new Date(Date.UTC(y,m-1,d+Number(days||0),12,0,0));
+  return `${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,'0')}-${String(x.getUTCDate()).padStart(2,'0')}`;
+}
+function endOfDayMsInZone(date,zone){
+  const at=dateTimeToMsInZone(date,'23:59',zone);
+  return at?at+59999:0;
+}
 function displayAnalysisDate(a) {
   if(!a?.dueDate) return '';
   const ms=dateTimeToMs(a.dueDate,a.hasTime?a.dueTime:'');
@@ -303,17 +338,22 @@ function addOneHourTime(value){
   const [h,m]=value.split(':').map(Number),minutes=((h*60+m)+60)%(24*60);
   return `${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;
 }
-function eventEndFromFields(startDate,startTime,endDate,endTime,allDay){
+function eventEndFromFields(startDate,startTime,endDate,endTime,allDay,zone=''){
   if(!startDate)return 0;
-  const start=dateTimeToMs(startDate,allDay?'':startTime);
+  const convert=(date,time)=>zone?dateTimeToMsInZone(date,time,zone):dateTimeToMs(date,time);
+  const start=convert(startDate,allDay?'':startTime);
   if(!start)return 0;
   const finishDate=endDate||startDate;
-  if(allDay)return dateTimeToMs(finishDate,'');
+  if(allDay)return convert(finishDate,'');
   if(!startTime)return start;
   if(!endTime)return start+60*60000;
-  let finish=dateTimeToMs(finishDate,endTime);
-  if(finishDate===startDate&&finish<=start)finish+=24*60*60000;
-  return Math.max(start,finish);
+  let finish=convert(finishDate,endTime);
+  if(finishDate===startDate&&finish<=start){
+    // El día siguiente se resuelve como fecha local de la cita, no sumando 24 h
+    // reales, para respetar cambios de hora.
+    finish=convert(addIsoDays(finishDate,1),endTime);
+  }
+  return finish?Math.max(start,finish):0;
 }
 function durationMinutesBetween(start,end){return start>0&&end>start?Math.min(5256000,Math.round((end-start)/60000)):0;}
 function endTimeForItem(item){
@@ -1258,7 +1298,10 @@ function commitCapture() {
   const text=$('#captureText').value.trim();
   const date=$('#captureDate').value,allDay=!!$('#captureAllDay').checked,time=allDay?'':$('#captureTime').value;
   const endDate=$('#captureEndDate').value||date,endTime=allDay?'':$('#captureEndTime').value;
-  const dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
+  const timeZone=$('#captureTimeZone').value.trim()||'Europe/Madrid';
+  const dueAt=date?dateTimeToMsInZone(date,time,timeZone):0;
+  const endAt=eventEndFromFields(date,time,endDate,endTime,allDay,timeZone),durationMinutes=durationMinutesBetween(dueAt,endAt);
+  if(date&&!dueAt){toast('La fecha u hora no es válida en la zona horaria seleccionada.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
   if(date&&endDate&&endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
   if(dueAt&&endAt&&endAt<dueAt){toast('El final del evento no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
   const alerts=normalizeAlertMinutes(state.captureAlerts);
@@ -1272,8 +1315,8 @@ function commitCapture() {
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
-    dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:$('#captureTimeZone').value.trim()||'Europe/Madrid', priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
-    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value):0,
+    dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
+    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
     needsReview:false,
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
