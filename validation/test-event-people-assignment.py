@@ -32,7 +32,7 @@ assert 'function renderPersonAssignment(hostId,selectedIds,onChange)' in js
 assert 'data-people-all' in js
 assert 'data-person-assignment' in js
 assert 'member-color-dot' in js
-assert 'participantIds:normalizeParticipantIds(state.captureParticipantIds)' in js
+assert 'participantIds:appointment?normalizeParticipantIds(state.captureParticipantIds):[]' in js
 
 # Editar evento y aparición recurrente.
 item=js[js.index('function openItem(id)'):js.index('function openOccurrence',js.index('function openItem(id)'))]
