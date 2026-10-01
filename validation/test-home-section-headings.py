@@ -22,4 +22,6 @@ for token in (
 ):
     assert token in style, f'Falta estilo compacto de Inicio: {token}'
 
-print('OK: Inicio conserva un único título compacto por sección')
+assert '#homeDashboardContent>.home-section--pulse{margin-top:20px}' in css, 'Falta separación entre buscador y primer bloque de Inicio'
+
+print('OK: Inicio conserva un único título compacto por sección y separación bajo el buscador')
