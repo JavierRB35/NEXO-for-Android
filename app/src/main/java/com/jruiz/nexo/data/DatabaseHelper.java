@@ -1498,7 +1498,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 if (spanMillis <= 0 && base.optInt("durationMinutes",0) > 0) spanMillis = base.optInt("durationMinutes",0) * 60000L;
                 long expansionStart = Math.max(0L, start - spanMillis);
                 ZoneId seriesZone = itemZone(base);
-                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), expansionStart, end, seriesZone, 5000);
+                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optString("recurrenceRule",""), base.optLong("recurrenceUntil"), expansionStart, end, seriesZone, 5000);
                 for (long occurrenceAt : occurrences) {
                     JSONObject ex = exceptions.get(occurrenceAt);
                     JSONObject occ = buildOccurrence(base, occurrenceAt, ex);
@@ -1599,7 +1599,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ZoneId seriesZone = itemZone(base);
         long cursor = afterMillis;
         for (int guard=0; guard<5000; guard++) {
-            long key = RecurrenceEngine.nextOccurrence(base.optLong("dueAt"), recurrence, base.optLong("recurrenceUntil"), cursor, seriesZone);
+            long key = RecurrenceEngine.nextOccurrence(base.optLong("dueAt"), recurrence, base.optString("recurrenceRule",""), base.optLong("recurrenceUntil"), cursor, seriesZone);
             if (key <= 0) break;
             JSONObject occ = getOccurrence(seriesId, key);
             if (occ.length() > 0) {
@@ -1936,7 +1936,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (!RecurrenceEngine.isRecurring(recurrence)) return due;
         ZoneId zone = itemZone(item);
         long todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli();
-        long next = RecurrenceEngine.nextOccurrence(due, recurrence, item.optLong("recurrenceUntil", 0), todayStart - 1, zone);
+        long next = RecurrenceEngine.nextOccurrence(due, recurrence, item.optString("recurrenceRule",""), item.optLong("recurrenceUntil", 0), todayStart - 1, zone);
         return next > 0 ? next : due;
     }
 
@@ -2000,7 +2000,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long due=item.optLong("dueAt",0);
                 String recurrence=item.optString("recurrence",RecurrenceEngine.NONE);
                 if(RecurrenceEngine.isRecurring(recurrence)) {
-                    java.util.List<Long> xs=RecurrenceEngine.occurrencesBetween(due,recurrence,item.optLong("recurrenceUntil",0),start,end,itemZone(item),1);
+                    java.util.List<Long> xs=RecurrenceEngine.occurrencesBetween(due,recurrence,item.optString("recurrenceRule",""),item.optLong("recurrenceUntil",0),start,end,itemZone(item),1);
                     if(xs.isEmpty()) return false;
                 } else if(due<start||due>end) return false;
             }
