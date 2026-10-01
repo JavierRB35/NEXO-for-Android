@@ -20,7 +20,9 @@ for fixed in [
 for token in [
     "$('#globalVoiceFab').addEventListener('click',runFloatingVoice)",
     "$('#calendarAddFab').addEventListener('click',runEventAddFab)",
-    "$$('[data-panel]').forEach",
+    "function bindPanelNavigation()",
+    "event.target?.closest?.('[data-panel]')",
+    "bindPanelNavigation();",
     "$('#modalClose').addEventListener('click',closeModal)",
     "function bindHomeUpcoming()",
     "openEventInAgenda(id,occ,rec)",
@@ -38,5 +40,5 @@ block=css[start:css.index('}',start)+1]
 assert 'display:flex' in block
 assert 'flex-direction:row' in block
 
-assert 'v3.7.0-beta22' in html
+assert 'v3.7.0-beta22.1' in html
 print('Beta17 conserva las correcciones beta13 de interacción: OK')
