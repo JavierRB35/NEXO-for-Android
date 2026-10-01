@@ -851,9 +851,9 @@ function renderNotesPanel(){
   state.lastPanel='notes';
   const rows=parseNative(NexoNative.getNotes(),[]);
   $('#panelTitle').textContent='Notas';$('#panelSubtitle').textContent='Anotaciones locales · más recientes primero';
-  $('#panelAction').innerHTML='<div class="panel-multi-action"><button id="notePanelVoice" class="secondary-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Dictar</button><button id="notePanelAdd" class="primary-button" type="button">+ Nota</button></div>';
-  $('#panelContent').innerHTML=rows.length?`<div class="note-list">${rows.map(noteCard).join('')}</div>`:'<div class="empty-state">Todavía no tienes notas. Puedes escribir una o dictarla por voz.</div>';
-  $('#notePanelVoice').addEventListener('click',()=>startNoteVoice());$('#notePanelAdd').addEventListener('click',()=>openNoteComposer());bindNoteButtons($('#panelContent'));
+  $('#panelAction').innerHTML='';
+  $('#panelContent').innerHTML=rows.length?`<div class="note-list">${rows.map(noteCard).join('')}</div>`:'<div class="empty-state">Todavía no tienes notas. Usa + para crear una o el micrófono para dictarla.</div>';
+  bindNoteButtons($('#panelContent'));
 }
 
 function recordingDuration(ms){
