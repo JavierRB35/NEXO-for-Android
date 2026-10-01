@@ -1,0 +1,85 @@
+name: Parser P0 validation
+
+on:
+  pull_request:
+    branches:
+      - release/nexo-3.7.0-beta18
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK 34
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Compile Android debug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --max-workers=1
+
+      - name: Temporal parser smoke tests
+        shell: bash
+        run: |
+          cat > /tmp/TemporalParserSmoke.java <<'JAVA'
+          import com.jruiz.nexo.core.TemporalParser;
+          import java.time.*;
+
+          public final class TemporalParserSmoke {
+              private static void check(boolean ok, String message) {
+                  if (!ok) throw new AssertionError(message);
+              }
+
+              public static void main(String[] args) {
+                  LocalDateTime now = LocalDateTime.of(2026, 10, 1, 10, 0);
+
+                  TemporalParser.Result corrected = TemporalParser.parse(
+                      "Cita mañana a las seis, perdón, a las siete de la tarde durante cuarenta y cinco minutos", now);
+                  check(corrected.hasDate && LocalDate.of(2026,10,2).equals(corrected.date), "fecha relativa");
+                  check(corrected.hasTime && LocalTime.of(19,0).equals(corrected.time), "rectificación de hora");
+                  check(corrected.durationMinutes() == 45, "duración 45 minutos");
+                  check(!corrected.ambiguousTime, "19:00 no ambigua");
+
+                  TemporalParser.Result weekday = TemporalParser.parse(
+                      "No es el miércoles, es el martes a las 10:00", now);
+                  check(weekday.hasDate && LocalDate.of(2026,10,6).equals(weekday.date), "rectificación de día");
+                  check(weekday.hasTime && LocalTime.of(10,0).equals(weekday.time), "hora numérica");
+                  check(!weekday.ambiguousTime, "HH:mm no debe ser ambiguo");
+
+                  TemporalParser.Result invalidDate = TemporalParser.parse(
+                      "Cita el 31 de febrero de 2027 a las 10:00", now);
+                  check(invalidDate.invalidDate && !invalidDate.hasDate, "fecha imposible");
+
+                  TemporalParser.Result invalidTime = TemporalParser.parse(
+                      "Cita mañana a las 25:00", now);
+                  check(invalidTime.invalidTime && !invalidTime.hasTime, "hora imposible");
+
+                  TemporalParser.Result ambiguous = TemporalParser.parse(
+                      "Reunión mañana a las cinco", now);
+                  check(ambiguous.hasTime && ambiguous.ambiguousTime, "cinco sin franja debe ser ambigua");
+
+                  check(TemporalParser.parseSpanMinutes("una hora y media") == 90, "hora y media");
+                  check(TemporalParser.parseSpanMinutes("cuarenta y cinco minutos") == 45, "45 minutos");
+                  check(TemporalParser.parseSpanMinutes("una hora y cuarto") == 75, "hora y cuarto");
+              }
+          }
+          JAVA
+          mkdir -p /tmp/nexo-parser-smoke
+          javac -d /tmp/nexo-parser-smoke             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java             /tmp/TemporalParserSmoke.java
+          java -cp /tmp/nexo-parser-smoke TemporalParserSmoke
