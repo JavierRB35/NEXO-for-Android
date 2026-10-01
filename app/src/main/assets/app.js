@@ -2463,7 +2463,9 @@ function medicationVoiceDoseAction(text){
   return '';
 }
 function medicationVoiceTimeMinutes(text){
-  const n=medicationVoiceNorm(text);\n  const m=n.match(/\\ba\\s+las?\\s+(\\d{1,2})(?::(\\d{2}))?\\b/)||n.match(/\\b(\\d{1,2}):(\\d{2})\\b/);\n  if(!m)return -1;
+  const n=medicationVoiceNorm(text);
+  const m=n.match(/\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?\b/)||n.match(/\b(\d{1,2}):(\d{2})\b/);
+  if(!m)return -1;
   const h=Number(m[1]),min=Number(m[2]||0);
   return h>=0&&h<=23&&min>=0&&min<=59?h*60+min:-1;
 }
