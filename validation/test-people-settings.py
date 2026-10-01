@@ -8,7 +8,7 @@ js=(root/'app/src/main/assets/app.js').read_text(encoding='utf-8')
 css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 
 # Persistencia local independiente de usuarios/cuentas.
-assert 'DB_VERSION = 23' in db
+assert 'DB_VERSION = 24' in db
 assert 'CREATE TABLE IF NOT EXISTS people (' in db
 for field in ['name TEXT NOT NULL','color TEXT NOT NULL','archived_at INTEGER NOT NULL DEFAULT 0']:
     assert field in db
