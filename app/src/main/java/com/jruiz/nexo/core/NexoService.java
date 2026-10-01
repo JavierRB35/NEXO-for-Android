@@ -116,13 +116,23 @@ public class NexoService {
 
     /** Clasificación local inmediata: no necesita Internet ni servicios externos. */
     public JSONObject classify(String text) {
-        RuleClassifier.Result r = RuleClassifier.classify(text);
+        return classify(text, System.currentTimeMillis());
+    }
+
+    public JSONObject classify(String text, long capturedAtMillis) {
+        ParseContext context = ParseContext.at(capturedAtMillis);
+        RuleClassifier.Result r = RuleClassifier.classify(text, context);
         applyLearnedCategory(text, r);
         return r.toJson();
     }
 
     public JSONObject classifyAppointment(String text) {
-        RuleClassifier.Result r = AppointmentParser.parse(text);
+        return classifyAppointment(text, System.currentTimeMillis());
+    }
+
+    public JSONObject classifyAppointment(String text, long capturedAtMillis) {
+        ParseContext context = ParseContext.at(capturedAtMillis).withOrigin("appointment");
+        RuleClassifier.Result r = AppointmentParser.parse(text, context);
         applyLearnedCategory(text, r);
         if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
         // AppointmentParser decide si hay algo que revisar. No se borra aquí una
@@ -131,9 +141,14 @@ public class NexoService {
     }
 
     public JSONArray classifyAppointmentProposals(String text) {
+        return classifyAppointmentProposals(text, System.currentTimeMillis());
+    }
+
+    public JSONArray classifyAppointmentProposals(String text, long capturedAtMillis) {
+        ParseContext context = ParseContext.at(capturedAtMillis).withOrigin("appointment");
         JSONArray out = new JSONArray();
         try {
-            for (AppointmentParser.Proposal proposal : AppointmentParser.parseProposals(text)) {
+            for (AppointmentParser.Proposal proposal : AppointmentParser.parseProposals(text, context)) {
                 RuleClassifier.Result r = proposal.result;
                 applyLearnedCategory(proposal.text, r);
                 if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
@@ -173,7 +188,10 @@ public class NexoService {
             String originalText = in.optString("originalText", "").trim();
             String classificationText = originalText.isBlank() ? body : originalText;
             boolean appointmentCapture = in.optBoolean("appointmentCapture", false);
-            RuleClassifier.Result auto = appointmentCapture ? AppointmentParser.parse(classificationText) : RuleClassifier.classify(classificationText);
+            long capturedAt = in.optLong("capturedAt", 0L);
+            ParseContext context = ParseContext.at(capturedAt > 0 ? capturedAt : System.currentTimeMillis())
+                    .withOrigin(in.optString("source", appointmentCapture ? "appointment" : "manual"));
+            RuleClassifier.Result auto = appointmentCapture ? AppointmentParser.parse(classificationText, context) : RuleClassifier.classify(classificationText, context);
             applyLearnedCategory(classificationText, auto);
             if (appointmentCapture) {
                 in.put("type", "event");
