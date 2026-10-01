@@ -275,7 +275,7 @@ public class NexoService {
                 for(int i=0;i<reminders.length();i++){
                     JSONObject r=reminders.optJSONObject(i); if(r==null)continue;
                     long key=db.findNextOccurrence(newId,System.currentTimeMillis()-1); if(key<=0)continue;
-                    JSONObject occ=db.getOccurrence(newId,key); int leadMinutes=r.has("leadMinutes")?r.optInt("leadMinutes",0):r.optInt("leadDays",0)*1440; long trigger=reminderTriggerMinutes(occ.optLong("dueAt",key),leadMinutes,occ.optBoolean("hasTime",false));
+                    JSONObject occ=db.getOccurrence(newId,key); int leadMinutes=r.has("leadMinutes")?r.optInt("leadMinutes",0):r.optInt("leadDays",0)*1440; ZoneId splitZone=eventZone(next.optString("timeZone","Europe/Madrid")); long trigger=reminderTriggerMinutes(occ.optLong("dueAt",key),leadMinutes,occ.optBoolean("hasTime",false),splitZone);
                     if(trigger>System.currentTimeMillis()){
                         long rid=db.insertReminderMinutes(newId,next.optString("title","Recordatorio"),trigger,leadMinutes,key);
                         ReminderScheduler.schedule(context,rid,next.optString("title","Recordatorio"),trigger);
@@ -291,7 +291,8 @@ public class NexoService {
             for (String key:new String[]{"title","body","category","type","endAt","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) payload.put(key,ov.get(key));
             if(in.optBoolean("dateChanged",false) && ov.has("dueAt")){
                 long oldBaseDue=base.optLong("dueAt",0);
-                long shiftedBase = shiftWholeSeriesBase(oldBaseDue, occurrenceAt, ov.optLong("dueAt",0));
+                ZoneId seriesZone=eventZone(ov.optString("timeZone",base.optString("timeZone","Europe/Madrid")));
+                long shiftedBase = shiftWholeSeriesBase(oldBaseDue, occurrenceAt, ov.optLong("dueAt",0), seriesZone);
                 payload.put("dueAt", shiftedBase);
                 if(ov.has("hasTime")) payload.put("hasTime",ov.get("hasTime"));
                 if(ov.has("allDay")) payload.put("allDay",ov.get("allDay"));
@@ -420,10 +421,15 @@ public class NexoService {
     }
 
 
+    private static ZoneId eventZone(String zoneId) {
+        try { return ZoneId.of(zoneId == null || zoneId.isBlank() ? "Europe/Madrid" : zoneId); }
+        catch (Exception ignored) { return ZoneId.systemDefault(); }
+    }
+
     /** Anticipación exacta en minutos; permite desde minutos hasta meses. */
-    private static long reminderTriggerMinutes(long dueAt, int leadMinutes, boolean hasTime) {
+    private static long reminderTriggerMinutes(long dueAt, int leadMinutes, boolean hasTime, ZoneId zone) {
         if (dueAt <= 0) return 0;
-        ZoneId zone = ZoneId.systemDefault();
+        if (zone == null) zone = ZoneId.systemDefault();
         java.time.ZonedDateTime due = java.time.Instant.ofEpochMilli(dueAt).atZone(zone);
         java.time.ZonedDateTime now = java.time.ZonedDateTime.now(zone);
         java.time.ZonedDateTime trigger = due.minusMinutes(Math.max(0, leadMinutes));
@@ -441,7 +447,8 @@ public class NexoService {
             if (dueAt <= 0) return created;
             boolean completed = "done".equals(item.optString("status"));
             String recurrence = item.optString("recurrence", RecurrenceEngine.NONE);
-            long searchAfter = item.optBoolean("hasTime", false) ? System.currentTimeMillis()-1 : LocalDate.now(ZoneId.systemDefault()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()-1;
+            ZoneId zone = eventZone(item.optString("timeZone", "Europe/Madrid"));
+            long searchAfter = item.optBoolean("hasTime", false) ? System.currentTimeMillis()-1 : LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()-1;
             long occurrenceAt = !completed && RecurrenceEngine.isRecurring(recurrence) ? db.findNextOccurrence(itemId, searchAfter) : dueAt;
             if (occurrenceAt <= 0) return created;
             JSONObject occ = db.getOccurrence(itemId, occurrenceAt);
@@ -450,7 +457,7 @@ public class NexoService {
             JSONArray leads = normalizeLeadMinutes(rawLeads);
             for (int i=0;i<leads.length();i++) {
                 int leadMinutes = Math.max(0, leads.optInt(i,0));
-                long trigger = reminderTriggerMinutes(actualDue, leadMinutes, hasTime);
+                long trigger = reminderTriggerMinutes(actualDue, leadMinutes, hasTime, zone);
                 if (!completed && trigger <= System.currentTimeMillis()) continue;
                 long rid = db.insertReminderMinutes(itemId, title, trigger, leadMinutes, occurrenceAt);
                 if (completed) db.setReminderEnabled(rid, false);
@@ -494,9 +501,9 @@ public class NexoService {
 
     /** Al editar toda una serie desde una aparición intermedia, desplaza el ancla original
      *  por la misma diferencia de días y usa la hora elegida. Así no desaparece el histórico. */
-    private static long shiftWholeSeriesBase(long baseDueAt, long occurrenceAt, long editedDueAt) {
+    private static long shiftWholeSeriesBase(long baseDueAt, long occurrenceAt, long editedDueAt, ZoneId zone) {
         if (baseDueAt <= 0 || occurrenceAt <= 0 || editedDueAt <= 0) return editedDueAt;
-        ZoneId zone=ZoneId.systemDefault();
+        if (zone == null) zone=ZoneId.systemDefault();
         java.time.ZonedDateTime base=java.time.Instant.ofEpochMilli(baseDueAt).atZone(zone);
         java.time.ZonedDateTime occurrence=java.time.Instant.ofEpochMilli(occurrenceAt).atZone(zone);
         java.time.ZonedDateTime edited=java.time.Instant.ofEpochMilli(editedDueAt).atZone(zone);
