@@ -38,6 +38,7 @@ public final class RuleClassifier {
         public String reason = "Clasificación básica";
         public String temporalSource = "";
         public String recurrence = RecurrenceEngine.NONE;
+        public String recurrenceRule = "";
         public String recurrenceUntilDate = "";
         public String locationText = "";
         public String description = "";
@@ -53,8 +54,45 @@ public final class RuleClassifier {
                 o.put("dueAt", dueAt); o.put("hasTime", hasTime); o.put("dueDate", dueDate); o.put("dueTime", dueTime); o.put("dueEndTime", dueEndTime); o.put("durationMinutes", durationMinutes);
                 o.put("priority", priority); o.put("confidence", confidence); o.put("needsReview", needsReview);
                 o.put("suggestedLeadDays", suggestedLeadDays); o.put("reminderRequested", reminderRequested); o.put("voiceRequested", voiceRequested); o.put("reminderLeadMinutes", new JSONArray(reminderLeadMinutes)); o.put("reason", reason); o.put("temporalSource", temporalSource);
-                o.put("recurrence", recurrence); o.put("recurrenceUntilDate", recurrenceUntilDate); o.put("locationText", locationText); o.put("description", description);
+                o.put("recurrence", recurrence); o.put("recurrenceRule", recurrenceRule); o.put("recurrenceUntilDate", recurrenceUntilDate); o.put("locationText", locationText); o.put("description", description);
                 o.put("invalidDate", invalidDate); o.put("invalidTime", invalidTime); o.put("ambiguousTime", ambiguousTime); o.put("warnings", new JSONArray(warnings));
+                o.put("fieldMeta", fieldMeta());
+            } catch (Exception ignored) {}
+            return o;
+        }
+
+        private JSONObject fieldMeta() {
+            JSONObject fields = new JSONObject();
+            try {
+                fields.put("title", meta(title == null || title.isBlank() ? "missing" : "inferred", title));
+                fields.put("category", meta(category == null || category.isBlank() ? "missing" : "inferred", category));
+
+                String dateState = invalidDate ? "invalid" :
+                        (dueDate == null || dueDate.isBlank() ? "missing" :
+                                (temporalSource != null && temporalSource.contains("inferido") ? "inferred" : "explicit"));
+                fields.put("date", meta(dateState, temporalSource));
+
+                String timeState = invalidTime ? "invalid" : (ambiguousTime ? "ambiguous" :
+                        (!hasTime || dueTime == null || dueTime.isBlank() ? "missing" : "explicit"));
+                fields.put("time", meta(timeState, temporalSource));
+
+                fields.put("duration", meta(durationMinutes > 0 ? "explicit" : "missing",
+                        durationMinutes > 0 ? durationMinutes + " min" : ""));
+                fields.put("location", meta(locationText == null || locationText.isBlank() ? "missing" : "explicit", locationText));
+                fields.put("description", meta(description == null || description.isBlank() ? "missing" : "inferred", description));
+                fields.put("recurrence", meta(RecurrenceEngine.isRecurring(recurrence) ? "explicit" : "missing",
+                        recurrenceRule == null || recurrenceRule.isBlank() ? recurrence : recurrenceRule));
+                fields.put("reminders", meta(reminderRequested ? "explicit" : "missing",
+                        reminderLeadMinutes.isEmpty() ? "" : reminderLeadMinutes.toString()));
+            } catch (Exception ignored) {}
+            return fields;
+        }
+
+        private JSONObject meta(String state, String evidence) {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("state", state == null ? "missing" : state);
+                o.put("evidence", evidence == null ? "" : evidence);
             } catch (Exception ignored) {}
             return o;
         }
@@ -144,6 +182,7 @@ public final class RuleClassifier {
         RecurrenceEngine.Detection recurrence = RecurrenceEngine.detect(text);
         if (RecurrenceEngine.isRecurring(recurrence.recurrence)) {
             r.recurrence = recurrence.recurrence;
+            r.recurrenceRule = recurrence.recurrenceRule;
             r.recurrenceUntilDate = recurrence.untilDate;
             r.confidence = Math.max(r.confidence, .86);
             if ("Clasificación básica".equals(r.reason)) r.reason = "Detectada periodicidad";
