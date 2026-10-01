@@ -417,6 +417,7 @@ function updateFloatingActions(){
     quoteEditorActive?'Dictar frase':
     placeEditorActive?'Completar lugar por voz':
     documentEditorActive?'Dictar descripción':
+    state.screen==='save'?'Dictar en esta captura':
     state.screen==='search'?'Buscar por voz':
     state.screen==='calendar'?'Añadir cita por voz':
     panel==='appointments'?'Añadir a Agenda por voz':
@@ -538,7 +539,7 @@ function runFloatingVoice(){
   if(state.documentEditor&&state.screen==='panel'&&state.lastPanel==='documents'){startDocumentEditorVoice();return;}
   if(state.screen==='save'){
     const base=$('#captureText')?.value.trim()||'';
-    startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});return;
+    startManagedDictation('capture-edit',{base,title:'Dictar en esta captura',hint:'Dicta o amplía el contenido abierto. Nexo volverá a interpretarlo sin salir de esta captura.'});return;
   }
   if(state.screen==='search'){startSearchVoice();return;}
   if(state.screen==='calendar'){
@@ -580,7 +581,7 @@ function navigate(screen, options={}) {
   $$('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
   if(screen==='today')renderToday();
   else if(screen==='more')renderMore();
-  else if(screen==='save')renderCapturePeopleAssignment();
+  else if(screen==='save'){renderCapturePeopleAssignment();updateCaptureReviewMode();}
   else if(screen==='calendar')renderCalendar();
   else if(screen==='search')runSearch();
   updateFloatingActions();
@@ -1458,14 +1459,38 @@ function updatePreviewAlerts(){
 function setCaptureAlerts(values,userChange=false){
   state.captureAlerts=normalizeAlertMinutes(values);if(userChange)markCaptureManual('alerts');refreshCaptureAlertEditor();
 }
+function captureReviewType(){
+  return String($('#captureType')?.value||state.classification?.type||state.capturePinnedType||'event');
+}
+function updateCaptureReviewMode(){
+  const type=captureReviewType(),appointment=isAppointmentType(type);
+  $('#captureEventFields')?.classList.toggle('hidden',!appointment);
+  const hint=$('#captureRouteHint'),subtitle=$('#captureSubtitle'),save=$('#saveCaptureBtn');
+  if(subtitle)subtitle.textContent=appointment
+    ? 'Revisa los datos de la cita antes de guardarla. El micrófono continúa sobre esta misma captura.'
+    : 'Revisa lo que Nexo ha entendido antes de guardarlo. El micrófono continúa sobre esta misma captura.';
+  if(save)save.textContent=type==='medication'?'Revisar pauta':'Guardar en Nexo';
+  if(!hint)return;
+  if(appointment){hint.classList.add('hidden');hint.textContent='';return;}
+  const messages={
+    medication:'Nexo lo ha identificado como medicamento. Al continuar se abrirá el formulario de Medicación para revisar nombre, dosis, pauta y horarios antes de guardar.',
+    note:'Nexo lo ha identificado como nota. Se muestran solo los datos comunes; los controles de Agenda no son necesarios.',
+    document:'Nexo lo ha identificado como documento. Se muestran solo los datos comunes y el adjunto, sin controles de Agenda.',
+    place:'Nexo lo ha identificado como lugar. Se muestran solo los datos comunes; los controles de Agenda no son necesarios.',
+    restaurant:'Nexo lo ha identificado como lugar. Se muestran solo los datos comunes; los controles de Agenda no son necesarios.'
+  };
+  hint.textContent=messages[type]||('Nexo organizará esta captura como '+typeLabel(type).toLocaleLowerCase('es-ES')+'. Revisa los datos antes de guardar.');
+  hint.classList.remove('hidden');
+}
 function refreshCaptureAlertEditor(){
   updateCaptureContext();
-  const hasDate=!!$('#captureDate')?.value,type=$('#captureType')?.value||state.classification?.type||'note';
-  const voiceEligible=hasDate&&['event','reminder','task','expiry'].includes(type);
-  $('#captureAlertsSection')?.classList.toggle('hidden',!hasDate);
+  const hasDate=!!$('#captureDate')?.value,type=captureReviewType();
+  const voiceEligible=hasDate&&isAppointmentType(type);
+  $('#captureAlertsSection')?.classList.toggle('hidden',!hasDate||!isAppointmentType(type));
   $('#captureVoiceRow')?.classList.toggle('hidden',!voiceEligible);
   if(!voiceEligible&&$('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=false;
   renderAlertList('#captureAlertList',state.captureAlerts,next=>setCaptureAlerts(next,true));updatePreviewAlerts();
+  updateCaptureReviewMode();
 }
 
 function renderClassification(a, fillForm=true) {
@@ -1819,9 +1844,6 @@ function renderMore(){
   renderPeopleSettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
-  const backup=parseNative(NexoNative.getBackupStatus(),{}),last=Number(backup.lastExportAt)||0,total=Object.values(backup.stats||{}).reduce((a,n)=>a+(Number(n)||0),0),hint=$('#backupHint');
-  const due=total>0&&(!last||Date.now()-last>30*86400000);hint.classList.toggle('hidden',!due);
-  if(due)hint.innerHTML='<strong>Copia de seguridad pendiente</strong><span>Exporta tus datos y recuerda guardar los audios por separado.</span>';
 }
 
 function renderCommunicationCaptureSettings(){
@@ -1856,12 +1878,12 @@ function renderCommunicationCaptureSettings(){
       const last=settings.smsLastSync?(' · última consulta '+fmtDate(Number(settings.smsLastSync),true)):'';
       smsStatus.textContent=(settings.autoScanEnabled===false?'Preparado para escaneo manual':'Activo · lectura directa automática')+last+' · '+Number(settings.smsSeen||0)+' vistos · '+Number(settings.smsCaptured||0)+' candidatos · '+Number(settings.smsRejected||0)+' descartados'+(Number(settings.smsErrors||0)?' · '+Number(settings.smsErrors||0)+' con error':'');
     }else if(settings.smsError)smsStatus.textContent=String(settings.smsError);
-    else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent=settings.autoScanEnabled===false?'Preparado · pulsa Escanear ahora para crear la referencia inicial.':'Preparando referencia inicial de SMS…';
+    else if(settings.smsDirectEnabled&&settings.smsPermission)smsStatus.textContent=settings.autoScanEnabled===false?'Preparado · usa Inbox → Escanear ahora para crear la referencia inicial.':'Preparando referencia inicial de SMS…';
     else if(settings.smsDirectEnabled&&!settings.smsPermission)smsStatus.textContent='Falta conceder permiso para leer SMS.';
     else smsStatus.textContent='Desactivado.';
   }
 
-  const gmailStatus=$('#gmailDirectStatus'),gmailBtn=$('#gmailConnectBtn'),gmailScan=$('#gmailScanNowBtn'),gmailDisconnect=$('#gmailDisconnectBtn'),gmailBadge=$('#gmailConnectionBadge'),gmailAccount=$('#gmailAccount'),gmailDiagnostic=$('#gmailDiagnostic'),gmailDiagnosticText=$('#gmailDiagnosticText');
+  const gmailStatus=$('#gmailDirectStatus'),gmailBtn=$('#gmailConnectBtn'),gmailDisconnect=$('#gmailDisconnectBtn'),gmailBadge=$('#gmailConnectionBadge'),gmailAccount=$('#gmailAccount'),gmailDiagnostic=$('#gmailDiagnostic'),gmailDiagnosticText=$('#gmailDiagnosticText');
   const gmailConnected=!!settings.gmailAuthorized;
   const gmailAccountText=settings.gmailEmail?String(settings.gmailEmail):'';
   if(gmailBadge){
@@ -1878,11 +1900,11 @@ function renderCommunicationCaptureSettings(){
       const last=settings.gmailLastSync?'Último escaneo: '+fmtDate(Number(settings.gmailLastSync),true):'Preparado para escanear';
       gmailStatus.textContent=`${last} · ${Number(settings.gmailCaptured||0)} candidatos · ${Number(settings.gmailRejected||0)} descartados${settings.autoScanEnabled===false?' · manual':' · automático activado'}`;
     }else if(gmailConnected){
-      gmailStatus.textContent=settings.autoScanEnabled===false?'Cuenta conectada · pulsa “Escanear Gmail” para empezar.':'Cuenta conectada · preparando Gmail…';
+      gmailStatus.textContent=settings.autoScanEnabled===false?'Cuenta conectada · usa Inbox → Escanear ahora cuando quieras revisar Gmail.':'Cuenta conectada · preparando Gmail…';
     }else if(settings.gmailError){
       gmailStatus.textContent=String(settings.gmailError);
     }else{
-      gmailStatus.textContent='Conecta una cuenta de Google una sola vez. Después podrás escanear Gmail desde aquí.';
+      gmailStatus.textContent='Conecta una cuenta de Google una sola vez. Después Gmail podrá alimentar el Inbox.';
     }
   }
   if(gmailBtn){
@@ -1890,7 +1912,6 @@ function renderCommunicationCaptureSettings(){
     gmailBtn.classList.toggle('secondary-button',gmailConnected);
     gmailBtn.classList.toggle('primary-button',!gmailConnected);
   }
-  gmailScan?.classList.toggle('hidden',!gmailConnected);
   gmailDisconnect?.classList.toggle('hidden',!gmailConnected);
   if(gmailDiagnostic){
     const detail=String(settings.gmailErrorDetail||'').trim();
@@ -1901,7 +1922,7 @@ function renderCommunicationCaptureSettings(){
   const calendar=$('#calendarCaptureEnabled'),calendarStatus=$('#calendarAccessStatus');
   if(calendar)calendar.checked=!!settings.calendarEnabled;
   if(calendarStatus){
-    if(settings.calendarEnabled&&settings.calendarPermission&&settings.calendarBaselined)calendarStatus.textContent=settings.autoScanEnabled===false?'Preparado para escaneo manual.':'Activo · observando nuevos eventos y cambios de Calendar.';
+    if(settings.calendarEnabled&&settings.calendarPermission&&settings.calendarBaselined)calendarStatus.textContent=settings.autoScanEnabled===false?'Preparado para escaneo manual desde Inbox.':'Activo · observando nuevos eventos y cambios de Calendar.';
     else if(settings.calendarEnabled&&settings.calendarPermission)calendarStatus.textContent='Preparando la referencia inicial del calendario…';
     else if(settings.calendarEnabled&&!settings.calendarPermission)calendarStatus.textContent='Falta conceder permiso de calendario.';
     else calendarStatus.textContent='Desactivado.';
@@ -2041,6 +2062,7 @@ function openInboxCaptureEditor(capture,incoming=false){
     $('#captureType').value=suggested;
     $('#captureTitle').value=capture.attachmentName||capture.subject||'Contenido recibido';
     setInterpretationStatus('idle','Contenido conservado · revisa antes de guardar');
+    refreshCaptureAlertEditor();
   }
   if(incoming)toast(capture.source==='calendar'?'Evento de Calendar guardado en Inbox para revisión.':'Contenido guardado en Inbox. Revisa lo que Nexo ha entendido.');
 }
@@ -2981,7 +3003,7 @@ function init(){
     const enabled=$('#inputHubAutoScan').checked;
     NexoNative.setInputHubAutoScanEnabled(enabled);
     renderCommunicationCaptureSettings();
-    toast(enabled?'Escaneo automático activado':'Modo manual activado · usa Escanear ahora');
+    toast(enabled?'Escaneo automático activado':'Modo manual activado · usa Inbox → Escanear ahora');
   });
   $('#communicationCaptureEnabled')?.addEventListener('change',()=>{NexoNative.setCommunicationCaptureEnabled($('#communicationCaptureEnabled').checked);renderCommunicationCaptureSettings();toast($('#communicationCaptureEnabled').checked?'Captura automática activada':'Captura automática pausada');});
   $('#smsDirectEnabled')?.addEventListener('change',()=>{
@@ -2994,11 +3016,6 @@ function init(){
     NexoNative.connectGmail();
     toast('Abriendo Google para conectar Gmail…');
   });
-  $('#gmailScanNowBtn')?.addEventListener('click',()=>{
-    NexoNative.scanGmailNow();
-    toast('Escaneando Gmail…');
-    setTimeout(renderCommunicationCaptureSettings,900);
-  });
   $('#gmailDisconnectBtn')?.addEventListener('click',()=>{
     NexoNative.disconnectGmail();
     toast('Gmail desconectado');
@@ -3009,11 +3026,6 @@ function init(){
     NexoNative.setCalendarCaptureEnabled(enabled);
     toast(enabled?'Activando escucha de Calendar…':'Escucha de Calendar desactivada');
     setTimeout(renderCommunicationCaptureSettings,500);
-  });
-  $('#inputHubScanBtn')?.addEventListener('click',()=>{
-    NexoNative.scanInputHubNow();
-    toast('Buscando nuevas entradas…');
-    setTimeout(renderCommunicationCaptureSettings,900);
   });
   $('#resetMedicationMessages')?.addEventListener('click',()=>{NexoNative.resetMedicationMessages();renderMedicationMessageSettings();toast('Frases restauradas');});
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
