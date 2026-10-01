@@ -2020,6 +2020,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String classify(String text) { return service.classify(text).toString(); }
         @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
+        @JavascriptInterface public String classifyAppointmentProposals(String text) { return service.classifyAppointmentProposals(text).toString(); }
         @JavascriptInterface public String getAppointments() { return db.getAppointments().toString(); }
         @JavascriptInterface public void startVoiceInput() { MainActivity.this.startVoiceInput(); }
         @JavascriptInterface public void startManagedVoice() { MainActivity.this.startManagedVoice(); }
