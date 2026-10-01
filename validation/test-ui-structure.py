@@ -1,5 +1,6 @@
 from html.parser import HTMLParser
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = ROOT / "app/src/main/assets/index.html"
@@ -52,28 +53,24 @@ for required in [
     'id="homeTodayCard"',
     'id="homeWeekCard"',
     'id="homeInboxPulseCard"',
-    'id="homeRecordCard"',
+    'id="homeCalendarCard"',
+    '<small>Agenda</small>',
     'data-panel="notes"',
     'data-panel="medications"',
     'data-panel="lists"',
     'data-panel="documents"',
     'id="homeUpcomingList"',
-    'id="homeAgendaLink"',
 ]:
     assert required in home, f"Falta en Inicio: {required}"
 
-for forbidden in [
-    'id="homeCreateBtn"',
-    'id="homeShoppingBtn"',
-    'data-panel="history"',
-    'data-panel="appointments"',
-]:
-    assert forbidden not in home, f"Acceso redundante en Inicio: {forbidden}"
+# Calendario vive en la barra inferior; Inicio no debe duplicarlo como tarjeta.
+assert 'data-nav="calendar"' not in home
+assert 'data-panel="appointments"' not in home
 
 tools_start = html.index('<section class="screen" data-screen="tools"')
 tools_end = html.index('<section class="screen" data-screen="save"', tools_start)
 tools = html[tools_start:tools_end]
-for panel in ["lists","notes","journal","quotes","medications","recordings","places","parking","documents","backup"]:
+for panel in ["notes","recordings","lists","documents","journal","quotes","medications","places","parking","history","backup"]:
     assert f'data-panel="{panel}"' in tools, f"Falta herramienta: {panel}"
 
 nav_start = html.index('<nav class="bottom-nav"')
@@ -83,14 +80,15 @@ for dest in ["today","calendar","search","tools"]:
     assert f'data-nav="{dest}"' in nav, f"Falta navegación principal: {dest}"
 
 assert 'id="globalVoiceFab"' in html, "Falta FAB de voz"
-assert 'id="calendarAddFab"' in html, "Falta FAB contextual de añadir evento"
-assert "const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup'" in app_js, "Los FAB deben usar un contexto central y estable"
-assert "state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel" in app_js, "El FAB de evento debe estar disponible en la mayoría de pantallas de contenido"
-assert "function runEventAddFab()" in app_js and "$('#calendarAddFab').addEventListener('click',runEventAddFab);" in app_js, "El FAB contextual no está conectado a la creación de eventos"
+assert 'id="calendarAddFab"' in html, "Falta FAB contextual de añadir"
+assert "function updateFloatingActions()" in app_js
+assert "else if(state.screen==='save'){voiceVisible=!modalOpen;addVisible=false;}" in app_js
+assert "if(state.screen==='tools'||state.screen==='more'){voiceVisible=false;addVisible=false;}" in app_js
+assert "if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}" in app_js
+assert "function runEventAddFab()" in app_js and "$('#calendarAddFab').addEventListener('click',runEventAddFab);" in app_js
 assert "$$('.screen').forEach" in app_js, "La navegación debe iterar todas las pantallas"
 assert "$$('.nav-item').forEach" in app_js, "La navegación debe iterar todos los botones inferiores"
-import re
-assert not re.search(r"(?<!\$)\$\('\.screen'\)\.forEach", app_js), "Selector simple incorrecto para pantallas"
-assert not re.search(r"(?<!\$)\$\('\.nav-item'\)\.forEach", app_js), "Selector simple incorrecto para navegación"
+assert not re.search(r"(?<!\$)\$\('\.screen'\)\.forEach", app_js)
+assert not re.search(r"(?<!\$)\$\('\.nav-item'\)\.forEach", app_js)
 
-print("Estructura UI Nexo: OK")
+print("Estructura UI Nexo beta22: OK")
