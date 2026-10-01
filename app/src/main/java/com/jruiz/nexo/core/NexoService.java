@@ -128,6 +128,27 @@ public class NexoService {
         return r.toJson();
     }
 
+    public JSONObject classifyAppointments(String text) {
+        JSONObject out = new JSONObject();
+        JSONArray proposals = new JSONArray();
+        try {
+            java.util.List<String> parts = AppointmentParser.splitAppointmentTexts(text);
+            for (String part : parts) {
+                RuleClassifier.Result r = AppointmentParser.parse(part);
+                applyLearnedCategory(part, r);
+                if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
+                JSONObject proposal = r.toJson();
+                proposal.put("proposalText", part);
+                proposals.put(proposal);
+            }
+            out.put("count", proposals.length());
+            out.put("proposals", proposals);
+        } catch (Exception ignored) {
+            try { out.put("count", 0).put("proposals", proposals); } catch (Exception ignored2) {}
+        }
+        return out;
+    }
+
     /**
      * Las correcciones aprendidas son una ayuda secundaria. Nunca pueden sustituir una
      * categoría respaldada por señales locales claras del propio texto.
