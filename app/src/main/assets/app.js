@@ -653,7 +653,8 @@ function eventParticipantAvatarsHtml(item,extraClass=''){
 function homeUpcomingCard(item){
   const d=new Date(Number(item.dueAt)),theme=familyCategoryTheme(item.category),icon=familyCategoryIcon(item.category),participants=homeParticipantData(item);
   const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase();
-  const month=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(d).replace('.','').toUpperCase();
+  const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(d).replace('.','').toLocaleLowerCase('es-ES');
+  const month=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
   const recurring=!!item.recurring||(item.recurrence&&item.recurrence!=='none');
   const id=Number(item.seriesId||item.id),occ=Number(item.occurrenceAt||item.dueAt);
   const style='--event-category-color:'+theme[0]+';--event-category-bg:'+theme[1]+';--event-category-border:'+theme[2];
