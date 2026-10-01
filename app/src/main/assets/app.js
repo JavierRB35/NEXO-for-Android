@@ -2480,7 +2480,7 @@ function init(){
   bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview',()=>markCaptureManual('location','mapsUrl'));
   const captureFieldMap={
     captureTitle:'title',captureDescription:'description',captureCategory:'category',captureLocation:'location',
-    capturePriority:'priority',captureRecurrence:'recurrence',captureRecurrenceUntil:'recurrence'
+    capturePriority:'priority',captureRecurrence:'recurrence',captureRecurrenceUntil:'recurrence',captureTimeZone:'timeZone'
   };
   Object.entries(captureFieldMap).forEach(([id,field])=>$('#'+id).addEventListener('change',()=>markCaptureManual(field)));
   $('#captureType').addEventListener('change',()=>{markCaptureManual('type');refreshCaptureAlertEditor();});
