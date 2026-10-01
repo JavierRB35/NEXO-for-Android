@@ -333,6 +333,13 @@ function durationMinutesFromTimes(start,end){
 function recurrenceRuleFor(value){
   return ({daily:'FREQ=DAILY',weekly:'FREQ=WEEKLY',monthly:'FREQ=MONTHLY',bimonthly:'FREQ=MONTHLY;INTERVAL=2',quarterly:'FREQ=MONTHLY;INTERVAL=3',semiannual:'FREQ=MONTHLY;INTERVAL=6',annual:'FREQ=YEARLY'})[value]||'';
 }
+function recurrenceRuleHint(rule){
+  const m=String(rule||'').match(/(?:^|;)BYDAY=([^;]+)/i);
+  if(!m)return '';
+  const labels={MO:'lun',TU:'mar',WE:'mié',TH:'jue',FR:'vie',SA:'sáb',SU:'dom'};
+  const days=m[1].split(',').map(x=>labels[x.trim().toUpperCase()]).filter(Boolean);
+  return days.length?days.join(' · '):'';
+}
 function addOneHourTime(value){
   if(!value)return '10:00';
   const [h,m]=value.split(':').map(Number),minutes=((h*60+m)+60)%(24*60);
@@ -1211,7 +1218,8 @@ function renderClassification(a, fillForm=true) {
   $('#previewDescription').textContent=a.description?`DESCRIPCIÓN: ${a.description}`:'';
   $('#previewDescription').classList.toggle('hidden',!a.description);
   $('#previewDate').textContent=a.dueDate?displayAnalysisDate(a):(state.capturePinnedDate?fmtDate(dateTimeToMs(state.capturePinnedDate,''),false):'Sin fecha');
-  $('#previewRecurrence').textContent=a.recurrence&&a.recurrence!=='none'?`↻ ${recurrenceLabel(a.recurrence)}`:'';
+  const recurrenceHint=recurrenceRuleHint(a.recurrenceRule);
+  $('#previewRecurrence').textContent=a.recurrence&&a.recurrence!=='none'?`↻ ${recurrenceLabel(a.recurrence)}${recurrenceHint?` · ${recurrenceHint}`:''}`:'';
   $('#previewReason').textContent=a.reason||'';
 
   if(fillForm){
@@ -1312,11 +1320,13 @@ function commitCapture() {
     openMedicationComposer(text||$('#captureDescription').value.trim());
     return;
   }
+  const recurrence=$('#captureRecurrence').value||'none';
+  const detectedRecurrenceRule=(!captureFieldLocked('recurrence')&&state.classification?.recurrence===recurrence)?String(state.classification?.recurrenceRule||''):'';
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
     dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
-    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
+    recurrence, recurrenceRule:detectedRecurrenceRule||recurrenceRuleFor(recurrence), recurrenceUntil:recurrence!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
     needsReview:false,
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
