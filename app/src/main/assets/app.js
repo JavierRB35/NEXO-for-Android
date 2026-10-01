@@ -582,7 +582,7 @@ function navigate(screen, options={}) {
   else if(screen==='more')renderMore();
   else if(screen==='save')renderCapturePeopleAssignment();
   else if(screen==='calendar')renderCalendar();
-  else if(screen==='search'&&$('#searchInput').value.trim())runSearch();
+  else if(screen==='search')runSearch();
   updateFloatingActions();
   const target=router.key(route);
   requestAnimationFrame(()=>{if(router.key(router.current)===target)window.scrollTo(0,moved.scrollY);});
@@ -1608,7 +1608,7 @@ function commitCapture() {
 
 function runSearch(query=''){
   const q=(query||$('#searchInput').value).trim(),filter=$('#searchFilter').value||'all';state.searchFilter=filter;$('#searchInput').value=q;
-  if(!q){$('#searchResults').innerHTML='';$('#searchStatus').textContent='Escribe una palabra para buscar en tus contenidos.';return;}
+  if(!q){$('#searchResults').innerHTML='';$('#searchStatus').textContent='Escribe o usa el micrófono para buscar en Nexo.';return;}
   buildFamilyStyleSearchIndex();
   let results=familyStyleSearch(q,!!state.searchHistorical);
   if(filter!=='all'){
