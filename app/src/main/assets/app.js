@@ -2464,10 +2464,22 @@ function medicationVoiceDoseAction(text){
 }
 function medicationVoiceTimeMinutes(text){
   const n=medicationVoiceNorm(text);
-  const m=n.match(/\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?\b/)||n.match(/\b(\d{1,2}):(\d{2})\b/);
-  if(!m)return -1;
-  const h=Number(m[1]),min=Number(m[2]||0);
-  return h>=0&&h<=23&&min>=0&&min<=59?h*60+min:-1;
+  const numeric=n.match(/\ba\s+las?\s+(\d{1,2})(?::(\d{2}))?\b/)||n.match(/\b(\d{1,2}):(\d{2})\b/);
+  if(numeric){
+    const h=Number(numeric[1]),min=Number(numeric[2]||0);
+    return h>=0&&h<=23&&min>=0&&min<=59?h*60+min:-1;
+  }
+  const words={cero:0,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiuno:21,veintidos:22,veintitres:23};
+  const spoken=n.match(/\ba\s+la(?:s)?\s+(cero|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veintiuno|veintidos|veintitres)(?:\s+(y\s+media|y\s+cuarto|menos\s+cuarto))?(?:\s+de\s+la\s+(manana|tarde|noche))?\b/);
+  if(!spoken)return -1;
+  let h=words[spoken[1]],min=0;
+  if(spoken[2]==='y media')min=30;
+  else if(spoken[2]==='y cuarto')min=15;
+  else if(spoken[2]==='menos cuarto'){h=(h+23)%24;min=45;}
+  const part=spoken[3]||'';
+  if(part==='noche'&&h===12)h=0;
+  else if((part==='tarde'||part==='noche')&&h>=1&&h<=11)h+=12;
+  return h>=0&&h<=23?h*60+min:-1;
 }
 function medicationDoseVoiceCandidates(text){
   const rows=parseNative(NexoNative.getMedicationTodayDoses(),[]).filter(d=>d.status==='pending'||d.status==='snoozed');
@@ -2513,16 +2525,19 @@ function applyMedicationVoiceToEditor(text){
   if(parsed.reason)set('#medReason',parsed.reason);
   if(parsed.scheduleMode){$('#medMode').value=parsed.scheduleMode;changed=true;$('#medMode').dispatchEvent(new Event('change'));}
   if(parsed.intervalMinutes)set('#medInterval',Number(parsed.intervalMinutes)/60);
-  if(Array.isArray(parsed.times)&&parsed.times.length){
+  const mergeTimes=(values=[])=>{
+    const clean=values.map(String).map(x=>x.trim()).filter(Boolean);
+    if(!clean.length)return;
     const current=Array.from(document.querySelectorAll('#medTimesPicker input[type="time"]')).map(x=>x.value).filter(Boolean);
-    const merged=[...new Set([...current,...parsed.times])].sort();
+    const merged=[...new Set([...current,...clean])].sort();
     const picker=$('#medTimesPicker');
-    if(picker){
-      picker.innerHTML=merged.map((value,index)=>`<div class="multi-time-row"><input type="time" value="${escAttr(value)}" aria-label="Hora de toma ${index+1}"><button type="button" class="multi-time-remove" data-med-time-remove="${index}" aria-label="Eliminar hora">×</button></div>`).join('');
-      Array.from(document.querySelectorAll('[data-med-time-remove]')).forEach(button=>button.addEventListener('click',()=>button.closest('.multi-time-row')?.remove()));
-      changed=true;
-    }
-  }
+    if(!picker)return;
+    picker.innerHTML=merged.map((value,index)=>`<div class="multi-time-row"><input type="time" value="${escAttr(value)}" aria-label="Hora de toma ${index+1}"><button type="button" class="multi-time-remove" data-med-time-remove="${index}" aria-label="Eliminar hora">×</button></div>`).join('');
+    Array.from(document.querySelectorAll('[data-med-time-remove]')).forEach(button=>button.addEventListener('click',()=>button.closest('.multi-time-row')?.remove()));
+    changed=true;
+  };
+  if(Array.isArray(parsed.times)&&parsed.times.length)mergeTimes(parsed.times);
+  else if(parsed.startTime&&$('#medMode')?.value==='times'&&/\ba\s+las?\b|\b\d{1,2}:\d{2}\b/.test(n))mergeTimes([parsed.startTime]);
   if(parsed.startDate&&/\b(?:empieza|comienza|inicio|desde)\b/.test(n))set('#medStartDate',parsed.startDate);
   if(parsed.startTime&&/\b(?:primera|empieza|comienza|inicio|desde|a las?)\b/.test(n))set('#medStartTime',parsed.startTime);
   if(parsed.durationDays)set('#medDuration',parsed.durationDays);
