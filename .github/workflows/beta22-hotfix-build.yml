@@ -87,6 +87,7 @@ jobs:
           node validation/test-beta22-runtime.mjs
           python3 validation/test-home-runtime-performance.py
           python3 validation/test-home-section-headings.py
+          python3 validation/test-startup-splash.py
           python3 validation/test-version-identity.py
           python3 validation/test-beta22-final-context-audit.py
           python3 validation/test-contextual-navigation.py
