@@ -60,19 +60,19 @@ for r in rules:
 db=db_path.read_text(encoding='utf-8')
 for field in ['end_at','all_day','time_zone','maps_url','recurrence_rule','participants_text']:
     assert field in db, f'Falta campo local compatible: {field}'
-assert 'DB_VERSION = 20' in db
+assert 'DB_VERSION = 23' in db
 assert 'getNexoFamiliaMetadataForLocalItem' in db
 assert 'metadataComplete' in db and 'brokenMappings' in db
 assert 'hasNexoFamiliaReminderMapping' in db
 assert 'resetNexoFamiliaImportedData' in db
 
 main=main_path.read_text(encoding='utf-8')
-assert 'applyBundledNexoFamiliaMigration();' in main
-assert 'nexo_familia_seed_v1.json' in main
-assert 'auditBundledNexoFamiliaPayload' in main
-assert 'repairBundledNexoFamiliaMigration' in main
-assert 'cleanRebuildVersion' in main
-assert 'verifiedSelected' in main and 'verifiedFamily' in main
+assert 'nexo_familia_seed_v1.json' in main  # compatibilidad manual histórica
+assert 'NexoFamiliaCloudSync' in main
+on_create=main.split('@Override protected void onCreate',1)[1].split('@Override protected void onResume',1)[0]
+assert 'applyBundledNexoFamiliaMigration();' not in on_create
+assert 'syncNexoFamiliaEvents' in main
+assert 'linkNexoFamilia' in main
 
 importer=importer_path.read_text(encoding='utf-8')
 for key in ['endAt','allDay','timeZone','mapsUrl','recurrenceRule','participantsText']:
