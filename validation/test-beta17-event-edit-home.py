@@ -52,7 +52,7 @@ assert '<label>Enlace de Google Maps' not in occ
 # 4. Calendario de Inicio abre Agenda; el acceso redundante desaparece.
 assert 'id="homeAgendaLink"' not in html
 assert 'Ver agenda' not in html
-assert "$('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});" in js
+assert "$('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';state.appointmentsFilter='pending';openPanel('appointments');});" in js
 assert '<button class="nav-item" data-nav="calendar">' in html
 assert "navigate(b.dataset.nav,{root:true})" in js
 assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
