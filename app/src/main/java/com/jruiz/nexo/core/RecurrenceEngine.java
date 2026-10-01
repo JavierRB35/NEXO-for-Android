@@ -2,9 +2,12 @@ package com.jruiz.nexo.core;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,7 +15,8 @@ import java.util.regex.Pattern;
  * Motor determinista de recurrencias de Nexo.
  *
  * No genera filas hasta 2040. Una serie se guarda una sola vez y las apariciones
- * se calculan cuando una pantalla las necesita.
+ * se calculan cuando una pantalla las necesita. recurrenceRule amplía el modelo
+ * histórico sin romperlo, empezando por BYDAY para series semanales.
  */
 public final class RecurrenceEngine {
     public static final String NONE = "none";
@@ -23,6 +27,13 @@ public final class RecurrenceEngine {
     public static final String QUARTERLY = "quarterly";
     public static final String SEMIANNUAL = "semiannual";
     public static final String ANNUAL = "annual";
+
+    private static final Pattern WEEKDAY_TOKEN = Pattern.compile(
+            "\\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\\b");
+    private static final Pattern WEEKDAY_SEQUENCE = Pattern.compile(
+            "\\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\\b" +
+            "\\s*(?:,|y)\\s*(?:el\\s+)?" +
+            "\\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\\b");
 
     private RecurrenceEngine() {}
 
@@ -55,11 +66,20 @@ public final class RecurrenceEngine {
         };
     }
 
-    /** Devuelve las apariciones de una serie dentro de un rango cerrado. */
+    /** Compatibilidad con consumidores históricos sin recurrenceRule. */
     public static List<Long> occurrencesBetween(long baseDueAt, String recurrence, long recurrenceUntil,
                                                  long rangeStart, long rangeEnd, ZoneId zone, int max) {
+        return occurrencesBetween(baseDueAt, recurrence, "", recurrenceUntil, rangeStart, rangeEnd, zone, max);
+    }
+
+    /** Devuelve las apariciones de una serie dentro de un rango cerrado. */
+    public static List<Long> occurrencesBetween(long baseDueAt, String recurrence, String recurrenceRule,
+                                                 long recurrenceUntil, long rangeStart, long rangeEnd,
+                                                 ZoneId zone, int max) {
         ArrayList<Long> out = new ArrayList<>();
         if (baseDueAt <= 0 || rangeEnd < rangeStart || max <= 0) return out;
+        if (zone == null) zone = ZoneId.systemDefault();
+
         String r = normalize(recurrence);
         if (NONE.equals(r)) {
             if (baseDueAt >= rangeStart && baseDueAt <= rangeEnd) out.add(baseDueAt);
@@ -68,6 +88,11 @@ public final class RecurrenceEngine {
 
         long hardEnd = recurrenceUntil > 0 ? Math.min(rangeEnd, recurrenceUntil) : rangeEnd;
         if (hardEnd < baseDueAt || hardEnd < rangeStart) return out;
+
+        Set<DayOfWeek> byDays = WEEKLY.equals(r) ? parseByDays(recurrenceRule) : Set.of();
+        if (WEEKLY.equals(r) && !byDays.isEmpty()) {
+            return weeklyByDays(baseDueAt, recurrenceRule, hardEnd, rangeStart, rangeEnd, zone, max, byDays);
+        }
 
         ZonedDateTime base = Instant.ofEpochMilli(baseDueAt).atZone(zone);
         LocalDate baseDate = base.toLocalDate();
@@ -87,15 +112,49 @@ public final class RecurrenceEngine {
         return out;
     }
 
-    /** Próxima aparición estrictamente posterior a afterMillis. */
+    private static List<Long> weeklyByDays(long baseDueAt, String recurrenceRule, long hardEnd,
+                                            long rangeStart, long rangeEnd, ZoneId zone, int max,
+                                            Set<DayOfWeek> byDays) {
+        ArrayList<Long> out = new ArrayList<>();
+        ZonedDateTime base = Instant.ofEpochMilli(baseDueAt).atZone(zone);
+        LocalDate baseDate = base.toLocalDate();
+        LocalTime baseTime = base.toLocalTime();
+        int interval = Math.max(1, parseInterval(recurrenceRule));
+
+        LocalDate baseWeek = baseDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate cursor = Instant.ofEpochMilli(Math.max(baseDueAt, rangeStart)).atZone(zone).toLocalDate();
+        LocalDate last = Instant.ofEpochMilli(Math.min(hardEnd, rangeEnd)).atZone(zone).toLocalDate();
+
+        for (int guard=0; !cursor.isAfter(last) && out.size()<max && guard<100000; guard++,cursor=cursor.plusDays(1)) {
+            if (!byDays.contains(cursor.getDayOfWeek())) continue;
+            LocalDate cursorWeek = cursor.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            long weekIndex = ChronoUnit.WEEKS.between(baseWeek, cursorWeek);
+            if (weekIndex < 0 || weekIndex % interval != 0) continue;
+
+            long at = cursor.atTime(baseTime).atZone(zone).toInstant().toEpochMilli();
+            if (at < baseDueAt || at < rangeStart || at > hardEnd || at > rangeEnd) continue;
+            out.add(at);
+        }
+        return out;
+    }
+
+    /** Compatibilidad con consumidores históricos sin recurrenceRule. */
     public static long nextOccurrence(long baseDueAt, String recurrence, long recurrenceUntil,
                                       long afterMillis, ZoneId zone) {
+        return nextOccurrence(baseDueAt, recurrence, "", recurrenceUntil, afterMillis, zone);
+    }
+
+    /** Próxima aparición estrictamente posterior a afterMillis. */
+    public static long nextOccurrence(long baseDueAt, String recurrence, String recurrenceRule,
+                                      long recurrenceUntil, long afterMillis, ZoneId zone) {
         if (baseDueAt <= 0) return 0;
+        if (zone == null) zone = ZoneId.systemDefault();
         String r = normalize(recurrence);
         if (NONE.equals(r)) return baseDueAt > afterMillis ? baseDueAt : 0;
         long end = recurrenceUntil > 0 ? recurrenceUntil : LocalDate.of(2100, 12, 31)
                 .atTime(23,59,59).atZone(zone).toInstant().toEpochMilli();
-        List<Long> xs = occurrencesBetween(baseDueAt, r, end, Math.max(baseDueAt, afterMillis + 1), end, zone, 1);
+        List<Long> xs = occurrencesBetween(baseDueAt, r, recurrenceRule, end,
+                Math.max(baseDueAt, afterMillis + 1), end, zone, 1);
         return xs.isEmpty() ? 0 : xs.get(0);
     }
 
@@ -139,13 +198,32 @@ public final class RecurrenceEngine {
     public static Detection detect(String raw) {
         String n = TemporalParser.norm(raw == null ? "" : raw);
         Detection d = new Detection();
-        if (containsAny(n, "cada dia", "todos los dias", "diariamente", "periodicidad diaria")) d.recurrence = DAILY;
-        else if (containsAny(n, "cada semana", "todas las semanas", "semanalmente", "periodicidad semanal")) d.recurrence = WEEKLY;
-        else if (containsAny(n, "cada dos meses", "cada 2 meses", "bimestral", "bimensual")) d.recurrence = BIMONTHLY;
-        else if (containsAny(n, "cada tres meses", "cada 3 meses", "trimestral")) d.recurrence = QUARTERLY;
-        else if (containsAny(n, "cada seis meses", "cada 6 meses", "semestral")) d.recurrence = SEMIANNUAL;
-        else if (containsAny(n, "cada ano", "todos los anos", "anualmente", "periodicidad anual")) d.recurrence = ANNUAL;
-        else if (containsAny(n, "cada mes", "todos los meses", "mensualmente", "periodicidad mensual")) d.recurrence = MONTHLY;
+
+        LinkedHashSet<DayOfWeek> spokenDays = spokenWeekdays(n);
+        boolean correction = containsAny(n, "no es ", "perdon", "rectifico", "corrijo", "mejor ");
+        boolean explicitSingleDay = Pattern.compile(
+                "\\b(?:cada|todos\\s+los|todas\\s+las)\\s+(?:los\\s+|las\\s+)?" +
+                "(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\\b").matcher(n).find();
+        boolean explicitDaySequence = !correction && WEEKDAY_SEQUENCE.matcher(n).find();
+
+        if (explicitSingleDay || explicitDaySequence) {
+            d.recurrence = WEEKLY;
+            d.rule = "FREQ=WEEKLY;BYDAY=" + byDayCodes(spokenDays);
+        } else if (containsAny(n, "cada dia", "todos los dias", "diariamente", "periodicidad diaria")) {
+            d.recurrence = DAILY; d.rule = "FREQ=DAILY";
+        } else if (containsAny(n, "cada semana", "todas las semanas", "semanalmente", "periodicidad semanal")) {
+            d.recurrence = WEEKLY; d.rule = "FREQ=WEEKLY";
+        } else if (containsAny(n, "cada dos meses", "cada 2 meses", "bimestral", "bimensual")) {
+            d.recurrence = BIMONTHLY; d.rule = "FREQ=MONTHLY;INTERVAL=2";
+        } else if (containsAny(n, "cada tres meses", "cada 3 meses", "trimestral")) {
+            d.recurrence = QUARTERLY; d.rule = "FREQ=MONTHLY;INTERVAL=3";
+        } else if (containsAny(n, "cada seis meses", "cada 6 meses", "semestral")) {
+            d.recurrence = SEMIANNUAL; d.rule = "FREQ=MONTHLY;INTERVAL=6";
+        } else if (containsAny(n, "cada ano", "todos los anos", "anualmente", "periodicidad anual")) {
+            d.recurrence = ANNUAL; d.rule = "FREQ=YEARLY";
+        } else if (containsAny(n, "cada mes", "todos los meses", "mensualmente", "periodicidad mensual")) {
+            d.recurrence = MONTHLY; d.rule = "FREQ=MONTHLY";
+        }
 
         if (!NONE.equals(d.recurrence)) {
             Matcher y = Pattern.compile("(?:hasta|hasta el|hasta el ano|hasta ano)\\s+(20\\d{2})\\b").matcher(n);
@@ -159,6 +237,81 @@ public final class RecurrenceEngine {
             }
         }
         return d;
+    }
+
+    private static LinkedHashSet<DayOfWeek> spokenWeekdays(String n) {
+        LinkedHashSet<DayOfWeek> out = new LinkedHashSet<>();
+        Matcher m = WEEKDAY_TOKEN.matcher(n == null ? "" : n);
+        while (m.find()) {
+            DayOfWeek day = spanishDay(m.group(1));
+            if (day != null) out.add(day);
+        }
+        return out;
+    }
+
+    private static DayOfWeek spanishDay(String value) {
+        if (value == null) return null;
+        return switch (value) {
+            case "lunes" -> DayOfWeek.MONDAY;
+            case "martes" -> DayOfWeek.TUESDAY;
+            case "miercoles" -> DayOfWeek.WEDNESDAY;
+            case "jueves" -> DayOfWeek.THURSDAY;
+            case "viernes" -> DayOfWeek.FRIDAY;
+            case "sabado" -> DayOfWeek.SATURDAY;
+            case "domingo" -> DayOfWeek.SUNDAY;
+            default -> null;
+        };
+    }
+
+    private static String byDayCodes(Set<DayOfWeek> days) {
+        StringBuilder out = new StringBuilder();
+        for (DayOfWeek day : days) {
+            if (out.length() > 0) out.append(',');
+            out.append(dayCode(day));
+        }
+        return out.toString();
+    }
+
+    private static String dayCode(DayOfWeek day) {
+        return switch (day) {
+            case MONDAY -> "MO";
+            case TUESDAY -> "TU";
+            case WEDNESDAY -> "WE";
+            case THURSDAY -> "TH";
+            case FRIDAY -> "FR";
+            case SATURDAY -> "SA";
+            case SUNDAY -> "SU";
+        };
+    }
+
+    private static Set<DayOfWeek> parseByDays(String rule) {
+        LinkedHashSet<DayOfWeek> out = new LinkedHashSet<>();
+        if (rule == null || rule.isBlank()) return out;
+        Matcher m = Pattern.compile("(?:^|;)BYDAY=([^;]+)", Pattern.CASE_INSENSITIVE).matcher(rule);
+        if (!m.find()) return out;
+        for (String token : m.group(1).split(",")) {
+            String t = token.trim().toUpperCase(Locale.ROOT).replaceAll("^[+-]?\\d+", "");
+            DayOfWeek day = switch (t) {
+                case "MO" -> DayOfWeek.MONDAY;
+                case "TU" -> DayOfWeek.TUESDAY;
+                case "WE" -> DayOfWeek.WEDNESDAY;
+                case "TH" -> DayOfWeek.THURSDAY;
+                case "FR" -> DayOfWeek.FRIDAY;
+                case "SA" -> DayOfWeek.SATURDAY;
+                case "SU" -> DayOfWeek.SUNDAY;
+                default -> null;
+            };
+            if (day != null) out.add(day);
+        }
+        return out;
+    }
+
+    private static int parseInterval(String rule) {
+        if (rule == null || rule.isBlank()) return 1;
+        Matcher m = Pattern.compile("(?:^|;)INTERVAL=(\\d+)", Pattern.CASE_INSENSITIVE).matcher(rule);
+        if (!m.find()) return 1;
+        try { return Math.max(1, Integer.parseInt(m.group(1))); }
+        catch (Exception ignored) { return 1; }
     }
 
     public static String label(String recurrence) {
@@ -182,5 +335,6 @@ public final class RecurrenceEngine {
     public static final class Detection {
         public String recurrence = NONE;
         public String untilDate = "";
+        public String rule = "";
     }
 }
