@@ -2021,6 +2021,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String classify(String text) { return service.classify(text).toString(); }
         @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
+        @JavascriptInterface public String classifyAppointments(String text) { return service.classifyAppointments(text).toString(); }
         @JavascriptInterface public long localDateTimeToEpochMillis(String date, String time, String zoneId) {
             return ZoneTimeResolver.toEpochMillis(date, time, zoneId);
         }
