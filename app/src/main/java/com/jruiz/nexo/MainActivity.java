@@ -125,6 +125,8 @@ public class MainActivity extends Activity {
     private float recordingPlaybackSpeed = 1.0f;
     private String pendingRecordingExportId = "";
     private volatile boolean transcriptionModelDownloadActive = false;
+    private volatile boolean startupInboxScanRunning = false;
+    private boolean firstResumeAfterCreate = true;
     private NexoFamiliaCloudSync familiaCloudSync;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -147,7 +149,9 @@ public class MainActivity extends Activity {
                 for(int i=0;i<meds.length();i++){JSONObject m=meds.optJSONObject(i);if(m!=null)MedicationScheduler.scheduleNext(this,db,m.optLong("id"),System.currentTimeMillis()-1);}
             } catch(Exception ignored) {}
         }
-        if (InputHubPrefs.autoScanEnabled(this)) {
+        boolean firstResume = firstResumeAfterCreate;
+        firstResumeAfterCreate = false;
+        if (!firstResume && InputHubPrefs.autoScanEnabled(this)) {
             if (CalendarCapturePrefs.isEnabled(this) &&
                     checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
                 new Thread(() -> {
@@ -599,6 +603,46 @@ public class MainActivity extends Activity {
         if (CalendarCapturePrefs.isEnabled(app) && hasCalendarPermission()) CalendarWatchScheduler.schedule(app);
         if (InputHubPrefs.smsEnabled(app) && hasSmsPermission()) SmsWatchScheduler.schedule(app);
         if (InputHubPrefs.gmailEnabled(app) && GmailWatchEngine.hasAuthorizedAccount(app)) GmailWatchScheduler.schedule(app);
+    }
+
+    private boolean startStartupInboxScan() {
+        if (startupInboxScanRunning) return false;
+        startupInboxScanRunning = true;
+        new Thread(() -> {
+            boolean partial = false;
+            Context app = getApplicationContext();
+            boolean schedule = InputHubPrefs.autoScanEnabled(app);
+            try {
+                try {
+                    if (InputHubPrefs.smsEnabled(app) && hasSmsPermission()) {
+                        if (!InputHubPrefs.smsBaselined(app)) SmsWatchEngine.initializeBaseline(app);
+                        else SmsWatchEngine.scan(app);
+                        if (schedule) SmsWatchScheduler.schedule(app);
+                    }
+                } catch (Exception ignored) { partial = true; }
+
+                try {
+                    if (InputHubPrefs.gmailEnabled(app) && GmailWatchEngine.hasAuthorizedAccount(app)) {
+                        if (!InputHubPrefs.gmailBaselined(app)) GmailWatchEngine.initializeBaseline(app);
+                        else GmailWatchEngine.scan(app);
+                        if (schedule) GmailWatchScheduler.schedule(app);
+                    }
+                } catch (Exception ignored) { partial = true; }
+
+                try {
+                    if (CalendarCapturePrefs.isEnabled(app) && hasCalendarPermission()) {
+                        if (!CalendarCapturePrefs.isBaselined(app)) CalendarWatchEngine.initializeBaseline(app);
+                        else CalendarWatchEngine.scan(app);
+                        if (schedule) CalendarWatchScheduler.schedule(app);
+                    }
+                } catch (Exception ignored) { partial = true; }
+            } finally {
+                startupInboxScanRunning = false;
+                jsCallback("onInputHubChanged", "startup");
+                jsCallback("onStartupInboxScanFinished", partial ? "partial" : "ok");
+            }
+        }, "nexo-startup-inbox").start();
+        return true;
     }
 
     private void scanInputHubNow() {
@@ -2108,6 +2152,9 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void scanInputHubNow() {
             MainActivity.this.scanInputHubNow();
+        }
+        @JavascriptInterface public boolean startStartupInboxScan() {
+            return MainActivity.this.startStartupInboxScan();
         }
         @JavascriptInterface public String getMedicationMessages() {
             JSONArray a=new JSONArray();
