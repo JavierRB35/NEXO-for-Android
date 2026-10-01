@@ -40,8 +40,12 @@ public final class EventSemanticParser {
             "(?:\\d{1,2}|[a-z]+(?:\\s+y\\s+[a-z]+)?)\\s+de\\s+" + MONTH +
             "(?:\\s+de\\s+(?:\\d{2,4}|[a-z]+(?:\\s+[a-z]+){0,5}))?)";
     private static final Pattern DOCUMENT_DATE = Pattern.compile(
-            "\\b(?:informe|documento|resultado|radiografia|radiografia|analitica|factura|receta|justificante|certificado)" +
+            "\\b(?:informe|documento|resultado|radiografia|analitica|factura|receta|justificante|certificado)" +
             "\\s+(?:de\\s+fecha\\s+|del\\s+)?(" + DATE + ")", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+
+    private static final Pattern DOCUMENT_DATE_ORIGINAL = Pattern.compile(
+            "(?iu)\\b(?:informe|documento|resultado|radiograf[ií]a|anal[ií]tica|factura|receta|justificante|certificado)" +
+            "\\s+(?:de\\s+fecha\\s+|del\\s+)?(" + DATE + ")");
 
     public static EventInterpretation parse(String raw) {
         String text = raw == null ? "" : raw.trim().replaceAll("\\s+", " ");
@@ -80,10 +84,10 @@ public final class EventSemanticParser {
                     evidence, "professional", evidence, professional.start(1), professional.end(1)));
         }
 
-        Matcher doc = DOCUMENT_DATE.matcher(normalize(text));
+        Matcher doc = DOCUMENT_DATE_ORIGINAL.matcher(text);
         while (doc.find()) {
             out.documents.add(new EventInterpretation.DocumentReference(
-                    documentKind(doc.group(0)), doc.group(0), doc.start(), doc.end()));
+                    documentKind(doc.group(0)), doc.group(0).trim(), doc.start(), doc.end()));
         }
 
         return out;
