@@ -2451,7 +2451,105 @@ function renderMedicationToday(){
   box.classList.remove('hidden');$('#medTodayOpen').addEventListener('click',()=>openPanel('medications'));
 }
 
-function startMedicationVoice(base=''){startManagedDictation('medication',{base:String(base||'').trim(),title:'DICTAR MEDICACIÓN',hint:'Di nombre, dosis, pauta y duración. Pulsa TERMINAR cuando acabes.'});}
+function medicationVoiceNorm(value){
+  return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').replace(/[^a-z0-9: ]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function medicationVoiceDoseAction(text){
+  const n=medicationVoiceNorm(text);
+  if(/\b(?:he|ya he|la he|lo he|me la he|me lo he)\s+tomad[oa]\b/.test(n)||/\bmarca(?:r)?\b.*\bcomo\s+tomad[oa]\b/.test(n))return 'taken';
+  if(/\b(?:he|ya he|la he|lo he)\s+omitid[oa]\b/.test(n)||/\bmarca(?:r)?\b.*\bcomo\s+omitid[oa]\b/.test(n)||/\bno\s+(?:me\s+)?(?:la|lo)?\s*he\s+tomad[oa]\b/.test(n))return 'skipped';
+  return '';
+}
+function medicationVoiceTimeMinutes(text){
+  const n=medicationVoiceNorm(text),m=n.match(/\b(?:a\s+las?\s+)?(\d{1,2})(?::(\d{2}))?\b/);
+  if(!m)return -1;
+  const h=Number(m[1]),min=Number(m[2]||0);
+  return h>=0&&h<=23&&min>=0&&min<=59?h*60+min:-1;
+}
+function medicationDoseVoiceCandidates(text){
+  const rows=parseNative(NexoNative.getMedicationTodayDoses(),[]).filter(d=>d.status==='pending'||d.status==='snoozed');
+  if(!rows.length)return [];
+  const n=medicationVoiceNorm(text),wantedMinutes=medicationVoiceTimeMinutes(text);
+  const named=rows.filter(d=>{
+    const name=medicationVoiceNorm(d.name||'');
+    if(!name)return false;
+    if(n.includes(name))return true;
+    const tokens=name.split(' ').filter(t=>t.length>=4);
+    return tokens.length&&tokens.some(t=>n.includes(t));
+  });
+  let candidates=named.length?named:rows;
+  if(wantedMinutes>=0){
+    const byTime=candidates.filter(d=>{const dt=new Date(Number(d.scheduledAt||0));return dt.getHours()*60+dt.getMinutes()===wantedMinutes;});
+    if(byTime.length)candidates=byTime;
+  }
+  if(!named.length&&wantedMinutes<0&&rows.length!==1)return [];
+  return candidates;
+}
+function applyMedicationDoseVoiceStatus(dose,status){
+  if(!dose)return false;
+  const ok=!!NexoNative.setMedicationDoseStatus(Number(dose.medicationId),Number(dose.scheduledAt),status);
+  if(ok){
+    toast(status==='taken'?`${dose.name} · toma marcada como realizada.`:`${dose.name} · toma marcada como omitida.`);
+    renderMedicationsPanel();
+    renderMedicationToday();
+  }else toast('No se pudo actualizar esa toma.');
+  return ok;
+}
+function chooseMedicationDoseForVoice(candidates,status){
+  if(!candidates.length){toast('No he podido identificar qué toma quieres actualizar.');return;}
+  if(candidates.length===1){applyMedicationDoseVoiceStatus(candidates[0],status);return;}
+  openModal(status==='taken'?'¿Qué toma has realizado?':'¿Qué toma quieres marcar como omitida?',`<div class="scope-buttons medication-dose-choice">${candidates.map((d,i)=>`<button type="button" class="secondary-button" data-med-dose-choice="${i}"><strong>${esc(fmtTime(d.scheduledAt))}</strong><span>${esc(d.name||'Medicamento')}</span></button>`).join('')}</div>`);
+  $$('[data-med-dose-choice]').forEach(b=>b.addEventListener('click',()=>{const d=candidates[Number(b.dataset.medDoseChoice)];closeModal();applyMedicationDoseVoiceStatus(d,status);}));
+}
+function applyMedicationVoiceToEditor(text){
+  const n=medicationVoiceNorm(text),parsed=parseNative(NexoNative.parseMedication(text),{});
+  let changed=false;
+  const set=(sel,value)=>{const el=$(sel);if(el&&value!==undefined&&value!==null&&String(value)!==''){el.value=String(value);changed=true;}};
+  if(parsed.dose&&(/\bdosis\b/.test(n)||/\b(?:mg|mcg|ml|gramos?|miligramos?|comprimidos?|capsulas?|pastillas?)\b/.test(n)))set('#medDose',parsed.dose);
+  if(parsed.instructions)set('#medInstructions',parsed.instructions);
+  if(parsed.reason)set('#medReason',parsed.reason);
+  if(parsed.scheduleMode){$('#medMode').value=parsed.scheduleMode;changed=true;$('#medMode').dispatchEvent(new Event('change'));}
+  if(parsed.intervalMinutes)set('#medInterval',Number(parsed.intervalMinutes)/60);
+  if(Array.isArray(parsed.times)&&parsed.times.length){
+    const current=Array.from(document.querySelectorAll('#medTimesPicker input[type="time"]')).map(x=>x.value).filter(Boolean);
+    const merged=[...new Set([...current,...parsed.times])].sort();
+    const picker=$('#medTimesPicker');
+    if(picker){
+      picker.innerHTML=merged.map((value,index)=>`<div class="multi-time-row"><input type="time" value="${escAttr(value)}" aria-label="Hora de toma ${index+1}"><button type="button" class="multi-time-remove" data-med-time-remove="${index}" aria-label="Eliminar hora">×</button></div>`).join('');
+      Array.from(document.querySelectorAll('[data-med-time-remove]')).forEach(button=>button.addEventListener('click',()=>button.closest('.multi-time-row')?.remove()));
+      changed=true;
+    }
+  }
+  if(parsed.startDate&&/\b(?:empieza|comienza|inicio|desde)\b/.test(n))set('#medStartDate',parsed.startDate);
+  if(parsed.startTime&&/\b(?:primera|empieza|comienza|inicio|desde|a las?)\b/.test(n))set('#medStartTime',parsed.startTime);
+  if(parsed.durationDays)set('#medDuration',parsed.durationDays);
+  if(parsed.endDate)set('#medEndDate',parsed.endDate);
+  if(parsed.name&&/\b(?:se llama|medicamento|medicacion)\b/.test(n))set('#medName',parsed.name);
+  if(changed)toast('He actualizado el formulario. Revísalo antes de guardar.');
+  else toast('No he identificado qué campo de la pauta quieres cambiar.');
+}
+function handleMedicationVoice(text){
+  const status=medicationVoiceDoseAction(text);
+  if(status){
+    const candidates=medicationDoseVoiceCandidates(text);
+    if(candidates.length){chooseMedicationDoseForVoice(candidates,status);return;}
+    toast('No he podido identificar una toma pendiente. Puedes marcarla manualmente.');
+    return;
+  }
+  openMedicationComposer(text);
+}
+function startMedicationEditorVoice(){
+  state.medicationVoiceEditor=true;
+  startManagedDictation('medication',{title:'HABLAR CON MEDICACIÓN',hint:'Di el cambio que quieres aplicar a este formulario. Nexo lo rellenará para que lo revises antes de guardar.'});
+}
+function startMedicationVoice(base=''){
+  state.medicationVoiceEditor=false;
+  startManagedDictation('medication',{
+    base:String(base||'').trim(),
+    title:'HABLAR CON MEDICACIÓN',
+    hint:'Puedes dictar una pauta nueva o decir qué toma has realizado u omitido. Nexo te mostrará cualquier cambio de pauta antes de guardarlo.'
+  });
+}
 function parseMedicationTimes(raw){return [...new Set(String(raw||'').split(/[;,\s]+/).map(x=>x.trim()).filter(Boolean).map(x=>{if(/^\d{1,2}:\d{2}$/.test(x)){const [h,m]=x.split(':').map(Number);if(h>=0&&h<24&&m>=0&&m<60)return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}return '';}).filter(Boolean))].sort();}
 function medicationEndAt(startDate,durationDays,endDate){if(endDate)return endOfDayMs(endDate);const n=Number(durationDays||0);if(!startDate||!Number.isFinite(n)||n<=0)return 0;const d=new Date(`${startDate}T23:59:59`);d.setDate(d.getDate()+Math.max(0,Math.floor(n)-1));return d.getTime();}
 function medicationDateValue(ms){return ms?isoFromMs(ms).date:'';}
