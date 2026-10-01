@@ -231,15 +231,28 @@ function fmtDueItem(item) {
 }
 function fmtShort(ms) { return ms ? new Intl.DateTimeFormat('es-ES',{day:'2-digit',month:'short'}).format(new Date(ms)) : ''; }
 function fmtTime(ms) { return ms ? new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit'}).format(new Date(ms)) : ''; }
-function isoFromMs(ms) {
+function isoFromMs(ms,zone='') {
   if(!ms) return {date:'',time:''};
+  if(zone){
+    try{
+      const parts=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(ms));
+      const v={};parts.forEach(p=>{if(p.type!=='literal')v[p.type]=p.value;});
+      if(v.year&&v.month&&v.day&&v.hour&&v.minute)return {date:`${v.year}-${v.month}-${v.day}`,time:`${v.hour}:${v.minute}`};
+    }catch(_){}
+  }
   const d=new Date(ms), pad=n=>String(n).padStart(2,'0');
   return {date:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:`${pad(d.getHours())}:${pad(d.getMinutes())}`};
 }
-function dateTimeToMs(date,time='') {
+function dateTimeToMs(date,time='',zone='') {
   if(!date) return 0;
-  const t=time || '09:00';
-  const d=new Date(`${date}T${t}:00`);
+  const raw=time || '09:00',t=/^\d{2}:\d{2}$/.test(raw)?raw+':00':raw;
+  if(zone){
+    try{
+      const nativeMs=Number(NexoNative.localDateTimeToEpochMillis(date,t,zone));
+      if(Number.isFinite(nativeMs)&&nativeMs>0)return nativeMs;
+    }catch(_){}
+  }
+  const d=new Date(`${date}T${t}`);
   return Number.isFinite(d.getTime()) ? d.getTime() : 0;
 }
 function displayAnalysisDate(a) {
@@ -286,7 +299,12 @@ function openCustomAlertOverlay(callback){
   document.body.appendChild(overlay);overlay.querySelector('[data-custom-save]').addEventListener('click',()=>{const amount=Number(overlay.querySelector('#customAlertAmount').value),unit=Number(overlay.querySelector('#customAlertUnit').value);if(!Number.isFinite(amount)||amount<=0){toast('Indica una cantidad válida.');return;}const value=Math.round(amount*unit);if(value>5256000){toast('El aviso puede anticiparse como máximo 10 años.');return;}overlay.remove();callback(value);});overlay.querySelector('[data-custom-cancel]').addEventListener('click',()=>overlay.remove());overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
 }
 function recurrenceLabel(r){return RECURRENCE_LABEL[r]||RECURRENCE_LABEL.none;}
-function endOfDayMs(date){if(!date)return 0;const d=new Date(`${date}T23:59:59`);return Number.isFinite(d.getTime())?d.getTime():0;}
+function endOfDayMs(date,zone=''){return date?dateTimeToMs(date,'23:59:59',zone):0;}
+function addIsoDays(date,days){
+  if(!date)return '';
+  const [y,m,d]=date.split('-').map(Number),x=new Date(Date.UTC(y,m-1,d)+Number(days||0)*86400000),pad=n=>String(n).padStart(2,'0');
+  return `${x.getUTCFullYear()}-${pad(x.getUTCMonth()+1)}-${pad(x.getUTCDate())}`;
+}
 function isoDateLocal(d){const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
 function durationMinutesFromTimes(start,end){
   if(!start||!end)return 0;
@@ -303,16 +321,19 @@ function addOneHourTime(value){
   const [h,m]=value.split(':').map(Number),minutes=((h*60+m)+60)%(24*60);
   return `${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;
 }
-function eventEndFromFields(startDate,startTime,endDate,endTime,allDay){
+function eventEndFromFields(startDate,startTime,endDate,endTime,allDay,zone=''){
   if(!startDate)return 0;
-  const start=dateTimeToMs(startDate,allDay?'':startTime);
+  const start=dateTimeToMs(startDate,allDay?'':startTime,zone);
   if(!start)return 0;
-  const finishDate=endDate||startDate;
-  if(allDay)return dateTimeToMs(finishDate,'');
+  let finishDate=endDate||startDate;
+  if(allDay)return dateTimeToMs(finishDate,'',zone);
   if(!startTime)return start;
   if(!endTime)return start+60*60000;
-  let finish=dateTimeToMs(finishDate,endTime);
-  if(finishDate===startDate&&finish<=start)finish+=24*60*60000;
+  let finish=dateTimeToMs(finishDate,endTime,zone);
+  if(finishDate===startDate&&finish<=start){
+    finishDate=addIsoDays(startDate,1);
+    finish=dateTimeToMs(finishDate,endTime,zone);
+  }
   return Math.max(start,finish);
 }
 function durationMinutesBetween(start,end){return start>0&&end>start?Math.min(5256000,Math.round((end-start)/60000)):0;}
@@ -1100,7 +1121,7 @@ function openPostponeSheet(id,occurrenceAt,recurring){
   document.body.appendChild(overlay);
   const apply=date=>{const iso=isoDateLocal(date),time=source.hasTime!==false?isoFromMs(source.dueAt).time:'';const due=dateTimeToMs(iso,time);let r;if(recurring)r=parseNative(NexoNative.updateOccurrence(JSON.stringify({seriesId:id,occurrenceAt,dueAt:due,hasTime:source.hasTime!==false,durationMinutes:source.durationMinutes||0,occurrenceState:'postponed'}),'single'),{});else r=parseNative(NexoNative.updateItem(JSON.stringify({id,dueAt:due,hasTime:source.hasTime!==false,status:'postponed',statusManual:true})),{});overlay.remove();toast(r.ok?'Cita pospuesta':'No se pudo posponer');refreshCurrent();};
   overlay.querySelectorAll('[data-postpone-days]').forEach(b=>b.addEventListener('click',()=>{const d=new Date();d.setDate(d.getDate()+Number(b.dataset.postponeDays));apply(d);}));
-  overlay.querySelector('[data-postpone-custom]').addEventListener('click',()=>{overlay.remove();openModal('Posponer cita',`<div class="modal-form"><label>Nueva fecha<div class="date-wrap"><input id="postponeDate" type="date" value="${escAttr(isoFromMs(source.dueAt).date)}"></div></label></div><div class="modal-actions"><button id="postponeSave" class="primary-button">Mover cita</button></div>`);$('#postponeSave').addEventListener('click',()=>{const v=$('#postponeDate').value;if(!v){toast('Elige una fecha');return;}const d=new Date(`${v}T12:00:00`);closeModal();apply(d);});});
+  overlay.querySelector('[data-postpone-custom]').addEventListener('click',()=>{overlay.remove();openModal('Posponer cita',`<div class="modal-form"><label>Nueva fecha<div class="date-wrap"><input id="postponeDate" type="date" value="${escAttr(isoFromMs(source.dueAt,source.timeZone||'').date)}"></div></label></div><div class="modal-actions"><button id="postponeSave" class="primary-button">Mover cita</button></div>`);$('#postponeSave').addEventListener('click',()=>{const v=$('#postponeDate').value;if(!v){toast('Elige una fecha');return;}const d=new Date(`${v}T12:00:00`);closeModal();apply(d);});});
   overlay.querySelector('[data-postpone-cancel]').addEventListener('click',()=>overlay.remove());overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
 }
 
@@ -1257,8 +1278,8 @@ function commitCapture() {
   clearTimeout(state.pendingSaveTimer); state.pendingSave=false;
   const text=$('#captureText').value.trim();
   const date=$('#captureDate').value,allDay=!!$('#captureAllDay').checked,time=allDay?'':$('#captureTime').value;
-  const endDate=$('#captureEndDate').value||date,endTime=allDay?'':$('#captureEndTime').value;
-  const dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
+  const endDate=$('#captureEndDate').value||date,endTime=allDay?'':$('#captureEndTime').value,zone=$('#captureTimeZone').value.trim()||'Europe/Madrid';
+  const dueAt=dateTimeToMs(date,time,zone),endAt=eventEndFromFields(date,time,endDate,endTime,allDay,zone),durationMinutes=durationMinutesBetween(dueAt,endAt);
   if(date&&endDate&&endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
   if(dueAt&&endAt&&endAt<dueAt){toast('El final del evento no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
   const alerts=normalizeAlertMinutes(state.captureAlerts);
@@ -1272,8 +1293,8 @@ function commitCapture() {
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
-    dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:$('#captureTimeZone').value.trim()||'Europe/Madrid', priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
-    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value):0,
+    dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:zone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
+    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value,zone):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
     needsReview:false,
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
@@ -1943,7 +1964,7 @@ function openItem(id){
   if(i.type==='document'){openDocumentEditor(id);return;}
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
-  const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
+  const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt,i.timeZone||''),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt,i.timeZone||''),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
   openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn')}<div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
@@ -1958,7 +1979,7 @@ function openItem(id){
       <div class="location-field"><label for="editLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="editLocation" type="text" value="${escAttr(eventLocationValue(i))}" placeholder="Dirección o enlace de Google Maps"><button id="editLocationMapBtn" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div><input id="editMapsUrl" type="hidden" value="${escAttr(i.mapsUrl||'')}"></div>
       <label>Zona horaria<input id="editTimeZone" type="text" value="${escAttr(i.timeZone||'Europe/Madrid')}"></label>
       ${eventPeopleAssignmentHtml('editPeopleChips')}
-      <div class="form-grid"><label>Periodicidad<select id="editRecurrence">${recurrenceOptions(i.recurrence||'none')}</select></label><label id="editUntilLabel" class="${i.recurrence&&i.recurrence!=='none'?'':'hidden'}">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="editUntil" type="date" value="${i.recurrenceUntil?escAttr(isoFromMs(i.recurrenceUntil).date):''}"></div></label></div>
+      <div class="form-grid"><label>Periodicidad<select id="editRecurrence">${recurrenceOptions(i.recurrence||'none')}</select></label><label id="editUntilLabel" class="${i.recurrence&&i.recurrence!=='none'?'':'hidden'}">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="editUntil" type="date" value="${i.recurrenceUntil?escAttr(isoFromMs(i.recurrenceUntil,i.timeZone||'').date):''}"></div></label></div>
       <div id="editAlertsSection" class="alert-editor ${i.dueAt?'':'hidden'}"><div class="alert-editor-head"><div><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-bell"></use></svg> Avisos</strong><div class="small muted">Se mostrarán en Nexo y se incluyen al compartir el evento como .ics.</div></div><button id="addEditAlert" type="button" class="mini-button primary">+ Añadir aviso</button></div><div id="editAlertList" class="alert-list"></div></div>
       ${isAppointmentType(i.type)?`<label class="switch-row voice-reminder-row"><input id="editVoiceEnabled" type="checkbox" ${i.voiceEnabled?'checked':''}><span><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg> Aviso por voz</strong><small>Lee en voz alta cada aviso configurado.</small></span></label>`:''}
       ${isAppointmentType(i.type)?`<label>Estado<select id="editStatus"><option value="pending" ${!['done','postponed','cancelled'].includes(i.status)?'selected':''}>Pendiente</option><option value="done" ${i.status==='done'?'selected':''}>Completada</option><option value="postponed" ${i.status==='postponed'?'selected':''}>Pospuesta</option><option value="cancelled" ${i.status==='cancelled'?'selected':''}>Cancelada</option></select></label>`:''}
@@ -1987,14 +2008,14 @@ function openItem(id){
   let editStatusTouched=false;
   if($('#editStatus'))$('#editStatus').addEventListener('change',()=>{editStatusTouched=true;});
   $('#saveEditBtn').addEventListener('click',()=>{
-    const date=$('#editDate').value,allDay=!!$('#editAllDay').checked,time=allDay?'':$('#editTime').value,endDate=$('#editEndDate').value||date,endTime=allDay?'':$('#editEndTime').value,rec=$('#editRecurrence').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
+    const date=$('#editDate').value,allDay=!!$('#editAllDay').checked,time=allDay?'':$('#editTime').value,endDate=$('#editEndDate').value||date,endTime=allDay?'':$('#editEndTime').value,rec=$('#editRecurrence').value,zone=$('#editTimeZone').value.trim()||'Europe/Madrid',dueAt=dateTimeToMs(date,time,zone),endAt=eventEndFromFields(date,time,endDate,endTime,allDay,zone),durationMinutes=durationMinutesBetween(dueAt,endAt);
     if(date&&endDate&&endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');return;}
     if(rec!=='none'&&!date){toast('Una periodicidad necesita fecha de inicio.');return;}
 
     const selectedType=$('#editType').value,statusPayload=(isAppointmentType(i.type)&&isAppointmentType(selectedType)&&$('#editStatus')&&editStatusTouched)?{status:$('#editStatus').value,statusManual:true}:{};
     const conflicts=(date&&time)?overlappingItems(dueAt,durationMinutes,id):[];
     if(editAlerts.length&&!date){toast('Los avisos necesitan una fecha.');return;}
-    const res=parseNative(NexoNative.updateItem(JSON.stringify({id,title:$('#editTitle').value.trim(),body:$('#editBody').value,category:$('#editCategory').value,type:selectedType,dueAt,endAt,hasTime:!!(date&&time&&!allDay),allDay,durationMinutes,locationText:$('#editLocation').value.trim(),mapsUrl:$('#editMapsUrl').value.trim(),timeZone:$('#editTimeZone').value.trim()||'Europe/Madrid',participantIds:normalizeParticipantIds(editParticipantIds),recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'&&$('#editUntil').value?endOfDayMs($('#editUntil').value):0,voiceEnabled:$('#editVoiceEnabled')?$('#editVoiceEnabled').checked:false,needsReview:false,...statusPayload})),{});
+    const res=parseNative(NexoNative.updateItem(JSON.stringify({id,title:$('#editTitle').value.trim(),body:$('#editBody').value,category:$('#editCategory').value,type:selectedType,dueAt,endAt,hasTime:!!(date&&time&&!allDay),allDay,durationMinutes,locationText:$('#editLocation').value.trim(),mapsUrl:$('#editMapsUrl').value.trim(),timeZone:zone,participantIds:normalizeParticipantIds(editParticipantIds),recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'&&$('#editUntil').value?endOfDayMs($('#editUntil').value,zone):0,voiceEnabled:$('#editVoiceEnabled')?$('#editVoiceEnabled').checked:false,needsReview:false,...statusPayload})),{});
     if(res.ok){let alertsOk=true;if(!sameAlerts(editAlerts,originalAlerts)){const ar=parseNative(NexoNative.replaceItemReminders(id,JSON.stringify(editAlerts)),{});alertsOk=!!ar.ok;}closeModal();toast(!alertsOk?'Cambios guardados, pero no se pudieron actualizar los avisos':conflicts.length?`Cambios guardados · coincide con ${conflicts.length} elemento${conflicts.length===1?'':'s'}`:'Cambios guardados');refreshCurrent();}else toast(res.error||'No se pudieron guardar los cambios.');
   });
   bindEventLocationField('#editLocation','#editMapsUrl','#editLocationMapBtn');
@@ -2008,7 +2029,7 @@ function openOccurrence(seriesId,occurrenceAt){
   const i=parseNative(NexoNative.getOccurrence(seriesId,occurrenceAt),{});if(!i.id){toast('Esta aparición ya no existe.');refreshCurrent();return;}
   if(i.type==='document'){openDocumentEditor(seriesId);return;}
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
-  const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
+  const iso=isoFromMs(i.dueAt,i.timeZone||''),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt,i.timeZone||''),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil,i.timeZone||'').date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
   openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
     <div class="detail-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
@@ -2056,9 +2077,9 @@ function openOccurrence(seriesId,occurrenceAt){
   bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn');
   $('#shareOccurrenceBtn').addEventListener('click',()=>openItemShareMenu(seriesId,occurrenceAt,true,true));
   $('#saveOccurrenceBtn').addEventListener('click',()=>{
-    const date=$('#occDate').value,allDay=!!$('#occAllDay').checked,time=allDay?'':$('#occTime').value,endDate=$('#occEndDate').value||date,endTime=allDay?'':$('#occEndTime').value,rec=$('#occRecurrence').value,untilDate=$('#occUntil').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
+    const date=$('#occDate').value,allDay=!!$('#occAllDay').checked,time=allDay?'':$('#occTime').value,endDate=$('#occEndDate').value||date,endTime=allDay?'':$('#occEndTime').value,rec=$('#occRecurrence').value,untilDate=$('#occUntil').value,zone=$('#occTimeZone').value.trim()||'Europe/Madrid',dueAt=dateTimeToMs(date,time,zone),endAt=eventEndFromFields(date,time,endDate,endTime,allDay,zone),durationMinutes=durationMinutesBetween(dueAt,endAt);
     if(!date){toast('Indica una fecha.');return;}if(endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');return;}
-    const payload={seriesId,occurrenceAt,title:$('#occTitle').value.trim(),body:$('#occBody').value,category:$('#occCategory').value,type:$('#occType').value,dueAt,endAt,hasTime:!!time&&!allDay,allDay,durationMinutes,locationText:$('#occLocation').value.trim(),mapsUrl:$('#occMapsUrl').value.trim(),timeZone:$('#occTimeZone').value.trim()||'Europe/Madrid',participantIds:normalizeParticipantIds(occParticipantIds),priority:i.priority||1,needsReview:false,recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'&&untilDate?endOfDayMs(untilDate):0,occurrenceState:(occStatusTouched&&$('#occStatus')?$('#occStatus').value:currentState),dateChanged:date!==originalDate||endDate!==originalEndDate||(time||'')!==(originalTime||'')};
+    const payload={seriesId,occurrenceAt,title:$('#occTitle').value.trim(),body:$('#occBody').value,category:$('#occCategory').value,type:$('#occType').value,dueAt,endAt,hasTime:!!time&&!allDay,allDay,durationMinutes,locationText:$('#occLocation').value.trim(),mapsUrl:$('#occMapsUrl').value.trim(),timeZone:zone,participantIds:normalizeParticipantIds(occParticipantIds),priority:i.priority||1,needsReview:false,recurrence:rec,recurrenceRule:recurrenceRuleFor(rec),recurrenceUntil:rec!=='none'&&untilDate?endOfDayMs(untilDate,zone):0,occurrenceState:(occStatusTouched&&$('#occStatus')?$('#occStatus').value:currentState),dateChanged:date!==originalDate||endDate!==originalEndDate||(time||'')!==(originalTime||'')};
     const seriesSettingsChanged=rec!==originalRecurrence||(rec!=='none'&&(untilDate||'')!==originalUntil);
     chooseRecurrenceScope('¿Qué quieres modificar?',scope=>{const r=parseNative(NexoNative.updateOccurrence(JSON.stringify(payload),scope),{});if(r.ok){let alertsOk=true;const targetId=scope==='following'&&r.newSeriesId?Number(r.newSeriesId):seriesId;if(!sameAlerts(occAlerts,originalAlerts)){const ar=parseNative(NexoNative.replaceItemReminders(targetId,JSON.stringify(occAlerts)),{});alertsOk=!!ar.ok;}if($('#occVoiceEnabled')){const vr=parseNative(NexoNative.updateItem(JSON.stringify({id:targetId,voiceEnabled:$('#occVoiceEnabled').checked})),{});alertsOk=alertsOk&&!!vr.ok;}closeModal();toast(!alertsOk?'Cambios guardados, pero no se pudieron actualizar los avisos':scope==='single'?'Aparición actualizada':scope==='following'?'Serie actualizada desde esta fecha':'Serie completa actualizada');refreshCurrent();}else toast(r.error||'No se pudo actualizar.');},false,!seriesSettingsChanged);
   });
