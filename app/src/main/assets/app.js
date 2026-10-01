@@ -540,6 +540,10 @@ function runFloatingVoice(){
     const base=$('#captureText')?.value.trim()||'';
     startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});return;
   }
+  if(state.screen==='calendar'){
+    startAppointmentVoice(state.calendarSelected||isoDateLocal(new Date()));
+    return;
+  }
   if(state.screen==='panel'&&state.lastPanel==='appointments'){startAgendaVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='notes'){startNoteVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
@@ -1278,26 +1282,29 @@ function attachMonthSwipe(element,onPrevious,onNext){
   element.addEventListener('touchmove',e=>{
     if(!tracking||e.touches.length!==1)return;
     const t=e.touches[0],dx=t.clientX-startX,dy=t.clientY-startY;
-    if(Math.abs(dx)>=18&&Math.abs(dx)>Math.abs(dy)*1.15){
+    if(Math.abs(dx)>=18&&Math.abs(dx)>Math.abs(dy)*1.2){
       movedHorizontally=true;
-      suppressClickUntil=Date.now()+750;
+      suppressClickUntil=Date.now()+650;
     }
   },{passive:true});
   element.addEventListener('touchend',e=>{
     if(!tracking||e.changedTouches.length!==1){reset();return;}
     const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;
-    const horizontal=(movedHorizontally||Math.abs(dx)>=48)&&Math.abs(dx)>Math.abs(dy)*1.35;
+    const horizontal=Math.abs(dx)>=52&&Math.abs(dx)>Math.abs(dy)*1.45;
+    const dragged=movedHorizontally;
     reset();
+    if(dragged)suppressClickUntil=Date.now()+650;
     if(!horizontal)return;
-    suppressClickUntil=Date.now()+750;
+    suppressClickUntil=Date.now()+800;
     if(dx<0)onNext();else onPrevious();
   },{passive:true});
   element.addEventListener('touchcancel',reset,{passive:true});
   element.addEventListener('click',e=>{
-    if(Date.now()<suppressClickUntil){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();}
+    if(Date.now()<suppressClickUntil){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();
+    }
   },true);
 }
-
 function renderHomeCalendar(){if(state.screen==='calendar')renderCalendar();}
 
 function renderHomeAgenda(){if(state.screen==='calendar')renderCalendarDay();}
@@ -2829,6 +2836,7 @@ window.NexoUI={
     if(state.voiceMode==='universal'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();routeUniversalVoice(combined);return;}
     if(state.voiceMode==='capture-edit'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyCaptureVoiceText(combined);return;}
     if(state.voiceMode==='agenda'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyAgendaVoice(combined);return;}
+    if(state.voiceMode==='appointment'){const date=state.voicePinnedDate,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.voicePinnedDate='';state.voicePinnedType='';applyAppointmentVoice(combined,date);return;}
     if(state.voiceMode==='list'){const id=state.managedVoiceListId||state.currentList,shopping=state.managedVoiceShopping,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();handleListVoice(combined,id,shopping);return;}
     if(state.voiceMode==='journal'){const kind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit,combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined,kind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});return;}
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}
@@ -3013,7 +3021,7 @@ function init(){
   $('#calendarPrev').addEventListener('click',()=>changeCalendarMonth(-1));
   $('#calendarNext').addEventListener('click',()=>changeCalendarMonth(1));
   $('#calendarToday').addEventListener('click',()=>{const now=new Date();state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);state.calendarSelected=isoDateLocal(now);renderCalendar();});
-  attachMonthSwipe($('#calendarGrid'),()=>changeCalendarMonth(-1),()=>changeCalendarMonth(1));
+  attachMonthSwipe(document.querySelector('[data-screen="calendar"]'),()=>changeCalendarMonth(-1),()=>changeCalendarMonth(1));
   $('#captureRecurrence').addEventListener('change',()=>{const recurring=$('#captureRecurrence').value!=='none';$('#captureRecurrenceUntilLabel').classList.toggle('hidden',!recurring);});
   $$('.quick-action').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.action;if(a==='voice')startManagedDictation('universal',{title:'Habla con Nexo'});else if(a==='quick-task')prepareQuickNoteForType('task');else if(a==='shopping-list')ensureShoppingList();else if(a==='parking')openParkingModal();}));
   $$('[data-panel]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.panel)));$('#panelBack').addEventListener('click',()=>navigateBack());
