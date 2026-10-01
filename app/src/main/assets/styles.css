@@ -2409,3 +2409,55 @@ main{max-width:720px}
 .medication-editor-open .modal-sheet{
   padding-bottom:calc(88px + env(safe-area-inset-bottom));
 }
+
+
+/* Nexo beta22 · filosofía contextual consolidada */
+#homeNowTitle,
+#homeFamilyInfoTitle,
+#homeUpcomingTitle,
+.tool-group .section-heading h2{
+  color:#3f735f;
+}
+
+.quote-editor-open .floating-actions,
+.place-editor-open .floating-actions,
+.document-editor-open .floating-actions{
+  z-index:130;
+}
+.quote-editor-open .floating-actions .fab-add,
+.place-editor-open .floating-actions .fab-add,
+.document-editor-open .floating-actions .fab-add{
+  display:none!important;
+}
+.quote-editor-open .modal-sheet,
+.place-editor-open .modal-sheet,
+.document-editor-open .modal-sheet{
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+}
+
+.journal-read-reference{
+  color:var(--muted);
+  font-size:.9rem;
+  font-weight:650;
+  line-height:1.4;
+}
+.med-module-note--compact{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-align:left;
+}
+.med-module-note--compact .med-module-note-copy{
+  display:grid;
+  gap:2px;
+  flex:1;
+}
+.med-module-note--compact .med-module-note-copy small{
+  color:var(--muted);
+  font-weight:550;
+}
+.med-module-note-chevron{
+  color:var(--muted);
+  font-size:1.4rem;
+}
