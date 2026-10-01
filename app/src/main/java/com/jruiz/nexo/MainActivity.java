@@ -2206,7 +2206,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String deleteOccurrence(long seriesId,long occurrenceAt,String scope) { return service.deleteOccurrence(seriesId,occurrenceAt,scope).toString(); }
         @JavascriptInterface public String setOccurrenceStatus(long seriesId,long occurrenceAt,String status) { return service.setOccurrenceStatus(seriesId,occurrenceAt,status).toString(); }
-        @JavascriptInterface public String getToday() { return db.getTodayData().toString(); }
+        @JavascriptInterface public String getHomeDashboard() { return db.getHomeDashboardData().toString(); }\n        @JavascriptInterface public String getToday() { return db.getTodayData().toString(); }
         @JavascriptInterface public String getMoreSummary() { return db.getMoreSummary().toString(); }
         @JavascriptInterface public String getPeople() { return db.getPeople().toString(); }
         @JavascriptInterface public String getPerson(long id) { return db.getPerson(id).toString(); }
