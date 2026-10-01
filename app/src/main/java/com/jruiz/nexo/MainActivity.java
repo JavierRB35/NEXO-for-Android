@@ -43,6 +43,7 @@ import com.jruiz.nexo.core.ListVoiceParser;
 import com.jruiz.nexo.core.AlarmIntentParser;
 import com.jruiz.nexo.core.UserMessageInterpreter;
 import com.jruiz.nexo.core.NoteTitleEngine;
+import com.jruiz.nexo.core.ZoneTimeResolver;
 import com.jruiz.nexo.recordings.RecordingService;
 import com.jruiz.nexo.recordings.RecordingStore;
 import com.jruiz.nexo.recordings.RecordingProvider;
@@ -2020,6 +2021,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String classify(String text) { return service.classify(text).toString(); }
         @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
+        @JavascriptInterface public long localDateTimeToEpochMillis(String date, String time, String zoneId) {
+            return ZoneTimeResolver.toEpochMillis(date, time, zoneId);
+        }
         @JavascriptInterface public String getAppointments() { return db.getAppointments().toString(); }
         @JavascriptInterface public void startVoiceInput() { MainActivity.this.startVoiceInput(); }
         @JavascriptInterface public void startManagedVoice() { MainActivity.this.startManagedVoice(); }
