@@ -2417,6 +2417,8 @@ main{max-width:720px}
 #homeUpcomingTitle,
 .tool-group .section-heading h2{
   color:#3f735f;
+  text-transform:uppercase;
+  letter-spacing:.035em;
 }
 
 .quote-editor-open .floating-actions,
