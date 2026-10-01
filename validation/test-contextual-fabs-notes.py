@@ -15,8 +15,18 @@ assert "$('#panelAction').innerHTML='';" in app
 assert 'id="notePanelVoice"' not in app
 assert 'id="notePanelAdd"' not in app
 
+# Listas: + crea lista; micrófono añade elementos. La cabecera no duplica + Lista.
+assert "const listsContext=state.screen==='panel'&&state.lastPanel==='lists';" in app
+assert "listsContext?'Añadir elementos por voz':'Hablar con Nexo'" in app
+assert "listsContext?'Nueva lista':'Añadir evento'" in app
+assert "if(state.screen==='panel'&&state.lastPanel==='lists'){openNewListModal();return;}" in app
+assert "function chooseListForVoice()" in app
+assert "if(state.currentList)startListVoiceFor(state.currentList);" in app
+assert "else chooseListForVoice();" in app
+assert 'id="panelAddList"' not in app
+
 # No cambiar todavía el comportamiento de las demás pantallas en esta iteración.
 assert "if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}" in app
 assert "if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}" in app
 
-print("OK: flotantes contextuales de Notas y cabecera sin duplicados validados")
+print("OK: flotantes contextuales de Notas y Listas validados")
