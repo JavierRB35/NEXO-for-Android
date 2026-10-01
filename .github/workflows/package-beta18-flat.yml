@@ -17,6 +17,8 @@ jobs:
         run: |
           node --check app/src/main/assets/app.js
           sh -n build-on-phone.sh
+          sh ./prepare-transcription-runtime.sh
+          JAVA_OPTS="-Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8" sh ./gradlew compileDebugJavaWithJavac --no-daemon --max-workers=1
           python3 validation/test-version-identity.py
           python3 validation/test-nexo-familia-migration.py
           python3 validation/test-nexo-familia-cloud-sync.py
