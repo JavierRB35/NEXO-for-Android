@@ -2463,3 +2463,6 @@ main{max-width:720px}
   color:var(--muted);
   font-size:1.4rem;
 }
+
+.search-box--single{grid-template-columns:minmax(0,1fr)}
+.search-box--single input{width:100%}
