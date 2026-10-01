@@ -2466,3 +2466,21 @@ main{max-width:720px}
 
 .search-box--single{grid-template-columns:minmax(0,1fr)}
 .search-box--single input{width:100%}
+
+
+/* Nexo beta22 · Historial navegable */
+.history-row--open{
+  width:100%;
+  text-align:left;
+  color:inherit;
+  align-items:center;
+}
+.history-row--open .history-main{
+  flex:1;
+}
+.history-row-arrow{
+  width:18px;
+  height:18px;
+  color:var(--muted);
+  flex:0 0 auto;
+}
