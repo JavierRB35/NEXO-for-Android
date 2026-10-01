@@ -190,7 +190,10 @@ public class NexoService {
             // Si el usuario cambia manualmente a "No se repite", se respeta su corrección.
             String recurrence = RecurrenceEngine.normalize(in.has("recurrence") ? in.optString("recurrence", RecurrenceEngine.NONE) : auto.recurrence);
             in.put("recurrence", recurrence);
-            if (!in.has("recurrenceRule")) in.put("recurrenceRule", recurrenceRuleFor(recurrence));
+            if (!in.has("recurrenceRule")) {
+                String detectedRule = recurrence.equals(auto.recurrence) ? auto.recurrenceRule : "";
+                in.put("recurrenceRule", detectedRule == null || detectedRule.isBlank() ? recurrenceRuleFor(recurrence) : detectedRule);
+            }
             if (RecurrenceEngine.isRecurring(recurrence)) {
                 if (in.optLong("dueAt",0) <= 0) return out.put("ok",false).put("error","Una periodicidad necesita una fecha de inicio");
                 long until = Math.max(0, in.optLong("recurrenceUntil",0));
@@ -343,15 +346,7 @@ public class NexoService {
     }
 
     private static String recurrenceRuleFor(String recurrence) {
-        String r=RecurrenceEngine.normalize(recurrence);
-        if (RecurrenceEngine.DAILY.equals(r)) return "FREQ=DAILY";
-        if (RecurrenceEngine.WEEKLY.equals(r)) return "FREQ=WEEKLY";
-        if (RecurrenceEngine.MONTHLY.equals(r)) return "FREQ=MONTHLY";
-        if (RecurrenceEngine.BIMONTHLY.equals(r)) return "FREQ=MONTHLY;INTERVAL=2";
-        if (RecurrenceEngine.QUARTERLY.equals(r)) return "FREQ=MONTHLY;INTERVAL=3";
-        if (RecurrenceEngine.SEMIANNUAL.equals(r)) return "FREQ=MONTHLY;INTERVAL=6";
-        if (RecurrenceEngine.ANNUAL.equals(r)) return "FREQ=YEARLY";
-        return "";
+        return RecurrenceEngine.ruleFor(recurrence);
     }
 
     private JSONObject occurrenceOverride(JSONObject in) throws Exception {
