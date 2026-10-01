@@ -26,6 +26,11 @@ public final class LocationParser {
             "taller|colegio|universidad|oficina|oficinas|sede|calle|avenida|plaza|centro\\s+comercial|" +
             "polideportivo|estadio|cine|cines|teatro|museo|parking|aparcamiento)";
 
+    private static final String STANDALONE_NAMED_PLACE_HEAD =
+            "(?:centro\\s+(?:de|del)\\s+salud|ambulatorio|hospital|cl[ií]nica|consultorio|" +
+            "farmacia|restaurante|hotel|mercadona|carrefour|cafeter[ií]a|bar|taller|colegio|" +
+            "universidad|oficina|oficinas|sede|centro\\s+comercial|polideportivo|teatro|museo)";
+
     private static final String WEEKDAY =
             "(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)";
 
@@ -40,7 +45,8 @@ public final class LocationParser {
             "el\\s+" + WEEKDAY + "\\b|este\\s+" + WEEKDAY + "\\b|" +
             "hoy\\b|ma[ñn]ana\\b|pasado\\s+ma[ñn]ana\\b|dentro\\s+de\\b|" +
             "av[ií]same\\b|avisa\\s+me\\b|recu[eé]rdame\\b|recordar\\b|" +
-            "durante\\b|con\\s+aviso\\b|con\\s+voz\\b|por\\s+voz\\b|" +
+            "durante\\b|con\\s+(?:(?:el|la)\\s+)?(?:doctor|doctora|dr\\.?|dra\\.?)\\b|" +
+            "con\\s+aviso\\b|con\\s+voz\\b|por\\s+voz\\b|" +
             "tengo\\s+que\\b|hay\\s+que\\b|debo\\b|necesito\\b)";
 
     public static String extract(String text) {
@@ -55,10 +61,19 @@ public final class LocationParser {
         ).matcher(compact);
         if (explicit.find()) return cleanLocation(explicit.group(1));
 
+        // Centros nombrados directamente, sin exigir "en": "Clínica Roble, doctora Vega".
+        Matcher standalone = Pattern.compile(
+                "(?iu)\\b(" + STANDALONE_NAMED_PLACE_HEAD + "\\s+[^,.;]{1,80}?)(?=" +
+                "\\s*(?:,|[.;]|$|\\s+con\\s+(?:(?:el|la)\\s+)?(?:doctor|doctora|dr\\.?|dra\\.?)\\b|" +
+                "\\s+a\\s+las?\\b|\\s+el\\s+\\d{1,2}\\b|\\s+(?:hoy|ma[nñ]ana)\\b))"
+        ).matcher(compact);
+        if (standalone.find()) return cleanLocation(standalone.group(1));
+
         String knownStop =
                 "(?=\\s+(?:a\\s+(?:hacer|realizar|recoger|comprar|ver|las?\\s+(?:\\d|" + TIME_WORD + "))|para\\s+|porque\\s+|" +
                 "hay\\s+que|tengo\\s+que|debo\\s+|necesito\\s+|anal[ií]tica|an[aá]lisis|revisi[oó]n|" +
-                "cita\\b|consulta\\b|el\\s+" + WEEKDAY + "\\b|este\\s+" + WEEKDAY + "\\b|" +
+                "cita\\b|consulta\\b|con\\s+(?:(?:el|la)\\s+)?(?:doctor|doctora|dr\\.?|dra\\.?)\\b|" +
+                "el\\s+" + WEEKDAY + "\\b|este\\s+" + WEEKDAY + "\\b|" +
                 "hoy\\b|ma[ñn]ana\\b|pasado\\s+ma[ñn]ana\\b)|$|[.;])";
         Matcher known = Pattern.compile(
                 "(?iu)\\b(?:en\\s+(?:el\\s+|la\\s+|los\\s+|las\\s+)?|al\\s+|a\\s+la\\s+)(" +
