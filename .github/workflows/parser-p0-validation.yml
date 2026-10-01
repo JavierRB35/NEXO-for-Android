@@ -1,6 +1,9 @@
 name: Parser V2 validation
 
 on:
+  push:
+    branches:
+      - work/nexo-3.7.0-beta19-event-parser-v2
   pull_request:
     branches:
       - release/nexo-3.7.0-beta18
@@ -111,6 +114,8 @@ jobs:
 
           cat > /tmp/RuleClassifierSmoke.java <<'JAVA'
           import com.jruiz.nexo.core.*;
+          import java.time.*;
+          import java.util.*;
 
           public final class RuleClassifierSmoke {
               private static void check(boolean ok, String message) {
@@ -158,6 +163,26 @@ jobs:
                   long newYork = ZoneTimeResolver.toEpochMillis("2026-10-08", "10:00", "America/New_York");
                   check(madrid > 0 && newYork > 0, "ZoneId válido");
                   check(newYork - madrid == 6L * 60L * 60L * 1000L, "U06 respeta zona de Nueva York");
+
+                  RuleClassifier.Result recurring = AppointmentParser.parse(
+                      "Entrenamiento lunes y miércoles hasta el 30 de noviembre de 2026 a las 19:00");
+                  check(RecurrenceEngine.WEEKLY.equals(recurring.recurrence), "R16 recurrencia semanal");
+                  check(recurring.recurrenceRule.contains("BYDAY=MO,WE"), "R16 conserva lunes y miércoles");
+                  check("2026-11-30".equals(recurring.recurrenceUntilDate), "R16 separa límite de serie");
+
+                  ZoneId madridZone = ZoneId.of("Europe/Madrid");
+                  long base = ZoneTimeResolver.toEpochMillis("2026-10-05", "19:00", "Europe/Madrid");
+                  long until = ZoneTimeResolver.toEpochMillis("2026-11-30", "23:59", "Europe/Madrid");
+                  List<Long> weekly = RecurrenceEngine.occurrencesBetween(
+                      base, RecurrenceEngine.WEEKLY, "FREQ=WEEKLY;BYDAY=MO,WE", until,
+                      base, until, madridZone, 5);
+                  check(weekly.size() == 5, "R16 genera apariciones");
+                  check(Instant.ofEpochMilli(weekly.get(0)).atZone(madridZone).getDayOfWeek() == DayOfWeek.MONDAY, "R16 primera aparición lunes");
+                  check(Instant.ofEpochMilli(weekly.get(1)).atZone(madridZone).getDayOfWeek() == DayOfWeek.WEDNESDAY, "R16 segunda aparición miércoles");
+                  check(Instant.ofEpochMilli(weekly.get(2)).atZone(madridZone).getDayOfWeek() == DayOfWeek.MONDAY, "R16 vuelve al lunes");
+
+                  RecurrenceEngine.Detection correctionRecurrence = RecurrenceEngine.detect("No es el miércoles, es el martes");
+                  check(RecurrenceEngine.NONE.equals(correctionRecurrence.recurrence), "una corrección de día no crea recurrencia");
               }
           }
           JAVA
