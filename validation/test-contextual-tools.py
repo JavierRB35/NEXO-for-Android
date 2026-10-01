@@ -39,11 +39,16 @@ assert "function applyDocumentEditorVoice(text)" in app
 assert 'class="document-open" data-document-open=' in app
 
 # Clasificación acordada.
-order = ["Para no olvidar", "Ideas y escritos", "Mi salud", "Mis lugares", "Guardado seguro"]
+order = ["Para no olvidar", "Ideas y escritos", "Mi salud", "Mis lugares", "Datos y seguridad"]
 positions = [html.index(x) for x in order]
 assert positions == sorted(positions)
-for panel in ("notes","recordings","lists","documents","journal","quotes","medications","places","parking","backup"):
+for panel in ("notes","recordings","lists","documents","journal","quotes","medications","places","parking","history","backup"):
     assert f'data-panel="{panel}"' in html
+
+# Historial e Inbox son contextos de consulta: sin flotantes.
+assert "if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}" in app
+assert "function openHistoryEntry(h)" in app
+assert 'data-history-index' in app
 
 # Jerarquía visual verde.
 assert "#homeNowTitle" in css
