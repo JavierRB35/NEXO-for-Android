@@ -110,15 +110,10 @@ public final class LocalTitleEngine {
     }
 
     private static String limit(String s) {
+        // El título generado se conserva completo. La elipsis pertenece a la
+        // presentación de la tarjeta, no al dato almacenado.
         s = cleanup(s);
-        if (s.isBlank()) return "Nota rápida";
-        String[] words=s.split("\\s+");
-        if (words.length>7) s=String.join(" ", Arrays.copyOf(words,7));
-        if (s.length()>45) {
-            s=s.substring(0,45).trim();
-            int p=s.lastIndexOf(' '); if(p>20) s=s.substring(0,p);
-        }
-        return cleanup(s);
+        return s.isBlank() ? "Nota rápida" : s;
     }
 
     private static String cleanup(String s) {
