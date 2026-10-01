@@ -384,17 +384,38 @@ function updateFloatingActions(){
   const voiceVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
   const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
   const notesContext=state.screen==='panel'&&state.lastPanel==='notes';
+  const listsContext=state.screen==='panel'&&state.lastPanel==='lists';
+  const voiceLabel=notesContext?'Dictar nota':listsContext?'Añadir elementos por voz':'Hablar con Nexo';
+  const addLabel=notesContext?'Nueva nota':listsContext?'Nueva lista':'Añadir evento';
   voice.classList.remove('is-recording');
-  voice.setAttribute('aria-label',notesContext?'Dictar nota':'Hablar con Nexo');
-  voice.setAttribute('title',notesContext?'Dictar nota':'Hablar con Nexo');
-  add.setAttribute('aria-label',notesContext?'Nueva nota':'Añadir evento');
-  add.setAttribute('title',notesContext?'Nueva nota':'Añadir evento');
+  voice.setAttribute('aria-label',voiceLabel);
+  voice.setAttribute('title',voiceLabel);
+  add.setAttribute('aria-label',addLabel);
+  add.setAttribute('title',addLabel);
   voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!eventVisible);
 }
 function runEventAddFab(){
   if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
+  if(state.screen==='panel'&&state.lastPanel==='lists'){openNewListModal();return;}
   const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);
 }
+function startListVoiceFor(listId){
+  const id=Number(listId)||0;
+  if(!id){toast('Primero crea una lista con el botón +.');return;}
+  const l=parseNative(NexoNative.getList(id),{});
+  if(!l.id){toast('La lista ya no existe.');return;}
+  const shopping=(l.kind||'').toLowerCase()==='compra';
+  const hint=shopping?'Di los productos que quieres añadir, quitar o marcar como comprados.':'Di los elementos que quieres añadir a la lista.';
+  startManagedDictation('list',{listId:id,shopping,title:shopping?'LISTA DE LA COMPRA':'AÑADIR A '+String(l.title||'LA LISTA').toUpperCase(),hint});
+}
+function chooseListForVoice(){
+  const lists=parseNative(NexoNative.getLists(),[]);
+  if(!lists.length){toast('Primero crea una lista con el botón +.');return;}
+  if(lists.length===1){startListVoiceFor(Number(lists[0].id));return;}
+  openModal('Añadir por voz',`<p class="muted" style="margin-top:0">Elige la lista a la que quieres añadir elementos.</p><div class="scope-buttons">${lists.map(l=>`<button class="secondary-button" data-list-voice-target="${Number(l.id)}">${esc(l.title||'Lista')}</button>`).join('')}</div>`);
+  $$('[data-list-voice-target]').forEach(b=>b.addEventListener('click',()=>{const id=Number(b.dataset.listVoiceTarget);closeModal();startListVoiceFor(id);}));
+}
+
 function runFloatingVoice(){
   if(state.screen==='save'){
     const base=$('#captureText')?.value.trim()||'';
@@ -405,10 +426,10 @@ function runFloatingVoice(){
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
-  if(state.screen==='panel'&&state.lastPanel==='lists'&&state.currentList){
-    const l=parseNative(NexoNative.getList(state.currentList),{}),shopping=(l.kind||'').toLowerCase()==='compra';
-    const hint=shopping?'Di los productos que quieres añadir, quitar o marcar como comprados.':'Di los elementos que quieres añadir a la lista.';
-    startManagedDictation('list',{listId:state.currentList,shopping,title:shopping?'LISTA DE LA COMPRA':'AÑADIR A LA LISTA',hint});return;
+  if(state.screen==='panel'&&state.lastPanel==='lists'){
+    if(state.currentList)startListVoiceFor(state.currentList);
+    else chooseListForVoice();
+    return;
   }
   startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar. Nexo identificará el tipo, la fecha, la hora y el lugar para que lo revises.'});
 }
@@ -1927,8 +1948,7 @@ function renderHistoryPanel(){
 
 function renderListsPanel(){
   const lists=parseNative(NexoNative.getLists(),[]);
-  $('#panelAction').innerHTML='<button id="panelAddList" class="secondary-button">+ Lista</button>';
-  $('#panelAddList').addEventListener('click',openNewListModal);
+  $('#panelAction').innerHTML='';
   $('#panelContent').innerHTML=lists.length?lists.map(l=>{
     const count=Number(l.count||0),pending=Number(l.pending||0),done=Math.max(0,count-pending);
     return `<div class="list-row"><div class="list-row-shell"><button class="row-open" data-list-open="${l.id}"><div class="list-row-head"><div><strong>${esc(l.title)}</strong><div class="small muted">${esc(l.kind)} · ${pending} pendiente${pending===1?'':'s'} · ${count} elemento${count===1?'':'s'}${done?` · ${done} completado${done===1?'':'s'}`:''}</div></div></div></button><div class="record-card-actions">${recordIconAction('edit','Editar lista',`data-list-manage="${l.id}"`)}${recordIconAction('share','Compartir lista',`data-list-share="${l.id}"`)}${recordIconAction('trash','Eliminar lista',`data-list-delete="${l.id}"`,'icon-action--danger')}</div></div></div>`;
