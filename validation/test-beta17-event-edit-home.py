@@ -77,6 +77,6 @@ assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()==expected_logo
 assert '@drawable/nexo_family_foreground' in launcher_xml and '@drawable/nexo_family_foreground' in launcher_round_xml
 assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
 assert '<color name="nexo_icon_background">#000000</color>' in colors
-assert 'v3.7.0-beta18' in html
+assert 'v3.7.0-beta19' in html
 
 print('Beta17: criterios de aceptación + mes de Inicio + logo suministrado OK')
