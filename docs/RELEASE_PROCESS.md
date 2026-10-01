@@ -29,7 +29,7 @@ Todas las APK Release deben usar la misma identidad criptográfica:
 
 - formato: PKCS12
 - alias: `nexo-release`
-- fichero esperado por CI: `nexo-release.p12`
+- fichero esperado por CI: `nexo-release.p12`\n- huella SHA-256 pública fijada: `59:57:99:E3:51:23:34:18:F0:5B:C5:05:3E:42:B3:AF:F4:39:D6:77:FF:BB:0F:59:A1:D9:2E:29:D1:5F:EC:48`
 
 La clave privada **nunca se sube al repositorio**.
 
