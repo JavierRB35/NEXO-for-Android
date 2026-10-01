@@ -20,6 +20,12 @@ public final class LocalTitleEngine {
 
         String birthday = birthdayTitle(text);
         if (!birthday.isBlank()) return limit(birthday);
+
+        // Antes de atajos genéricos como "Dentista", prioriza el propósito
+        // explícito de la cita: "revisión del implante dental", "reunión de presupuesto", etc.
+        String semanticTitle = EventSemanticParser.titleCandidate(text);
+        if (!semanticTitle.isBlank()) return limit(semanticTitle);
+
         if (n.contains("itv")) return "ITV";
         if (n.contains("seguro") && (n.contains("coche") || "Coche".equals(category))) {
             if (n.contains("renov") || n.contains("vence") || n.contains("caduc")) return "Renovar seguro del coche";
