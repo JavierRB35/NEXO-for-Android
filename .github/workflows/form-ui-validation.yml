@@ -1,0 +1,27 @@
+name: Form UI validation
+
+on:
+  push:
+    branches:
+      - work/nexo-3.7.0-beta19-formularios-familia-ui
+  pull_request:
+    branches:
+      - work/nexo-3.7.0-beta19-event-parser-v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: JavaScript syntax
+        run: node --check app/src/main/assets/app.js
+
+      - name: Form structure regression
+        run: python3 validation/test-form-familia-ui.py
