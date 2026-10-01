@@ -99,6 +99,7 @@ jobs:
           javac -cp "$ANDROID_JAR" -d /tmp/nexo-parser-surface \
             app/src/main/java/com/jruiz/nexo/core/EventInterpretation.java \
             app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
+            app/src/main/java/com/jruiz/nexo/core/ZoneTimeResolver.java \
             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
             app/src/main/java/com/jruiz/nexo/core/RecurrenceEngine.java \
             app/src/main/java/com/jruiz/nexo/core/LocationParser.java \
