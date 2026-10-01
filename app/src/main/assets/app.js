@@ -1729,36 +1729,80 @@ function backupStatLine(stats){
 }
 function renderBackupPanel(){
   const b=parseNative(NexoNative.getBackupStatus(),{}),stats=b.stats||{},last=Number(b.lastExportAt||0),restored=Number(b.lastRestoreAt||0);
+  const family=parseNative(NexoNative.getNexoFamiliaCloudStatus(),{}),connected=!!family.connected,
+    baseline=!!family.baselineCompleted,lastSync=Number(family.lastSyncAt||0),
+    imported=Number(family.importedEvents||0),known=Number(family.knownEventIds||0),
+    localAppointments=Number(family.localAppointments||0);
   $('#panelAction').innerHTML='';
+
+  const familyCard=connected
+    ? `<div class="backup-card family-sync-card">
+        <div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></div>
+        <div class="backup-copy family-sync-copy">
+          <div class="family-sync-heading"><strong>Nexo Familia</strong><span class="family-sync-badge family-sync-badge--ok">Conectado</span></div>
+          <p class="family-sync-account">${esc(family.email||'Usuario vinculado')}</p>
+          <p>${baseline
+            ? 'Importa únicamente los eventos cuyo UUID todavía no existe en este teléfono. Los eventos ya presentes en Nexo no se modifican.'
+            : 'Primera importación: Nexo descargará y validará todos los eventos antes de sustituir únicamente la agenda local. Notas, listas, medicación, documentos y grabaciones no se modifican.'}</p>
+          <div class="family-sync-stats">
+            <span>${imported} importado${imported===1?'':'s'}</span>
+            <span>${known} UUID conocido${known===1?'':'s'}</span>
+            ${lastSync?`<span>Última importación: ${esc(fmtDate(lastSync,true))}</span>`:''}
+          </div>
+          ${!baseline&&localAppointments?'<div class="family-sync-warning">La primera importación reemplazará '+localAppointments+' cita'+(localAppointments===1?'':'s')+' / evento'+(localAppointments===1?'':'s')+' de la agenda local.</div>':''}
+        </div>
+        <div class="stack-actions family-sync-actions">
+          <button id="nexoFamiliaSyncBtn" class="primary-button">${baseline?'Importar eventos nuevos':'Importar todos los eventos'}</button>
+          <button id="nexoFamiliaDisconnectBtn" class="secondary-button">Desvincular</button>
+        </div>
+      </div>`
+    : `<div class="backup-card family-sync-card family-sync-card--login">
+        <div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></div>
+        <div class="backup-copy family-sync-copy">
+          <div class="family-sync-heading"><strong>Conectar con Nexo Familia</strong><span class="family-sync-badge">Sin vincular</span></div>
+          <p>Usa el correo y la contraseña con los que entras en Nexo Familia. No son las credenciales de Gmail ni las del propietario de Supabase.</p>
+          <div class="family-sync-form">
+            <label>Correo de Nexo Familia<input id="nexoFamiliaEmail" type="email" autocomplete="email" inputmode="email" placeholder="tu@correo.com"></label>
+            <label>Contraseña de Nexo Familia<input id="nexoFamiliaPassword" type="password" autocomplete="current-password" placeholder="Contraseña"></label>
+          </div>
+          <div class="small muted">La contraseña solo se usa para iniciar sesión y no se guarda. La sesión queda cifrada con Android Keystore.</div>
+        </div>
+        <div class="stack-actions family-sync-actions"><button id="nexoFamiliaLinkBtn" class="primary-button">Vincular Nexo Familia</button></div>
+      </div>`;
+
   $('#panelContent').innerHTML=`<div class="backup-stack">
     <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div><div class="backup-copy"><strong>Exportar copia</strong><p>Guarda la base de datos, listas, avisos y adjuntos en un archivo <b>.nexo</b>. <strong>Las grabaciones no se incluyen.</strong> Expórtalas por separado desde Grabaciones.</p><div class="small muted">${last?`Última copia: ${esc(fmtDate(last,true))}`:'Aún no has creado ninguna copia.'}</div><div class="small muted">${esc(backupStatLine(stats))}</div></div><button id="backupExportBtn" class="primary-button">Exportar copia</button></div>
     <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg></div><div class="backup-copy"><strong>Restaurar copia</strong><p>Selecciona un archivo <b>.nexo</b> desde el teléfono, la nube, USB u otra ubicación disponible.</p><div class="small muted">${restored?`Última restauración: ${esc(fmtDate(restored,true))}`:'La restauración sustituye el contenido actual por el de la copia.'}</div></div><button id="backupRestoreBtn" class="secondary-button">Restaurar copia</button></div>
-    <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></div><div class="backup-copy"><strong>Nexo Familia</strong><p>Comprueba la migración contra la instantánea incluida y repara cualquier evento o aviso que falte sin duplicar los ya existentes.</p><div id="nexoFamiliaImportStats" class="small muted"></div><div id="nexoFamiliaMissing" class="small muted"></div></div><div class="stack-actions"><button id="nexoFamiliaRepairBtn" class="primary-button">Comprobar y reparar</button><button id="nexoFamiliaImportBtn" class="secondary-button">Importar JSON</button></div></div>
-    <div class="backup-security"><strong>Cómo funciona</strong><p>Nexo comprueba la integridad del archivo antes de restaurarlo. Justo antes de sustituir tus datos crea además una copia interna de seguridad del estado actual.</p></div>
+    ${familyCard}
+    <div class="backup-security"><strong>Seguridad de la vinculación</strong><p>Nexo usa Supabase Auth como un usuario normal de Nexo Familia. Supabase aplica los mismos permisos y reglas RLS que en la aplicación familiar.</p></div>
   </div>`;
+
   $('#backupExportBtn').addEventListener('click',()=>{toast('Elige dónde guardar la copia.');NexoNative.exportBackup();});
   $('#backupRestoreBtn').addEventListener('click',()=>{toast('Selecciona una copia .nexo para revisarla antes de restaurar.');NexoNative.chooseBackupRestore();});
-  const familyStats=parseNative(NexoNative.getNexoFamiliaImportStats(),{});
-  const familyStatsEl=$('#nexoFamiliaImportStats');
-  if(familyStatsEl){
-    const verified=Number(familyStats.verifiedEvents||0),expected=Number(familyStats.expectedEvents||0),
-      verifiedRules=Number(familyStats.verifiedReminderRules||0),expectedRules=Number(familyStats.expectedReminderRules||0),
-      verifiedFamily=Number(familyStats.verifiedFamily||0),expectedFamily=Number(familyStats.expectedFamily||0),
-      verifiedSelected=Number(familyStats.verifiedSelected||0),expectedSelected=Number(familyStats.expectedSelected||0),
-      familyPending=Number(familyStats.familyPending||0),familyDone=Number(familyStats.familyDone||0),
-      selectedPending=Number(familyStats.selectedPending||0),selectedDone=Number(familyStats.selectedDone||0),
-      complete=!!familyStats.complete;
-    familyStatsEl.textContent=expected
-      ? `${complete?'Migración íntegra · ':'Migración incompleta · '}${verified}/${expected} eventos · family ${verifiedFamily}/${expectedFamily} (pend. ${familyPending}, fin. ${familyDone}) · selected ${verifiedSelected}/${expectedSelected} (pend. ${selectedPending}, fin. ${selectedDone}) · ${verifiedRules}/${expectedRules} avisos`
-      : 'Todavía no hay una instantánea de Nexo Familia auditada.';
-    const missing=Array.isArray(familyStats.missingEvents)?familyStats.missingEvents:[];
-    const missingEl=$('#nexoFamiliaMissing');
-    if(missingEl)missingEl.textContent=missing.length?('Faltan: '+missing.slice(0,8).map(x=>x.title||x.id).join(' · ')+(missing.length>8?` · +${missing.length-8} más`:'')):'';
-  }
-  $('#nexoFamiliaRepairBtn').addEventListener('click',()=>{const b=$('#nexoFamiliaRepairBtn');b.disabled=true;b.textContent='Comprobando…';NexoNative.repairBundledNexoFamiliaMigration();});
-  $('#nexoFamiliaImportBtn').addEventListener('click',()=>{toast('Selecciona el archivo JSON de migración de Nexo Familia.');NexoNative.chooseNexoFamiliaImport();});
-}
 
+  if(connected){
+    $('#nexoFamiliaSyncBtn').addEventListener('click',()=>{
+      const button=$('#nexoFamiliaSyncBtn');button.disabled=true;button.textContent=baseline?'Buscando eventos nuevos…':'Importando desde Nexo Familia…';
+      NexoNative.syncNexoFamiliaEvents();
+    });
+    $('#nexoFamiliaDisconnectBtn').addEventListener('click',()=>confirmGeneric(
+      'Desvincular Nexo Familia',
+      'Se cerrará la sesión guardada en este teléfono. Los eventos ya importados permanecerán en Nexo.',
+      ()=>NexoNative.disconnectNexoFamilia(),
+      'Desvincular'
+    ));
+  }else{
+    const link=()=>{
+      const email=$('#nexoFamiliaEmail').value.trim(),password=$('#nexoFamiliaPassword').value;
+      if(!email){toast('Escribe el correo de Nexo Familia.');$('#nexoFamiliaEmail').focus();return;}
+      if(!password){toast('Escribe la contraseña de Nexo Familia.');$('#nexoFamiliaPassword').focus();return;}
+      const button=$('#nexoFamiliaLinkBtn');button.disabled=true;button.textContent='Conectando…';
+      NexoNative.linkNexoFamilia(email,password);
+    };
+    $('#nexoFamiliaLinkBtn').addEventListener('click',link);
+    $('#nexoFamiliaPassword').addEventListener('keydown',e=>{if(e.key==='Enter')link();});
+  }
+}
 
 function renderAppointmentsPanel(){
   const today=new Date();today.setHours(0,0,0,0);
@@ -2297,6 +2341,35 @@ window.NexoUI={
   onManagedVoiceError(msg){$('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;toast(msg||'No se pudo continuar el dictado.');},
   onSystemAlarmCreated(msg){closeModal();toast(msg||'Alarma enviada al sistema del teléfono.','',null,5000);},
   onSystemAlarmError(msg){if($('#alarmCreate')){$('#alarmCreate').disabled=false;$('#alarmCreate').textContent='Intentar de nuevo';}toast(msg||'No se pudo crear la alarma.','',null,6000);},
+  onNexoFamiliaLinked(raw){
+    const r=parseNative(raw,{});
+    toast(`Nexo Familia vinculado${r.email?` · ${r.email}`:''}.`,'',null,4500);
+    if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();
+  },
+  onNexoFamiliaSyncDone(raw){
+    const r=parseNative(raw,{}),inserted=Number(r.inserted||0),existing=Number(r.alreadyExisting||0),first=!!r.firstBaseline,removed=Number(r.removedLocalAppointments||0);
+    if(first){
+      toast(`Migración inicial completada: ${inserted} evento${inserted===1?'':'s'} importado${inserted===1?'':'s'}${removed?` · agenda anterior sustituida (${removed})`:''}.`,'',null,7500);
+    }else if(inserted){
+      toast(`${inserted} evento${inserted===1?'':'s'} nuevo${inserted===1?'':'s'} importado${inserted===1?'':'s'}${existing?` · ${existing} ya existían`:''}.`,'',null,6500);
+    }else{
+      toast('Nexo está actualizado. No hay eventos nuevos para importar.','',null,5000);
+    }
+    refreshCurrent();
+    if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();
+  },
+  onNexoFamiliaCloudError(msg){
+    toast(msg||'No se pudo conectar con Nexo Familia.','',null,7000);
+    if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();
+  },
+  onNexoFamiliaSessionExpired(raw){
+    toast('La sesión de Nexo Familia ha caducado. Vuelve a vincularla.','',null,7000);
+    if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();
+  },
+  onNexoFamiliaDisconnected(raw){
+    toast('Nexo Familia desvinculado. Los eventos importados se mantienen.','',null,5000);
+    if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();
+  },
   onNexoFamiliaImportDone(raw){const r=parseNative(raw,{}),n=Number(r.preserved||0),rem=Number(r.reminders||0),skipped=Number(r.skipped||0);toast(`Nexo Familia: ${n} evento${n===1?'':'s'} importado${n===1?'':'s'}${rem?` · ${rem} aviso${rem===1?'':'s'}`:''}${skipped?` · ${skipped} con revisión`:''}.`,'',null,6500);refreshCurrent();if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();},
   onNexoFamiliaRepairDone(raw){const r=parseNative(raw,{}),ok=!!r.complete,v=Number(r.verifiedEvents||0),e=Number(r.expectedEvents||0),vf=Number(r.verifiedFamily||0),ef=Number(r.expectedFamily||0),vs=Number(r.verifiedSelected||0),es=Number(r.expectedSelected||0),vr=Number(r.verifiedReminderRules||0),er=Number(r.expectedReminderRules||0);toast(ok?`Migración reparada: ${v}/${e} eventos · family ${vf}/${ef} · selected ${vs}/${es} · ${vr}/${er} avisos.`:`Reparación incompleta: ${v}/${e} · family ${vf}/${ef} · selected ${vs}/${es} · avisos ${vr}/${er}.`,'',null,8000);refreshCurrent();if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();},
   onNexoFamiliaImportError(msg){toast(msg||'No se pudo importar Nexo Familia.','',null,7000);},
