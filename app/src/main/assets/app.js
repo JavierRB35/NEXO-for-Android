@@ -38,7 +38,7 @@ const state = {
   screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, calendarUpdateItemId:0, lastPanel:null, currentList:null,
   userAdjusted:false, captureManualFields:new Set(), captureProposals:[], captureProposalIndex:0, pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
-  capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
+  capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', captureCapturedAt:0, voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
   journalFilter:'all', journalSearch:'', journalPick:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', medicationVoiceBase:'',
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
@@ -57,6 +57,7 @@ function ensureCaptureManualFields(){if(!(state.captureManualFields instanceof S
 function markCaptureManual(...fields){const set=ensureCaptureManualFields();fields.filter(Boolean).forEach(f=>set.add(f));state.userAdjusted=set.size>0;}
 function captureFieldLocked(field){return ensureCaptureManualFields().has(field);}
 function resetCaptureManualFields(){state.captureManualFields=new Set();state.userAdjusted=false;}
+function ensureCaptureCapturedAt(){if(!(Number(state.captureCapturedAt)>0))state.captureCapturedAt=Date.now();return Number(state.captureCapturedAt);}
 const parseNative = (raw,fallback) => { try { return JSON.parse(raw); } catch (_) { return fallback; } };
 const esc = s => String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const escAttr = s => esc(s).replace(/`/g,'&#96;');
@@ -1167,19 +1168,24 @@ function prepareQuickNoteForType(type='event',date=''){
   setTimeout(()=>$('#captureText').focus(),80);
 }
 
-function startVoiceCapture(pinnedDate='',pinnedType='') { state.voiceMode='capture'; const existing=(!pinnedDate&&state.screen==='save')?($('#captureText')?.value.trim()||''):''; state.voiceBaseText=existing;state.voicePinnedDate=pinnedDate||'';state.voicePinnedType=pinnedType||state.capturePinnedType||'event';navigate('save'); if(pinnedDate){state.capturePinnedDate=pinnedDate;state.capturePinnedType=pinnedType||'';state.captureReturn='today';clearCapture(true);state.voiceBaseText='';$('#captureDate').value=pinnedDate;$('#captureEndDate').value=pinnedDate;if(pinnedType)$('#captureType').value=pinnedType;refreshCaptureAlertEditor();} setInterpretationStatus('listening','Escuchando… puedes hacer una pausa corta'); NexoNative.startVoiceInput(); }
+function startVoiceCapture(pinnedDate='',pinnedType='') { state.voiceMode='capture'; const existing=(!pinnedDate&&state.screen==='save')?($('#captureText')?.value.trim()||''):''; if(!existing||!state.captureCapturedAt)state.captureCapturedAt=Date.now();state.voiceBaseText=existing;state.voicePinnedDate=pinnedDate||'';state.voicePinnedType=pinnedType||state.capturePinnedType||'event';navigate('save'); if(pinnedDate){state.capturePinnedDate=pinnedDate;state.capturePinnedType=pinnedType||'';state.captureReturn='today';clearCapture(true);state.captureCapturedAt=Date.now();state.voiceBaseText='';$('#captureDate').value=pinnedDate;$('#captureEndDate').value=pinnedDate;if(pinnedType)$('#captureType').value=pinnedType;refreshCaptureAlertEditor();} setInterpretationStatus('listening','Escuchando… puedes hacer una pausa corta'); NexoNative.startVoiceInput(); }
 
 function analyzeCapture(options={}) {
   const text=$('#captureText').value.trim();
   if(!text){ resetAnalysis(); return; }
   const pinned=String(state.capturePinnedType||'');
   const appointment=!!pinned&&isAppointmentType(pinned);
+  const capturedAt=ensureCaptureCapturedAt();
   let proposals=[];
-  if(appointment&&typeof NexoNative.classifyAppointmentProposals==='function'){
+  if(appointment&&typeof NexoNative.classifyAppointmentProposalsAt==='function'){
+    proposals=parseNative(NexoNative.classifyAppointmentProposalsAt(text,capturedAt),[]);
+  }else if(appointment&&typeof NexoNative.classifyAppointmentProposals==='function'){
     proposals=parseNative(NexoNative.classifyAppointmentProposals(text),[]);
   }
   const local=(appointment&&proposals.length)?proposals[0]:
-    parseNative(appointment?NexoNative.classifyAppointment(text):NexoNative.classify(text),{});
+    parseNative(appointment
+      ?(typeof NexoNative.classifyAppointmentAt==='function'?NexoNative.classifyAppointmentAt(text,capturedAt):NexoNative.classifyAppointment(text))
+      :(typeof NexoNative.classifyAt==='function'?NexoNative.classifyAt(text,capturedAt):NexoNative.classify(text)),{});
   if(appointment)local.type='event';
   state.captureProposals=appointment&&Array.isArray(proposals)?proposals:[];
   state.captureProposalIndex=0;
@@ -1336,7 +1342,7 @@ function resetAnalysis() {
 
 function clearCapture(keepPinned=false) {
   clearTimeout(state.pendingSaveTimer);
-  state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
+  state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); state.captureCapturedAt=Date.now(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
@@ -1371,7 +1377,7 @@ function commitCapture() {
   const recurrence=$('#captureRecurrence').value||'none';
   const detectedRecurrenceRule=(!captureFieldLocked('recurrence')&&state.classification?.recurrence===recurrence)?String(state.classification?.recurrenceRule||''):'';
   const payload={
-    body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
+    body:$('#captureDescription').value.trim(), originalText:text, capturedAt:ensureCaptureCapturedAt(), title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
     dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
     recurrence, recurrenceRule:detectedRecurrenceRule||recurrenceRuleFor(recurrence), recurrenceUntil:recurrence!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
