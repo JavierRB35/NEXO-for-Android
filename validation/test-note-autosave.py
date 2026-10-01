@@ -29,7 +29,7 @@ assert 'noteTitleManual' in composer
 assert 'NoteTitleEngine.derive(body)' in java
 
 # Persistencia segura: nueva columna incremental y protección de títulos existentes.
-assert 'DB_VERSION = 14' in db
+assert 'DB_VERSION = 24' in db
 assert 'note_title_manual INTEGER NOT NULL DEFAULT 0' in db
 assert 'if (oldVersion < 14)' in db
 assert "UPDATE items SET note_title_manual=1 WHERE type='note'" in db
