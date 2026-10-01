@@ -40,9 +40,9 @@ const state = {
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
-  journalFilter:'all', journalSearch:'', journalPick:null, journalEditor:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', journalVoiceId:0, journalVoiceTitle:'', journalVoiceTitleManual:false, journalVoiceFavorite:false, journalVoiceRevisit:false, medicationVoiceBase:'', medicationEditor:null, medicationVoiceEditor:false,
+  journalFilter:'all', journalSearch:'', journalPick:null, journalEditor:null, quoteEditor:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', journalVoiceId:0, journalVoiceTitle:'', journalVoiceTitleManual:false, journalVoiceFavorite:false, journalVoiceRevisit:false, medicationVoiceBase:'', medicationEditor:null, medicationVoiceEditor:false,
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
-  placeFilter:'all', placeSearch:'', places:[],
+  placeFilter:'all', placeSearch:'', places:[], placeEditor:null,
   documentFilter:'all', documentSearch:'', documents:[], documentEditor:null, documentRequest:0,
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
@@ -644,17 +644,28 @@ function journalGroupHtml(rows){
 }
 
 
+
 function bindJournalButtons(root=document){
   root.querySelectorAll('[data-open-journal]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openJournal(Number(b.dataset.openJournal));}));
   root.querySelectorAll('[data-edit-journal]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation();
     const id=Number(b.dataset.editJournal),j=parseNative(NexoNative.getJournal(id),{});
-    if(j.kind==='quote')openJournal(id);else openJournalComposer('','',id);
+    if(j.kind==='quote')openJournalComposer('','quote',id);else openJournalComposer('','',id);
   }));
   root.querySelectorAll('[data-journal-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoJournal(Number(b.dataset.journalShare));}));
   root.querySelectorAll('[data-journal-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.journalDelete),j=parseNative(NexoNative.getJournal(id),{});confirmGeneric('Eliminar entrada','Se eliminará “'+(j.title||'esta entrada')+'”.',()=>{if(NexoNative.deleteJournal(id)){toast('Entrada eliminada');renderJournalPanel();renderJournalPrompt(false);}else toast('No se pudo eliminar');},'Eliminar');}));
 }
-
+function startQuoteEditorVoice(){
+  if(!state.quoteEditor){startJournalVoice('','quote');return;}
+  startManagedDictation('quote-editor',{title:'DICTAR FRASE',hint:'Lo que digas se añadirá al texto de esta frase.'});
+}
+function applyQuoteEditorVoice(text){
+  const body=$('#journalBody');if(!body)return;
+  const spoken=String(text||'').trim();if(!spoken)return;
+  body.value=[body.value.trim(),spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+  body.dispatchEvent(new Event('input'));
+  toast('Dictado añadido a la frase.');
+}
 function startJournalVoice(base='',kind='',context={}){
   state.journalVoiceKind=kind==='quote'?'quote':'';
   state.journalVoiceId=Number(context.id||0);
@@ -731,23 +742,29 @@ function openJournalComposer(prefill='',forcedKind='',editId=0,voiceContext=null
   state.journalVoiceKind=quoteMode?'quote':'';
 
   if(quoteMode){
-    const initial=parseNative(NexoNative.synthesizeJournal(prefill||''),{});
-    openModal('Nueva cita',`<div class="journal-compose modal-form">
-      <div class="modal-actions" style="margin-top:0"><button id="journalVoiceBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Dictar cita</button></div>
-      <label>Texto de la cita<textarea id="journalBody" rows="7" placeholder="Escribe o dicta la frase que quieres guardar.">${esc(prefill||'')}</textarea></label>
-      <label>Título<input id="journalTitle" type="text" value="${escAttr(initial.title||'')}" placeholder="Un título breve para identificarla"></label>
-      <label>Autor / referencia<input id="journalSummary" type="text" value="" placeholder="Autor, filósofo, canción, libro, película…"></label>
-      <label>Favorito<span class="switch-row"><input id="journalFavorite" type="checkbox"><span>Marcar como favorita</span></span></label>
-      <div class="small muted">Las citas no llevan fecha, hora, recordatorios ni recurrencia.</div>
-    </div><div class="modal-actions"><button id="journalSave" class="primary-button">Guardar cita</button></div>`);
-    $('#journalVoiceBtn').addEventListener('click',()=>{const base=$('#journalBody').value.trim();closeModal();startJournalVoice(base,'quote');});
+    const existing=Number(editId)>0?parseNative(NexoNative.getJournal(Number(editId)),{}):{};
+    const editing=!!existing.id;
+    const context=voiceContext||{};
+    const body=prefill!==''?String(prefill):String(existing.body||'');
+    const reference=String(context.summary!==undefined?context.summary:(existing.summary||''));
+    const favorite=context.favorite!==undefined?!!context.favorite:!!existing.favorite;
+    state.quoteEditor={id:Number(existing.id||0),editing};
+    openModal(editing?'Editar frase':'Nueva frase',`<div class="journal-compose journal-compose--simple modal-form">
+      <label>Frase<textarea id="journalBody" rows="9" placeholder="Escribe o dicta la frase que quieres conservar.">${esc(body)}</textarea></label>
+      <label>Autor / referencia <span class="optional">(opcional)</span><input id="journalSummary" type="text" value="${escAttr(reference)}" placeholder="Autor, libro, canción, película…"></label>
+      <label class="switch-row"><input id="journalFavorite" type="checkbox" ${favorite?'checked':''}><span><strong>☆ Favorita</strong><small>Destácala entre tus frases guardadas.</small></span></label>
+      <div class="small muted">Nexo genera automáticamente un título breve. Las frases no se añaden al calendario.</div>
+    </div><div class="modal-actions"><button id="journalSave" class="primary-button">${editing?'Guardar cambios':'Guardar frase'}</button></div>`);
+    document.body.classList.add('quote-editor-open');
+    requestAnimationFrame(updateFloatingActions);
     $('#journalSave').addEventListener('click',()=>{
-      const body=$('#journalBody').value.trim(),title=$('#journalTitle').value.trim(),reference=$('#journalSummary').value.trim();
-      if(!body){toast('Escribe o dicta el texto de la cita');return;}
-      if(!title){toast('Pon un título a la cita');$('#journalTitle').focus();return;}
-      const id=NexoNative.saveJournal(JSON.stringify({body,kind:'quote',title,summary:reference,tags:'',favorite:$('#journalFavorite').checked,revisit:false,source:'manual'}));
-      if(Number(id)>0){closeModal();toast('Cita guardada');if(state.screen==='panel'&&(state.lastPanel==='journal'||state.lastPanel==='quotes'))renderJournalPanel();renderJournalPrompt(false);}
-      else toast('No se pudo guardar la cita');
+      const body=$('#journalBody').value.trim(),reference=$('#journalSummary').value.trim();
+      if(!body){toast('Escribe o dicta la frase.');$('#journalBody').focus();return;}
+      const auto=parseNative(NexoNative.synthesizeJournal(body),{}),title=String(auto.title||body.slice(0,70)||'Frase');
+      const payload={id:Number(existing.id||0),body,kind:'quote',title,summary:reference,tags:'',favorite:$('#journalFavorite').checked,revisit:false,source:'manual'};
+      const ok=editing?!!NexoNative.updateJournal(JSON.stringify(payload)):Number(NexoNative.saveJournal(JSON.stringify(payload)))>0;
+      if(ok){state.quoteEditor=null;closeModal();toast(editing?'Frase actualizada':'Frase guardada');if(state.screen==='panel'&&state.lastPanel==='quotes')renderJournalPanel();renderJournalPrompt(false);}
+      else toast('No se pudo guardar la frase');
     });
     setTimeout(()=>$('#journalBody')?.focus(),80);
     return;
@@ -797,55 +814,38 @@ function openJournalComposer(prefill='',forcedKind='',editId=0,voiceContext=null
   setTimeout(()=>bodyEl?.focus(),80);
 }
 
+
 function openJournal(id){
   const j=parseNative(NexoNative.getJournal(id),{});if(!j.id)return;
   const isQuote=j.kind==='quote';
-  if(isQuote){
-    openModal('Cita / frase',`<div class="modal-form"><label>Título<input id="journalEditTitle" type="text" value="${escAttr(j.title||'')}"></label><label>Autor / referencia<input id="journalEditSummary" type="text" value="${escAttr(j.summary||'')}" placeholder="Autor, canción, libro, filósofo…"></label><label>Texto de la cita<textarea id="journalEditBody" class="journal-original" rows="8">${esc(j.body||'')}</textarea></label><label>Favorito<span class="switch-row"><input id="journalEditFavorite" type="checkbox" ${j.favorite?'checked':''}><span>Favorita</span></span></label></div><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalUpdate" class="primary-button">Guardar cambios</button></div>`);
-    $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
-    $('#journalUpdate').addEventListener('click',()=>{
-      const body=$('#journalEditBody').value.trim(),title=$('#journalEditTitle').value.trim();
-      if(!body){toast('La cita necesita texto');return;}if(!title){toast('Pon un título a la cita');return;}
-      const ok=NexoNative.updateJournal(JSON.stringify({id:j.id,title,summary:$('#journalEditSummary').value.trim(),body,kind:'quote',tags:'',favorite:$('#journalEditFavorite').checked,revisit:false}));
-      if(ok){closeModal();toast('Cita actualizada');refreshCurrent();renderJournalPrompt(false);}else toast('No se pudo guardar');
-    });
-  }else{
-    const flags=[j.favorite?'<span class="journal-read-flag">★ Favorita</span>':'',j.revisit?'<span class="journal-read-flag">↺ Para releer</span>':''].filter(Boolean).join('');
-    openModal('Cuaderno',`<article class="journal-read"><div class="journal-date-badge">${esc(fmtDate(j.createdAt,true))}</div><h3>${esc(j.title||'Entrada')}</h3>${flags?`<div class="journal-read-flags">${flags}</div>`:''}<div class="journal-read-body">${esc(j.body||'')}</div></article><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalEdit" class="primary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg> Editar</button></div>`);
-    $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
-    $('#journalEdit').addEventListener('click',()=>{closeModal();setTimeout(()=>openJournalComposer('','',Number(j.id)),60);});
-  }
-  $('#journalDelete').addEventListener('click',()=>{closeModal();$('#confirmTitle').textContent=isQuote?'Eliminar cita':'Eliminar del Cuaderno';$('#confirmText').textContent='Se eliminará esta entrada. Esta acción no afecta al calendario.';$('#confirmModal').classList.remove('hidden');state.confirmAction=()=>{const ok=NexoNative.deleteJournal(j.id);$('#confirmModal').classList.add('hidden');toast(ok?'Entrada eliminada':'No se pudo eliminar');refreshCurrent();renderJournalPrompt(false);};});
+  const flags=[j.favorite?'<span class="journal-read-flag">★ Favorita</span>':'',!isQuote&&j.revisit?'<span class="journal-read-flag">↺ Para releer</span>':''].filter(Boolean).join('');
+  openModal(isQuote?'Frase':'Cuaderno',`<article class="journal-read"><div class="journal-date-badge">${esc(fmtDate(j.createdAt,true))}</div><h3>${esc(j.title||(isQuote?'Frase':'Entrada'))}</h3>${isQuote&&j.summary?`<div class="journal-read-reference">${esc(j.summary)}</div>`:''}${flags?`<div class="journal-read-flags">${flags}</div>`:''}<div class="journal-read-body">${esc(j.body||'')}</div></article><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalEdit" class="primary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg> Editar</button></div>`);
+  $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
+  $('#journalEdit').addEventListener('click',()=>{closeModal();setTimeout(()=>openJournalComposer('',isQuote?'quote':'',Number(j.id)),60);});
+  $('#journalDelete').addEventListener('click',()=>{closeModal();$('#confirmTitle').textContent=isQuote?'Eliminar frase':'Eliminar del Cuaderno';$('#confirmText').textContent='Se eliminará esta entrada. Esta acción no afecta al calendario.';$('#confirmModal').classList.remove('hidden');state.confirmAction=()=>{const ok=NexoNative.deleteJournal(j.id);$('#confirmModal').classList.add('hidden');toast(ok?'Entrada eliminada':'No se pudo eliminar');refreshCurrent();renderJournalPrompt(false);};});
 }
 function renderJournalPanel(){
   const quoteMode=state.lastPanel==='quotes';
   const kind=quoteMode?'quote':'thought';
-  const filter=['favorite','revisit'].includes(state.journalFilter)?state.journalFilter:'all';
+  const filter=quoteMode?(state.journalFilter==='favorite'?'favorite':'all'):(['favorite','revisit'].includes(state.journalFilter)?state.journalFilter:'all');
   const q=state.journalSearch||'',fav=filter==='favorite';
   let rows=parseNative(NexoNative.getJournalEntries(q,kind,fav),[]);
-  if(filter==='revisit')rows=rows.filter(x=>!!x.revisit);
+  if(!quoteMode&&filter==='revisit')rows=rows.filter(x=>!!x.revisit);
 
   $('#panelTitle').textContent=quoteMode?'Frases':'Cuaderno';
-  $('#panelSubtitle').textContent=quoteMode?'Citas textuales, autores y referencias · fuera del calendario':'Pensamientos, ideas y reflexiones personales.';
+  $('#panelSubtitle').textContent=quoteMode?'Citas y frases que quieres conservar.':'Pensamientos, ideas y reflexiones personales.';
+  $('#panelAction').innerHTML='';
 
   if(quoteMode){
-    $('#panelAction').innerHTML='<button id="journalAddTop" class="secondary-button">+ Nueva frase</button>';
-    $('#journalAddTop').addEventListener('click',()=>openJournalComposer('','quote'));
-    $('#panelContent').innerHTML=`<div class="journal-toolbar">
-      <input id="journalSearch" type="search" placeholder="Buscar por texto, título o autor…" value="${escAttr(q)}">
-      <button id="journalVoice" class="secondary-button journal-voice"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button>
-      <button id="journalAdd" class="primary-button journal-add">+ Nueva frase</button>
+    $('#panelContent').innerHTML=`<div class="journal-toolbar journal-toolbar--cuaderno">
+      <input id="journalSearch" type="search" placeholder="Buscar por texto, autor o referencia…" value="${escAttr(q)}" aria-label="Buscar frases">
     </div>
     <div class="journal-filter-row">
       <button data-journal-filter="all" class="${filter==='all'?'active':''}">Todas</button>
       <button data-journal-filter="favorite" class="${filter==='favorite'?'active':''}">★ Favoritas</button>
     </div>
     <div id="journalList" class="stack">${journalGroupHtml(rows)}</div>`;
-    bindJournalButtons($('#journalList'));
-    $('#journalVoice').addEventListener('click',()=>startJournalVoice('','quote'));
-    $('#journalAdd').addEventListener('click',()=>openJournalComposer('','quote'));
   }else{
-    $('#panelAction').innerHTML='';
     $('#panelContent').innerHTML=`<div class="journal-toolbar journal-toolbar--cuaderno">
       <input id="journalSearch" type="search" placeholder="Buscar en tu Cuaderno…" value="${escAttr(q)}" aria-label="Buscar en tu Cuaderno">
     </div>
@@ -855,9 +855,8 @@ function renderJournalPanel(){
       <button data-journal-filter="revisit" class="${filter==='revisit'?'active':''}">↺ Para releer</button>
     </div>
     <div id="journalList" class="stack">${journalGroupHtml(rows)}</div>`;
-    bindJournalButtons($('#journalList'));
   }
-
+  bindJournalButtons($('#journalList'));
   $('#journalSearch').addEventListener('input',e=>{state.journalSearch=e.target.value;clearTimeout(renderJournalPanel._t);renderJournalPanel._t=setTimeout(renderJournalPanel,220);});
   $$('[data-journal-filter]').forEach(b=>b.addEventListener('click',()=>{state.journalFilter=b.dataset.journalFilter;renderJournalPanel();}));
   updateFloatingActions();
