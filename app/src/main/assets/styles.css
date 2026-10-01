@@ -2495,3 +2495,81 @@ main{max-width:720px}
   color:var(--muted);
   flex:0 0 auto;
 }
+
+
+/* Nexo startup splash · static brand, animated loading dots only */
+body.startup-loading{overflow:hidden}
+body.startup-loading #app{visibility:hidden}
+.startup-splash{
+  position:fixed;inset:0;z-index:10000;overflow:hidden;
+  display:grid;grid-template-rows:minmax(0,1fr) auto auto;
+  align-items:center;justify-items:center;
+  padding:calc(42px + env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 8% 10%,rgba(94,190,255,.30) 0 12%,rgba(94,190,255,0) 34%),
+    radial-gradient(circle at 89% 12%,rgba(121,244,178,.25) 0 11%,rgba(121,244,178,0) 35%),
+    radial-gradient(circle at 7% 90%,rgba(90,190,255,.24) 0 12%,rgba(90,190,255,0) 38%),
+    radial-gradient(circle at 92% 83%,rgba(100,236,205,.23) 0 15%,rgba(100,236,205,0) 41%),
+    linear-gradient(145deg,#f7fcff 0%,#ffffff 44%,#f5fff9 72%,#eefaff 100%);
+  opacity:1;transition:opacity .28s ease;
+}
+.startup-splash::before,.startup-splash::after{
+  content:"";position:absolute;pointer-events:none;border-radius:48% 52% 45% 55%/58% 42% 58% 42%;
+  border:34px solid rgba(78,198,255,.12);width:88vw;height:38vh;left:-31vw;top:8vh;transform:rotate(-18deg);
+}
+.startup-splash::after{
+  width:105vw;height:38vh;left:auto;right:-42vw;top:auto;bottom:5vh;
+  border-color:rgba(65,225,171,.11);transform:rotate(-16deg);
+}
+.startup-splash.is-hiding{opacity:0;pointer-events:none}
+.startup-splash__brand{
+  position:relative;z-index:1;align-self:end;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  width:min(88vw,430px);padding-bottom:clamp(22px,4vh,48px);
+}
+.startup-splash__logo{
+  display:block;width:clamp(176px,48vw,252px);height:auto;object-fit:contain;
+  filter:drop-shadow(0 10px 24px rgba(33,118,190,.10));
+}
+.startup-splash__wordmark{
+  margin-top:10px;font-size:clamp(3rem,13vw,5.2rem);line-height:.92;font-weight:850;letter-spacing:-.055em;
+  background:linear-gradient(100deg,#4be777 2%,#17c7c6 48%,#1268f3 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.startup-splash__tagline{
+  margin-top:15px;color:#526691;font-size:clamp(.96rem,4vw,1.2rem);font-weight:650;letter-spacing:.005em;
+}
+.startup-splash__progress{
+  position:relative;z-index:1;align-self:center;display:flex;flex-direction:column;align-items:center;gap:12px;
+  min-height:86px;margin-bottom:clamp(24px,7vh,72px);
+}
+.startup-splash__dots{display:flex;align-items:flex-end;justify-content:center;gap:18px;height:34px}
+.startup-splash__dot{
+  width:15px;height:15px;border-radius:50%;opacity:.42;transform:translateY(0) scale(.86);
+  animation:nexo-splash-dot 1.05s cubic-bezier(.35,.05,.25,1) infinite;
+  will-change:transform,opacity,filter,box-shadow;
+}
+.startup-splash__dot--blue{background:#1597f3;--dot-shadow:rgba(21,151,243,.34);animation-delay:0s}
+.startup-splash__dot--cyan{background:#59d7ef;--dot-shadow:rgba(89,215,239,.34);animation-delay:.16s}
+.startup-splash__dot--mint{background:#91edc1;--dot-shadow:rgba(73,220,156,.32);animation-delay:.32s}
+@keyframes nexo-splash-dot{
+  0%,62%,100%{transform:translateY(0) scale(.86);opacity:.40;filter:saturate(.72) brightness(1);box-shadow:0 0 0 0 var(--dot-shadow)}
+  22%{transform:translateY(-8px) scale(1.23);opacity:1;filter:saturate(1.35) brightness(1.08);box-shadow:0 8px 20px 3px var(--dot-shadow)}
+  42%{transform:translateY(0) scale(.98);opacity:.72;filter:saturate(1) brightness(1.02);box-shadow:0 3px 9px 0 var(--dot-shadow)}
+}
+.startup-splash__status{color:#60729a;font-size:clamp(.9rem,3.8vw,1.05rem);font-weight:650;text-align:center}
+.startup-splash__credit{
+  position:relative;z-index:1;align-self:end;color:#596c98;font-size:clamp(.76rem,3vw,.9rem);
+  font-weight:550;letter-spacing:.015em;text-align:center;padding:0 12px 2px;
+}
+@media(max-height:680px){
+  .startup-splash{padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+  .startup-splash__logo{width:clamp(145px,38vw,205px)}
+  .startup-splash__brand{padding-bottom:14px}
+  .startup-splash__progress{margin-bottom:18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .startup-splash__dot{animation:none;opacity:.78}
+  .startup-splash__dot--cyan{opacity:1;transform:scale(1.08)}
+  .startup-splash{transition:none}
+}
