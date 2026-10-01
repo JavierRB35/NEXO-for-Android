@@ -447,6 +447,24 @@ function updateFloatingActions(){
   add.setAttribute('aria-label',addLabel);add.setAttribute('title',addLabel);
   voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!addVisible);
 }
+function startAgendaVoice(){
+  startManagedDictation('agenda',{
+    title:'AÑADIR A AGENDA',
+    hint:'Di la cita, tarea o compromiso. En Agenda Nexo lo tratará siempre como un elemento de Agenda.'
+  });
+}
+function applyAgendaVoice(text){
+  const value=String(text||'').trim();if(!value)return;
+  const today=isoDateLocal(new Date());
+  const date=state.screen==='panel'&&state.lastPanel==='appointments'&&state.appointmentsWindow==='today'?today:'';
+  prepareQuickNoteForType('event',date);
+  $('#captureText').value=value;
+  setInterpretationStatus('working','Voz transcrita · interpretando como cita…');
+  analyzeCapture({immediate:true});
+  toast('Cita preparada. Revisa fecha, hora y avisos antes de guardar.');
+}
+
+
 function runEventAddFab(){
   if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
   if(state.screen==='panel'&&state.lastPanel==='lists'){openNewListModal();return;}
@@ -461,12 +479,13 @@ function runEventAddFab(){
     else openParkingModal();
     return;
   }
-  const today=isoDateLocal(new Date());
   if(state.screen==='panel'&&state.lastPanel==='appointments'){
-    prepareCaptureForDate(state.appointmentsWindow==='today'?today:'');
+    const today=isoDateLocal(new Date());
+    prepareQuickNoteForType('event',state.appointmentsWindow==='today'?today:'');
     return;
   }
-  prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);
+  const today=isoDateLocal(new Date());
+  prepareQuickNoteForType('event',state.screen==='calendar'?(state.calendarSelected||today):today);
 }
 function startListVoiceFor(listId){
   const id=Number(listId)||0;
@@ -510,22 +529,18 @@ function applySearchVoice(text){
   runSearch(q);
 }
 
+
 function runFloatingVoice(){
   if(state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'){startMedicationEditorVoice();return;}
   if(state.journalEditor&&state.screen==='panel'&&state.lastPanel==='journal'){startJournalEditorVoice();return;}
   if(state.quoteEditor&&state.screen==='panel'&&state.lastPanel==='quotes'){startQuoteEditorVoice();return;}
   if(state.placeEditor&&state.screen==='panel'&&state.lastPanel==='places'){startPlaceEditorVoice();return;}
   if(state.documentEditor&&state.screen==='panel'&&state.lastPanel==='documents'){startDocumentEditorVoice();return;}
-
   if(state.screen==='save'){
     const base=$('#captureText')?.value.trim()||'';
-    startManagedDictation('capture-edit',{base,title:'AMPLIAR CAPTURA',hint:'Dicta o amplía lo que estás preparando. Nexo volverá a interpretar los datos.'});return;
+    startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});return;
   }
-  if(state.screen==='search'){startSearchVoice();return;}
-  if(state.screen==='calendar'){startAppointmentVoice(state.calendarSelected||isoDateLocal(new Date()));return;}
-  if(state.screen==='today'){startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar.'});return;}
-
-  if(state.screen==='panel'&&state.lastPanel==='appointments'){startAppointmentVoice(state.appointmentsWindow==='today'?isoDateLocal(new Date()):'');return;}
+  if(state.screen==='panel'&&state.lastPanel==='appointments'){startAgendaVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='notes'){startNoteVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
@@ -535,9 +550,11 @@ function runFloatingVoice(){
   if(state.screen==='panel'&&state.lastPanel==='recordings'){
     state.playingRecordingId='';NexoNative.stopRecordingPlayback();NexoNative.startRecording();toast('Iniciando grabación…');setTimeout(()=>{if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},350);return;
   }
+  if(state.screen==='panel'&&state.lastPanel==='parking')return;
   if(state.screen==='panel'&&state.lastPanel==='lists'){
     if(state.currentList)startListVoiceFor(state.currentList);else chooseListForVoice();return;
   }
+  startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar. Nexo identificará el tipo, la fecha, la hora y el lugar para que lo revises.'});
 }
 function navigate(screen, options={}) {
   if(!['today','save','search','more','calendar','tools','panel'].includes(screen))return;
@@ -1313,7 +1330,7 @@ function agendaCard(i,showDate=false){
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`;
   const when=i.seriesEnded?'Serie sin próximas fechas':!i.dueAt?'Sin fecha':showDate?fmtDueItem(i):fmtAgendaTime(i);
   const description=String(i.body||'').trim(),title=String(i.title||'Cita');
-  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${eventParticipantAvatarsHtml(i,'event-participant-avatars--agenda')}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('edit','Editar evento',recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`)}${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
+  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${eventParticipantAvatarsHtml(i,'event-participant-avatars--agenda')}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
 }
 
 function prepareHomeCapture(type='',text=''){
@@ -2488,6 +2505,7 @@ function finalizeManagedDictation(){
   else if(target==='appointment')applyAppointmentVoice(text,appointmentDate);
   else if(target==='search')applySearchVoice(text);
   else if(target==='capture-edit')applyCaptureVoiceText(text);
+  else if(target==='agenda')applyAgendaVoice(text);
   else if(target==='list')handleListVoice(text,listId,shopping);
   else if(target==='journal')openJournalComposer(text,journalKind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});
   else if(target==='quote-editor')applyQuoteEditorVoice(text);
@@ -2810,6 +2828,7 @@ window.NexoUI={
     $('#voiceOverlay').classList.add('hidden');
     if(state.voiceMode==='universal'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();routeUniversalVoice(combined);return;}
     if(state.voiceMode==='capture-edit'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyCaptureVoiceText(combined);return;}
+    if(state.voiceMode==='agenda'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyAgendaVoice(combined);return;}
     if(state.voiceMode==='list'){const id=state.managedVoiceListId||state.currentList,shopping=state.managedVoiceShopping,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();handleListVoice(combined,id,shopping);return;}
     if(state.voiceMode==='journal'){const kind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit,combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined,kind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});return;}
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}
