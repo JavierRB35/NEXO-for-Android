@@ -86,6 +86,7 @@ jobs:
           javac -d /tmp/nexo-parser-smoke \
             app/src/main/java/com/jruiz/nexo/core/EventInterpretation.java \
             app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
+            app/src/main/java/com/jruiz/nexo/core/ZoneTimeResolver.java \
             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
             /tmp/TemporalParserSmoke.java
           java -cp /tmp/nexo-parser-smoke TemporalParserSmoke
@@ -151,6 +152,11 @@ jobs:
                   String morningDocument = DescriptionExtractor.extract(
                       "Cita mañana a las 10:00. Llevar el informe de la mañana", "");
                   check(TemporalParser.norm(morningDocument).contains("informe de la manana"), "R48 conserva 'informe de la mañana'");
+
+                  long madrid = ZoneTimeResolver.toEpochMillis("2026-10-08", "10:00", "Europe/Madrid");
+                  long newYork = ZoneTimeResolver.toEpochMillis("2026-10-08", "10:00", "America/New_York");
+                  check(madrid > 0 && newYork > 0, "ZoneId válido");
+                  check(newYork - madrid == 6L * 60L * 60L * 1000L, "U06 respeta zona de Nueva York");
               }
           }
           JAVA
