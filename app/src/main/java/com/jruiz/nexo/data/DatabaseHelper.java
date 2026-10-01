@@ -1322,7 +1322,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 title = occ.optString("title", title);
                 long actualDue = occ.optLong("dueAt", occurrence);
                 boolean hasTime = occ.optBoolean("hasTime", item.optBoolean("hasTime", false));
-                long trigger = reminderTriggerMinutes(actualDue, leadMinutes, hasTime);
+                long trigger = reminderTriggerMinutes(actualDue, leadMinutes, hasTime, itemZone(item));
                 ContentValues v = new ContentValues();
                 v.put("title", title); v.put("occurrence_at", occurrence); v.put("trigger_at", trigger); v.put("enabled", trigger > System.currentTimeMillis() ? 1 : 0);
                 db.update("reminders", v, "id=?", new String[]{String.valueOf(id)});
@@ -1340,9 +1340,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /** Anticipaciones exactas en minutos. Para fechas sin hora conserva el comportamiento seguro de las 09:00. */
-    private static long reminderTriggerMinutes(long dueAt, int leadMinutes, boolean hasTime) {
+    private static long reminderTriggerMinutes(long dueAt, int leadMinutes, boolean hasTime, ZoneId zone) {
         if (dueAt <= 0) return 0;
-        ZoneId zone = ZoneId.systemDefault();
+        if (zone == null) zone = ZoneId.systemDefault();
         ZonedDateTime due = Instant.ofEpochMilli(dueAt).atZone(zone);
         ZonedDateTime now = ZonedDateTime.now(zone);
         ZonedDateTime trigger = due.minusMinutes(Math.max(0, leadMinutes));
@@ -1354,7 +1354,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static long reminderSearchAfter(JSONObject item) {
         if (item != null && !item.optBoolean("hasTime", false)) {
-            ZoneId zone=ZoneId.systemDefault();
+            ZoneId zone=itemZone(item);
             return LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()-1;
         }
         return System.currentTimeMillis()-1;
@@ -1419,7 +1419,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
             JSONObject occ = getOccurrence(itemId, next);
             long due = occ.optLong("dueAt", next);
-            long trigger = reminderTriggerMinutes(due, leadMinutes, occ.optBoolean("hasTime", item.optBoolean("hasTime", false)));
+            long trigger = reminderTriggerMinutes(due, leadMinutes, occ.optBoolean("hasTime", item.optBoolean("hasTime", false)), itemZone(item));
             if (trigger <= System.currentTimeMillis()) return out;
             ContentValues v = new ContentValues(); v.put("occurrence_at", next); v.put("trigger_at", trigger); v.put("enabled", 1);
             getWritableDatabase().update("reminders", v, "id=?", new String[]{String.valueOf(reminderId)});
@@ -1497,7 +1497,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long spanMillis = Math.max(0L, base.optLong("endAt",0) - base.optLong("dueAt",0));
                 if (spanMillis <= 0 && base.optInt("durationMinutes",0) > 0) spanMillis = base.optInt("durationMinutes",0) * 60000L;
                 long expansionStart = Math.max(0L, start - spanMillis);
-                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), expansionStart, end, ZoneId.systemDefault(), 5000);
+                ZoneId seriesZone = itemZone(base);
+                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), expansionStart, end, seriesZone, 5000);
                 for (long occurrenceAt : occurrences) {
                     JSONObject ex = exceptions.get(occurrenceAt);
                     JSONObject occ = buildOccurrence(base, occurrenceAt, ex);
@@ -1570,7 +1571,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     /** Recorta una serie justo antes de la aparición indicada. */
     public boolean truncateSeriesBefore(long seriesId, long occurrenceAt) {
         JSONObject base = getItem(seriesId); if (base.length() == 0) return false;
-        ZoneId zone = ZoneId.systemDefault();
+        ZoneId zone = itemZone(base);
         LocalDate d = Instant.ofEpochMilli(occurrenceAt).atZone(zone).toLocalDate();
         long until = d.minusDays(1).atTime(23,59,59).atZone(zone).toInstant().toEpochMilli();
         ContentValues v = new ContentValues(); v.put("recurrence_until", until); v.put("updated_at", System.currentTimeMillis());
@@ -1595,9 +1596,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (c.moveToFirst()) { bestKey=c.getLong(0); bestActual=c.getLong(1); }
         } catch (Exception ignored) {}
 
+        ZoneId seriesZone = itemZone(base);
         long cursor = afterMillis;
         for (int guard=0; guard<5000; guard++) {
-            long key = RecurrenceEngine.nextOccurrence(base.optLong("dueAt"), recurrence, base.optLong("recurrenceUntil"), cursor, ZoneId.systemDefault());
+            long key = RecurrenceEngine.nextOccurrence(base.optLong("dueAt"), recurrence, base.optLong("recurrenceUntil"), cursor, seriesZone);
             if (key <= 0) break;
             JSONObject occ = getOccurrence(seriesId, key);
             if (occ.length() > 0) {
@@ -1911,6 +1913,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return RuleClassifier.norm(s == null ? "" : s).replaceAll("\\s+", " ").trim();
     }
 
+    private static ZoneId itemZone(JSONObject item) {
+        String zoneId = item == null ? "" : item.optString("timeZone", "Europe/Madrid");
+        try { return ZoneId.of(zoneId == null || zoneId.isBlank() ? "Europe/Madrid" : zoneId); }
+        catch (Exception ignored) { return ZoneId.systemDefault(); }
+    }
+
     private static long endOfCurrentWeekMillis() {
         ZoneId zone=ZoneId.systemDefault(); LocalDate today=LocalDate.now(zone);
         int remaining=7-today.getDayOfWeek().getValue();
@@ -1926,7 +1934,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (due <= 0) return 0;
         String recurrence = item.optString("recurrence", RecurrenceEngine.NONE);
         if (!RecurrenceEngine.isRecurring(recurrence)) return due;
-        ZoneId zone = ZoneId.systemDefault();
+        ZoneId zone = itemZone(item);
         long todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli();
         long next = RecurrenceEngine.nextOccurrence(due, recurrence, item.optLong("recurrenceUntil", 0), todayStart - 1, zone);
         return next > 0 ? next : due;
@@ -1992,7 +2000,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long due=item.optLong("dueAt",0);
                 String recurrence=item.optString("recurrence",RecurrenceEngine.NONE);
                 if(RecurrenceEngine.isRecurring(recurrence)) {
-                    java.util.List<Long> xs=RecurrenceEngine.occurrencesBetween(due,recurrence,item.optLong("recurrenceUntil",0),start,end,ZoneId.systemDefault(),1);
+                    java.util.List<Long> xs=RecurrenceEngine.occurrencesBetween(due,recurrence,item.optLong("recurrenceUntil",0),start,end,itemZone(item),1);
                     if(xs.isEmpty()) return false;
                 } else if(due<start||due>end) return false;
             }
