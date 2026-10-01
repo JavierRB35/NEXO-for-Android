@@ -1298,11 +1298,15 @@ function commitCapture() {
     openMedicationComposer(text||$('#captureDescription').value.trim());
     return;
   }
+  const recurrence=$('#captureRecurrence').value||'none';
+  const parsedRecurrenceRule=String(state.classification?.recurrenceRule||'');
+  const recurrenceRule=!captureFieldLocked('recurrence')&&parsedRecurrenceRule&&state.classification?.recurrence===recurrence
+    ?parsedRecurrenceRule:recurrenceRuleFor(recurrence);
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
     dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:zone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
-    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMs($('#captureRecurrenceUntil').value,zone):0,
+    recurrence, recurrenceRule, recurrenceUntil:recurrence!=='none'?endOfDayMs($('#captureRecurrenceUntil').value,zone):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
     needsReview:captureNeedsReview(),
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
