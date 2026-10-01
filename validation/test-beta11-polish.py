@@ -44,7 +44,7 @@ assert 'GmailWatchScheduler.cancel(app)' in main
 assert '@JavascriptInterface public void setInputHubAutoScanEnabled(boolean enabled)' in main
 
 # 4. Ajustes con acordeones de Familia.
-for section in ['general','display','input','medication','data']:
+for section in ['general','people','display','input','medication']:
     assert f'data-settings-accordion="{section}"' in html
 assert 'settings-accordion-list' in html and '.settings-accordion__summary' in css
 assert 'toggleSettingsAccordion' in js
