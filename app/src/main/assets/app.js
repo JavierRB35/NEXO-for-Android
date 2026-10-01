@@ -543,7 +543,7 @@ function renderToday() {
 
   const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(today).replace('.','').toLocaleLowerCase('es-ES');
   const monthShort=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
-  $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Abrir agenda';
+  $('#homeCalendarMonth').textContent=monthShort;$('#homeCalendarHint').textContent='Ver calendario';
 
   const localPeople=parseNative(NexoNative.getPeople(),[]).map(p=>({full_name:p.name,color:p.color,id:p.id}));
   const legacyMembers=parseNative(NexoNative.getNexoFamiliaMembers(),[]);
@@ -605,8 +605,11 @@ function runHomeSearch(query){
   $('#homeSearchResults').innerHTML=results.length?results.map((x,i)=>familySearchCard(x,i,true)).join(''):'<div class="empty-card">No hay coincidencias en tus datos.</div>';
   $$('[data-family-search-home="1"]').forEach(b=>b.addEventListener('click',()=>openFamilySearchResult(state.homeSearchResults[Number(b.dataset.familySearchResult)])));
 }
+
 function openHomeToday(){
-  const now=new Date();state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);state.calendarSelected=isoDateLocal(now);navigate('calendar',{root:false});
+  state.appointmentsWindow='today';
+  state.appointmentsFilter='pending';
+  openPanel('appointments',{keepWindow:true});
 }
 function openHomeWeek(){
   state.appointmentsWindow='week';state.appointmentsFilter='pending';openPanel('appointments',{keepWindow:true});
@@ -2051,6 +2054,16 @@ function renderBackupPanel(){
 
 function renderAppointmentsPanel(){
   const today=new Date();today.setHours(0,0,0,0);
+  if(state.appointmentsWindow==='today'){
+    const end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1).getTime()-1;
+    const rows=parseNative(NexoNative.getCalendar(today.getTime(),end),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='done'&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted').sort((a,b)=>(a.dueAt||0)-(b.dueAt||0));
+    $('#panelTitle').textContent='Hoy';
+    $('#panelSubtitle').textContent=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long'}).format(today);
+    $('#panelAction').innerHTML='<button id="todayShowAll" class="secondary-button" type="button">Agenda completa</button>';
+    $('#todayShowAll').addEventListener('click',()=>{state.appointmentsWindow='';renderAppointmentsPanel();});
+    $('#panelContent').innerHTML=rows.length?'<div class="stack">'+rows.map(i=>agendaCard(i,true)).join('')+'</div>':'<div class="empty-state">No hay eventos pendientes para hoy.</div>';
+    bindItemButtons($('#panelContent'));updateFloatingActions();return;
+  }
   if(state.appointmentsWindow==='week'){
     const end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7).getTime()-1;
     const rows=parseNative(NexoNative.getCalendar(today.getTime(),end),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='done'&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted').sort((a,b)=>(a.dueAt||0)-(b.dueAt||0));
@@ -2831,7 +2844,7 @@ function init(){
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
   $('#homeInboxPulseCard')?.addEventListener('click',()=>openPanel('inbox'));
-  $('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';openPanel('appointments');});
+  $('#homeCalendarCard')?.addEventListener('click',()=>{const now=new Date();state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);state.calendarSelected=isoDateLocal(now);navigate('calendar',{root:false});});
   $('#searchHistorical')?.addEventListener('change',e=>{state.searchHistorical=!!e.target.checked;if($('#searchInput').value.trim())runSearch();});
   $('#globalVoiceFab').addEventListener('click',runFloatingVoice);
   $('#calendarAddFab').addEventListener('click',runEventAddFab);
