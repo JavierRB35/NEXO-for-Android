@@ -787,6 +787,7 @@ function openJournalComposer(prefill='',forcedKind='',editId=0,voiceContext=null
   $('#journalFavorite').addEventListener('change',()=>scheduleJournalAutosave(150));
   $('#journalRevisit').addEventListener('change',()=>scheduleJournalAutosave(150));
   if(body&&!titleManual&&!title)refreshAutoJournalTitle();
+  if(body&&prefill!=='')scheduleJournalAutosave(120);
   requestAnimationFrame(updateFloatingActions);
   setTimeout(()=>bodyEl?.focus(),80);
 }
