@@ -1,14 +1,27 @@
-# Nexo 3.7.0-beta18 · AndroidIDE
+# Nexo 3.7.0
 
-Rama de trabajo: `work/nexo-3.7.0-beta18-supabase-sync`.
+Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Identidad:
-- Nexo **3.7.0-beta18**
-- `versionCode 83`
-- `applicationId com.jruiz.nexo`
-- Base de datos `nexo.db`, esquema **23**
+Esta rama de estabilización corresponde a **Nexo 3.7.0**, `versionCode 93`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **24**.
 
-## Entorno AndroidIDE validado
+## Base estable
+
+Nexo 3.7.0 consolida como versión estable el trabajo validado hasta `3.7.0-beta22.4`.
+
+Entre los comportamientos ya integrados:
+
+- Inicio ligero con **Hoy**, **7 días**, **Inbox**, **Agenda**, accesos directos y **Próximamente**.
+- Splash de arranque con identidad Nexo, animación CSS de tres puntos, mínimo de 3,5 s y salida de seguridad a los 5 s.
+- Durante el splash: escaneo resiliente de Inbox y precarga del resumen de Inicio en paralelo.
+- Agenda y Calendario con edición de eventos, recurrencias, participantes, categorías, ubicaciones y festivos.
+- Voz contextual según pantalla y captura universal **Habla con Nexo**.
+- Notas con lectura completa desplazable dentro de la ficha y edición separada.
+- Listas, Documentos, Cuaderno, Frases, Medicación, Grabaciones, Lugares y Aparcamiento.
+- Input Hub para Calendar, SMS y Gmail, además de captura compatible mediante notificaciones.
+- Integración con Nexo Familia mediante Supabase Auth y sincronización/importación controlada.
+- Grabación local y transcripción local mediante sherpa-onnx.
+
+## Entorno Android validado
 
 - AndroidIDE-Rv2 / ARM64
 - OpenJDK 17
@@ -18,129 +31,50 @@ Identidad:
 - AGP 8.7.3
 - `minSdk 26`, `targetSdk 34`, `compileSdk 34`
 
-No actualizar estas versiones salvo necesidad.
+No actualizar estas versiones salvo necesidad justificada.
 
-## Compilar en el teléfono
+## Flujo oficial de compilación
 
-Descomprime el proyecto como una única carpeta:
+El flujo normal es **GitHub Actions**:
 
-```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta18/
-```
+- cada push a una rama que contenga el workflow oficial ejecuta validaciones y genera una APK Release firmada como artefacto;
+- una ejecución manual desde Actions hace lo mismo;
+- un tag `vX.Y.Z` que coincida con `versionName` puede crear la GitHub Release correspondiente;
+- la firma Release permanente se mantiene fuera del repositorio mediante GitHub Secrets.
 
-Después:
+El procedimiento se documenta en [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md).
+
+## AndroidIDE como fallback
+
+Desde la raíz del proyecto en el teléfono:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta18"
+cd "/storage/emulated/0/Download/Nexo_3_7_0"
 sh build-on-phone.sh
 ```
 
-No uses `./gradlew` desde Download.
+No ejecutar `./gradlew` directamente desde `Download`.
 
-El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
+El script conserva la firma Release permanente, usa el baseline de AndroidIDE y copia el APK final a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta18.apk
+/storage/emulated/0/Download/Nexo_3_7_0.apk
 ```
 
-## Input Hub beta4
-
-- Calendar Provider directo con observador de cambios y escaneo periódico de respaldo.
-- SMS Provider directo + respaldo por NotificationListener.
-- Gmail API de solo lectura + respaldo por NotificationListener.
-- Gmail revisa correo recibido reciente aunque haya sido archivado automáticamente.
-- Lectura de cuerpo completo y partes MIME de texto/calendario, incluidas partes servidas mediante `attachmentId`.
-- Clasificación local de alta sensibilidad: ante una señal razonable, el contenido llega a Inbox para decisión humana.
-- Deduplicación entre vía directa y notificación.
-- Errores transitorios no consolidan un mensaje como descartado.
-- Diagnóstico por fuente: vistos, candidatos, descartados y errores.
-- WhatsApp y Telegram continúan mediante NotificationListener.
-- Ninguna captura crea automáticamente una cita/tarea definitiva sin revisión.
-
-## Sincronización Nexo Familia
-
-- Vinculación con el usuario normal de **Nexo Familia** mediante Supabase Auth (correo + contraseña de Nexo Familia).
-- La contraseña no se persiste; la sesión se cifra con Android Keystore.
-- Primera importación: descarga y valida todos los eventos visibles para el usuario antes de sustituir únicamente la agenda local.
-- Cada evento conserva el UUID de Supabase y su estado fuente.
-- Importaciones posteriores: solo se añaden UUID que todavía no existan en Nexo Android; los ya existentes no se actualizan.
-- Las reglas RLS de Supabase siguen aplicándose porque las consultas se realizan con la sesión del usuario.
-- La snapshot JSON incluida permanece únicamente como compatibilidad histórica y ya no se aplica al arrancar.
-
 ## Validación
+
+Validación base del proyecto:
 
 ```sh
 sh validation/validate-project.sh
 ```
 
-La rama mantiene el Gradle Wrapper completo y los scripts de compilación para AndroidIDE.
+El workflow oficial añade además las regresiones de runtime WebView, rendimiento de Inicio, splash, navegación contextual y fichas de Notas antes de compilar la Release.
 
+## Privacidad y seguridad
 
-## Corrección calendario beta8
-
-Android `rawQuery(..., String[] selectionArgs)` enlaza los parámetros como texto. Las comparaciones contra una expresión `CASE` no heredan afinidad numérica de columna, por lo que el calendario no recurrente podía devolver cero filas aunque los eventos existieran.
-
-Beta8 convierte explícitamente los límites temporales con `CAST(? AS INTEGER)` tanto en `getCalendar()` como en las comparaciones temporales de conciliación de estado. La regresión automatizada reproduce 0 eventos con la consulta antigua y 18 con la corregida.
-
-
-## Inicio con paridad Nexo Familia
-
-- Inicio replica la estructura visual común de Nexo Familia: buscador superior, “Lo importante ahora”, accesos rápidos y “Próximamente”.
-- “Lo importante ahora”: Hoy, 7 días, Inbox y Calendario.
-- Accesos rápidos: Notas, Medicación, Listas y Documentos.
-- “Próximamente” usa la próxima aparición vigente, orden ascendente y un máximo de 10 eventos.
-- La paleta de categorías, iconos, fecha, categoría, ubicación y participantes sigue los valores canónicos de Nexo Familia.
-- La búsqueda de Inicio y la pestaña Buscar comparten el algoritmo de Nexo Familia: normalización sin acentos, stopwords, exigencia de todos los términos, misma ponderación y prioridad temporal. Incluye además Notas, Medicación, Listas, Documentos, Cuaderno/Frases, Grabaciones e Inbox.
-- Los eventos históricos quedan fuera por defecto y se pueden incluir explícitamente en la pestaña Buscar.
-- Ciclo temporal de eventos alineado con Familia: no recurrente pasado = completado; hoy/futuro = pendiente; recurrente = pendiente; cancelado se conserva. Al reprogramar un evento completado a hoy/futuro vuelve a pendiente.
-
-
-## Botón flotante de evento
-
-- El botón flotante **+** de añadir evento aparece únicamente en contextos de agenda: **Inicio, Calendario y Agenda / 7 días**.
-- En Calendario crea el evento sobre la fecha seleccionada.
-- En Inicio y Agenda / 7 días crea el evento sobre la fecha de hoy, que el usuario puede cambiar en el formulario.
-- Se mantiene separado del flotante de voz y no aparece en Buscar, Herramientas, Inbox ni módulos que no gestionan eventos.
-
-
-## Pulido beta11
-
-- Las tarjetas de eventos abren directamente su formulario, sin navegación intermedia.
-- Flotantes de **Grabar audio** y **+ evento** restaurados de forma central al navegar/volver a la app.
-- Input Hub con modo **Automático** o **Manual**. Manual cancela jobs directos y conserva “Escanear ahora”.
-- Ajustes organizados en acordeones al estilo Nexo Familia.
-- Cumpleaños usa el mismo tratamiento de icono que Familia: tarta en tarjetas y 🎂 en calendario.
-- Inicio renombra “Información familiar” a **Accesos directos**.
-- Fichas con acciones compactas de editar, compartir y eliminar.
-- La cabecera muestra la versión real instalada.
-- Formularios de ubicación incorporan acceso directo a Google Maps.
-
-
-## Beta15 · voz inteligente y festivos
-
-- El micrófono flotante de las pantallas principales abre **Habla con Nexo** en vez de iniciar una grabación.
-- La entrada universal usa el enrutador y los clasificadores locales para distinguir alarmas, Cuaderno, medicación, compra, aparcamiento y captura estructurada.
-- La captura universal ya no se fuerza a “cita”: Nexo propone tipo, categoría, fecha, hora, ubicación, periodicidad y avisos para revisión.
-- “Lo importante ahora” sustituye **Grabar audio / REC** por acceso directo a **Calendario**. Grabaciones continúa en Herramientas.
-- El Calendario incorpora festivos nacionales, autonómicos, provinciales y locales con el mismo proveedor y el mismo tratamiento visual que Nexo Familia.
-- La localidad replica la configuración vigente de Nexo Familia: **La Pobla de Vallbona (INE 46202), Valencia, Comunitat Valenciana**.
-- La caché local dura 7 días; sin conexión se usa la última caché y, si no existe, un fallback de festivos nacionales permanentes.
-
-
-## Beta16 · franjas horarias y dictado dentro de tareas
-
-- El parser temporal usa también la franja situada **antes** de la hora: «esta tarde a las cinco y media» = **17:30**.
-- «mañana por la mañana» conserva la mañana y «mañana por la tarde» convierte correctamente a formato de 24 horas.
-- «esta tarde / esta noche / esta madrugada» fijan la fecha en hoy, sin desplazar por error el evento al día siguiente si la hora parecía AM.
-- El botón flotante **Habla con Nexo** aparece también mientras se crea una tarea/cita en Captura rápida.
-- Al dictar desde esa pantalla se amplía el texto actual sin limpiar el tipo o la fecha fijados y Nexo vuelve a interpretar los campos.
-
-
-## Beta17 · edición de eventos e Inicio
-
-- El estado elegido manualmente en una cita se conserva. Marcar **Completada** y guardar ya no vuelve a **Pendiente** por tener una fecha futura.
-- El botón **Guardar** está en la parte superior de la ficha junto a Editar, Compartir y Eliminar, distribuido en una cuadrícula cómoda en móvil.
-- Google Maps se abre desde el propio campo **Ubicación**. El campo visible «Enlace de Google Maps» desaparece; los enlaces heredados se conservan internamente para compatibilidad.
-- La tarjeta **Calendario** de Inicio abre la misma Agenda que antes abría «Ver agenda».
-- Se elimina «Ver agenda» de Próximamente por ser redundante.
-- El mes de la tarjeta Calendario se muestra con capital inicial: «Sept», no «SEPT».
+- WebView local con tráfico cleartext deshabilitado.
+- Grabaciones, documentos y transcripciones se gestionan localmente.
+- La transcripción se realiza de forma local.
+- Las fuentes de Inbox requieren permisos/autorizaciones explícitas.
+- La clave privada de firma nunca se almacena en el repositorio.
