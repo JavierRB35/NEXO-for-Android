@@ -28,7 +28,7 @@ assert "function startPlaceEditorVoice()" in app
 
 # Aparcamiento: solo + contextual; sin micrófono ni botón superior.
 assert "parkingPanelSave" not in app
-assert "if(panel==='parking')voiceVisible=false;" in app
+assert "if(panel==='parking'){voiceVisible=false;}" in app
 assert "Actualizar aparcamiento" in app
 
 # Documentos: + guarda; micrófono busca o dicta descripción en editor.
