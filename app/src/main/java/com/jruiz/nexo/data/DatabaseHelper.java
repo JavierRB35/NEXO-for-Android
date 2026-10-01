@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 23;
+    private static final int DB_VERSION = 24;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -54,6 +54,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "location_text TEXT NOT NULL DEFAULT ''," +
                 "priority INTEGER NOT NULL DEFAULT 1," +
                 "favorite INTEGER NOT NULL DEFAULT 0," +
+                "revisit INTEGER NOT NULL DEFAULT 0," +
                 "source TEXT NOT NULL DEFAULT 'manual'," +
                 "attachment_path TEXT NOT NULL DEFAULT ''," +
                 "attachment_name TEXT NOT NULL DEFAULT ''," +
@@ -233,6 +234,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         if (oldVersion < 23) {
             createItemPeopleTable(db);
+        }
+        if (oldVersion < 24) {
+            db.execSQL("ALTER TABLE journal_entries ADD COLUMN revisit INTEGER NOT NULL DEFAULT 0");
         }
     }
 
@@ -930,6 +934,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("location_text", in.optString("locationText", ""));
         v.put("priority", clamp(in.optInt("priority", 1), 1, 3));
         v.put("favorite", in.optBoolean("favorite", false) ? 1 : 0);
+        v.put("revisit", in.optBoolean("revisit", false) ? 1 : 0);
         v.put("source", in.optString("source", "manual"));
         v.put("attachment_path", in.optString("attachmentPath", ""));
         v.put("attachment_name", in.optString("attachmentName", ""));
@@ -2066,6 +2071,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (in.has("body")) v.put("body", in.optString("body", ""));
         if (in.has("tags")) v.put("tags", in.optString("tags", ""));
         if (in.has("favorite")) v.put("favorite", in.optBoolean("favorite", false) ? 1 : 0);
+        if (in.has("revisit")) v.put("revisit", in.optBoolean("revisit", false) ? 1 : 0);
         v.put("updated_at", System.currentTimeMillis());
         boolean ok = getWritableDatabase().update("journal_entries", v, "id=?", new String[]{String.valueOf(id)}) > 0;
         if (ok) addHistory("cuaderno editado", "journal", id, in.optString("title", ""));
@@ -2082,7 +2088,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public JSONObject getJournalEntry(long id) {
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,source,created_at,updated_at FROM journal_entries WHERE id=?", new String[]{String.valueOf(id)})) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,revisit,source,created_at,updated_at FROM journal_entries WHERE id=?", new String[]{String.valueOf(id)})) {
             return c.moveToFirst() ? journalJson(c) : new JSONObject();
         } catch (Exception e) { return new JSONObject(); }
     }
@@ -2094,7 +2100,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (k.isBlank() && (q.contains("pensamiento") || q.contains("reflexion"))) k = "thought";
         ArrayList<JSONObject> matches = new ArrayList<>();
         ArrayList<Integer> scores = new ArrayList<>();
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC LIMIT 3000", null)) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,revisit,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC LIMIT 3000", null)) {
             while (c.moveToNext()) {
                 JSONObject o = journalJson(c);
                 if (!k.isBlank() && !k.equals(o.optString("kind"))) continue;
@@ -2131,14 +2137,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String day = dayKey == null ? "" : dayKey.trim();
         if (!day.matches("\\d{4}-\\d{2}-\\d{2}")) day = LocalDate.now().toString();
         if (!forceNew) {
-            try (Cursor c = getReadableDatabase().rawQuery("SELECT j.id,j.kind,j.title,j.summary,j.body,j.tags,j.favorite,j.source,j.created_at,j.updated_at FROM journal_daily_pick p JOIN journal_entries j ON j.id=p.entry_id WHERE p.day_key=?", new String[]{day})) {
+            try (Cursor c = getReadableDatabase().rawQuery("SELECT j.id,j.kind,j.title,j.summary,j.body,j.tags,j.favorite,j.revisit,j.source,j.created_at,j.updated_at FROM journal_daily_pick p JOIN journal_entries j ON j.id=p.entry_id WHERE p.day_key=?", new String[]{day})) {
                 if (c.moveToFirst()) return journalJson(c);
             } catch (Exception ignored) {}
         }
         ArrayList<JSONObject> all = new ArrayList<>();
         HashSet<Long> recent = new HashSet<>();
         try (Cursor c = getReadableDatabase().rawQuery("SELECT entry_id FROM journal_daily_pick ORDER BY created_at DESC LIMIT 7", null)) { while(c.moveToNext()) recent.add(c.getLong(0)); } catch(Exception ignored){}
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC", null)) { while(c.moveToNext()) all.add(journalJson(c)); } catch(Exception ignored){}
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,revisit,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC", null)) { while(c.moveToNext()) all.add(journalJson(c)); } catch(Exception ignored){}
         if (all.isEmpty()) return new JSONObject();
         ArrayList<JSONObject> pool = new ArrayList<>(); for(JSONObject o:all) if(!recent.contains(o.optLong("id"))) pool.add(o); if(pool.isEmpty()) pool.addAll(all);
         ArrayList<JSONObject> weighted = new ArrayList<>(); for(JSONObject o:pool){weighted.add(o);if(o.optBoolean("favorite",false))weighted.add(o);} 
@@ -2154,7 +2160,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             o.put("resultKind","journal"); o.put("id",c.getLong(0)); o.put("kind",c.getString(1)); o.put("title",c.getString(2));
             o.put("summary",c.getString(3)); o.put("body",c.getString(4)); o.put("tags",c.getString(5)); o.put("favorite",c.getInt(6)==1);
-            o.put("source",c.getString(7)); o.put("createdAt",c.getLong(8)); o.put("updatedAt",c.getLong(9));
+            o.put("revisit",c.getInt(7)==1); o.put("source",c.getString(8)); o.put("createdAt",c.getLong(9)); o.put("updatedAt",c.getLong(10));
         } catch(Exception ignored){}
         return o;
     }
