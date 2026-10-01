@@ -48,7 +48,8 @@ const state = {
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
   homeSearchIndex:[], homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
   holidayYears:{}, holidayLoading:new Set(),
-  managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
+  managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false,
+  voiceHypotheses:[]
 };
 
 const $ = s => document.querySelector(s);
