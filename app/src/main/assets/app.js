@@ -3080,7 +3080,7 @@ function openDocumentEditor(id=0,incoming=null){
 
 function placeCard(i){
   const id=Number(i.id);
-  return `<article class="place-card" data-place-card="${id}"><button type="button" class="place-open" data-open-place="${id}"><span class="place-label">${esc(placeLabel(i))}</span><strong>${esc(i.title||'Lugar guardado')}</strong>${i.body?`<span class="place-description">${esc(i.body)}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar lugar',`data-open-place="${id}"`)}${recordIconAction('share','Compartir lugar',`data-place-share="${id}"`)}${recordIconAction('trash','Eliminar lugar',`data-place-delete="${id}"`,'icon-action--danger')}${recordIconAction('pin','Abrir en Google Maps',`data-place-map="${id}"`)}</div></article>`;
+  return `<article class="place-card" data-place-card="${id}"><button type="button" class="place-open" data-open-place="${id}"><span class="place-label">${esc(placeLabel(i))}</span><strong>${esc(i.title||'Lugar guardado')}</strong>${i.body?`<span class="place-description">${esc(i.body)}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar lugar',`data-open-place="${id}"`)}${recordIconAction('share','Compartir lugar',`data-place-share="${id}"`)}${recordIconAction('trash','Eliminar lugar',`data-place-delete="${id}"`,'icon-action--danger')}<button type="button" class="secondary-button place-map-direct" data-place-map="${id}">${uiIcon('pin')} Maps</button></div></article>`;
 }
 
 function bindPlaceButtons(root){
