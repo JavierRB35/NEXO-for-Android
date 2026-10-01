@@ -25,3 +25,6 @@ jobs:
 
       - name: Form structure regression
         run: python3 validation/test-form-familia-ui.py
+
+      - name: Branding resources regression
+        run: python3 validation/test-branding-resources.py

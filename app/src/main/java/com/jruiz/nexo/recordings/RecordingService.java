@@ -202,7 +202,7 @@ public final class RecordingService extends Service {
         PendingIntent stopPi = PendingIntent.getService(this, 703, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder b = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
-        b.setSmallIcon(R.drawable.ic_notification)
+        b.setSmallIcon(R.drawable.ic_notification_nexo)
                 .setContentTitle("Nexo · Grabación")
                 .setContentText(text)
                 .setContentIntent(openPi)
