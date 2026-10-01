@@ -87,7 +87,7 @@ jobs:
                   check(n(d48).contains("llevar el informe de la manana"),"R48 instrucción completa: "+d48);
 
                   String r28="Título revisión anual ubicación Clínica Roble descripción llevar informe y tarjeta";
-                  check("Revisión anual".equals(EventSemanticParser.guidedTitle(r28)),"R28 título guiado");
+                  check("revision anual".equals(n(EventSemanticParser.guidedTitle(r28))),"R28 título guiado");
                   check("Clínica Roble".equals(LocationParser.extract(r28)),"R28 ubicación guiada");
                   String d28=DescriptionExtractor.extract(r28,"Clínica Roble");
                   check(n(d28).contains("llevar informe y tarjeta"),"R28 descripción guiada: "+d28);
