@@ -41,7 +41,7 @@ const arrayMethods=new Set([
   'getReminders','getFavorites','getCollection','getMedicationMessages'
 ]);
 const nativeBase={
-  getAppVersion:()=> '3.7.0-beta22',
+  getAppVersion:()=> '3.7.0-beta22.2',
   getDisplayMode:()=> 'comfortable',
   getStartScreen:()=> 'today',
   getHomeDashboard:()=> JSON.stringify({upcoming:[],todayCount:0,weekCount:0,inboxCount:0}),

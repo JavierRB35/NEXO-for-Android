@@ -11,10 +11,10 @@ seed=json.loads((root/'app/src/main/assets/nexo_familia_seed_v1.json').read_text
 importer=(root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.java').read_text()
 
 assert "applicationId 'com.jruiz.nexo'" in gradle
-assert "versionCode 89" in gradle
-assert "versionName '3.7.0-beta22.1'" in gradle
-assert 'v3.7.0-beta22.1' in html
-assert 'APP_NAME="Nexo_3_7_0_beta22_1"' in script
+assert "versionCode 90" in gradle
+assert "versionName '3.7.0-beta22.2'" in gradle
+assert 'v3.7.0-beta22.2' in html
+assert 'APP_NAME="Nexo_3_7_0_beta22_2"' in script
 assert 'assembleRelease' in script and 'apksigner' in script
 assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 24' in db
 assert 'manifest.put("appVersion", BuildConfig.VERSION_NAME);' in backup
@@ -24,4 +24,4 @@ assert len(seed.get('reminderRules', [])) == 46
 assert seed.get('sourceAudit', {}).get('familyEventCount') == 33
 assert seed.get('sourceAudit', {}).get('reminderRuleCount') == 46
 assert 'validatePayload(payload, events, rules)' in importer
-print('Nexo 3.7.0-beta22.1, versionCode 89, applicationId, BD 24 y sincronización Supabase: OK')
+print('Nexo 3.7.0-beta22.2, versionCode 90, applicationId, BD 24 y sincronización Supabase: OK')
