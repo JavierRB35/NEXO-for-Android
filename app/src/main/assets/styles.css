@@ -255,7 +255,9 @@ main{max-width:760px;margin:0 auto}.screen{display:none;padding:20px 16px 28px}.
 .note-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;min-width:0}
 .note-card-head strong{font-size:1rem;line-height:1.25;overflow-wrap:anywhere;text-transform:none}
 .note-card-head small{flex:0 0 auto;color:var(--muted);font-size:0.8125rem;line-height:1.35;text-align:right}
-.note-card-body{display:block;color:#586477;font-size:0.8125rem;line-height:1.48;white-space:pre-wrap;overflow-wrap:anywhere;text-transform:none}
+.note-card-body{display:block;max-height:220px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding-right:4px;color:#586477;font-size:0.8125rem;line-height:1.48;white-space:pre-wrap;overflow-wrap:anywhere;text-transform:none}
+.note-card-read{cursor:default}
+.note-card-read:active{background:transparent}
 .note-compose-actions{display:flex;justify-content:flex-start;margin-bottom:4px}
 .note-compose textarea{min-height:220px;white-space:pre-wrap;line-height:1.55;text-transform:none}
 .note-compose input{text-transform:none}
