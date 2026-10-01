@@ -34,7 +34,7 @@ assert "nunca lo guarda automáticamente" in app
 
 # Aviso hablado compacto + explicación bajo demanda.
 assert 'id="medVoiceInfo"' in app
-assert "Avisos por voz activados" in app
+assert ">Avisos por voz</strong>" in app
 assert "5 min antes · repetición hasta 30 min" in app
 assert ".med-module-note--compact" in css
 
