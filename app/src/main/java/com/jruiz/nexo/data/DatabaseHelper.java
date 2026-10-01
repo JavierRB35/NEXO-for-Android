@@ -1114,6 +1114,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     private static boolean isAppointmentTypeForStatus(String type){return "event".equals(type)||"task".equals(type)||"reminder".equals(type)||"expiry".equals(type);}
+    private static ZoneId safeZone(String raw){
+        try{return raw==null||raw.isBlank()?ZoneId.systemDefault():ZoneId.of(raw);}
+        catch(Exception ignored){return ZoneId.systemDefault();}
+    }
     private static boolean isBeforeToday(long at){if(at<=0)return false;ZoneId z=ZoneId.systemDefault();return Instant.ofEpochMilli(at).atZone(z).toLocalDate().isBefore(LocalDate.now(z));}
 
     public JSONObject getTodayData() {
@@ -1497,7 +1501,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long spanMillis = Math.max(0L, base.optLong("endAt",0) - base.optLong("dueAt",0));
                 if (spanMillis <= 0 && base.optInt("durationMinutes",0) > 0) spanMillis = base.optInt("durationMinutes",0) * 60000L;
                 long expansionStart = Math.max(0L, start - spanMillis);
-                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), expansionStart, end, ZoneId.systemDefault(), 5000);
+                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(
+                        base.optLong("dueAt"), base.optString("recurrence"), base.optString("recurrenceRule", ""),
+                        base.optLong("recurrenceUntil"), expansionStart, end, safeZone(base.optString("timeZone")), 5000);
                 for (long occurrenceAt : occurrences) {
                     JSONObject ex = exceptions.get(occurrenceAt);
                     JSONObject occ = buildOccurrence(base, occurrenceAt, ex);
@@ -1597,7 +1603,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         long cursor = afterMillis;
         for (int guard=0; guard<5000; guard++) {
-            long key = RecurrenceEngine.nextOccurrence(base.optLong("dueAt"), recurrence, base.optLong("recurrenceUntil"), cursor, ZoneId.systemDefault());
+            long key = RecurrenceEngine.nextOccurrence(
+                    base.optLong("dueAt"), recurrence, base.optString("recurrenceRule", ""),
+                    base.optLong("recurrenceUntil"), cursor, safeZone(base.optString("timeZone")));
             if (key <= 0) break;
             JSONObject occ = getOccurrence(seriesId, key);
             if (occ.length() > 0) {
@@ -1992,7 +2000,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long due=item.optLong("dueAt",0);
                 String recurrence=item.optString("recurrence",RecurrenceEngine.NONE);
                 if(RecurrenceEngine.isRecurring(recurrence)) {
-                    java.util.List<Long> xs=RecurrenceEngine.occurrencesBetween(due,recurrence,item.optLong("recurrenceUntil",0),start,end,ZoneId.systemDefault(),1);
+                    java.util.List<Long> xs=RecurrenceEngine.occurrencesBetween(
+                            due,recurrence,item.optString("recurrenceRule",""),item.optLong("recurrenceUntil",0),
+                            start,end,safeZone(item.optString("timeZone")),1);
                     if(xs.isEmpty()) return false;
                 } else if(due<start||due>end) return false;
             }
