@@ -1,4 +1,4 @@
-name: Build Nexo beta22.2 signed APK
+name: Build Nexo beta22.3 signed APK
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: beta22-2-build-${{ github.ref }}
+  group: beta22-3-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout beta22.2
+      - name: Checkout beta22.3
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -78,7 +78,7 @@ jobs:
       - name: Install runtime validation dependency
         run: npm install --no-save --ignore-scripts jsdom@26.1.0
 
-      - name: Validate beta22.2
+      - name: Validate beta22.3
         shell: bash
         run: |
           set -euo pipefail
@@ -131,19 +131,19 @@ jobs:
           SOURCE_APK="app/build/outputs/apk/release/app-release.apk"
           [ -f "${SOURCE_APK}" ] || { echo "ERROR: APK no encontrado."; exit 1; }
           mkdir -p dist
-          FINAL_APK="dist/Nexo-v3.7.0-beta22.2-release.apk"
+          FINAL_APK="dist/Nexo-v3.7.0-beta22.3-release.apk"
           cp "${SOURCE_APK}" "${FINAL_APK}"
           APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner 2>/dev/null | sort -V | tail -n 1)"
           [ -n "${APKSIGNER}" ] || { echo "ERROR: apksigner no disponible."; exit 1; }
           "${APKSIGNER}" verify --verbose --print-certs "${FINAL_APK}"
-          sha256sum "${FINAL_APK}" | tee dist/Nexo-v3.7.0-beta22.2-release.apk.sha256
+          sha256sum "${FINAL_APK}" | tee dist/Nexo-v3.7.0-beta22.3-release.apk.sha256
 
-      - name: Upload signed beta22.2 artifact
+      - name: Upload signed beta22.3 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Nexo-v3.7.0-beta22.2-release
+          name: Nexo-v3.7.0-beta22.3-release
           path: |
-            dist/Nexo-v3.7.0-beta22.2-release.apk
-            dist/Nexo-v3.7.0-beta22.2-release.apk.sha256
+            dist/Nexo-v3.7.0-beta22.3-release.apk
+            dist/Nexo-v3.7.0-beta22.3-release.apk.sha256
           if-no-files-found: error
           retention-days: 90
