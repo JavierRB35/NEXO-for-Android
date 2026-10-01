@@ -60,7 +60,7 @@ for r in rules:
 db=db_path.read_text(encoding='utf-8')
 for field in ['end_at','all_day','time_zone','maps_url','recurrence_rule','participants_text']:
     assert field in db, f'Falta campo local compatible: {field}'
-assert 'DB_VERSION = 23' in db
+assert 'DB_VERSION = 24' in db
 assert 'getNexoFamiliaMetadataForLocalItem' in db
 assert 'metadataComplete' in db and 'brokenMappings' in db
 assert 'hasNexoFamiliaReminderMapping' in db
