@@ -41,5 +41,5 @@ start=main.index('private void connectGmail()')
 end=main.index('private void disconnectGmail()', start)
 assert 'ensureNotificationPermission()' not in main[start:end]
 
-assert 'v3.7.0-beta22' in html
+assert 'v3.7.0' in html
 print('Beta14: Gmail configurado en Ajustes y escaneo manual centralizado en Inbox: OK')
