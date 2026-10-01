@@ -1925,7 +1925,7 @@ function openPanel(panel,options={}){
   navigate('panel',{...options,panel,list:null});
   const cfg={
     appointments:['Agenda','Citas, tareas y compromisos · con fecha o sin ella'],lists:['Listas','Listas rápidas y reutilizables'],
-    inbox:['Inbox','Contenido recibido que todavía no has organizado'],history:['Historial','Actividad reciente'],
+    inbox:['Inbox','Contenido recibido pendiente de revisar y organizar.'],history:['Historial','Actividad reciente'],
     backup:['Copia de seguridad','Datos y adjuntos · audios por separado'],medications:['Medicamentos','Tratamientos, próximas tomas e historial'],
     journal:['Cuaderno','Pensamientos y reflexiones personales · fuera del calendario'],
     quotes:['Frases','Citas textuales, autores y referencias · fuera del calendario'],
@@ -1978,7 +1978,7 @@ function inboxCaptureCard(capture){
     <div class="item-meta"><span class="pill">${esc(source)}</span>${type?`<span class="meta-tag">${esc(typeLabel(type))}</span>`:''}<span class="meta-tag">${esc(fmtDate(capture.createdAt,true))}</span></div>
     ${preview?`<div class="item-body">${esc(preview)}</div>`:''}
     ${attachment}
-    <div class="item-actions"><button class="mini-button primary" data-review-capture="${Number(capture.id)}">Revisar</button><button class="mini-button" data-discard-capture="${Number(capture.id)}">Descartar</button></div>
+    <div class="item-actions"><button class="mini-button primary" data-review-capture="${Number(capture.id)}">Revisar y organizar</button><button class="mini-button" data-discard-capture="${Number(capture.id)}">Descartar</button></div>
   </div>`;
 }
 
@@ -1990,11 +1990,11 @@ function renderInboxPanel(){
   const gmailReady=!!sourceState.gmailDirectEnabled&&!!sourceState.gmailAuthorized&&!!sourceState.gmailBaselined;
   let html=`<div class="inbox-source-health">
     <div><strong>Fuentes directas</strong><small><span class="${smsReady?'source-ok':'source-off'}">SMS ${smsReady?'activo':'no activo'}</span> · <span class="${gmailReady?'source-ok':'source-off'}">Gmail ${gmailReady?'activo':'no activo'}</span></small></div>
-    <button id="inboxScanNowBtn" class="mini-button" type="button">Buscar ahora</button>
+    <button id="inboxScanNowBtn" class="mini-button" type="button">Escanear ahora</button>
   </div>`;
   if(captures.length)html+=`<div class="search-section-label">Capturas recibidas</div><div class="stack">${captures.map(inboxCaptureCard).join('')}</div>`;
   if(legacy.length)html+=`<div class="search-section-label">Elementos pendientes de revisión</div><div class="stack">${legacy.map(itemCard).join('')}</div>`;
-  if(!captures.length&&!legacy.length)html+='<div class="empty-state">No hay nada pendiente de organizar.</div>';
+  if(!captures.length&&!legacy.length)html+='<div class="empty-state"><strong>Todo organizado</strong><div class="small muted">No hay contenido pendiente de revisar.</div></div>';
   $('#panelContent').innerHTML=html;
   const root=$('#panelContent');
   $('#inboxScanNowBtn')?.addEventListener('click',()=>{NexoNative.scanInputHubNow();toast('Buscando SMS, Gmail y Calendar…');setTimeout(renderInboxPanel,1200);});
