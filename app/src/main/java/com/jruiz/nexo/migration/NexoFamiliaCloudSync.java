@@ -148,6 +148,12 @@ public final class NexoFamiliaCloudSync {
             }
 
             boolean firstBaseline = !prefs.getBoolean(PREF_BASELINE, false);
+            JSONArray sourceEvents = payload.optJSONArray("events");
+            if (firstBaseline && (sourceEvents == null || sourceEvents.length() == 0)) {
+                return out.put("ok", false)
+                        .put("error", "No se ha recibido ningún evento de Nexo Familia. La agenda local no se ha modificado.");
+            }
+
             int removedLocalAppointments = 0;
             JSONObject result;
 
