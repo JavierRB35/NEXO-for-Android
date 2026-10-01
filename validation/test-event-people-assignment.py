@@ -8,7 +8,7 @@ js=(root/'app/src/main/assets/app.js').read_text(encoding='utf-8')
 css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 
 # Relación real evento-persona.
-assert 'DB_VERSION = 23' in db
+assert 'DB_VERSION = 24' in db
 assert 'CREATE TABLE IF NOT EXISTS item_people (' in db
 assert 'PRIMARY KEY(item_id,person_id)' in db
 assert 'public boolean replaceItemPeople(long itemId, JSONArray ids)' in db
