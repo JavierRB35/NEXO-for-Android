@@ -458,6 +458,57 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return reminderIds;
     }
 
+    public int countLocalAppointments() {
+        try {
+            return (int) scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type IN ('event','task','reminder','expiry')");
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    /**
+     * Primera vinculación online con Nexo Familia: elimina únicamente la agenda local
+     * (eventos/citas/tareas/recordatorios/vencimientos) para reconstruirla desde los
+     * UUID de Supabase. No toca notas, listas, Cuaderno, medicación, documentos,
+     * grabaciones, lugares ni el resto de datos de Nexo.
+     */
+    public JSONArray resetAllAppointmentsForNexoFamiliaMigration() {
+        JSONArray reminderIds = new JSONArray();
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            final String appointmentIds = "SELECT id FROM items WHERE type IN ('event','task','reminder','expiry')";
+
+            try (Cursor c = db.rawQuery(
+                    "SELECT id FROM reminders WHERE item_id IN (" + appointmentIds + ")",
+                    null)) {
+                while (c.moveToNext()) reminderIds.put(c.getLong(0));
+            }
+
+            db.execSQL("DELETE FROM reminders WHERE item_id IN (" + appointmentIds + ")");
+            db.execSQL("DELETE FROM recurrence_exceptions WHERE series_id IN (" + appointmentIds + ")");
+            try { db.execSQL("DELETE FROM item_people WHERE item_id IN (" + appointmentIds + ")"); }
+            catch (Exception ignored) {}
+            try {
+                db.execSQL("UPDATE inbox_captures SET converted_entity='', converted_id=0 " +
+                        "WHERE converted_entity='item' AND converted_id IN (" + appointmentIds + ")");
+            } catch (Exception ignored) {}
+            try {
+                db.execSQL("DELETE FROM history WHERE entity_id IN (" + appointmentIds + ") " +
+                        "AND entity_type IN ('event','task','reminder','expiry')");
+            } catch (Exception ignored) {}
+
+            db.delete("nexo_familia_reminders", null, null);
+            db.delete("nexo_familia_events", null, null);
+            db.execSQL("DELETE FROM items WHERE type IN ('event','task','reminder','expiry')");
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return reminderIds;
+    }
+
     public boolean hasNexoFamiliaReminderMapping(String sourceRuleId) {
         if (sourceRuleId == null || sourceRuleId.isBlank()) return false;
         try (Cursor c = getReadableDatabase().rawQuery(
