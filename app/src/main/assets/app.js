@@ -1185,10 +1185,34 @@ function startVoiceCapture(pinnedDate='',pinnedType='') { state.voiceMode='captu
 
 function analyzeCapture(options={}) {
   const text=$('#captureText').value.trim();
-  if(!text){ resetAnalysis(); return; }
+  if(!text){clearCaptureProposals();resetAnalysis();return;}
   const pinned=String(state.capturePinnedType||'');
   const appointment=!!pinned&&isAppointmentType(pinned);
-  const local=parseNative(appointment?NexoNative.classifyAppointment(text):NexoNative.classify(text),{});
+
+  let local=null;
+  if(appointment&&!state.calendarUpdateItemId){
+    let batch={};
+    try{batch=parseNative(NexoNative.classifyAppointments(text),{});}catch(_){batch={};}
+    const proposals=Array.isArray(batch.proposals)?batch.proposals.filter(Boolean):[];
+    if(proposals.length>1){
+      state.captureProposals=proposals;
+      state.captureProposalIndex=Math.min(state.captureProposalIndex,proposals.length-1);
+      const chosen=proposals[state.captureProposalIndex]||proposals[0];
+      state.activeProposalText=String(chosen.proposalText||'').trim();
+      chosen.type='event';
+      state.classification=chosen;
+      renderClassification(chosen,true);
+      renderCaptureProposalChoices();
+      const review=!!chosen.needsReview;
+      const detail=review?(chosen.reason||'La propuesta seleccionada necesita revisión.'):`Propuesta ${state.captureProposalIndex+1} preparada.`;
+      setInterpretationStatus(review?'review':'success',`He encontrado ${proposals.length} citas. ${detail}`);
+      return;
+    }
+    if(proposals.length===1)local=proposals[0];
+  }
+
+  clearCaptureProposals();
+  if(!local)local=parseNative(appointment?NexoNative.classifyAppointment(text):NexoNative.classify(text),{});
   if(appointment)local.type='event';
   state.classification=local;
   renderClassification(local,true);
@@ -1197,7 +1221,6 @@ function analyzeCapture(options={}) {
     (appointment?'Datos extraídos. Revisa la cita.':'Nexo ha clasificado lo que has dicho. Revisa la propuesta.');
   setInterpretationStatus(review?'review':'success',message);
 }
-
 function setInterpretationStatus(kind,text) {
   const el=$('#localStatus'); if(!el)return; el.className=`interpretation-status ${kind}`; el.innerHTML=`<span class="status-dot"></span><span>${esc(text)}</span>`;
 }
