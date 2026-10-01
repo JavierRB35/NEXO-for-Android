@@ -14,6 +14,8 @@ public final class DescriptionExtractor {
         if (raw == null || raw.isBlank()) return "";
         String s = raw.replace('\n', ' ').replaceAll("\\s+", " ").trim();
         String preservedDetails = EventSemanticParser.preservedDetails(s);
+        String guidedDescription = EventSemanticParser.guidedDescription(s);
+        if (!guidedDescription.isBlank()) return mergeDetails(capitalize(guidedDescription), preservedDetails);
 
         String structuredAppointment = extractStructuredAppointmentDetails(s);
         if (!structuredAppointment.isBlank()) return mergeDetails(structuredAppointment, preservedDetails);
@@ -50,7 +52,6 @@ public final class DescriptionExtractor {
         s = s.replaceAll("(?iu)\\b(?:a\\s+las?|a\\s+la)\\s+\\d{1,2}(?:[:.]\\d{2})?(?:\\s*(?:h|horas?))?(?:\\s+de\\s+la\\s+(?:ma[nñ]ana|tarde|noche))?\\b", " ");
         s = s.replaceAll("(?iu)\\b(?:a\\s+las?|a\\s+la)\\s+(?:una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veinti\\w+)(?:\\s+y\\s+(?:cuarto|media|\\d+|[a-záéíóúüñ]+))?(?:\\s+menos\\s+cuarto)?(?:\\s+de\\s+la\\s+(?:ma[nñ]ana|tarde|noche))?\\b", " ");
         s = s.replaceAll("(?iu)\\b(?:por\\s+la\\s+ma[nñ]ana|por\\s+la\\s+tarde|por\\s+la\\s+noche|al\\s+mediod[ií]a|a\\s+medianoche)\\b", " ");
-        s = s.replaceAll("(?iu)\\bde\\s+la\\s+(?:ma[nñ]ana|tarde|noche)\\b", " ");
 
         // Avisos: quita la instrucción de aviso, pero intenta conservar el motivo posterior.
         s = s.replaceAll("(?iu)\\b(?:(?:quiero\\s+que\\s+)?me\\s+avises|av[ií]same|avisarme|avisar|recu[eé]rdame|recordarme|recordar|acu[eé]rdate)(?:\\s+de\\s+que)?\\s*(?:\\d+|[a-záéíóúüñ]+(?:\\s+y\\s+[a-záéíóúüñ]+)?)?\\s*(?:minutos?|horas?|d[ií]as?|semanas?|meses?)?\\s*antes\\b", " ");
@@ -89,7 +90,6 @@ public final class DescriptionExtractor {
         s = s.replaceAll("(?iu)^\\s*(?:un|una|el|la)\\s+", "");
         s = s.replaceAll("\\s{2,}", " ").trim();
 
-        if (s.length() > 420) s = s.substring(0, 417).trim() + "…";
         if (s.length() < 3) return preservedDetails;
         int words = s.split("\\s+").length;
         String n = TemporalParser.norm(s);
