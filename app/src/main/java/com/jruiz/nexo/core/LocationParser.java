@@ -51,6 +51,9 @@ public final class LocationParser {
         String structured = extractStructuredMedicalLocation(compact);
         if (!structured.isBlank()) return structured;
 
+        String guided = EventSemanticParser.guidedLocation(compact);
+        if (!guided.isBlank()) return cleanLocation(guided);
+
         Matcher explicit = Pattern.compile(
                 "(?iu)\\b(?:ubicaci[oó]n|lugar|direcci[oó]n)\\s*[:\\-]\\s*(.{2,120}?)(?=$|[.;])"
         ).matcher(compact);
@@ -104,7 +107,8 @@ public final class LocationParser {
         return !startsWithAny(semantic,
                 "momento", "voz alta", "caso de", "realidad", "general", "particular", "principio", "final",
                 "funcion de", "relacion con", "base a", "cuenta", "nexo", "cuaderno", "calendario", "lista",
-                "recordatorio", "tarea", "reunion", "cita", "consulta", "evento"
+                "recordatorio", "tarea", "reunion", "cita", "consulta", "evento",
+                "meet", "zoom", "teams", "https://", "http://"
         );
     }
 
