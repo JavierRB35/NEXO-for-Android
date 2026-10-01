@@ -14,7 +14,7 @@ checks={
  'manual task state preserved':'AND status_manual=0 AND status IN' in db,
  'manual status serialized':'o.put("statusManual",statusManualIndex>=0 && c.getInt(statusManualIndex)==1)' in db,
  'nexo familia read respects manual':'item.optBoolean("statusManual", false)' in db,
- 'imported status remains automatic':'local.put("statusManual",false)' in importer,
+ 'imported status preserves source state':'local.put("statusManual",true)' in importer,
  'editor offers four states':all(x in app for x in ['>Pendiente</option>','>Completada</option>','>Pospuesta</option>','>Cancelada</option>']),
  'editor marks explicit state manual':'statusManual:true' in app and 'editStatusTouched' in app,
  'postpone persists postponed':"status:'postponed',statusManual:true" in app,
