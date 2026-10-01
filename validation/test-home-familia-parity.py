@@ -46,10 +46,15 @@ for kind in ["kind:'member'","kind:'list'","kind:'medication'","kind:'journal'",
 assert 'searchHistorical' in html and 'includeHistorical' in js
 assert 'familyStyleSearch(q,false)' in js
 
-# Próximamente usa próxima ocurrencia, máximo 10 y ventana Hoy + 6 días.
-assert 'NexoNative.getNextOccurrence' in js
-assert '.slice(0,10)' in js
-assert 'today.getDate()+7' in js
+# Próximamente usa el resumen ligero: ventana de 7 días, próxima ocurrencia
+# por serie y un máximo de 10 tarjetas sin expandir 740 días en JavaScript.
+assert 'NexoNative.getHomeDashboard()' in js
+assert 'public JSONObject getHomeDashboardData()' in db
+assert 'long end7 = today.plusDays(7)' in db
+assert 'JSONArray near = getCalendar(start, end7);' in db
+assert 'findNextOccurrence(id,end7)' in db
+assert 'i<upcoming.size() && i<10' in db
+assert 'NexoNative.getCalendar(start,horizon)' not in js
 assert 'homeUpcomingCard' in js
 assert 'event-participant-avatar' in js
 assert '--event-category-border' in js
