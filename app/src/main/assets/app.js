@@ -2408,6 +2408,42 @@ function renderMedicationsPanel(){
   if($('#medExactBtn'))$('#medExactBtn').addEventListener('click',()=>NexoNative.requestExactAlarms());bindMedicationButtons($('#panelContent'));
 }
 
+function classifyVoiceHypothesis(text){
+  const value=String(text||'').trim();if(!value)return {};
+  const capturedAt=ensureCaptureCapturedAt(),pinned=String(state.capturePinnedType||'');
+  const appointment=!!pinned&&isAppointmentType(pinned);
+  return parseNative(appointment
+    ?(typeof NexoNative.classifyAppointmentAt==='function'?NexoNative.classifyAppointmentAt(value,capturedAt):NexoNative.classifyAppointment(value))
+    :(typeof NexoNative.classifyAt==='function'?NexoNative.classifyAt(value,capturedAt):NexoNative.classify(value)),{});
+}
+function voiceCriticalSignature(text){
+  const p=classifyVoiceHypothesis(text);
+  return JSON.stringify([
+    String(p.dueDate||''),String(p.dueTime||''),String(p.locationText||''),
+    familyNorm(p.title||''),String(p.recurrenceRule||p.recurrence||'')
+  ]);
+}
+function showVoiceHypothesisPicker(hypotheses){
+  const values=(Array.isArray(hypotheses)?hypotheses:[]).filter(h=>h&&String(h.text||'').trim()).slice(0,3);
+  if(values.length<2||state.captureProposals.length>1)return;
+  const signatures=new Set(values.map(h=>voiceCriticalSignature(h.text)));
+  if(signatures.size<2)return;
+  state.voiceHypotheses=values;
+  const cards=values.map((h,i)=>{
+    const pct=Number.isFinite(Number(h.confidence))&&Number(h.confidence)>=0?` · ${Math.round(Number(h.confidence)*100)}%`:'';
+    return `<button type="button" class="secondary-button" data-voice-hypothesis="${i}"><strong>${i===0?'Opción principal':'Alternativa'}${pct}</strong><span>${esc(h.text)}</span></button>`;
+  }).join('');
+  openModal('He oído más de una posibilidad',`<div class="modal-form"><p class="muted">Las alternativas cambian algún dato relevante de la cita. Elige el texto correcto antes de guardar.</p><div class="scope-buttons">${cards}</div></div>`);
+  $('[data-voice-hypothesis]').forEach(button=>button.addEventListener('click',()=>{
+    const selected=state.voiceHypotheses[Number(button.dataset.voiceHypothesis)];
+    if(!selected)return;
+    $('#captureText').value=String(selected.text||'').trim();
+    closeModal();
+    analyzeCapture({immediate:true});
+    setInterpretationStatus('review','Hipótesis de voz seleccionada. Revisa la cita antes de guardarla.');
+  }));
+}
+
 window.NexoUI={
   receiveImportPreview(raw){
     const p=parseNative(raw,{}),entity=p.entity||'item',typeLabel=entity==='list'?'Lista':entity==='journal'?'Cuaderno':'Elemento';
