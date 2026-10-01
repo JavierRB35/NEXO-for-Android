@@ -181,6 +181,14 @@ jobs:
           assert 'in.put("needsReview", false)' not in appointment_block
           assert "needsReview:captureNeedsReview()" in app
           assert "function captureNeedsReview()" in app
+
+          database = Path("app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java").read_text()
+          assert "ZoneId seriesZone = itemZone(base);" in database
+          assert "itemZone(item),1" in database
+          assert "private static ZoneId itemZone(JSONObject item)" in database
+
+          assert "private static ZoneId eventZone(String zoneId)" in service
+          assert "reminderTriggerMinutes(actualDue, leadMinutes, hasTime, zone)" in service
           PY
 
       - name: Note Android build limitation
