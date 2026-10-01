@@ -2240,3 +2240,105 @@ main{max-width:720px}
     grid-template-columns:1fr;
   }
 }
+
+
+/* Nexo beta22 · Cuaderno contextual y limpio */
+.journal-toolbar--cuaderno{
+  grid-template-columns:1fr;
+  margin-bottom:12px;
+}
+.journal-toolbar--cuaderno input{
+  width:100%;
+  min-height:52px;
+  border-radius:16px;
+}
+.journal-card-body-preview{
+  white-space:pre-line;
+  display:-webkit-box;
+  -webkit-line-clamp:4;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.journal-card-flags,
+.journal-read-flags{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:9px;
+}
+.journal-card-flag,
+.journal-read-flag{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#f4f8f5;
+  color:var(--primary);
+  font-size:.74rem;
+  font-weight:800;
+}
+.journal-card-flag--revisit{
+  background:#f5f3fb;
+  color:#665a89;
+}
+.journal-compose--simple{
+  gap:14px;
+}
+.journal-compose--simple textarea{
+  min-height:230px;
+  line-height:1.55;
+  resize:vertical;
+}
+.journal-compose-status{
+  display:flex;
+  justify-content:flex-end;
+  min-height:22px;
+}
+.journal-compose-flags{
+  display:grid;
+  gap:8px;
+}
+.journal-compose-flags .switch-row{
+  min-height:56px;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fbfcfa;
+}
+.journal-compose-flags .switch-row>span{
+  display:grid;
+  gap:2px;
+}
+.journal-compose-flags small{
+  color:var(--muted);
+  font-size:.74rem;
+  font-weight:500;
+  line-height:1.35;
+}
+.journal-read{
+  display:grid;
+  gap:12px;
+}
+.journal-read h3{
+  margin:0;
+  color:var(--text);
+  font-size:1.28rem;
+  line-height:1.25;
+  letter-spacing:-.025em;
+}
+.journal-read-body{
+  white-space:pre-wrap;
+  color:var(--text);
+  font-size:.96rem;
+  line-height:1.65;
+}
+.journal-editor-open .floating-actions{
+  z-index:130;
+}
+.journal-editor-open .floating-actions .fab-add{
+  display:none!important;
+}
+.journal-editor-open .modal-sheet{
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+}
