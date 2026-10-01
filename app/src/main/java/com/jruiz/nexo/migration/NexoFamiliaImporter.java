@@ -16,6 +16,101 @@ public final class NexoFamiliaImporter {
     public static final String FORMAT = "nexo-familia-events-v1";
     private NexoFamiliaImporter() {}
 
+    public static JSONObject validatePayloadIntegrity(JSONObject payload) {
+        JSONObject out = new JSONObject();
+        try {
+            if (payload == null) return out.put("ok", false).put("errors", new JSONArray().put("Datos vacíos."));
+            String format = payload.optString("format", FORMAT);
+            if (!FORMAT.equals(format)) {
+                return out.put("ok", false).put("errors", new JSONArray().put("Formato de Nexo Familia no compatible."));
+            }
+            JSONArray events = payload.optJSONArray("events");
+            if (events == null) {
+                return out.put("ok", false).put("errors", new JSONArray().put("No se han recibido eventos."));
+            }
+            JSONArray rules = payload.optJSONArray("reminderRules");
+            if (rules == null) rules = payload.optJSONArray("reminder_rules");
+            if (rules == null) rules = new JSONArray();
+            JSONArray errors = validatePayload(payload, events, rules);
+            return out.put("ok", errors.length() == 0).put("errors", errors);
+        } catch (Exception e) {
+            try { return out.put("ok", false).put("errors", new JSONArray().put(safeMessage(e))); }
+            catch (Exception ignored) { return out; }
+        }
+    }
+
+    /**
+     * Importación incremental: los UUID ya conocidos se consideran propiedad local
+     * y no se actualizan, aunque hayan cambiado en Nexo Familia.
+     */
+    public static JSONObject importNewOnly(Context context, DatabaseHelper db, JSONObject payload) {
+        JSONObject out = new JSONObject();
+        try {
+            JSONObject validation = validatePayloadIntegrity(payload);
+            if (!validation.optBoolean("ok", false)) {
+                return out.put("ok", false)
+                        .put("error", "Los datos de Nexo Familia no superan la validación.")
+                        .put("errors", validation.optJSONArray("errors"));
+            }
+
+            JSONArray sourceEvents = payload.optJSONArray("events");
+            JSONArray sourceRules = payload.optJSONArray("reminderRules");
+            if (sourceRules == null) sourceRules = payload.optJSONArray("reminder_rules");
+            if (sourceRules == null) sourceRules = new JSONArray();
+
+            JSONArray newEvents = new JSONArray();
+            LinkedHashSet<String> newIds = new LinkedHashSet<>();
+            int existing = 0;
+            for (int i = 0; i < sourceEvents.length(); i++) {
+                JSONObject event = sourceEvents.optJSONObject(i);
+                if (event == null) continue;
+                String id = cleanString(event, "id");
+                if (!id.isBlank() && db.getNexoFamiliaLocalItemId(id) > 0L) {
+                    existing++;
+                    continue;
+                }
+                newEvents.put(event);
+                if (!id.isBlank()) newIds.add(id);
+            }
+
+            if (newEvents.length() == 0) {
+                return out.put("ok", true)
+                        .put("inserted", 0)
+                        .put("updated", 0)
+                        .put("preserved", 0)
+                        .put("reminders", 0)
+                        .put("skipped", 0)
+                        .put("alreadyExisting", existing)
+                        .put("expectedEvents", 0)
+                        .put("expectedReminderRules", 0)
+                        .put("stats", db.getNexoFamiliaImportStats());
+            }
+
+            JSONArray newRules = new JSONArray();
+            for (int i = 0; i < sourceRules.length(); i++) {
+                JSONObject rule = sourceRules.optJSONObject(i);
+                if (rule == null) continue;
+                if (newIds.contains(cleanString(rule, "event_id"))) newRules.put(rule);
+            }
+
+            JSONObject filtered = new JSONObject(payload.toString());
+            filtered.put("events", newEvents);
+            filtered.put("reminderRules", newRules);
+            filtered.remove("reminder_rules");
+            filtered.put("sourceAudit", new JSONObject()
+                    .put("familyEventCount", newEvents.length())
+                    .put("reminderRuleCount", newRules.length()));
+
+            JSONObject result = importPayload(context, db, filtered);
+            result.put("alreadyExisting", existing);
+            result.put("sourceEventCount", sourceEvents.length());
+            return result;
+        } catch (Exception e) {
+            try { return out.put("ok", false).put("error", safeMessage(e)); }
+            catch (Exception ignored) { return out; }
+        }
+    }
+
     public static JSONObject importPayload(Context context, DatabaseHelper db, JSONObject payload) {
         JSONObject out = new JSONObject();
         JSONArray errors = new JSONArray();
@@ -252,7 +347,7 @@ public final class NexoFamiliaImporter {
         local.put("favorite",false);
         local.put("source","nexo-familia");
         local.put("status",status);
-        local.put("statusManual",false);
+        // El estado recibido de Nexo Familia se conserva literalmente.\n        // La sincronización posterior no reescribe eventos ya importados.\n        local.put("statusManual",true);
         local.put("needsReview",false);
         local.put("recurrence",recurrence);
         local.put("recurrenceUntil",recurrenceUntil);
