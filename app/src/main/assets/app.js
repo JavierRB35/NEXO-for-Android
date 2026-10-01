@@ -47,6 +47,7 @@ const state = {
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
   homeSearchIndex:[], homeSearchIndexReady:false, homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
+  startupSplashActive:true, startupInboxReady:false, startupHomeReady:false, startupHomeDashboard:null, startupSplashTimeout:0,
   holidayYears:{}, holidayLoading:new Set(),
   managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
 };
@@ -592,8 +593,12 @@ function navigate(screen, options={}) {
   requestAnimationFrame(()=>{if(router.key(router.current)===target)window.scrollTo(0,moved.scrollY);});
 }
 
-function renderToday() {
-  const dashboard=parseNative(NexoNative.getHomeDashboard(),{});
+function renderToday(dashboardOverride=null) {
+  const dashboard=dashboardOverride&&typeof dashboardOverride==='object'
+    ?dashboardOverride
+    :(state.startupSplashActive&&state.startupHomeDashboard
+      ?state.startupHomeDashboard
+      :parseNative(NexoNative.getHomeDashboard(),{}));
   state.homeUpcoming=Array.isArray(dashboard.upcoming)?dashboard.upcoming:[];
 
   const todayCount=Math.max(0,Number(dashboard.todayCount||0));
@@ -2881,9 +2886,20 @@ window.NexoUI={
     if(state.screen==='more')renderCommunicationCaptureSettings();
     if(state.screen==='today')renderToday();
   },
-  onInputHubChanged(){
+  onStartupInboxScanFinished(){
+    state.startupInboxReady=true;
+    let fresh=null;
+    try{fresh=parseNative(NexoNative.getHomeDashboard(),{});}catch(_){fresh=null;}
+    if(fresh&&typeof fresh==='object'){
+      state.startupHomeDashboard=fresh;
+      state.startupHomeReady=true;
+      if(state.screen==='today')renderToday(fresh);
+    }
+    maybeFinishStartupSplash();
+  },
+  onInputHubChanged(source){
     if(state.screen==='more')renderCommunicationCaptureSettings();
-    renderToday();
+    if(!(source==='startup'&&state.startupSplashActive))renderToday();
     if(state.screen==='panel'&&state.lastPanel==='inbox')renderInboxPanel();
   },
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
@@ -2993,6 +3009,59 @@ function bindPanelNavigation(){
     event.preventDefault();
     openPanel(panel);
   });
+}
+
+function finishStartupSplash(){
+  if(!state.startupSplashActive)return;
+  state.startupSplashActive=false;
+  if(state.startupSplashTimeout){clearTimeout(state.startupSplashTimeout);state.startupSplashTimeout=0;}
+  const splash=$('#startupSplash');
+  document.body.classList.remove('startup-loading');
+  if(splash){
+    splash.classList.add('is-hiding');
+    setTimeout(()=>splash.remove(),300);
+  }
+  state.startupHomeDashboard=null;
+  requestAnimationFrame(updateFloatingActions);
+}
+
+function maybeFinishStartupSplash(){
+  if(state.startupHomeReady&&state.startupInboxReady)finishStartupSplash();
+}
+
+function preloadStartupHomeDashboard(){
+  try{
+    state.startupHomeDashboard=parseNative(NexoNative.getHomeDashboard(),{});
+  }catch(_){
+    state.startupHomeDashboard={};
+  }
+  state.startupHomeReady=true;
+  maybeFinishStartupSplash();
+  return state.startupHomeDashboard;
+}
+
+function beginStartupSequence(startScreen){
+  state.startupSplashActive=!!$('#startupSplash');
+  state.startupInboxReady=false;
+  state.startupHomeReady=false;
+  if(state.startupSplashActive){
+    state.startupSplashTimeout=setTimeout(()=>finishStartupSplash(),3000);
+  }
+
+  let inboxStarted=false;
+  try{
+    if(typeof NexoNative.startStartupInboxScan==='function'){
+      inboxStarted=NexoNative.startStartupInboxScan()!==false;
+    }
+  }catch(_){
+    inboxStarted=false;
+  }
+  if(!inboxStarted)state.startupInboxReady=true;
+
+  const dashboard=preloadStartupHomeDashboard();
+  navigate(startScreen,{root:true});
+  if(startScreen==='today')renderToday(dashboard);
+  maybeFinishStartupSplash();
 }
 
 function init(){
@@ -3112,7 +3181,8 @@ function init(){
   window.addEventListener('pageshow',()=>requestAnimationFrame(updateFloatingActions));
   window.addEventListener('pagehide',()=>{if(state.noteEditor)flushNoteAutosave();});
   document.addEventListener('keydown',handleDialogKeys);
-  navigate(NexoNative.getStartScreen()==='calendar'?'calendar':'today',{root:true});
+  const startScreen=NexoNative.getStartScreen()==='calendar'?'calendar':'today';
+  beginStartupSequence(startScreen);
 }
 
 
