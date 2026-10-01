@@ -24,6 +24,12 @@ public final class EventSemanticParser {
     private static final String PROFESSIONAL =
             "doctor|doctora|dr\\.?|dra\\.?|dentista|especialista";
 
+    private static final String GUIDED_LABELS =
+            "t[ií]tulo|ubicaci[oó]n|lugar|descripci[oó]n|detalle|detalles|fecha|hora";
+
+    private static final Pattern VIRTUAL_URL = Pattern.compile(
+            "(?iu)https?://(?:meet\\.google\\.com|(?:[a-z0-9.-]+\\.)?zoom\\.us|teams\\.microsoft\\.com|teams\\.live\\.com)/[^\\s,;]+");
+
     private static final Pattern NUMERIC_DATE = Pattern.compile(
             "(?<!\\d)\\d{1,2}\\s*[./-]\\s*\\d{1,2}(?:\\s*[./-]\\s*\\d{2,4})?(?!\\d)");
 
@@ -34,6 +40,17 @@ public final class EventSemanticParser {
     public static String titleCandidate(String raw) {
         if (raw == null || raw.isBlank()) return "";
         String text = compact(raw);
+
+        String guided = guidedTitle(text);
+        if (!guided.isBlank()) return capitalize(guided);
+
+        Matcher meetingWith = Pattern.compile(
+                "(?iu)\\breuni[oó]n\\s+con\\s+([^,.;]{2,70}?)(?=\\s+(?:por|en)\\s+(?:meet|zoom|teams)\\b|\\s+https?://|[,.;]|$)")
+                .matcher(text);
+        if (meetingWith.find()) {
+            String value = cleanTitleCandidate(meetingWith.group(1));
+            if (!value.isBlank()) return "Reunión con " + value;
+        }
 
         Matcher eventPurpose = Pattern.compile(
                 "(?iu)\\b(?:cita|consulta|evento)\\s+(?:para|por|de)\\s+(?:una|un|la|el)?\\s*([^,.;]{3,90})")
@@ -61,6 +78,43 @@ public final class EventSemanticParser {
         return "";
     }
 
+    public static String guidedTitle(String raw) {
+        return guidedField(raw, "t[ií]tulo");
+    }
+
+    public static String guidedLocation(String raw) {
+        return guidedField(raw, "ubicaci[oó]n|lugar");
+    }
+
+    public static String guidedDescription(String raw) {
+        return guidedField(raw, "descripci[oó]n|detalle|detalles");
+    }
+
+    public static String virtualMeetingDetail(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String text = compact(raw);
+        Matcher url = VIRTUAL_URL.matcher(text);
+        String provider = "";
+        String n = TemporalParser.norm(text);
+        if (n.matches(".*\\bmeet\\b.*") || (url.find() && url.group().toLowerCase().contains("meet.google.com"))) provider = "Meet";
+        else if (n.matches(".*\\bzoom\\b.*") || (url.reset().find() && url.group().toLowerCase().contains("zoom.us"))) provider = "Zoom";
+        else if (n.matches(".*\\bteams\\b.*") || (url.reset().find() && url.group().toLowerCase().contains("teams."))) provider = "Teams";
+        url.reset();
+        if (url.find()) {
+            String link = url.group().replaceAll("[.)]+$", "");
+            return (provider.isBlank() ? "Reunión virtual" : provider) + ": " + link;
+        }
+        return provider.isBlank() ? "" : "Modalidad: " + provider;
+    }
+
+    public static String participant(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        Matcher m = Pattern.compile(
+                "(?iu)\\breuni[oó]n\\s+con\\s+(?!el\\s+(?:doctor|dr\\.)\\b|la\\s+(?:doctora|dra\\.)\\b)([^,.;]{2,60}?)(?=\\s+(?:por|en)\\s+(?:meet|zoom|teams)\\b|\\s+(?:el|la|a\\s+las?)\\b|[,.;]|$)")
+                .matcher(compact(raw));
+        return m.find() ? cleanDetail(m.group(1)) : "";
+    }
+
     public static String professional(String raw) {
         if (raw == null || raw.isBlank()) return "";
         Matcher m = Pattern.compile(
@@ -77,6 +131,20 @@ public final class EventSemanticParser {
 
         String professional = professional(raw);
         if (!professional.isBlank()) details.add("Profesional: " + capitalize(professional));
+
+        String participant = participant(raw);
+        if (!participant.isBlank()) details.add("Participante: " + capitalize(participant));
+
+        String virtual = virtualMeetingDetail(raw);
+        if (!virtual.isBlank()) details.add(virtual);
+
+        String guidedDescription = guidedDescription(raw);
+        if (!guidedDescription.isBlank()) details.add(capitalize(guidedDescription));
+
+        Matcher instruction = Pattern.compile(
+                "(?iu)\\b(?:llevar|traer|presentar|no\\s+olvidar|no\\s+olvides)\\s+[^.;]{2,180}")
+                .matcher(compact(raw));
+        while (instruction.find()) details.add(capitalize(cleanDetail(instruction.group())));
 
         Matcher docs = Pattern.compile(
                 "(?iu)\\b(?:" + DOCUMENT + ")\\s+(?:del|de\\s+fecha|de)\\s+" +
@@ -112,6 +180,14 @@ public final class EventSemanticParser {
         Matcher words = WORD_DATE_NORMALIZED.matcher(n);
         while (words.find()) count++;
         return count;
+    }
+
+    private static String guidedField(String raw, String labelRegex) {
+        if (raw == null || raw.isBlank()) return "";
+        Matcher m = Pattern.compile(
+                "(?iu)\\b(?:" + labelRegex + ")\\b\\s*:?\\s*(.{1,180}?)(?=\\s+\\b(?:" + GUIDED_LABELS + ")\\b\\s*:?\\s*|$|[.;])")
+                .matcher(compact(raw));
+        return m.find() ? cleanDetail(m.group(1)) : "";
     }
 
     private static String cleanTitleCandidate(String raw) {
