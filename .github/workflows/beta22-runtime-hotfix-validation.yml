@@ -1,0 +1,54 @@
+name: Validate beta22 runtime hotfix
+
+on:
+  push:
+    branches:
+      - work/nexo-3.7.0-beta22-runtime-hotfix
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta22-runtime-hotfix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout hotfix
+        uses: actions/checkout@v5
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: JavaScript syntax
+        run: node --check app/src/main/assets/app.js
+
+      - name: Install runtime DOM test dependency
+        run: npm install --no-save --ignore-scripts jsdom@26.1.0
+
+      - name: Runtime WebView navigation regression
+        run: node validation/test-beta22-runtime.mjs
+
+      - name: Home performance guard
+        run: python3 validation/test-home-runtime-performance.py
+
+      - name: Contextual beta22 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 validation/test-version-identity.py
+          python3 validation/test-beta22-final-context-audit.py
+          python3 validation/test-contextual-navigation.py
+          python3 validation/test-contextual-tools.py
+          python3 validation/test-contextual-fabs-notes.py
+          python3 validation/test-contextual-medication.py
+          python3 validation/test-cuaderno-context.py
+          python3 validation/test-event-people-assignment.py
+          python3 validation/test-form-familia-ui.py
+          python3 validation/test-ui-structure.py
