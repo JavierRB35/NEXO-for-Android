@@ -1247,24 +1247,32 @@ function changeCalendarMonth(delta){
 function attachMonthSwipe(element,onPrevious,onNext){
   if(!element||element.dataset.monthSwipeReady==='1')return;
   element.dataset.monthSwipeReady='1';
-  let startX=0,startY=0,tracking=false,suppressClickUntil=0;
-  const reset=()=>{tracking=false;startX=0;startY=0;};
+  let startX=0,startY=0,tracking=false,movedHorizontally=false,suppressClickUntil=0;
+  const reset=()=>{tracking=false;startX=0;startY=0;movedHorizontally=false;};
   element.addEventListener('touchstart',e=>{
     if(e.touches.length!==1){reset();return;}
-    const t=e.touches[0];startX=t.clientX;startY=t.clientY;tracking=true;
+    const t=e.touches[0];startX=t.clientX;startY=t.clientY;tracking=true;movedHorizontally=false;
+  },{passive:true});
+  element.addEventListener('touchmove',e=>{
+    if(!tracking||e.touches.length!==1)return;
+    const t=e.touches[0],dx=t.clientX-startX,dy=t.clientY-startY;
+    if(Math.abs(dx)>=18&&Math.abs(dx)>Math.abs(dy)*1.15){
+      movedHorizontally=true;
+      suppressClickUntil=Date.now()+750;
+    }
   },{passive:true});
   element.addEventListener('touchend',e=>{
     if(!tracking||e.changedTouches.length!==1){reset();return;}
     const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;
+    const horizontal=(movedHorizontally||Math.abs(dx)>=48)&&Math.abs(dx)>Math.abs(dy)*1.35;
     reset();
-    const horizontal=Math.abs(dx)>=48&&Math.abs(dx)>Math.abs(dy)*1.35;
     if(!horizontal)return;
-    suppressClickUntil=Date.now()+450;
+    suppressClickUntil=Date.now()+750;
     if(dx<0)onNext();else onPrevious();
   },{passive:true});
   element.addEventListener('touchcancel',reset,{passive:true});
   element.addEventListener('click',e=>{
-    if(Date.now()<suppressClickUntil){e.preventDefault();e.stopPropagation();}
+    if(Date.now()<suppressClickUntil){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();}
   },true);
 }
 
