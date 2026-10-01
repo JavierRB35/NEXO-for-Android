@@ -33,7 +33,12 @@ assert scan_pos < home_pos < nav_pos
 assert 'state.startupHomeDashboard=parseNative(NexoNative.getHomeDashboard(),{})' in js
 assert 'function renderToday(dashboardOverride=null)' in js
 assert 'onStartupInboxScanFinished()' in js
-assert 'setTimeout(()=>finishStartupSplash(),3000)' in js
+assert 'startupSplashMinReady' in js
+assert 'state.startupSplashMinTimer=setTimeout' in js
+assert '},3500);' in js, 'El splash debe permanecer visible al menos 3,5 s'
+assert 'state.startupSplashTimeout=setTimeout' in js
+assert '},5000);' in js, 'Debe existir un límite de seguridad de 5 s'
+assert 'state.startupSplashMinReady&&state.startupHomeReady&&state.startupInboxReady' in js
 assert "source==='startup'&&state.startupSplashActive" in js
 
 # El escaneo nativo es best-effort: cada fuente puede fallar y el callback final siempre sale.
@@ -46,4 +51,4 @@ for token in ('SmsWatchEngine.scan(app)','GmailWatchEngine.scan(app)','CalendarW
 assert 'jsCallback("onStartupInboxScanFinished", partial ? "partial" : "ok");' in java
 assert '@JavascriptInterface public boolean startStartupInboxScan()' in java
 
-print('OK: splash estático, puntos animados, Inbox resiliente y precarga ligera de Inicio')
+print('OK: splash estático con mínimo 3,5 s, puntos animados, Inbox resiliente y precarga ligera de Inicio')
