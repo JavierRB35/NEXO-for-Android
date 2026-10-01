@@ -2033,3 +2033,31 @@ main{max-width:720px}
 .event-participant-avatars--search{margin-top:5px}
 .family-result-main .event-participant-avatars{min-height:28px}
 .agenda-open .event-participant-avatars{width:max-content;max-width:100%}
+
+
+/* Nexo 3.7.0-beta18 · vinculación directa con Nexo Familia */
+.family-sync-card{grid-template-columns:42px minmax(0,1fr);overflow:hidden}
+.family-sync-copy{min-width:0;overflow-wrap:anywhere}
+.family-sync-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.family-sync-heading>strong{font-size:.875rem;color:var(--text)}
+.family-sync-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:24px;padding:3px 8px;border-radius:999px;background:#f1f3f6;color:var(--muted);font-size:.68rem;font-weight:800}
+.family-sync-badge--ok{background:#e9f7ef;color:#247449}
+.family-sync-account{margin:4px 0 7px!important;color:var(--text)!important;font-weight:750}
+.family-sync-stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.family-sync-stats span{max-width:100%;padding:5px 8px;border-radius:999px;background:#f6f8fb;color:#596577;font-size:.7rem;font-weight:700;overflow-wrap:anywhere}
+.family-sync-warning{margin-top:10px;padding:9px 10px;border:1px solid #efd7a6;border-radius:12px;background:#fff8e9;color:#765b22;font-size:.74rem;line-height:1.4}
+.family-sync-form{display:grid;grid-template-columns:1fr;gap:9px;margin:11px 0 8px}
+.family-sync-form label{display:grid;gap:5px;min-width:0;color:var(--text);font-size:.74rem;font-weight:750}
+.family-sync-form input{width:100%;min-width:0;box-sizing:border-box}
+.family-sync-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr;gap:8px;min-width:0}
+.family-sync-actions button{width:100%;min-width:0;white-space:normal}
+.family-sync-card--login .family-sync-actions{grid-template-columns:1fr}
+@media(min-width:560px){
+  .family-sync-actions{grid-template-columns:minmax(0,1fr) auto}
+  .family-sync-card--login .family-sync-actions{grid-template-columns:1fr}
+}
+@media(max-width:420px){
+  .family-sync-card{grid-template-columns:36px minmax(0,1fr);gap:10px}
+  .family-sync-card .backup-icon{width:36px;height:36px;border-radius:11px}
+  .family-sync-heading{align-items:flex-start;flex-direction:column;gap:5px}
+}
