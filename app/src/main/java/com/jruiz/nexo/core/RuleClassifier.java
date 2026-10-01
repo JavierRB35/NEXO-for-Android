@@ -46,6 +46,7 @@ public final class RuleClassifier {
         public boolean invalidTime = false;
         public boolean ambiguousTime = false;
         public final List<String> warnings = new ArrayList<>();
+        public ParseContext parseContext = ParseContext.now();
 
         public JSONObject toJson() {
             JSONObject o = new JSONObject();
@@ -57,6 +58,8 @@ public final class RuleClassifier {
                 o.put("recurrence", recurrence); o.put("recurrenceRule", recurrenceRule); o.put("recurrenceUntilDate", recurrenceUntilDate); o.put("locationText", locationText); o.put("description", description);
                 o.put("invalidDate", invalidDate); o.put("invalidTime", invalidTime); o.put("ambiguousTime", ambiguousTime); o.put("warnings", new JSONArray(warnings));
                 o.put("fieldMeta", fieldMeta());
+                o.put("parserVersion", ParseContext.PARSER_VERSION);
+                o.put("captureContext", parseContext == null ? ParseContext.now().toJson() : parseContext.toJson());
             } catch (Exception ignored) {}
             return o;
         }
@@ -99,7 +102,13 @@ public final class RuleClassifier {
     }
 
     public static Result classify(String raw) {
+        return classify(raw, ParseContext.now());
+    }
+
+    public static Result classify(String raw, ParseContext context) {
+        ParseContext ctx = context == null ? ParseContext.now() : context;
         Result r = new Result();
+        r.parseContext = ctx;
         String text = raw == null ? "" : raw.trim();
         String n = norm(text);
         r.title = "Nota rápida";
@@ -179,7 +188,7 @@ public final class RuleClassifier {
             if ("Clasificación básica".equals(r.reason)) r.reason = "Detectado aviso por voz";
         }
 
-        RecurrenceEngine.Detection recurrence = RecurrenceEngine.detect(text);
+        RecurrenceEngine.Detection recurrence = RecurrenceEngine.detect(text, ctx.localDateTime());
         if (RecurrenceEngine.isRecurring(recurrence.recurrence)) {
             r.recurrence = recurrence.recurrence;
             r.recurrenceRule = recurrence.recurrenceRule;
@@ -194,7 +203,7 @@ public final class RuleClassifier {
             if ("Clasificación básica".equals(r.reason)) r.reason = "Detectada ubicación";
         }
 
-        TemporalParser.Result tr = TemporalParser.parse(text);
+        TemporalParser.Result tr = TemporalParser.parse(text, ctx.localDateTime());
         r.invalidDate = tr.invalidDate;
         r.invalidTime = tr.invalidTime;
         r.ambiguousTime = tr.ambiguousTime;
@@ -202,7 +211,7 @@ public final class RuleClassifier {
         if (tr.invalidTime) r.warnings.add("La hora indicada no es válida.");
         if (tr.ambiguousTime) r.warnings.add("La hora puede ser de la mañana o de la tarde.");
         if (tr.hasDate) {
-            r.dueAt = tr.toEpochMillis(ZoneId.systemDefault()); r.hasTime = tr.hasTime; r.dueDate = tr.dateIso(); r.dueTime = tr.timeIso();
+            r.dueAt = tr.toEpochMillis(ctx.deviceZone); r.hasTime = tr.hasTime; r.dueDate = tr.dateIso(); r.dueTime = tr.timeIso();
             r.dueEndTime = tr.endTimeIso(); r.durationMinutes = tr.durationMinutes();
             r.temporalSource = (tr.dateSource + (tr.hasTime ? " · " + tr.timeSource : "") + (tr.hasEndTime ? " · " + tr.endTimeSource : "")).trim();
             r.confidence = Math.max(r.confidence, .82);
@@ -223,7 +232,7 @@ public final class RuleClassifier {
                 try {
                     java.time.LocalDate d = java.time.LocalDate.parse(startDate);
                     java.time.LocalTime t = startTime.isBlank() ? java.time.LocalTime.of(9,0) : java.time.LocalTime.parse(startTime);
-                    r.dueAt = d.atTime(t).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                    r.dueAt = d.atTime(t).atZone(ctx.deviceZone).toInstant().toEpochMilli();
                     r.dueDate = startDate; r.dueTime = startTime; r.hasTime = !startTime.isBlank();
                     r.temporalSource = "pauta de medicamento";
                 } catch(Exception ignored) {}
