@@ -41,6 +41,10 @@ public final class RuleClassifier {
         public String recurrenceUntilDate = "";
         public String locationText = "";
         public String description = "";
+        public boolean invalidDate = false;
+        public boolean invalidTime = false;
+        public boolean ambiguousTime = false;
+        public final List<String> warnings = new ArrayList<>();
 
         public JSONObject toJson() {
             JSONObject o = new JSONObject();
@@ -50,6 +54,7 @@ public final class RuleClassifier {
                 o.put("priority", priority); o.put("confidence", confidence); o.put("needsReview", needsReview);
                 o.put("suggestedLeadDays", suggestedLeadDays); o.put("reminderRequested", reminderRequested); o.put("voiceRequested", voiceRequested); o.put("reminderLeadMinutes", new JSONArray(reminderLeadMinutes)); o.put("reason", reason); o.put("temporalSource", temporalSource);
                 o.put("recurrence", recurrence); o.put("recurrenceUntilDate", recurrenceUntilDate); o.put("locationText", locationText); o.put("description", description);
+                o.put("invalidDate", invalidDate); o.put("invalidTime", invalidTime); o.put("ambiguousTime", ambiguousTime); o.put("warnings", new JSONArray(warnings));
             } catch (Exception ignored) {}
             return o;
         }
@@ -96,8 +101,9 @@ public final class RuleClassifier {
         boolean explicitSpokenReminder = containsAny(n,"recordatorio hablado","aviso hablado","avisame hablando");
         r.voiceRequested = voiceRequest;
         boolean expiry = containsAny(n, "vence", "vencimiento", "caduca", "caducidad", "renovar", "renovacion");
-        boolean eventLike = Pattern.compile("\\b(?:cita|reunion|consulta|evento|dentista|analitica)\\b").matcher(n).find() ||
-                containsAny(n, "medico a las", "hospital a las", "analisis de sangre", "centro de salud", "pet-tac", "pet tac", "medicina nuclear", "radiodiagnostico");
+        boolean negatedEvent = Pattern.compile("\\b(?:no\\s+tengo|no\\s+hay|no\\s+quiero|cancelar|cancela|anula|anular)\\s+(?:la\\s+|una\\s+)?(?:cita|reunion|consulta|evento)\\b").matcher(n).find();
+        boolean eventLike = !negatedEvent && (Pattern.compile("\\b(?:cita|reunion|consulta|evento|dentista|analitica)\\b").matcher(n).find() ||
+                containsAny(n, "medico a las", "hospital a las", "analisis de sangre", "centro de salud", "pet-tac", "pet tac", "medicina nuclear", "radiodiagnostico"));
 
         if (eventLike && !medicationLike) {
             r.type = "event"; r.confidence = Math.max(r.confidence, .84); r.reason = "Detectada cita o evento";
@@ -107,8 +113,13 @@ public final class RuleClassifier {
             r.confidence = Math.max(r.confidence, .84); r.reason = "Detectada acción pendiente";
         }
         if ((reminderVerb || explicitSpokenReminder) && !medicationLike) {
-            r.type = "reminder"; if (r.category.equals("Otro") || r.category.equals("Tarea / Recado")) r.category = "Recordatorio";
-            r.reminderRequested = true; r.confidence = Math.max(r.confidence, .90); r.reason = "Detectada petición de recordatorio";
+            if (!eventLike) {
+                r.type = "reminder";
+                if (r.category.equals("Otro") || r.category.equals("Tarea / Recado")) r.category = "Recordatorio";
+                r.reason = "Detectada petición de recordatorio";
+            }
+            r.reminderRequested = true;
+            r.confidence = Math.max(r.confidence, .90);
         }
         if (expiry && !medicationLike) {
             r.type = "expiry"; r.suggestedLeadDays = 30; r.confidence = Math.max(r.confidence, .90); r.reason = "Detectado vencimiento";
@@ -145,6 +156,12 @@ public final class RuleClassifier {
         }
 
         TemporalParser.Result tr = TemporalParser.parse(text);
+        r.invalidDate = tr.invalidDate;
+        r.invalidTime = tr.invalidTime;
+        r.ambiguousTime = tr.ambiguousTime;
+        if (tr.invalidDate) r.warnings.add("La fecha indicada no existe o no es válida.");
+        if (tr.invalidTime) r.warnings.add("La hora indicada no es válida.");
+        if (tr.ambiguousTime) r.warnings.add("La hora puede ser de la mañana o de la tarde.");
         if (tr.hasDate) {
             r.dueAt = tr.toEpochMillis(ZoneId.systemDefault()); r.hasTime = tr.hasTime; r.dueDate = tr.dateIso(); r.dueTime = tr.timeIso();
             r.dueEndTime = tr.endTimeIso(); r.durationMinutes = tr.durationMinutes();
@@ -179,6 +196,22 @@ public final class RuleClassifier {
         else if (containsAny(n, "importante", "prioridad media")) r.priority = 2;
 
         r.needsReview = medicationLike || r.confidence < .72 || (r.category.equals("Otros") && r.type.equals("note"));
+        if (negatedEvent) {
+            r.dueAt = 0L; r.hasTime = false; r.dueDate = ""; r.dueTime = ""; r.dueEndTime = ""; r.durationMinutes = 0;
+            r.needsReview = true;
+            r.reason = "La frase niega o cancela una cita; confirma qué quieres hacer";
+            r.warnings.add("Se ha detectado una negación o cancelación.");
+        } else if (r.invalidDate) {
+            r.needsReview = true; r.reason = "La fecha indicada no es válida";
+        } else if (r.invalidTime) {
+            r.needsReview = true; r.reason = "La hora indicada no es válida";
+        } else if (r.ambiguousTime) {
+            r.needsReview = true; r.reason = "Confirma si la hora es de la mañana o de la tarde";
+        }
+        if (eventLike && r.dueAt <= 0) {
+            r.needsReview = true;
+            if (r.reason == null || r.reason.isBlank() || "Detectada cita o evento".equals(r.reason)) r.reason = "Falta la fecha de la cita";
+        }
         if ((r.type.equals("reminder") || r.type.equals("expiry")) && r.dueAt <= 0) {
             r.needsReview = true; r.reason = "Falta una fecha para poder avisarte";
         }
@@ -196,7 +229,13 @@ public final class RuleClassifier {
         if (n.contains("un cuarto de hora antes") || n.contains("cuarto de hora antes")) values.add(15);
         if (n.contains("dia anterior")) values.add(1440);
 
-        Matcher m = Pattern.compile("([a-z0-9]+(?:\s+y\s+[a-z0-9]+)?)\s+(minuto|minutos|hora|horas|dia|dias|semana|semanas|mes|meses)\s+antes").matcher(n);
+        Matcher compoundHours = Pattern.compile("\\b((?:(?:[a-z0-9]+(?:\\s+y\\s+[a-z0-9]+)?)\\s+)?horas?(?:\\s+y\\s+(?:media|cuarto|[a-z0-9]+(?:\\s+y\\s+[a-z0-9]+)?\\s+minutos?)))\\s+antes\\b").matcher(n);
+        while (compoundHours.find()) {
+            int minutes = TemporalParser.parseSpanMinutes(compoundHours.group(1));
+            if (minutes >= 0 && minutes <= 5_256_000) values.add(minutes);
+        }
+
+        Matcher m = Pattern.compile("([a-z0-9]+(?:\\s+y\\s+[a-z0-9]+)?)\\s+(minuto|minutos|hora|horas|dia|dias|semana|semanas|mes|meses)\\s+antes").matcher(n);
         while (m.find()) {
             int v = TemporalParser.parseNumberPhrase(m.group(1));
             if (v < 0) continue;
@@ -206,7 +245,7 @@ public final class RuleClassifier {
             else if (unit.startsWith("hora")) minutes = v * 60L;
             else if (unit.startsWith("dia")) minutes = v * 1440L;
             else if (unit.startsWith("semana")) minutes = v * 10080L;
-            else minutes = v * 43200L; // mes de aviso = 30 días, coherente con Nexo.
+            else minutes = v * 43200L;
             if (minutes >= 0 && minutes <= 5_256_000L) values.add((int)minutes);
         }
         return new ArrayList<>(values);
