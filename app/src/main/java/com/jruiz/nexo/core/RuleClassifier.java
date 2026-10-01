@@ -38,6 +38,7 @@ public final class RuleClassifier {
         public String reason = "Clasificación básica";
         public String temporalSource = "";
         public String recurrence = RecurrenceEngine.NONE;
+        public String recurrenceRule = "";
         public String recurrenceUntilDate = "";
         public String locationText = "";
         public String description = "";
@@ -56,7 +57,7 @@ public final class RuleClassifier {
                 o.put("dueAt", dueAt); o.put("hasTime", hasTime); o.put("dueDate", dueDate); o.put("dueTime", dueTime); o.put("dueEndTime", dueEndTime); o.put("durationMinutes", durationMinutes);
                 o.put("priority", priority); o.put("confidence", confidence); o.put("needsReview", needsReview);
                 o.put("suggestedLeadDays", suggestedLeadDays); o.put("reminderRequested", reminderRequested); o.put("voiceRequested", voiceRequested); o.put("reminderLeadMinutes", new JSONArray(reminderLeadMinutes)); o.put("reason", reason); o.put("temporalSource", temporalSource);
-                o.put("recurrence", recurrence); o.put("recurrenceUntilDate", recurrenceUntilDate); o.put("locationText", locationText); o.put("description", description);
+                o.put("recurrence", recurrence); o.put("recurrenceRule", recurrenceRule); o.put("recurrenceUntilDate", recurrenceUntilDate); o.put("locationText", locationText); o.put("description", description);
                 o.put("invalidDate", invalidDate); o.put("invalidTime", invalidTime); o.put("ambiguousTime", ambiguousTime); o.put("warnings", new JSONArray(warnings));
                 o.put("parserVersion", parserVersion); o.put("professionalText", professionalText); o.put("titleEvidence", titleEvidence);
             } catch (Exception ignored) {}
@@ -151,6 +152,7 @@ public final class RuleClassifier {
         RecurrenceEngine.Detection recurrence = RecurrenceEngine.detect(text);
         if (RecurrenceEngine.isRecurring(recurrence.recurrence)) {
             r.recurrence = recurrence.recurrence;
+            r.recurrenceRule = recurrence.rule;
             r.recurrenceUntilDate = recurrence.untilDate;
             r.confidence = Math.max(r.confidence, .86);
             if ("Clasificación básica".equals(r.reason)) r.reason = "Detectada periodicidad";
