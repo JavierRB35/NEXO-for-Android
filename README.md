@@ -1,12 +1,12 @@
-# Nexo 3.7.0-beta17 · AndroidIDE
+# Nexo 3.7.0-beta18 · AndroidIDE
 
-Rama Release: `release/nexo-3.7.0-beta16`.
+Rama de trabajo: `work/nexo-3.7.0-beta18-supabase-sync`.
 
 Identidad:
-- Nexo **3.7.0-beta16**
-- `versionCode 81`
+- Nexo **3.7.0-beta18**
+- `versionCode 83`
 - `applicationId com.jruiz.nexo`
-- Base de datos `nexo.db`, esquema **20**
+- Base de datos `nexo.db`, esquema **23**
 
 ## Entorno AndroidIDE validado
 
@@ -25,13 +25,13 @@ No actualizar estas versiones salvo necesidad.
 Descomprime el proyecto como una única carpeta:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta16/
+/storage/emulated/0/Download/Nexo_3_7_0_beta18/
 ```
 
 Después:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_0_beta16"
+cd "/storage/emulated/0/Download/Nexo_3_7_0_beta18"
 sh build-on-phone.sh
 ```
 
@@ -40,7 +40,7 @@ No uses `./gradlew` desde Download.
 El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-daemon`, `--max-workers=1` y el AAPT2 de AndroidIDE, verifica la firma y copia:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_0_beta16.apk
+/storage/emulated/0/Download/Nexo_3_7_0_beta18.apk
 ```
 
 ## Input Hub beta4
@@ -57,16 +57,15 @@ El script conserva la firma Release permanente, usa `JAVA_OPTS=-Xmx768m`, `--no-
 - WhatsApp y Telegram continúan mediante NotificationListener.
 - Ninguna captura crea automáticamente una cita/tarea definitiva sin revisión.
 
-## Migración Nexo Familia
+## Sincronización Nexo Familia
 
-La snapshot incluida se ha regenerado directamente desde el Supabase de Nexo Familia y contiene:
-
-- **33 eventos** de la familia Ruiz-Villena.
-- **46 reglas de aviso**.
-- **4 miembros**.
-- Todos los campos originales disponibles en la tabla `events` y las reglas originales.
-
-Beta7 conserva la reconstrucción completa 33/33 y corrige además los estados locales: los eventos `selected` futuros ya no quedan marcados como `done`; se respetan los estados de Supabase y el tiempo real del evento. La auditoría local está disponible desde Copia de seguridad > Nexo Familia. Los campos que son realmente `null` en Supabase no se inventan; se preserva además el JSON original completo en la capa de compatibilidad.
+- Vinculación con el usuario normal de **Nexo Familia** mediante Supabase Auth (correo + contraseña de Nexo Familia).
+- La contraseña no se persiste; la sesión se cifra con Android Keystore.
+- Primera importación: descarga y valida todos los eventos visibles para el usuario antes de sustituir únicamente la agenda local.
+- Cada evento conserva el UUID de Supabase y su estado fuente.
+- Importaciones posteriores: solo se añaden UUID que todavía no existan en Nexo Android; los ya existentes no se actualizan.
+- Las reglas RLS de Supabase siguen aplicándose porque las consultas se realizan con la sesión del usuario.
+- La snapshot JSON incluida permanece únicamente como compatibilidad histórica y ya no se aplica al arrancar.
 
 ## Validación
 
