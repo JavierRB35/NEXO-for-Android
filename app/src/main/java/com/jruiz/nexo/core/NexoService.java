@@ -125,8 +125,8 @@ public class NexoService {
         RuleClassifier.Result r = AppointmentParser.parse(text);
         applyLearnedCategory(text, r);
         if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
-        r.needsReview = false;
-        r.reason = "";
+        // AppointmentParser decide si hay algo que revisar. No se borra aquí una
+        // fecha/hora inválida, ambigua, una negación o la ausencia de fecha.
         return r.toJson();
     }
 
@@ -138,11 +138,16 @@ public class NexoService {
         String learned = db.bestLearnedCategory(text);
         if (learned.isBlank()) return;
         boolean weakLocal = "Otros".equals(r.category) || r.confidence < .72;
+        boolean hardReview = r.invalidDate || r.invalidTime || r.ambiguousTime ||
+                (r.needsReview && r.reason != null &&
+                        (r.reason.contains("niega") || r.reason.contains("cancela") || r.reason.contains("Falta la fecha")));
         if (weakLocal) {
             r.category = learned;
             r.confidence = Math.max(r.confidence, .80);
-            r.needsReview = false;
-            r.reason = "Clasificación aprendida de correcciones anteriores";
+            if (!hardReview) {
+                r.needsReview = false;
+                r.reason = "Clasificación aprendida de correcciones anteriores";
+            }
         }
     }
 
@@ -157,7 +162,9 @@ public class NexoService {
             applyLearnedCategory(classificationText, auto);
             if (appointmentCapture) {
                 in.put("type", "event");
-                in.put("needsReview", false);
+                // La UI puede marcar explícitamente la propuesta como revisada al guardar,
+                // pero el servicio no debe borrar por su cuenta el estado del parser.
+                if (!in.has("needsReview")) in.put("needsReview", auto.needsReview);
                 if (!in.has("status")) in.put("status", "pending");
             }
             if (!in.has("title") || in.optString("title").isBlank()) in.put("title", auto.title);
