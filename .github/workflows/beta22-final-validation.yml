@@ -161,6 +161,52 @@ jobs:
           print('needsReview preservado: OK')
           PY
 
+      - name: Audit P3 context and voice guards
+        shell: bash
+        run: |
+          cat > /tmp/NexoP3Smoke.java <<'JAVA'
+          package com.jruiz.nexo.core;
+
+          import java.time.Instant;
+
+          public final class NexoP3Smoke {
+              static void check(boolean v,String m){if(!v)throw new AssertionError(m);}
+              public static void main(String[] args) {
+                  long captured=Instant.parse("2026-10-01T10:00:00Z").toEpochMilli();
+                  ParseContext ctx=ParseContext.at(captured);
+                  RuleClassifier.Result a=AppointmentParser.parse("Cita mañana a las 10:00",ctx);
+                  RuleClassifier.Result b=AppointmentParser.parse("Cita mañana a las 10:00",ctx);
+                  check("2026-10-02".equals(a.dueDate),"mañana desde captura fija");
+                  check(a.dueDate.equals(b.dueDate)&&a.dueTime.equals(b.dueTime),"reinterpretación estable");
+                  check(a.parseContext.capturedAtMillis==captured,"capturedAt");
+                  check(ParseContext.PARSER_VERSION.equals(a.toJson().optString("parserVersion")),"parserVersion");
+                  RecurrenceEngine.Detection r=RecurrenceEngine.detect("cada semana hasta mañana",ctx.localDateTime());
+                  check("2026-10-02".equals(r.untilDate),"límite relativo estable");
+              }
+          }
+          JAVA
+          javac -encoding UTF-8 -cp /tmp/nexo-parser-regression -d /tmp/nexo-parser-regression \
+            app/src/main/java/com/jruiz/nexo/core/AppointmentParser.java \
+            app/src/main/java/com/jruiz/nexo/core/ParseContext.java \
+            /tmp/NexoP3Smoke.java
+          java -cp /tmp/nexo-parser-regression com.jruiz.nexo.core.NexoP3Smoke
+          python3 - <<'PY'
+          from pathlib import Path
+          main=Path('app/src/main/java/com/jruiz/nexo/MainActivity.java').read_text()
+          js=Path('app/src/main/assets/app.js').read_text()
+          service=Path('app/src/main/java/com/jruiz/nexo/core/NexoService.java').read_text()
+          assert main.count('EXTRA_MAX_RESULTS, 3') >= 2
+          assert 'RecognizerIntent.EXTRA_CONFIDENCE_SCORES' in main
+          assert 'RecognizerIntent.EXTRA_BIASING_STRINGS' in main
+          assert 'speechBiasingStrings()' in main and 'db.getPeople()' in main
+          assert 'onVoiceRecognition' in main and 'speechRecognitionPayload' in main
+          assert 'showVoiceHypothesisPicker' in js and 'voiceCriticalSignature' in js
+          assert 'captureCapturedAt' in js and 'capturedAt:ensureCaptureCapturedAt()' in js
+          assert 'classifyAppointmentProposalsAt' in js
+          assert 'ParseContext.at(capturedAt' in service
+          print('P3 contexto + alternativas de voz: OK')
+          PY
+
       - name: Compile Android debug
         shell: bash
         run: |
