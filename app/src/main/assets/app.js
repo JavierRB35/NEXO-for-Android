@@ -2560,7 +2560,6 @@ function finalizeManagedDictation(){
   else if(target==='place-editor')applyPlaceEditorVoice(text);
   else if(target==='document-search'){state.documentSearch=String(text).trim();renderCollectionPanel('documents');}
   else if(target==='document-editor')applyDocumentEditorVoice(text);
-  else if(target==='search')applySearchVoice(text);
   else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);
   else if(target==='medication'){state.medicationVoiceEditor=false;if(medicationEditorVoice)applyMedicationVoiceToEditor(text);else handleMedicationVoice(text);}
 }
@@ -2882,7 +2881,6 @@ window.NexoUI={
     if(state.voiceMode==='journal'){const kind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit,combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined,kind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});return;}
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}
     if(state.voiceMode==='medication'){const editor=!!state.medicationVoiceEditor,combined=[managedBase||state.medicationVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.medicationVoiceEditor=false;if(editor)applyMedicationVoiceToEditor(combined);else handleMedicationVoice(combined);return;}
-    if(state.voiceMode==='search'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applySearchVoice(combined);return;}
     if(state.voiceMode==='search'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applySearchVoice(combined);return;}
     if(state.voiceMode==='quote-editor'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyQuoteEditorVoice(combined);return;}
     if(state.voiceMode==='place'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openPlaceEditor(0,parsePlaceVoice(combined));return;}
