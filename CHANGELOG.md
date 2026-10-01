@@ -2,13 +2,15 @@
 
 ## 3.7.0-beta22 · versionCode 87 · Motor de eventos auditado y portada simplificada
 
-- Integra el bloque P0–P2 de la auditoría del reconocimiento de eventos sobre la base beta21.
+- Integra el bloque P0–P3 de la auditoría del reconocimiento de eventos sobre la base beta21.
 - Conserva correcciones temporales, fechas/horas inválidas, avisos y duraciones compuestas sin silencios.
 - Protege las ediciones manuales por campo y respeta la zona horaria real del evento.
 - Mejora títulos, descripción, lugar, profesional, fechas documentales y reuniones virtuales.
 - Admite dos citas en un mismo dictado mediante propuestas separadas.
 - Añade recurrencias semanales por varios días con RRULE `BYDAY`.
 - Expone estado por campo (`explicit`, `inferred`, `ambiguous`, `invalid`, `missing`) y mantiene `needsReview`.
+- Fija el instante/contexto de captura para expresiones relativas y conserva la versión del parser.
+- El reconocimiento de voz solicita varias hipótesis, confianza opcional y vocabulario sesgado con datos locales para evitar sustituciones silenciosas.
 - Conserva enlaces Meet/Zoom/Teams, instrucciones breves y etiquetas orales sin dos puntos.
 - En Inicio se eliminan los rótulos verdes “Resumen familiar”, “Accesos rápidos” y “Agenda familiar”; se mantienen únicamente los títulos negros.
 - Se mantienen JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
