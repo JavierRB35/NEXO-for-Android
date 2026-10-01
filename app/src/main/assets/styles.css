@@ -1722,6 +1722,7 @@ main{max-width:720px}
 }
 .family-home-search input::placeholder{color:#9aa2b1}
 .family-home-section{margin-top:18px}
+#homeDashboardContent>.home-section--pulse{margin-top:20px}
 .family-section-heading{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:9px}
 .family-section-heading .section-kicker{
   margin:0;color:#118447;font-size:.78rem;font-weight:900;letter-spacing:.075em;text-transform:uppercase;
