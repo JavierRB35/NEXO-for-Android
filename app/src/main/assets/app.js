@@ -36,7 +36,7 @@ const PERSON_COLORS = [
 ];
 const state = {
   screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, calendarUpdateItemId:0, lastPanel:null, currentList:null,
-  userAdjusted:false, captureManualFields:new Set(), pendingSave:false, pendingSaveTimer:null, confirmAction:null,
+  userAdjusted:false, captureManualFields:new Set(), captureProposals:[], captureProposalIndex:0, activeProposalText:'', pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
@@ -64,6 +64,38 @@ function captureNeedsReview(){
   const temporalIssue=!!a.invalidDate||!!a.invalidTime||!!a.ambiguousTime||(!a.dueDate&&isAppointmentType(type));
   if(temporalIssue&&captureFieldLocked('dateTime')&&!!$('#captureDate')?.value)return false;
   return true;
+}
+function clearCaptureProposals(){
+  state.captureProposals=[];state.captureProposalIndex=0;state.activeProposalText='';
+  const el=$('#captureProposalChoices');if(el){el.innerHTML='';el.classList.add('hidden');}
+}
+function proposalMeta(p){
+  const bits=[];
+  if(p?.dueDate)bits.push(p.dueDate+(p.hasTime&&p.dueTime?` · ${p.dueTime}`:''));
+  if(p?.locationText)bits.push(p.locationText);
+  if(p?.needsReview)bits.push('Revisar');
+  return bits.join(' · ')||'Sin fecha confirmada';
+}
+function renderCaptureProposalChoices(){
+  const el=$('#captureProposalChoices');if(!el)return;
+  const proposals=Array.isArray(state.captureProposals)?state.captureProposals:[];
+  if(proposals.length<=1){el.innerHTML='';el.classList.add('hidden');return;}
+  el.classList.remove('hidden');
+  el.innerHTML=`<div class="capture-proposal-caption">He encontrado ${proposals.length} citas independientes. Revisa y guarda cada una.</div><div class="capture-proposal-list">${proposals.map((p,i)=>`<button type="button" class="capture-proposal-button ${i===state.captureProposalIndex?'active':''}" data-capture-proposal="${i}"><strong>${i+1}. ${esc(p.title||'Cita')}</strong><small>${esc(proposalMeta(p))}</small></button>`).join('')}</div>`;
+  $('[data-capture-proposal]').forEach(button=>button.addEventListener('click',()=>selectCaptureProposal(Number(button.dataset.captureProposal))));
+}
+function selectCaptureProposal(index,force=false){
+  const proposals=Array.isArray(state.captureProposals)?state.captureProposals:[];
+  if(index<0||index>=proposals.length)return;
+  if(!force&&index!==state.captureProposalIndex&&ensureCaptureManualFields().size){toast('Guarda esta propuesta o descarta sus cambios antes de abrir otra.');return;}
+  const proposal=proposals[index];
+  state.captureProposalIndex=index;
+  state.activeProposalText=String(proposal.proposalText||'').trim();
+  state.classification=proposal;
+  renderClassification(proposal,true);
+  renderCaptureProposalChoices();
+  const review=!!proposal.needsReview;
+  setInterpretationStatus(review?'review':'success',review?(proposal.reason||'Esta cita necesita una revisión.'):`Propuesta ${index+1} de ${proposals.length} preparada.`);
 }
 const parseNative = (raw,fallback) => { try { return JSON.parse(raw); } catch (_) { return fallback; } };
 const esc = s => String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
