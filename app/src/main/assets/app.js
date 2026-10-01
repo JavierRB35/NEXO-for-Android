@@ -2192,11 +2192,50 @@ function renderTasksPanel(){renderAppointmentsPanel();}
 
 function renderRemindersPanel(){renderAppointmentsPanel();}
 
-function renderHistoryPanel(){
-  const hs=parseNative(NexoNative.getHistory(),[]);
-  $('#panelContent').innerHTML=hs.length?hs.map(h=>`<div class="history-row"><div class="history-time">${fmtShort(h.createdAt)}</div><div class="history-main"><strong>${esc(h.label||h.entityType)}</strong><span class="muted">${esc(h.action)} · ${fmtTime(h.createdAt)}</span></div></div>`).join(''):'<div class="empty-state">Todavía no hay actividad.</div>';
+
+function openHistoryEntry(h){
+  const type=String(h?.entityType||''),id=Number(h?.entityId||0);
+  if(!id){toast('Esta actividad no tiene un elemento asociado.');return;}
+  if(type==='list'){
+    const row=parseNative(NexoNative.getList(id),{});
+    if(!row.id){toast('La lista asociada ya no existe.');return;}
+    openPanel('lists');setTimeout(()=>openList(id),40);return;
+  }
+  if(type==='journal'){
+    const row=parseNative(NexoNative.getJournal(id),{});
+    if(!row.id){toast('La entrada asociada ya no existe.');return;}
+    openPanel(row.kind==='quote'?'quotes':'journal');setTimeout(()=>openJournal(id),40);return;
+  }
+  if(type==='medication'){
+    const row=parseNative(NexoNative.getMedication(id),{});
+    if(!row.id){toast('El tratamiento asociado ya no existe.');return;}
+    openPanel('medications');setTimeout(()=>openMedicationComposer('',row),40);return;
+  }
+  if(type==='parking'){
+    const row=parseNative(NexoNative.getLastParking(),{});
+    if(Number(row.id)!==id){toast('Ese aparcamiento ya no está guardado.');return;}
+    openPanel('parking');return;
+  }
+  const item=parseNative(NexoNative.getItem(id),{});
+  if(!item.id){toast('El elemento asociado ya no existe.');return;}
+  if(item.type==='note'){openPanel('notes');setTimeout(()=>openNoteComposer(Number(item.id)),40);return;}
+  if(item.type==='document'){openPanel('documents');setTimeout(()=>openDocumentEditor(Number(item.id)),40);return;}
+  if(isPlaceType(item.type)){openPanel('places');setTimeout(()=>openPlaceEditor(Number(item.id)),40);return;}
+  if(isAppointmentType(item.type)||type==='recurrence'){
+    openEventInAgenda(Number(item.id),Number(item.dueAt||0),!!item.recurrence&&item.recurrence!=='none');return;
+  }
+  openItem(Number(item.id));
 }
 
+function renderHistoryPanel(){
+  const hs=parseNative(NexoNative.getHistory(),[]);
+  $('#panelTitle').textContent='Historial';
+  $('#panelSubtitle').textContent='Actividad reciente de Nexo';
+  $('#panelAction').innerHTML='';
+  $('#panelContent').innerHTML=hs.length?hs.map((h,index)=>`<button type="button" class="history-row history-row--open" data-history-index="${index}"><div class="history-time">${esc(fmtShort(h.createdAt))}</div><div class="history-main"><strong>${esc(h.label||h.entityType||'Actividad')}</strong><span class="muted">${esc(h.action)} · ${esc(fmtTime(h.createdAt))}</span></div><svg class="ui-icon history-row-arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg></button>`).join(''):'<div class="empty-state">Todavía no hay actividad.</div>';
+  $$('[data-history-index]').forEach(b=>b.addEventListener('click',()=>openHistoryEntry(hs[Number(b.dataset.historyIndex)])));
+  updateFloatingActions();
+}
 function renderListsPanel(){
   const lists=parseNative(NexoNative.getLists(),[]);
   $('#panelAction').innerHTML='';
