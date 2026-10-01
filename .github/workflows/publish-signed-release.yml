@@ -104,7 +104,7 @@ jobs:
         shell: bash
         run: sh prepare-transcription-runtime.sh
 
-      - name: Validate beta21
+      - name: Validate beta22-notes
         shell: bash
         run: |
           set -euo pipefail
@@ -124,6 +124,7 @@ jobs:
           python3 validation/test-event-people-assignment.py
           python3 validation/test-form-familia-ui.py
           python3 validation/test-branding-resources.py
+          python3 validation/test-contextual-fabs-notes.py
           python3 validation/test-transcription-integration.py
           sh validation/regression/run-benchmark.sh validation/regression/data/beta16_time_cases.tsv
 
