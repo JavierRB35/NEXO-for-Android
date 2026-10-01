@@ -540,6 +540,7 @@ function runFloatingVoice(){
     const base=$('#captureText')?.value.trim()||'';
     startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});return;
   }
+  if(state.screen==='search'){startSearchVoice();return;}
   if(state.screen==='calendar'){
     startAppointmentVoice(state.calendarSelected||isoDateLocal(new Date()));
     return;
@@ -2520,6 +2521,7 @@ function finalizeManagedDictation(){
   else if(target==='place-editor')applyPlaceEditorVoice(text);
   else if(target==='document-search'){state.documentSearch=String(text).trim();renderCollectionPanel('documents');}
   else if(target==='document-editor')applyDocumentEditorVoice(text);
+  else if(target==='search')applySearchVoice(text);
   else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);
   else if(target==='medication'){state.medicationVoiceEditor=false;if(medicationEditorVoice)applyMedicationVoiceToEditor(text);else handleMedicationVoice(text);}
 }
@@ -2842,6 +2844,7 @@ window.NexoUI={
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}
     if(state.voiceMode==='medication'){const editor=!!state.medicationVoiceEditor,combined=[managedBase||state.medicationVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.medicationVoiceEditor=false;if(editor)applyMedicationVoiceToEditor(combined);else handleMedicationVoice(combined);return;}
     if(state.voiceMode==='search'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applySearchVoice(combined);return;}
+    if(state.voiceMode==='search'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applySearchVoice(combined);return;}
     if(state.voiceMode==='quote-editor'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyQuoteEditorVoice(combined);return;}
     if(state.voiceMode==='place'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openPlaceEditor(0,parsePlaceVoice(combined));return;}
     if(state.voiceMode==='place-editor'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyPlaceEditorVoice(combined);return;}
@@ -2999,7 +3002,10 @@ function init(){
   $('#acceptReminderSuggestion').addEventListener('click',()=>{if(state.captureSuggestedAlert===null)return;setCaptureAlerts([...state.captureAlerts,state.captureSuggestedAlert],true);state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');});
   $('#voiceCaptureBtn')?.addEventListener('click',()=>startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'}));
   $('#saveCaptureBtn').addEventListener('click',saveCapture);$('#clearCaptureBtn').addEventListener('click',()=>clearCapture());$('#chooseFileBtn').addEventListener('click',()=>NexoNative.chooseFile());
-  $('#searchBtn').addEventListener('click',()=>runSearch());$('#searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});$$('.query-chips button').forEach(b=>b.addEventListener('click',()=>runSearch(b.textContent)));
+  $('#searchBtn')?.addEventListener('click',()=>runSearch());
+  $('#searchInput').addEventListener('input',e=>{clearTimeout(runSearch._inputTimer);runSearch._inputTimer=setTimeout(()=>runSearch(e.target.value),180);});
+  $('#searchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){clearTimeout(runSearch._inputTimer);runSearch();}});
+  $('.query-chips button').forEach(b=>b.addEventListener('click',()=>runSearch(b.textContent)));
   $('#todaySummaryMore')?.addEventListener('click',()=>{state.todaySummaryExpanded=!state.todaySummaryExpanded;renderTodaySummary();});
 
   $('#journalPromptOpen')?.addEventListener('click',()=>{if(state.journalPick?.id)openJournal(Number(state.journalPick.id));});
