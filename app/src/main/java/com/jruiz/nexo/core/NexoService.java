@@ -125,8 +125,6 @@ public class NexoService {
         RuleClassifier.Result r = AppointmentParser.parse(text);
         applyLearnedCategory(text, r);
         if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
-        r.needsReview = false;
-        r.reason = "";
         return r.toJson();
     }
 
@@ -139,10 +137,10 @@ public class NexoService {
         if (learned.isBlank()) return;
         boolean weakLocal = "Otros".equals(r.category) || r.confidence < .72;
         if (weakLocal) {
+            boolean reviewAlreadyRequired = r.needsReview;
             r.category = learned;
             r.confidence = Math.max(r.confidence, .80);
-            r.needsReview = false;
-            r.reason = "Clasificación aprendida de correcciones anteriores";
+            if (!reviewAlreadyRequired) r.reason = "Clasificación aprendida de correcciones anteriores";
         }
     }
 
@@ -157,7 +155,6 @@ public class NexoService {
             applyLearnedCategory(classificationText, auto);
             if (appointmentCapture) {
                 in.put("type", "event");
-                in.put("needsReview", false);
                 if (!in.has("status")) in.put("status", "pending");
             }
             if (!in.has("title") || in.optString("title").isBlank()) in.put("title", auto.title);
