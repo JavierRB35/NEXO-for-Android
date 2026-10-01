@@ -2414,7 +2414,15 @@ main{max-width:720px}
 /* Nexo beta22 · filosofía contextual consolidada */
 #homeNowTitle,
 #homeFamilyInfoTitle,
-#homeUpcomingTitle,
+#homeUpcomingTitle{
+  margin:0;
+  color:#118447;
+  font-size:.78rem;
+  font-weight:900;
+  line-height:1.2;
+  letter-spacing:.075em;
+  text-transform:uppercase;
+}
 .tool-group .section-heading h2{
   color:#3f735f;
   text-transform:uppercase;
