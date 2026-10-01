@@ -29,7 +29,9 @@ assert "requestAnimationFrame(updateFloatingActions)" in js
 assert "NexoNative.startRecording()" in js
 
 # 3. Automático/manual real.
-assert 'id="inputHubAutoScan"' in html and 'id="inputHubScanBtn"' in html
+assert 'id="inputHubAutoScan"' in html
+assert 'id="inboxScanNowBtn"' in js
+assert "NexoNative.scanInputHubNow()" in js
 assert 'autoScanEnabled' in prefs and 'setAutoScanEnabled' in prefs
 assert 'getBoolean("auto_scan_enabled", false)' in prefs
 assert 'InputHubPrefs.autoScanEnabled(context)' in sms
