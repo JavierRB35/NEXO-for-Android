@@ -34,7 +34,7 @@ assert "openMedicationComposer(text);" in app
 # Seguridad: no inventar una hora de toma y no confundir una dosis con una hora.
 assert "if(!rows.length)rows=[''];" in app
 assert "if(!rows.length)rows=['08:00'];" not in app
-assert "const m=n.match(/\\ba\\s+las?\\s+" in app
+assert "const numeric=n.match(/\\ba\\s+las?\\s+" in app
 assert "||n.match(/\\b(\\d{1,2}):(\\d{2})\\b/)" in app
 assert "const words={cero:0,una:1" in app
 
