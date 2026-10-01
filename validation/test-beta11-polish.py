@@ -19,7 +19,10 @@ assert 'data-item-card-open' in js
 
 # 2 y 7. Dos FAB y persistencia centralizada.
 assert 'id="globalVoiceFab"' in html and 'id="calendarAddFab"' in html
-assert "const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup'" in js
+assert 'function updateFloatingActions()' in js
+assert "const panel=state.screen==='panel'?state.lastPanel:''" in js
+assert "if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}" in js
+assert "if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}" in js
 assert "window.addEventListener('pageshow'" in js
 assert "document.visibilityState==='visible'" in js
 assert "requestAnimationFrame(updateFloatingActions)" in js
