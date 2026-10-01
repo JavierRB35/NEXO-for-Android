@@ -1,4 +1,4 @@
-name: Parser P0 validation
+name: Parser V2 validation
 
 on:
   pull_request:
@@ -72,11 +72,22 @@ jobs:
                   check(TemporalParser.parseSpanMinutes("una hora y media") == 90, "hora y media");
                   check(TemporalParser.parseSpanMinutes("cuarenta y cinco minutos") == 45, "45 minutos");
                   check(TemporalParser.parseSpanMinutes("una hora y cuarto") == 75, "hora y cuarto");
+
+                  TemporalParser.Result documentAfter = TemporalParser.parse(
+                      "Cita el 8 de octubre de 2026 a las 10:00. Llevar informe del 12 de septiembre de 2026", now);
+                  TemporalParser.Result documentBefore = TemporalParser.parse(
+                      "Llevar informe del 12 de septiembre de 2026. Cita el 8 de octubre de 2026 a las 10:00", now);
+                  check(LocalDate.of(2026,10,8).equals(documentAfter.date), "fecha de cita antes de documento");
+                  check(LocalDate.of(2026,10,8).equals(documentBefore.date), "fecha de documento no compite con cita");
               }
           }
           JAVA
           mkdir -p /tmp/nexo-parser-smoke
-          javac -d /tmp/nexo-parser-smoke             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java             /tmp/TemporalParserSmoke.java
+          javac -d /tmp/nexo-parser-smoke \
+            app/src/main/java/com/jruiz/nexo/core/EventInterpretation.java \
+            app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
+            app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
+            /tmp/TemporalParserSmoke.java
           java -cp /tmp/nexo-parser-smoke TemporalParserSmoke
 
       - name: Compile parser surface and smoke classifier
@@ -85,6 +96,8 @@ jobs:
           ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
           mkdir -p /tmp/nexo-parser-surface
           javac -cp "$ANDROID_JAR" -d /tmp/nexo-parser-surface \
+            app/src/main/java/com/jruiz/nexo/core/EventInterpretation.java \
+            app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
             app/src/main/java/com/jruiz/nexo/core/RecurrenceEngine.java \
             app/src/main/java/com/jruiz/nexo/core/LocationParser.java \
@@ -119,6 +132,25 @@ jobs:
 
                   RuleClassifier.Result incomplete = AppointmentParser.parse("Cita con el dentista");
                   check(incomplete.needsReview && incomplete.dueAt == 0L, "cita sin fecha debe quedar incompleta");
+
+                  RuleClassifier.Result semantic = AppointmentParser.parse(
+                      "Dentista, revisión del implante, Clínica Roble, doctora Vega el 8 de octubre de 2026 a las 19:00");
+                  check("Revisión del implante".equals(semantic.title), "R02 título por propósito");
+                  check("Clínica Roble".equals(semantic.locationText), "R02 clínica separada del profesional");
+                  check(TemporalParser.norm(semantic.professionalText).contains("doctora vega"), "R02 profesional separado");
+                  check(TemporalParser.norm(semantic.description).contains("doctora vega"), "R02 profesional conservado en detalles");
+
+                  RuleClassifier.Result concreteTitle = AppointmentParser.parse(
+                      "Cita para una revisión del implante dental el 8 de octubre de 2026 a las 10:00");
+                  check("Revisión del implante dental".equals(concreteTitle.title), "R44 título concreto");
+
+                  String docDescription = DescriptionExtractor.extract(
+                      "Cita el 8 de octubre de 2026 a las 10:00. Llevar informe del 12 de septiembre de 2026", "");
+                  check(TemporalParser.norm(docDescription).contains("informe del 12 de septiembre"), "R22 conserva fecha documental");
+
+                  String morningDocument = DescriptionExtractor.extract(
+                      "Cita mañana a las 10:00. Llevar el informe de la mañana", "");
+                  check(TemporalParser.norm(morningDocument).contains("informe de la manana"), "R48 conserva 'informe de la mañana'");
               }
           }
           JAVA
