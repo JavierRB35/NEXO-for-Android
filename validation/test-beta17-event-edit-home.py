@@ -58,10 +58,10 @@ assert "navigate(b.dataset.nav,{root:true})" in js
 assert "function openCalendar(returnScreen='today',selectedDate='')" in js and "navigate('calendar');" in js
 
 # 5. Mes abreviado: inicial mayúscula y resto minúscula.
-month_block=js[js.index('const monthRaw='):js.index('const localPeople=',js.index('const monthRaw='))]
-assert "monthRaw.toLocaleUpperCase" not in month_block
-assert ".toLocaleLowerCase('es-ES')" in month_block
-assert "monthRaw.replace(/^./" in month_block
+home_card=js[js.index('function homeUpcomingCard'):js.index('function bindHomeUpcoming',js.index('function homeUpcomingCard'))]
+assert "const monthRaw=" in home_card
+assert ".toLocaleLowerCase('es-ES')" in home_card
+assert "const month=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));" in home_card
 
 # Branding actual: cabecera + icono adaptativo Android.
 screen_logo=root/'app/src/main/assets/nexo-toolbar-logo.png'
