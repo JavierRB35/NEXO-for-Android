@@ -3036,7 +3036,6 @@ function preloadStartupHomeDashboard(){
     state.startupHomeDashboard={};
   }
   state.startupHomeReady=true;
-  maybeFinishStartupSplash();
   return state.startupHomeDashboard;
 }
 
@@ -3058,9 +3057,8 @@ function beginStartupSequence(startScreen){
   }
   if(!inboxStarted)state.startupInboxReady=true;
 
-  const dashboard=preloadStartupHomeDashboard();
+  preloadStartupHomeDashboard();
   navigate(startScreen,{root:true});
-  if(startScreen==='today')renderToday(dashboard);
   maybeFinishStartupSplash();
 }
 
