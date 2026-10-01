@@ -27,6 +27,11 @@ assert 'class="multi-time-row"><input type="time"' in app
 assert "document.querySelectorAll('#medTimesPicker input[type=\"time\"]')" in app
 assert "times=readMedTimes()" in app
 
+# Un evento nuevo debe empezar con Todo el día desactivado y horario visible.
+assert "$('#captureAllDay').checked=false" in app
+assert "$('#captureTime').value='09:00'" in app
+assert "$('#captureEndTime').value='10:00'" in app
+
 assert "/* Nexo 3.7.0-beta21 · formularios compactos y branding moderno */" in css
 assert ".event-range-grid" in css
 assert ".event-settings-grid" in css
