@@ -41,6 +41,9 @@ public final class RuleClassifier {
         public String recurrenceUntilDate = "";
         public String locationText = "";
         public String description = "";
+        public String parserVersion = "event-parser-v2";
+        public String professionalText = "";
+        public String titleEvidence = "";
         public boolean invalidDate = false;
         public boolean invalidTime = false;
         public boolean ambiguousTime = false;
@@ -55,6 +58,7 @@ public final class RuleClassifier {
                 o.put("suggestedLeadDays", suggestedLeadDays); o.put("reminderRequested", reminderRequested); o.put("voiceRequested", voiceRequested); o.put("reminderLeadMinutes", new JSONArray(reminderLeadMinutes)); o.put("reason", reason); o.put("temporalSource", temporalSource);
                 o.put("recurrence", recurrence); o.put("recurrenceUntilDate", recurrenceUntilDate); o.put("locationText", locationText); o.put("description", description);
                 o.put("invalidDate", invalidDate); o.put("invalidTime", invalidTime); o.put("ambiguousTime", ambiguousTime); o.put("warnings", new JSONArray(warnings));
+                o.put("parserVersion", parserVersion); o.put("professionalText", professionalText); o.put("titleEvidence", titleEvidence);
             } catch (Exception ignored) {}
             return o;
         }
@@ -64,6 +68,9 @@ public final class RuleClassifier {
         Result r = new Result();
         String text = raw == null ? "" : raw.trim();
         String n = norm(text);
+        EventInterpretation semantic = EventSemanticParser.parse(text);
+        r.professionalText = semantic.firstProfessional();
+        if (semantic.purpose.hasValue()) r.titleEvidence = semantic.purpose.evidence;
         r.title = "Nota rápida";
 
         boolean medicationLike = MedicationParser.looksLikeMedication(text);
