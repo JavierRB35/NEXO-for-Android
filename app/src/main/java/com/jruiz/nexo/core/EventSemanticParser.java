@@ -27,9 +27,6 @@ public final class EventSemanticParser {
     private static final String GUIDED_LABELS =
             "t[ií]tulo|ubicaci[oó]n|lugar|descripci[oó]n|detalle|detalles|fecha|hora";
 
-    private static final Pattern VIRTUAL_URL = Pattern.compile(
-            "(?iu)https?://(?:meet\\.google\\.com|(?:[a-z0-9.-]+\\.)?zoom\\.us|teams\\.microsoft\\.com|teams\\.live\\.com)/[^\\s,;]+");
-
     private static final Pattern NUMERIC_DATE = Pattern.compile(
             "(?<!\\d)\\d{1,2}\\s*[./-]\\s*\\d{1,2}(?:\\s*[./-]\\s*\\d{2,4})?(?!\\d)");
 
@@ -45,7 +42,7 @@ public final class EventSemanticParser {
         if (!guided.isBlank()) return capitalize(guided);
 
         Matcher meetingWith = Pattern.compile(
-                "(?iu)\\breuni[oó]n\\s+con\\s+([^,.;]{2,70}?)(?=\\s+(?:por|en)\\s+(?:meet|zoom|teams)\\b|\\s+https?://|[,.;]|$)")
+                "(?iu)\\breuni[oó]n\\s+con\\s+([^,.;]{2,70}?)(?=\\s+(?:por|en)\\s+(?:(?:google\\s+)?meet|zoom|(?:microsoft\\s+)?teams)\\b|\\s+https?://|[,.;]|$)")
                 .matcher(text);
         if (meetingWith.find()) {
             String value = cleanTitleCandidate(meetingWith.group(1));
@@ -90,27 +87,10 @@ public final class EventSemanticParser {
         return guidedField(raw, "descripci[oó]n|detalle|detalles");
     }
 
-    public static String virtualMeetingDetail(String raw) {
-        if (raw == null || raw.isBlank()) return "";
-        String text = compact(raw);
-        Matcher url = VIRTUAL_URL.matcher(text);
-        String provider = "";
-        String n = TemporalParser.norm(text);
-        if (n.matches(".*\\bmeet\\b.*") || (url.find() && url.group().toLowerCase().contains("meet.google.com"))) provider = "Meet";
-        else if (n.matches(".*\\bzoom\\b.*") || (url.reset().find() && url.group().toLowerCase().contains("zoom.us"))) provider = "Zoom";
-        else if (n.matches(".*\\bteams\\b.*") || (url.reset().find() && url.group().toLowerCase().contains("teams."))) provider = "Teams";
-        url.reset();
-        if (url.find()) {
-            String link = url.group().replaceAll("[.)]+$", "");
-            return (provider.isBlank() ? "Reunión virtual" : provider) + ": " + link;
-        }
-        return provider.isBlank() ? "" : "Modalidad: " + provider;
-    }
-
     public static String participant(String raw) {
         if (raw == null || raw.isBlank()) return "";
         Matcher m = Pattern.compile(
-                "(?iu)\\breuni[oó]n\\s+con\\s+(?!el\\s+(?:doctor|dr\\.)\\b|la\\s+(?:doctora|dra\\.)\\b)([^,.;]{2,60}?)(?=\\s+(?:por|en)\\s+(?:meet|zoom|teams)\\b|\\s+(?:el|la|a\\s+las?)\\b|[,.;]|$)")
+                "(?iu)\\breuni[oó]n\\s+con\\s+(?!el\\s+(?:doctor|dr\\.)\\b|la\\s+(?:doctora|dra\\.)\\b)([^,.;]{2,60}?)(?=\\s+(?:por|en)\\s+(?:(?:google\\s+)?meet|zoom|(?:microsoft\\s+)?teams)\\b|\\s+(?:el|la|a\\s+las?)\\b|[,.;]|$)")
                 .matcher(compact(raw));
         return m.find() ? cleanDetail(m.group(1)) : "";
     }
@@ -135,8 +115,9 @@ public final class EventSemanticParser {
         String participant = participant(raw);
         if (!participant.isBlank()) details.add("Participante: " + capitalize(participant));
 
-        String virtual = virtualMeetingDetail(raw);
-        if (!virtual.isBlank()) details.add(virtual);
+        VirtualMeeting virtual = virtualMeeting(raw);
+        if (!virtual.modality.isBlank()) details.add("Modalidad: " + virtual.modality);
+        if (!virtual.url.isBlank()) details.add("Enlace: " + virtual.url);
 
         String guidedDescription = guidedDescription(raw);
         if (!guidedDescription.isBlank()) details.add(capitalize(guidedDescription));
@@ -155,6 +136,61 @@ public final class EventSemanticParser {
         while (docs.find()) details.add(capitalize(cleanDetail(docs.group())));
 
         return String.join(". ", details);
+    }
+
+    public static VirtualMeeting virtualMeeting(String raw) {
+        if (raw == null || raw.isBlank()) return new VirtualMeeting("", "");
+        String text = compact(raw);
+        String n = TemporalParser.norm(text);
+
+        String url = "";
+        Matcher links = Pattern.compile("(?i)\\bhttps?://[^\\s<>]+").matcher(text);
+        while (links.find()) {
+            String candidate = trimUrlPunctuation(links.group());
+            String lower = candidate.toLowerCase();
+            if (lower.contains("teams.microsoft.com") || lower.contains("teams.live.com") ||
+                    lower.contains("zoom.us") || lower.contains("meet.google.com")) {
+                url = candidate;
+                break;
+            }
+            if (url.isBlank() && isVirtualCue(n)) url = candidate;
+        }
+
+        String modality = "";
+        String lowerUrl = url.toLowerCase();
+        if (n.matches(".*\\b(?:microsoft\\s+)?teams\\b.*") || lowerUrl.contains("teams.microsoft.com") || lowerUrl.contains("teams.live.com")) {
+            modality = "Microsoft Teams";
+        } else if (n.matches(".*\\bzoom\\b.*") || lowerUrl.contains("zoom.us")) {
+            modality = "Zoom";
+        } else if (n.matches(".*\\bgoogle\\s+meet\\b.*") || n.matches(".*\\bmeet\\b.*") || lowerUrl.contains("meet.google.com")) {
+            modality = "Google Meet";
+        } else if (isVirtualCue(n)) {
+            modality = "Online";
+        }
+
+        return new VirtualMeeting(modality, url);
+    }
+
+    private static boolean isVirtualCue(String n) {
+        return n.matches(".*\\b(?:online|virtual|videollamada|video\\s+llamada|videoconferencia|teams|zoom|google\\s+meet)\\b.*");
+    }
+
+    private static String trimUrlPunctuation(String raw) {
+        if (raw == null) return "";
+        String x = raw.trim();
+        while (!x.isEmpty() && ".,;:!?)]}".indexOf(x.charAt(x.length()-1)) >= 0) {
+            x = x.substring(0, x.length()-1);
+        }
+        return x;
+    }
+
+    public static final class VirtualMeeting {
+        public final String modality;
+        public final String url;
+        public VirtualMeeting(String modality, String url) {
+            this.modality = modality == null ? "" : modality;
+            this.url = url == null ? "" : url;
+        }
     }
 
     /**
