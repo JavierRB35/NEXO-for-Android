@@ -181,6 +181,10 @@ public final class RecurrenceEngine {
 
     /** Detección local conservadora de expresiones de periodicidad en español. */
     public static Detection detect(String raw) {
+        return detect(raw, LocalDateTime.now(ZoneId.systemDefault()));
+    }
+
+    public static Detection detect(String raw, LocalDateTime now) {
         String n = TemporalParser.norm(raw == null ? "" : raw);
         Detection d = new Detection();
 
@@ -211,7 +215,7 @@ public final class RecurrenceEngine {
             if (d.untilDate.isBlank()) {
                 Matcher tail = Pattern.compile("\\bhasta(?:\\s+el)?\\s+(.+)$").matcher(n);
                 if (tail.find()) {
-                    TemporalParser.Result end = TemporalParser.parse(tail.group(1));
+                    TemporalParser.Result end = TemporalParser.parse(tail.group(1), now);
                     if (end.hasDate) d.untilDate = end.dateIso();
                 }
             }
@@ -220,7 +224,7 @@ public final class RecurrenceEngine {
             if (d.untilDate.isBlank() && WEEKLY.equals(d.recurrence) && !mentioned.isEmpty()) {
                 Matcher range = Pattern.compile("\\bdel\\s+.+?\\s+al\\s+(.+)$").matcher(n);
                 if (range.find()) {
-                    TemporalParser.Result end = TemporalParser.parse(range.group(1));
+                    TemporalParser.Result end = TemporalParser.parse(range.group(1), now);
                     if (end.hasDate) d.untilDate = end.dateIso();
                 }
             }
