@@ -1324,7 +1324,7 @@ function resetAnalysis() {
 
 function clearCapture(keepPinned=false) {
   clearTimeout(state.pendingSaveTimer);
-  state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
+  state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); clearCaptureProposals(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
@@ -1340,6 +1340,7 @@ function saveCapture() {
 function commitCapture() {
   clearTimeout(state.pendingSaveTimer); state.pendingSave=false;
   const text=$('#captureText').value.trim();
+  const proposalText=state.activeProposalText||text;
   const date=$('#captureDate').value,allDay=!!$('#captureAllDay').checked,time=allDay?'':$('#captureTime').value;
   const endDate=$('#captureEndDate').value||date,endTime=allDay?'':$('#captureEndTime').value,zone=$('#captureTimeZone').value.trim()||'Europe/Madrid';
   const dueAt=dateTimeToMs(date,time,zone),endAt=eventEndFromFields(date,time,endDate,endTime,allDay,zone),durationMinutes=durationMinutesBetween(dueAt,endAt);
@@ -1350,7 +1351,7 @@ function commitCapture() {
   const conflicts=(date&&time)?overlappingItems(dueAt,durationMinutes):[];
   if(($('#captureType').value||state.classification?.type)==='medication'){
     $('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';
-    openMedicationComposer(text||$('#captureDescription').value.trim());
+    openMedicationComposer(proposalText||$('#captureDescription').value.trim());
     return;
   }
   const recurrence=$('#captureRecurrence').value||'none';
@@ -1358,14 +1359,14 @@ function commitCapture() {
   const recurrenceRule=!captureFieldLocked('recurrence')&&parsedRecurrenceRule&&state.classification?.recurrence===recurrence
     ?parsedRecurrenceRule:recurrenceRuleFor(recurrence);
   const payload={
-    body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
+    body:$('#captureDescription').value.trim(), originalText:proposalText, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
     category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
     dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone:zone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
     recurrence, recurrenceRule, recurrenceUntil:recurrence!=='none'?endOfDayMs($('#captureRecurrenceUntil').value,zone):0,
     reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
     needsReview:captureNeedsReview(),
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
-    inboxCaptureId:state.inboxCaptureId||0,
+    inboxCaptureId:(state.captureProposals.length>1?0:(state.inboxCaptureId||0)),
     updateItemId:state.calendarUpdateItemId||0
   };
   if(payload.recurrence!=='none'){if(!date){toast('Indica la fecha de inicio de la serie.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}if(payload.recurrenceUntil&&payload.recurrenceUntil<dueAt){toast('La fecha final debe ser posterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}}
