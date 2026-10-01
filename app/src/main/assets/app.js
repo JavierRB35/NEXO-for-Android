@@ -2299,7 +2299,8 @@ function closeModal(){
   discardDocumentDraft();
   const noteWasOpen=!!state.noteEditor;if(noteWasOpen){flushNoteAutosave();state.noteEditor=null;}
   const journalWasOpen=!!state.journalEditor;if(journalWasOpen){flushJournalAutosave();state.journalEditor=null;}
-  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','journal-editor-open');
+  const medicationWasOpen=!!state.medicationEditor;if(medicationWasOpen)state.medicationEditor=null;
+  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','journal-editor-open','medication-editor-open');
   if(noteWasOpen)refreshNotesSurface();
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
   if(state.modalReturnFocus?.isConnected)state.modalReturnFocus.focus({preventScroll:true});state.modalReturnFocus=null;
@@ -2362,6 +2363,7 @@ function applyCaptureVoiceText(text){
 function finalizeManagedDictation(){
   let text=managedVoiceFullText(true);
   const target=state.managedVoiceTarget,listId=state.managedVoiceListId,shopping=state.managedVoiceShopping,noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual;
+  const medicationEditorVoice=!!state.medicationVoiceEditor;
   const journalKind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit;
   resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;
   if(!text){toast('No he podido recoger ninguna frase. Inténtalo de nuevo.');return;}
@@ -2370,7 +2372,7 @@ function finalizeManagedDictation(){
   else if(target==='list')handleListVoice(text,listId,shopping);
   else if(target==='journal')openJournalComposer(text,journalKind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});
   else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);
-  else if(target==='medication')openMedicationComposer(text);
+  else if(target==='medication'){state.medicationVoiceEditor=false;if(medicationEditorVoice)applyMedicationVoiceToEditor(text);else handleMedicationVoice(text);}
   else{navigate('save');clearCapture();$('#captureText').value=text;analyzeCapture({immediate:true});}
 }
 function stripJournalVoicePrefix(text){return String(text||'').replace(/^\s*(?:guarda|apunta|anota)\s+(?:un\s+)?(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]?\s*/i,'').replace(/^\s*(?:pensamiento|reflexi[oó]n|frase|cita)\s*[:,-]\s*/i,'').trim();}
@@ -2672,15 +2674,15 @@ window.NexoUI={
     if(state.voiceMode==='list'){const id=state.managedVoiceListId||state.currentList,shopping=state.managedVoiceShopping,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();handleListVoice(combined,id,shopping);return;}
     if(state.voiceMode==='journal'){const kind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit,combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined,kind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});return;}
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}
-    if(state.voiceMode==='medication'){const combined=[managedBase||state.medicationVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openMedicationComposer(combined);return;}
+    if(state.voiceMode==='medication'){const editor=!!state.medicationVoiceEditor,combined=[managedBase||state.medicationVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.medicationVoiceEditor=false;if(editor)applyMedicationVoiceToEditor(combined);else handleMedicationVoice(combined);return;}
     const pinned=state.voicePinnedDate,type=state.voicePinnedType,base=state.voiceBaseText||'';navigate('save');if(pinned){state.capturePinnedDate=pinned;state.capturePinnedType=type||'';state.captureReturn='today';clearCapture(true);$('#captureDate').value=pinned;if(type)$('#captureType').value=type;refreshCaptureAlertEditor();}else if(!base) clearCapture();state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';const combined=[base,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();$('#captureText').value=combined;setInterpretationStatus('working',base?'Dictado añadido · interpretando localmente…':'Voz transcrita · interpretando localmente…');analyzeCapture({immediate:true});toast('Voz transcrita. Revisa lo que Nexo ha entendido.');},
-  onVoiceError(msg){$('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');toast(msg);},
+  onVoiceError(msg){$('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');toast(msg);},
   onManagedVoiceFallback(msg){$('#voiceOverlay').classList.add('hidden');toast(msg||'Usando el dictado estándar de Android.');},
   onManagedVoiceState(kind){if($('#voiceOverlay').classList.contains('hidden'))return;const label=kind==='processing'?'PROCESANDO UNA PAUSA…':kind==='starting'?'PREPARANDO MICRÓFONO…':'ESCUCHANDO…';$('#managedVoiceStatus').textContent=label;},
   onManagedVoicePartial(text){state.managedVoicePartial=String(text||'').trim();updateManagedVoiceTranscript();},
   onManagedVoiceSegment(text){const value=String(text||'').trim();if(value&&state.managedVoiceSegments[state.managedVoiceSegments.length-1]!==value)state.managedVoiceSegments.push(value);state.managedVoicePartial='';updateManagedVoiceTranscript();},
   onManagedVoiceStopped(){finalizeManagedDictation();},
-  onManagedVoiceError(msg){$('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;toast(msg||'No se pudo continuar el dictado.');},
+  onManagedVoiceError(msg){$('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;toast(msg||'No se pudo continuar el dictado.');},
   onSystemAlarmCreated(msg){closeModal();toast(msg||'Alarma enviada al sistema del teléfono.','',null,5000);},
   onSystemAlarmError(msg){if($('#alarmCreate')){$('#alarmCreate').disabled=false;$('#alarmCreate').textContent='Intentar de nuevo';}toast(msg||'No se pudo crear la alarma.','',null,6000);},
   onNexoFamiliaLinked(raw){
