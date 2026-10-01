@@ -1501,17 +1501,17 @@ function refreshCaptureAlertEditor(){
 function renderClassification(a, fillForm=true) {
   state.classification=a;
   const pinned=String(state.capturePinnedType||'');
-  const inferredType=pinned||a.type||'note';
+  const inferredType=pinned||a.type||'note',appointment=isAppointmentType(inferredType);
   $('#classificationPreview').classList.toggle('hidden',!!pinned&&isAppointmentType(pinned));
   $('#previewType').textContent=typeLabel(inferredType);
   $('#previewTitle').textContent=a.title||'Nota rápida';
   $('#previewCategory').textContent=a.category||'Otros';
-  $('#previewLocation').textContent=a.locationText?`📍 ${a.locationText}`:'';
-  $('#previewLocation').classList.toggle('hidden',!a.locationText);
+  $('#previewLocation').textContent=appointment&&a.locationText?`📍 ${a.locationText}`:'';
+  $('#previewLocation').classList.toggle('hidden',!appointment||!a.locationText);
   $('#previewDescription').textContent=a.description?`DESCRIPCIÓN: ${a.description}`:'';
   $('#previewDescription').classList.toggle('hidden',!a.description);
-  $('#previewDate').textContent=a.dueDate?displayAnalysisDate(a):(state.capturePinnedDate?fmtDate(dateTimeToMs(state.capturePinnedDate,''),false):'Sin fecha');
-  $('#previewRecurrence').textContent=a.recurrence&&a.recurrence!=='none'?`↻ ${recurrenceLabel(a.recurrence)}`:'';
+  $('#previewDate').textContent=appointment?(a.dueDate?displayAnalysisDate(a):(state.capturePinnedDate?fmtDate(dateTimeToMs(state.capturePinnedDate,''),false):'Sin fecha')):'';
+  $('#previewRecurrence').textContent=appointment&&a.recurrence&&a.recurrence!=='none'?`↻ ${recurrenceLabel(a.recurrence)}`:'';
   $('#previewReason').textContent=a.reason||'';
 
   if(fillForm){
@@ -1519,7 +1519,7 @@ function renderClassification(a, fillForm=true) {
     if(!captureFieldLocked('category'))$('#captureCategory').value=CATEGORIES.includes(categoryLabel(a.category))?categoryLabel(a.category):'Otros';
     if(!captureFieldLocked('type'))$('#captureType').value=inferredType;
 
-    if(!captureFieldLocked('dateTime')){
+    if(appointment&&!captureFieldLocked('dateTime')){
       $('#captureDate').value=a.dueDate||state.capturePinnedDate||'';
       $('#captureEndDate').value=a.dueEndDate||a.dueDate||state.capturePinnedDate||'';
       $('#captureAllDay').checked=!a.hasTime;
@@ -1528,13 +1528,13 @@ function renderClassification(a, fillForm=true) {
       syncCaptureAllDay(false);
     }
 
-    if(!captureFieldLocked('location'))$('#captureLocation').value=a.locationText||'';
-    if(!captureFieldLocked('mapsUrl'))$('#captureMapsUrl').value=a.mapsUrl||'';
-    if(!captureFieldLocked('timeZone'))$('#captureTimeZone').value=a.timeZone||'Europe/Madrid';
+    if(appointment&&!captureFieldLocked('location'))$('#captureLocation').value=a.locationText||'';
+    if(appointment&&!captureFieldLocked('mapsUrl'))$('#captureMapsUrl').value=a.mapsUrl||'';
+    if(appointment&&!captureFieldLocked('timeZone'))$('#captureTimeZone').value=a.timeZone||'Europe/Madrid';
     if(!captureFieldLocked('description'))$('#captureDescription').value=a.description||'';
-    if(!captureFieldLocked('priority'))$('#capturePriority').value=String(a.priority||1);
+    if(appointment&&!captureFieldLocked('priority'))$('#capturePriority').value=String(a.priority||1);
 
-    if(!captureFieldLocked('recurrence')){
+    if(appointment&&!captureFieldLocked('recurrence')){
       const recurrence=(a.recurrence&&RECURRENCE_LABEL[a.recurrence])?a.recurrence:'none';
       $('#captureRecurrence').value=recurrence;
       if(recurrence!=='none'){
@@ -1546,7 +1546,7 @@ function renderClassification(a, fillForm=true) {
       }
     }
 
-    if(!captureFieldLocked('alerts')){
+    if(appointment&&!captureFieldLocked('alerts')){
       if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=!!a.voiceRequested;
       const parsedLeads=normalizeAlertMinutes(Array.isArray(a.reminderLeadMinutes)?a.reminderLeadMinutes:[]);
       const explicitReminder=!!a.reminderRequested || !!a.voiceRequested || a.type==='reminder';
@@ -1563,7 +1563,8 @@ function renderClassification(a, fillForm=true) {
   }
 
   refreshCaptureAlertEditor();
-  const showSuggestion=state.captureSuggestedAlert!==null && !!$('#captureDate').value && !state.captureAlerts.includes(state.captureSuggestedAlert);
+  if(!appointment){state.captureAlerts=[];state.captureSuggestedAlert=null;if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=false;}
+  const showSuggestion=appointment&&state.captureSuggestedAlert!==null && !!$('#captureDate').value && !state.captureAlerts.includes(state.captureSuggestedAlert);
   $('#reminderSuggestion').classList.toggle('hidden',!showSuggestion);
   if(showSuggestion)$('#reminderSuggestionText').textContent=`${humanLeadMinutes(state.captureSuggestedAlert)} · ${a.dueDate?displayAnalysisDate(a):fmtDate(dateTimeToMs($('#captureDate').value,''),false)}`;
 }
@@ -1596,28 +1597,37 @@ function saveCapture() {
 function commitCapture() {
   clearTimeout(state.pendingSaveTimer); state.pendingSave=false;
   const text=$('#captureText').value.trim();
-  const date=$('#captureDate').value,allDay=!!$('#captureAllDay').checked,time=allDay?'':$('#captureTime').value;
-  const endDate=$('#captureEndDate').value||date,endTime=allDay?'':$('#captureEndTime').value;
-  const timeZone=$('#captureTimeZone').value.trim()||'Europe/Madrid';
-  const dueAt=date?dateTimeToMsInZone(date,time,timeZone):0;
-  const endAt=eventEndFromFields(date,time,endDate,endTime,allDay,timeZone),durationMinutes=durationMinutesBetween(dueAt,endAt);
-  if(date&&!dueAt){toast('La fecha u hora no es válida en la zona horaria seleccionada.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
-  if(date&&endDate&&endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
-  if(dueAt&&endAt&&endAt<dueAt){toast('El final del evento no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
-  const alerts=normalizeAlertMinutes(state.captureAlerts);
-  if(alerts.length&&!date){toast('Los avisos necesitan una fecha.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
-  const conflicts=(date&&time)?overlappingItems(dueAt,durationMinutes):[];
-  if(($('#captureType').value||state.classification?.type)==='medication'){
-    $('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';
+  const type=captureReviewType(),appointment=isAppointmentType(type);
+  if(type==='medication'){
+    $('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Revisar pauta';
     openMedicationComposer(text||$('#captureDescription').value.trim());
     return;
   }
+
+  const timeZone=$('#captureTimeZone').value.trim()||'Europe/Madrid';
+  const date=appointment?$('#captureDate').value:'';
+  const allDay=appointment&&!!$('#captureAllDay').checked;
+  const time=appointment&&!allDay?$('#captureTime').value:'';
+  const endDate=appointment?($('#captureEndDate').value||date):'';
+  const endTime=appointment&&!allDay?$('#captureEndTime').value:'';
+  const dueAt=date?dateTimeToMsInZone(date,time,timeZone):0;
+  const endAt=appointment?eventEndFromFields(date,time,endDate,endTime,allDay,timeZone):0;
+  const durationMinutes=appointment?durationMinutesBetween(dueAt,endAt):0;
+  if(appointment&&date&&!dueAt){toast('La fecha u hora no es válida en la zona horaria seleccionada.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
+  if(appointment&&date&&endDate&&endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
+  if(appointment&&dueAt&&endAt&&endAt<dueAt){toast('El final del evento no puede ser anterior al inicio.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
+  const alerts=appointment?normalizeAlertMinutes(state.captureAlerts):[];
+  if(appointment&&alerts.length&&!date){toast('Los avisos necesitan una fecha.');$('#saveCaptureBtn').disabled=false;$('#saveCaptureBtn').textContent='Guardar en Nexo';return;}
+  const conflicts=appointment&&date&&time?overlappingItems(dueAt,durationMinutes):[];
+  const recurrence=appointment?($('#captureRecurrence').value||'none'):'none';
   const payload={
-    body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||'Cita',
-    category:$('#captureCategory').value||'Otro', type:$('#captureType').value||'event', appointmentCapture:isAppointmentType($('#captureType').value||'event'),
-    dueAt, endAt, hasTime:!!(date&&time&&!allDay), allDay, durationMinutes, locationText:$('#captureLocation').value.trim(), mapsUrl:$('#captureMapsUrl').value.trim(), timeZone, priority:Number($('#capturePriority').value||1), participantIds:normalizeParticipantIds(state.captureParticipantIds),
-    recurrence:$('#captureRecurrence').value||'none', recurrenceRule:recurrenceRuleFor($('#captureRecurrence').value||'none'), recurrenceUntil:$('#captureRecurrence').value!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
-    reminderLeadMinutes:alerts, voiceEnabled:!!$('#captureVoiceEnabled')?.checked,
+    body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||typeLabel(type),
+    category:$('#captureCategory').value||'Otro', type, appointmentCapture:appointment,
+    dueAt, endAt, hasTime:!!(appointment&&date&&time&&!allDay), allDay:!!allDay, durationMinutes,
+    locationText:appointment?$('#captureLocation').value.trim():'', mapsUrl:appointment?$('#captureMapsUrl').value.trim():'', timeZone,
+    priority:appointment?Number($('#capturePriority').value||1):1, participantIds:appointment?normalizeParticipantIds(state.captureParticipantIds):[],
+    recurrence, recurrenceRule:recurrenceRuleFor(recurrence), recurrenceUntil:appointment&&recurrence!=='none'?endOfDayMsInZone($('#captureRecurrenceUntil').value,timeZone):0,
+    reminderLeadMinutes:alerts, voiceEnabled:appointment&&!!$('#captureVoiceEnabled')?.checked,
     needsReview:false,
     source:state.inboxCaptureId?(state.inboxCaptureOriginal?.source||'android-share'):'manual',
     inboxCaptureId:state.inboxCaptureId||0,
