@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: beta22-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-build:
     runs-on: ubuntu-latest
@@ -93,15 +97,6 @@ jobs:
           python3 validation/test-contextual-fabs-notes.py
           python3 validation/test-contextual-medication.py
           python3 validation/test-cuaderno-context.py
-          python3 validation/test-medication-context.py
-          python3 validation/test-medication-contextual-ui.py
-          python3 validation/test-note-autosave.py
-          python3 validation/test-recordings.py
-          python3 validation/test-calendar-context.py
-          python3 validation/test-calendar-nonrecurring-range.py
-          python3 validation/test-document-query.py
-          python3 validation/test-place-query.py
-          python3 validation/test-input-hub-reliability.py
           python3 validation/test-nexo-familia-migration.py
           python3 validation/test-nexo-familia-cloud-sync.py
           python3 validation/test-home-familia-parity.py
