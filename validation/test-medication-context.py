@@ -12,9 +12,8 @@ assert "id=\"medPanelAdd\"" not in app
 assert "med-module-note--compact" in app
 
 # FAB + y micrófono son contextuales.
-assert "medicationsContext=state.screen==='panel'&&state.lastPanel==='medications'" in app
-assert "medicationsContext?'Nuevo medicamento':'Añadir evento'" in app
-assert "medicationsContext?'Hablar con Medicación':'Hablar con Nexo'" in app
+assert "panel==='medications'?'Nuevo medicamento':" in app
+assert "panel==='medications'?'Hablar con Medicación':" in app
 assert "if(state.screen==='panel'&&state.lastPanel==='medications'){openMedicationComposer();return;}" in app
 assert "if(state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'){startMedicationEditorVoice();return;}" in app
 
