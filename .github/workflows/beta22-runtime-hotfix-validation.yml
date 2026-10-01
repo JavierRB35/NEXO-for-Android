@@ -38,6 +38,9 @@ jobs:
       - name: Home performance guard
         run: python3 validation/test-home-runtime-performance.py
 
+      - name: Home heading hierarchy
+        run: python3 validation/test-home-section-headings.py
+
       - name: Contextual beta22 regressions
         shell: bash
         run: |
