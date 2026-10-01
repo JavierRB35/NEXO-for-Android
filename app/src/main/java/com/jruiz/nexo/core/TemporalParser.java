@@ -86,16 +86,19 @@ public final class TemporalParser {
         parseExplicitTime(correctedTimeScope(n), out);
         parseExplicitEndTime(n, out);
         parseExplicitDuration(n, out);
+        // Las fechas de documentos (p. ej. "informe del 12 de septiembre") no
+        // compiten con la fecha del evento cuando el dictado contiene varias fechas.
+        String dateN = EventSemanticParser.preferredDateText(raw);
         if (out.explicitDurationMinutes > 0 && out.hasTime && out.time != null && !out.hasEndTime) {
             out.endTime = out.time.plusMinutes(out.explicitDurationMinutes);
             out.hasEndTime = true;
             out.endTimeSource = "duración explícita";
         }
 
-        Matcher numeric = Pattern.compile("(?<!\\d)(\\d{1,2})\\s*[./-]\\s*(\\d{1,2})(?:\\s*[./-]\\s*(\\d{2,4}))?(?!\\d)").matcher(n);
+        Matcher numeric = Pattern.compile("(?<!\\d)(\\d{1,2})\\s*[./-]\\s*(\\d{1,2})(?:\\s*[./-]\\s*(\\d{2,4}))?(?!\\d)").matcher(dateN);
         while (numeric.find() && !out.hasDate && !out.invalidDate) {
             String token = numeric.group(0);
-            String prefix = n.substring(Math.max(0, numeric.start()-14), numeric.start());
+            String prefix = dateN.substring(Math.max(0, numeric.start()-14), numeric.start());
             if (token.contains(".") && numeric.group(3) == null &&
                     (prefix.matches(".*\\ba\\s+las?\\s*$") || prefix.matches(".*\\bhora\\s*$"))) continue;
             try {
@@ -112,23 +115,23 @@ public final class TemporalParser {
             }
         }
 
-        if (!out.hasDate && !out.invalidDate) parseMonthWords(n, today, out);
-        if (!out.hasDate && !out.invalidDate) parseWeekday(n, today, out);
+        if (!out.hasDate && !out.invalidDate) parseMonthWords(dateN, today, out);
+        if (!out.hasDate && !out.invalidDate) parseWeekday(dateN, today, out);
 
-        if (!out.hasDate && !out.invalidDate && n.contains("pasado manana")) {
+        if (!out.hasDate && !out.invalidDate && dateN.contains("pasado manana")) {
             out.date = today.plusDays(2); out.hasDate = true; out.dateSource = "pasado mañana";
         }
-        if (!out.hasDate && !out.invalidDate && Pattern.compile("\\besta\\s+(?:manana|tarde|noche|madrugada)\\b").matcher(n).find()) {
+        if (!out.hasDate && !out.invalidDate && Pattern.compile("\\besta\\s+(?:manana|tarde|noche|madrugada)\\b").matcher(dateN).find()) {
             out.date = today; out.hasDate = true; out.dateSource = "esta franja del día";
         }
-        if (!out.hasDate && !out.invalidDate && Pattern.compile("\\bhoy\\b").matcher(n).find()) {
+        if (!out.hasDate && !out.invalidDate && Pattern.compile("\\bhoy\\b").matcher(dateN).find()) {
             out.date = today; out.hasDate = true; out.dateSource = "hoy";
         }
-        if (!out.hasDate && !out.invalidDate && containsTomorrowReference(n)) {
+        if (!out.hasDate && !out.invalidDate && containsTomorrowReference(dateN)) {
             out.date = today.plusDays(1); out.hasDate = true; out.dateSource = "mañana";
         }
 
-        if (!out.hasDate && !out.invalidDate) parseRelativeAmount(n, today, out);
+        if (!out.hasDate && !out.invalidDate) parseRelativeAmount(dateN, today, out);
 
         if (!out.hasDate && !out.invalidDate && !out.invalidTime && out.hasTime && out.time != null) {
             LocalDate candidate = today;
