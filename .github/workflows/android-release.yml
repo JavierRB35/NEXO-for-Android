@@ -102,7 +102,23 @@ jobs:
           KEYSTORE="${RUNNER_TEMP}/nexo-release.p12"
           printf '%s' "${NEXO_KEYSTORE_BASE64}" | base64 --decode > "${KEYSTORE}"
           chmod 600 "${KEYSTORE}"
-          keytool -list             -keystore "${KEYSTORE}"             -storetype PKCS12             -storepass "${NEXO_STORE_PASSWORD}"             -alias nexo-release >/dev/null
+          keytool -list \
+            -keystore "${KEYSTORE}" \
+            -storetype PKCS12 \
+            -storepass "${NEXO_STORE_PASSWORD}" \
+            -alias nexo-release >/dev/null
+
+          EXPECTED_CERT_SHA256="595799E351233418F05BC5053E42B3AFF439D677FFBB0F59A1D92E29D15FEC48"
+          ACTUAL_CERT_SHA256="$(keytool -exportcert \
+            -keystore "${KEYSTORE}" \
+            -storetype PKCS12 \
+            -storepass "${NEXO_STORE_PASSWORD}" \
+            -alias nexo-release \
+            -rfc | openssl x509 -noout -fingerprint -sha256 | sed 's/.*=//' | tr -d ':\\r\\n' | tr '[:lower:]' '[:upper:]')"
+          if [ "${ACTUAL_CERT_SHA256}" != "${EXPECTED_CERT_SHA256}" ]; then
+            echo "ERROR: la clave cargada no corresponde a la identidad Release permanente de Nexo."
+            exit 1
+          fi
           echo "Firma Release permanente verificada."
 
       - name: Prepare transcription runtime
