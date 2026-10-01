@@ -2496,6 +2496,19 @@ window.NexoUI={
     if(result.error)showDocumentError(result.error);
   },
   onDocumentActionResult(message){toast(message||'No se pudo completar la acción.', '',null,5500);},
+  onVoiceRecognition(raw){
+    const result=parseNative(raw,{}),mode=state.voiceMode;
+    const hypotheses=Array.isArray(result.hypotheses)?result.hypotheses:[];
+    const primary=String(result.primary||hypotheses[0]?.text||'').trim();
+    if(!primary){this.onVoiceError('No he podido entender el audio. Prueba de nuevo.');return;}
+    const base=mode==='capture'?String(state.voiceBaseText||'').trim():'';
+    const expanded=hypotheses.map(h=>({
+      text:[base,String(h?.text||'').trim()].filter(Boolean).join(' ').replace(/\s+/g,' ').trim(),
+      confidence:h?.confidence
+    })).filter(h=>h.text);
+    this.onVoiceTranscribed(primary);
+    if(mode==='capture'&&expanded.length>1)setTimeout(()=>showVoiceHypothesisPicker(expanded),120);
+  },
   onVoiceTranscribed(text){
     const spoken=String(text||'').trim(),managedBase=managedVoiceFullText(true);
     $('#voiceOverlay').classList.add('hidden');
