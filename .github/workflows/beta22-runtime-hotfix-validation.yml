@@ -41,6 +41,9 @@ jobs:
       - name: Home heading hierarchy
         run: python3 validation/test-home-section-headings.py
 
+      - name: Startup splash
+        run: python3 validation/test-startup-splash.py
+
       - name: Contextual beta22 regressions
         shell: bash
         run: |
