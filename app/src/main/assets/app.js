@@ -36,7 +36,7 @@ const PERSON_COLORS = [
 ];
 const state = {
   screen:'today', classification:null, attachment:null, inboxCaptureId:0, inboxCaptureOriginal:null, calendarUpdateItemId:0, lastPanel:null, currentList:null,
-  userAdjusted:false, pendingSave:false, pendingSaveTimer:null, confirmAction:null,
+  userAdjusted:false, captureManualFields:new Set(), pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
@@ -53,6 +53,10 @@ const state = {
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
+function ensureCaptureManualFields(){if(!(state.captureManualFields instanceof Set))state.captureManualFields=new Set();return state.captureManualFields;}
+function markCaptureManual(...fields){const set=ensureCaptureManualFields();fields.filter(Boolean).forEach(f=>set.add(f));state.userAdjusted=set.size>0;}
+function captureFieldLocked(field){return ensureCaptureManualFields().has(field);}
+function resetCaptureManualFields(){state.captureManualFields=new Set();state.userAdjusted=false;}
 const parseNative = (raw,fallback) => { try { return JSON.parse(raw); } catch (_) { return fallback; } };
 const esc = s => String(s ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const escAttr = s => esc(s).replace(/`/g,'&#96;');
@@ -1120,15 +1124,17 @@ function startVoiceCapture(pinnedDate='',pinnedType='') { state.voiceMode='captu
 
 function analyzeCapture(options={}) {
   const text=$('#captureText').value.trim();
-  state.userAdjusted=false;
   if(!text){ resetAnalysis(); return; }
   const pinned=String(state.capturePinnedType||'');
   const appointment=!!pinned&&isAppointmentType(pinned);
   const local=parseNative(appointment?NexoNative.classifyAppointment(text):NexoNative.classify(text),{});
-  if(appointment){local.type='event';local.needsReview=false;local.reason='';}
+  if(appointment)local.type='event';
   state.classification=local;
   renderClassification(local,true);
-  setInterpretationStatus('success',appointment?'Datos extraídos. Revisa la cita.':'Nexo ha clasificado lo que has dicho. Revisa la propuesta.');
+  const review=!!local.needsReview;
+  const message=review?(local.reason||'Hay un dato que conviene revisar.'):
+    (appointment?'Datos extraídos. Revisa la cita.':'Nexo ha clasificado lo que has dicho. Revisa la propuesta.');
+  setInterpretationStatus(review?'review':'success',message);
 }
 
 function setInterpretationStatus(kind,text) {
@@ -1140,7 +1146,7 @@ function updatePreviewAlerts(){
   el.classList.toggle('hidden',!vals.length&&!voice);el.textContent=(vals.length?`🔔 ${vals.map(humanLeadMinutes).join(' · ')}`:'')+(voice?`${vals.length?' · ':''}🔊 VOZ`: '');
 }
 function setCaptureAlerts(values,userChange=false){
-  state.captureAlerts=normalizeAlertMinutes(values);if(userChange)state.userAdjusted=true;refreshCaptureAlertEditor();
+  state.captureAlerts=normalizeAlertMinutes(values);if(userChange)markCaptureManual('alerts');refreshCaptureAlertEditor();
 }
 function refreshCaptureAlertEditor(){
   updateCaptureContext();
@@ -1168,43 +1174,51 @@ function renderClassification(a, fillForm=true) {
   $('#previewRecurrence').textContent=a.recurrence&&a.recurrence!=='none'?`↻ ${recurrenceLabel(a.recurrence)}`:'';
   $('#previewReason').textContent=a.reason||'';
 
-  if(fillForm && !state.userAdjusted){
-    $('#captureTitle').value=a.title||'';
-    $('#captureCategory').value=CATEGORIES.includes(categoryLabel(a.category))?categoryLabel(a.category):'Otros';
-    $('#captureType').value=inferredType;
-    // La fecha/hora interpretadas se escriben realmente en los controles.
-    $('#captureDate').value=a.dueDate||state.capturePinnedDate||'';
-    $('#captureEndDate').value=a.dueEndDate||a.dueDate||state.capturePinnedDate||'';
-    $('#captureAllDay').checked=!a.hasTime;
-    $('#captureTime').value=a.hasTime?(a.dueTime||''):'';
-    $('#captureEndTime').value=a.hasTime?(a.dueEndTime||''):'';
-    $('#captureLocation').value=a.locationText||'';
-    $('#captureMapsUrl').value=a.mapsUrl||'';
-    $('#captureTimeZone').value=a.timeZone||'Europe/Madrid';
-    $('#captureDescription').value=a.description||'';
-    $('#capturePriority').value=String(a.priority||1);
-    syncCaptureAllDay(false);
-    const recurrence=(a.recurrence&&RECURRENCE_LABEL[a.recurrence])?a.recurrence:'none';
-    $('#captureRecurrence').value=recurrence;
-    if(recurrence!=='none'){
-      $('#captureRecurrenceUntilLabel').classList.remove('hidden');
-      $('#captureRecurrenceUntil').value=a.recurrenceUntilDate||'';
-    }else{
-      $('#captureRecurrenceUntilLabel').classList.add('hidden');
-      $('#captureRecurrenceUntil').value='';
+  if(fillForm){
+    if(!captureFieldLocked('title'))$('#captureTitle').value=a.title||'';
+    if(!captureFieldLocked('category'))$('#captureCategory').value=CATEGORIES.includes(categoryLabel(a.category))?categoryLabel(a.category):'Otros';
+    if(!captureFieldLocked('type'))$('#captureType').value=inferredType;
+
+    if(!captureFieldLocked('dateTime')){
+      $('#captureDate').value=a.dueDate||state.capturePinnedDate||'';
+      $('#captureEndDate').value=a.dueEndDate||a.dueDate||state.capturePinnedDate||'';
+      $('#captureAllDay').checked=!a.hasTime;
+      $('#captureTime').value=a.hasTime?(a.dueTime||''):'';
+      $('#captureEndTime').value=a.hasTime?(a.dueEndTime||''):'';
+      syncCaptureAllDay(false);
     }
 
-    if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=!!a.voiceRequested;
-    const parsedLeads=normalizeAlertMinutes(Array.isArray(a.reminderLeadMinutes)?a.reminderLeadMinutes:[]);
-    const explicitReminder=!!a.reminderRequested || !!a.voiceRequested || a.type==='reminder';
-    if($('#captureDate').value && explicitReminder){
-      state.captureAlerts=parsedLeads.length?parsedLeads:[Math.max(0,Number(a.suggestedLeadDays)||0)*1440];
-      state.captureSuggestedAlert=null;
-    }else if($('#captureDate').value && a.type==='expiry'){
-      state.captureAlerts=[];
-      state.captureSuggestedAlert=parsedLeads[0] ?? (Math.max(0,Number(a.suggestedLeadDays)||30)*1440);
-    }else{
-      state.captureAlerts=[];state.captureSuggestedAlert=null;
+    if(!captureFieldLocked('location'))$('#captureLocation').value=a.locationText||'';
+    if(!captureFieldLocked('mapsUrl'))$('#captureMapsUrl').value=a.mapsUrl||'';
+    if(!captureFieldLocked('timeZone'))$('#captureTimeZone').value=a.timeZone||'Europe/Madrid';
+    if(!captureFieldLocked('description'))$('#captureDescription').value=a.description||'';
+    if(!captureFieldLocked('priority'))$('#capturePriority').value=String(a.priority||1);
+
+    if(!captureFieldLocked('recurrence')){
+      const recurrence=(a.recurrence&&RECURRENCE_LABEL[a.recurrence])?a.recurrence:'none';
+      $('#captureRecurrence').value=recurrence;
+      if(recurrence!=='none'){
+        $('#captureRecurrenceUntilLabel').classList.remove('hidden');
+        $('#captureRecurrenceUntil').value=a.recurrenceUntilDate||'';
+      }else{
+        $('#captureRecurrenceUntilLabel').classList.add('hidden');
+        $('#captureRecurrenceUntil').value='';
+      }
+    }
+
+    if(!captureFieldLocked('alerts')){
+      if($('#captureVoiceEnabled'))$('#captureVoiceEnabled').checked=!!a.voiceRequested;
+      const parsedLeads=normalizeAlertMinutes(Array.isArray(a.reminderLeadMinutes)?a.reminderLeadMinutes:[]);
+      const explicitReminder=!!a.reminderRequested || !!a.voiceRequested || a.type==='reminder';
+      if($('#captureDate').value && explicitReminder){
+        state.captureAlerts=parsedLeads.length?parsedLeads:[Math.max(0,Number(a.suggestedLeadDays)||0)*1440];
+        state.captureSuggestedAlert=null;
+      }else if($('#captureDate').value && a.type==='expiry'){
+        state.captureAlerts=[];
+        state.captureSuggestedAlert=parsedLeads[0] ?? (Math.max(0,Number(a.suggestedLeadDays)||30)*1440);
+      }else{
+        state.captureAlerts=[];state.captureSuggestedAlert=null;
+      }
     }
   }
 
@@ -1226,7 +1240,7 @@ function resetAnalysis() {
 
 function clearCapture(keepPinned=false) {
   clearTimeout(state.pendingSaveTimer);
-  state.pendingSave=false; state.attachment=null; state.userAdjusted=false; state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
+  state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
@@ -1423,7 +1437,7 @@ function renderPersonAssignment(hostId,selectedIds,onChange){
   }));
 }
 function renderCapturePeopleAssignment(){
-  renderPersonAssignment('capturePeopleChips',state.captureParticipantIds,ids=>{state.captureParticipantIds=ids;state.userAdjusted=true;});
+  renderPersonAssignment('capturePeopleChips',state.captureParticipantIds,ids=>{state.captureParticipantIds=ids;markCaptureManual('participants');});
 }
 function renderPeopleSettings(){
   const host=$('#peopleSettingsList');if(!host)return;
@@ -2463,17 +2477,22 @@ function init(){
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
   $('#searchFilter').addEventListener('change',()=>runSearch());
   $('#captureText').addEventListener('input',()=>analyzeCapture());
-  bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview',()=>{state.userAdjusted=true;});
-  ['captureTitle','captureDescription','captureCategory','captureTime','captureEndTime','captureLocation','capturePriority','captureRecurrence','captureRecurrenceUntil'].forEach(id=>$('#'+id).addEventListener('change',()=>{state.userAdjusted=true;}));
-  $('#captureType').addEventListener('change',()=>{state.userAdjusted=true;refreshCaptureAlertEditor();});
-  $('#captureVoiceEnabled').addEventListener('change',()=>{state.userAdjusted=true;if($('#captureVoiceEnabled').checked&&!state.captureAlerts.length&&$('#captureDate').value)setCaptureAlerts([0],true);else refreshCaptureAlertEditor();});
-  $('#captureDate').addEventListener('change',()=>{state.userAdjusted=true;if(!$('#captureDate').value){state.captureAlerts=[];state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');}refreshCaptureAlertEditor();});
-  $('#captureTitle').addEventListener('input',()=>{state.userAdjusted=true;});$('#captureDescription').addEventListener('input',()=>{state.userAdjusted=true;});$('#captureMapsUrl').addEventListener('input',()=>{state.userAdjusted=true;});
-  $('#captureDate').addEventListener('change',()=>{const start=$('#captureDate').value;if(start&&(!$('#captureEndDate').value||$('#captureEndDate').value<start))$('#captureEndDate').value=start;refreshCaptureAlertEditor();});
-  $('#captureEndDate').addEventListener('change',()=>{state.userAdjusted=true;});
+  bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview',()=>markCaptureManual('location','mapsUrl'));
+  const captureFieldMap={
+    captureTitle:'title',captureDescription:'description',captureCategory:'category',captureLocation:'location',
+    capturePriority:'priority',captureRecurrence:'recurrence',captureRecurrenceUntil:'recurrence'
+  };
+  Object.entries(captureFieldMap).forEach(([id,field])=>$('#'+id).addEventListener('change',()=>markCaptureManual(field)));
+  $('#captureType').addEventListener('change',()=>{markCaptureManual('type');refreshCaptureAlertEditor();});
+  $('#captureVoiceEnabled').addEventListener('change',()=>{markCaptureManual('alerts');if($('#captureVoiceEnabled').checked&&!state.captureAlerts.length&&$('#captureDate').value)setCaptureAlerts([0],true);else refreshCaptureAlertEditor();});
+  $('#captureDate').addEventListener('change',()=>{markCaptureManual('dateTime');if(!$('#captureDate').value){state.captureAlerts=[];state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');}const start=$('#captureDate').value;if(start&&(!$('#captureEndDate').value||$('#captureEndDate').value<start))$('#captureEndDate').value=start;refreshCaptureAlertEditor();});
+  $('#captureTitle').addEventListener('input',()=>markCaptureManual('title'));
+  $('#captureDescription').addEventListener('input',()=>markCaptureManual('description'));
+  $('#captureMapsUrl').addEventListener('input',()=>markCaptureManual('mapsUrl'));
+  $('#captureEndDate').addEventListener('change',()=>markCaptureManual('dateTime'));
   $('#captureAllDay').addEventListener('change',()=>syncCaptureAllDay(true));
-  $('#captureTime').addEventListener('change',()=>{if($('#captureTime').value&&!$('#captureEndTime').value)$('#captureEndTime').value=addOneHourTime($('#captureTime').value);state.userAdjusted=true;});
-  $('#captureEndTime').addEventListener('change',()=>{state.userAdjusted=true;});
+  $('#captureTime').addEventListener('change',()=>{if($('#captureTime').value&&!$('#captureEndTime').value)$('#captureEndTime').value=addOneHourTime($('#captureTime').value);markCaptureManual('dateTime');});
+  $('#captureEndTime').addEventListener('change',()=>markCaptureManual('dateTime'));
   $('#addCaptureAlert').addEventListener('click',()=>openAddAlertOverlay(v=>setCaptureAlerts([...state.captureAlerts,v],true)));
   $('#acceptReminderSuggestion').addEventListener('click',()=>{if(state.captureSuggestedAlert===null)return;setCaptureAlerts([...state.captureAlerts,state.captureSuggestedAlert],true);state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');});
   $('#voiceCaptureBtn')?.addEventListener('click',()=>startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'}));
@@ -2551,7 +2570,7 @@ function syncCaptureAllDay(userChange=false){
     if($('#captureTime')&&!$('#captureTime').value)$('#captureTime').value='09:00';
     if($('#captureEndTime')&&!$('#captureEndTime').value)$('#captureEndTime').value=addOneHourTime($('#captureTime').value);
   }
-  if(userChange)state.userAdjusted=true;
+  if(userChange)markCaptureManual('dateTime');
 }
 function openCreationMenu(date=''){prepareQuickNoteForType('event',date);}
 
