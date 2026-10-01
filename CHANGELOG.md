@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.7.0-beta22-notes · versionCode 87 · Flotantes contextuales en Notas
+
+- Iteración limitada exclusivamente a la pantalla **Notas**.
+- El flotante **+** crea una nueva nota en lugar de abrir un evento.
+- El flotante **micrófono** inicia el dictado de una nota en lugar de usar el enrutado universal/eventos.
+- Los textos accesibles de ambos flotantes cambian a **Nueva nota** y **Dictar nota** dentro de Notas.
+- No se modifica todavía el comportamiento de los flotantes en Medicación, Listas, Grabaciones, Documentos, Lugares, Cuaderno ni otras pantallas.
+- La pantalla inicial y sus títulos verdes se dejan para una iteración posterior, siguiendo el criterio de validar pantalla por pantalla.
+
 ## 3.7.0-beta21 · versionCode 86 · Formularios compactos y nuevo branding
 
 - Fecha inicio + Fecha fin se muestran en la misma línea en móvil.
