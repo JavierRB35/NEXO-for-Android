@@ -1079,22 +1079,22 @@ function bindRecordingButtons(root){
   root.querySelectorAll('[data-recording-rename]').forEach(b=>b.addEventListener('click',()=>openRenameRecording(String(b.dataset.recordingRename))));
   root.querySelectorAll('[data-recording-delete]').forEach(b=>b.addEventListener('click',()=>{const id=String(b.dataset.recordingDelete),rows=parseNative(NexoNative.getRecordings(),[]),r=rows.find(x=>String(x.id)===id),title=r?.title||'esta grabación';confirmGeneric('Eliminar grabación',`Se eliminará “${title}” y el archivo de audio. Esta acción no se puede deshacer.`,()=>{if(state.playingRecordingId===id)NexoNative.stopRecordingPlayback();const ok=NexoNative.deleteRecording(id);toast(ok?'Grabación eliminada':'No se pudo eliminar la grabación.');closeModal();refreshRecordingSurface();},'Eliminar');}));
 }
+
 function renderRecordingsPanel(){
   state.lastPanel='recordings';
   const status=parseNative(NexoNative.getRecordingStatus(),{}),all=parseNative(NexoNative.getRecordings(),[]),rows=all.filter(r=>String(r.id)!==String(status.id||''));
   $('#panelTitle').textContent='Grabaciones';$('#panelSubtitle').textContent='Audio local · reuniones y conversaciones autorizadas';
-  $('#panelAction').innerHTML=status.active?'<button class="recording-active-pill" type="button" disabled>● EN CURSO</button>':'<button id="recordingStartTop" class="primary-button recording-start-button" type="button">● Grabar</button>';
+  $('#panelAction').innerHTML=status.active?'<button class="recording-active-pill" type="button" disabled>● EN CURSO</button>':'';
   const live=status.active?`<div class="recording-live-card ${status.paused?'paused':''}"><div class="recording-live-head"><span class="recording-live-dot"></span><div><strong id="recordingLiveState">${status.paused?'EN PAUSA':'GRABANDO'}</strong><span>${esc(status.title||'Grabación')}</span></div><div id="recordingLiveTimer" class="recording-timer">${esc(recordingDuration(status.elapsedMs||0))}</div></div><div class="recording-live-actions"><button id="recordingPauseBtn" class="secondary-button" type="button">${status.paused?'▶ Continuar':'Ⅱ Pausar'}</button><button id="recordingStopBtn" class="danger-button solid" type="button">■ Terminar</button></div><div class="small muted">La grabación continúa con la pantalla apagada. Android mostrará el indicador de micrófono y una notificación silenciosa.</div></div>`:'';
-  const empty=!rows.length&&!status.active?'<div class="empty-state">Todavía no tienes grabaciones. Pulsa Grabar para comenzar inmediatamente.</div>':'';
+  const empty=!rows.length&&!status.active?'<div class="empty-state">Todavía no tienes grabaciones. Usa el micrófono flotante para comenzar.</div>':'';
   const model=parseNative(NexoNative.getTranscriptionModelStatus(),{});const modelCard=model.installed?`<div class="recording-info-card transcription-model-ready"><strong>Transcripción local preparada</strong><span>${esc(model.name||'Whisper Base INT8')} · el audio no sale del teléfono.</span></div>`:`<div class="recording-info-card"><strong>Transcripción local</strong><span>Descarga una vez Whisper Base multilingüe INT8 (~161 MB) para transcribir sin enviar audio a Internet.</span><button id="downloadTranscriptionModel" class="secondary-button" type="button">Descargar modelo</button><div id="transcriptionModelProgress" class="small muted"></div></div>`;
   $('#panelContent').innerHTML=`${live}<div class="recording-info-card"><strong>Grabación local</strong><span>Nexo no emite sonidos al iniciar o terminar. Los archivos se guardan solo en este dispositivo. Usa “Descargas” para crear una copia accesible en Descargas/Nexo.</span></div>${modelCard}${rows.length?`<div class="recording-list">${rows.map(r=>recordingCard(r,model)).join('')}</div>`:empty}`;
-  $('#recordingStartTop')?.addEventListener('click',()=>{state.playingRecordingId='';NexoNative.stopRecordingPlayback();NexoNative.startRecording();toast('Iniciando grabación…');});
   $('#recordingPauseBtn')?.addEventListener('click',()=>{if(status.paused)NexoNative.resumeRecording();else NexoNative.pauseRecording();});
   $('#recordingStopBtn')?.addEventListener('click',()=>{NexoNative.stopRecording();toast('Finalizando y guardando grabación…');});
   $('#downloadTranscriptionModel')?.addEventListener('click',()=>{const b=$('#downloadTranscriptionModel');b.disabled=true;b.textContent='Descargando…';NexoNative.downloadTranscriptionModel();});
   bindRecordingButtons($('#panelContent'));startRecordingPolling(status);if(rows.some(r=>{const t=transcriptionStatus(r.id);return t.state==='running'||t.state==='starting';}))startTranscriptionPolling();
+  updateFloatingActions();
 }
-
 function renderTodaySummary(){
   if(!$('#todaySummary'))return;
   const all=state.todaySummaryLines||[],shown=state.todaySummaryExpanded?all:all.slice(0,3);
@@ -2933,27 +2933,27 @@ function renderDailyContext(){
   if(!lines.length)lines.push({text:'No hay otros pendientes destacados para hoy.',kind:'good'});
   state.todaySummaryLines=lines;renderTodaySummary();renderMedicationToday();renderParkingHomeCard(d.lastParking||null);renderJournalPrompt(false);
 }
+
 function renderCollectionPanel(panel){
   state.documents=parseNative(NexoNative.getCollection('documents'),[]);
   const labels=[...new Set([...DOCUMENT_LABELS,...state.documents.filter(i=>i.type==='document').map(i=>i.subcategory||'').filter(Boolean)])];
   $('#panelTitle').textContent='Documentos';$('#panelSubtitle').textContent='Tus archivos, guardados y a mano';
-  $('#panelAction').innerHTML=`<button id="collectionAdd" class="primary-button">${uiIcon('plus')} Guardar documento</button>`;
-  $('#collectionAdd').addEventListener('click',()=>openDocumentEditor());
+  $('#panelAction').innerHTML='';
   $('#panelContent').innerHTML=`<div class="document-toolbar"><label>Buscar documento<input id="documentSearch" type="search" placeholder="Descripción o nombre del archivo" value="${escAttr(state.documentSearch)}"></label><label>Tipo de documento<select id="documentFilter"><option value="all">Todos los tipos</option><option value="">Sin etiqueta</option>${labels.map(label=>`<option value="${escAttr(label)}">${esc(label)}</option>`).join('')}</select></label></div><p id="documentCount" class="small muted" aria-live="polite"></p><div id="documentList" class="stack"></div>`;
   if(state.documentFilter!==''&&state.documentFilter!=='all'&&!labels.includes(state.documentFilter))state.documentFilter='all';
   $('#documentFilter').value=state.documentFilter;
   $('#documentSearch').addEventListener('input',()=>{state.documentSearch=$('#documentSearch').value;renderDocumentsList();});
   $('#documentFilter').addEventListener('change',()=>{state.documentFilter=$('#documentFilter').value;renderDocumentsList();});
-  renderDocumentsList();
+  renderDocumentsList();updateFloatingActions();
 }
-
 function documentDescription(item){
   const title=String(item.title||'').trim(),body=String(item.body||'').trim();
   return !body?title:!title||body.startsWith(title)?body:title+'\n\n'+body;
 }
+
 function documentCard(i){
   const own=i.type==='document',id=Number(i.id),description=documentDescription(i)||i.attachmentName||'Documento',label=own?String(i.subcategory||'').trim():'';
-  return `<article class="document-card" data-document-card="${id}"><button type="button" class="document-open" ${own?`data-document-edit="${id}"`:`data-document-open="${id}"`} aria-label="${own?'Editar':'Abrir'} ${escAttr(i.attachmentName||'documento')}">${label?`<span class="document-label">${esc(label)}</span>`:''}<span class="document-description">${esc(description)}</span><span class="document-filename">${uiIcon('file')}${esc(i.attachmentName||'Sin archivo adjunto')}</span></button><div class="record-card-actions">${own?recordIconAction('edit','Editar documento',`data-document-edit="${id}"`):''}${i.attachmentPath?recordIconAction('share','Compartir documento',`data-document-share="${id}"`):''}${own?recordIconAction('trash','Eliminar documento',`data-document-delete="${id}"`,'icon-action--danger'):''}</div>${i.attachmentPath?`<div class="document-actions"><button type="button" class="secondary-button" data-document-open="${id}">Abrir archivo</button><button type="button" class="secondary-button" data-document-download="${id}">${uiIcon('download')} Descargar</button></div>`:''}${!own?`<button type="button" class="document-source text-button" data-document-source="${id}">Ver ${esc(typeLabel(i.type).toLowerCase())} de origen</button>`:''}</article>`;
+  return `<article class="document-card" data-document-card="${id}"><button type="button" class="document-open" data-document-open="${id}" aria-label="Abrir ${escAttr(i.attachmentName||'documento')}">${label?`<span class="document-label">${esc(label)}</span>`:''}<span class="document-description">${esc(description)}</span><span class="document-filename">${uiIcon('file')}${esc(i.attachmentName||'Sin archivo adjunto')}</span></button><div class="record-card-actions">${own?recordIconAction('edit','Editar documento',`data-document-edit="${id}"`):''}${i.attachmentPath?recordIconAction('share','Compartir documento',`data-document-share="${id}"`):''}${own?recordIconAction('trash','Eliminar documento',`data-document-delete="${id}"`,'icon-action--danger'):''}</div>${i.attachmentPath?`<div class="document-actions"><button type="button" class="secondary-button" data-document-open="${id}">Abrir archivo</button><button type="button" class="secondary-button" data-document-download="${id}">${uiIcon('download')} Descargar</button></div>`:''}${!own?`<button type="button" class="document-source text-button" data-document-source="${id}">Ver ${esc(typeLabel(i.type).toLowerCase())} de origen</button>`:''}</article>`;
 }
 function bindDocumentButtons(root){
   root.querySelectorAll('[data-document-edit]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openDocumentEditor(Number(b.dataset.documentEdit));}));
@@ -3017,28 +3017,28 @@ function openDocumentEditor(id=0,incoming=null){
   $('#documentDelete')?.addEventListener('click',()=>confirmDeleteItem(i));
 }
 
+
 function placeCard(i){
-  const location=String(i.locationText||'').trim(),mapLabel=/^(?:https?:\/\/|www\.|maps\.|goo\.gl\/)/i.test(location)?'Enlace de Google Maps':location,id=Number(i.id);
-  return `<article class="place-card" data-place-card="${id}"><button type="button" class="place-open" data-open-place="${id}"><span class="place-label">${esc(placeLabel(i))}</span><strong>${esc(i.title||'Lugar guardado')}</strong>${i.body?`<span class="place-description">${esc(i.body)}</span>`:''}${location?`<span class="place-location">${uiIcon('pin')}${esc(mapLabel)}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar lugar',`data-open-place="${id}"`)}${recordIconAction('share','Compartir lugar',`data-place-share="${id}"`)}${recordIconAction('trash','Eliminar lugar',`data-place-delete="${id}"`,'icon-action--danger')}${location?recordIconAction('pin','Abrir en Google Maps',`data-place-map="${id}"`):''}</div></article>`;
+  const id=Number(i.id);
+  return `<article class="place-card" data-place-card="${id}"><button type="button" class="place-open" data-open-place="${id}"><span class="place-label">${esc(placeLabel(i))}</span><strong>${esc(i.title||'Lugar guardado')}</strong>${i.body?`<span class="place-description">${esc(i.body)}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar lugar',`data-open-place="${id}"`)}${recordIconAction('share','Compartir lugar',`data-place-share="${id}"`)}${recordIconAction('trash','Eliminar lugar',`data-place-delete="${id}"`,'icon-action--danger')}${recordIconAction('pin','Abrir en Google Maps',`data-place-map="${id}"`)}</div></article>`;
 }
+
 function bindPlaceButtons(root){
   root.querySelectorAll('[data-open-place]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openPlaceEditor(Number(b.dataset.openPlace));}));
   root.querySelectorAll('[data-place-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoItem(Number(b.dataset.placeShare),0,false);}));
   root.querySelectorAll('[data-place-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.placeDelete));}));
-  root.querySelectorAll('[data-place-map]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const i=parseNative(NexoNative.getItem(Number(b.dataset.placeMap)),{});if(i.id&&i.locationText)NexoNative.openPlaceMap(String(i.locationText));else toast('Este lugar ya no tiene una ubicación guardada.');}));
+  root.querySelectorAll('[data-place-map]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const i=parseNative(NexoNative.getItem(Number(b.dataset.placeMap)),{});if(i.id&&i.title)NexoNative.openPlaceMap(String(i.title));else toast('Este lugar ya no existe.');}));
 }
-
 function renderPlacesPanel(){
   state.places=parseNative(NexoNative.getCollection('places'),[]);
   const labels=[...new Set([...PLACE_LABELS,...state.places.map(placeLabel)])];
   if(state.placeFilter!=='all'&&!labels.includes(state.placeFilter))state.placeFilter='all';
   $('#panelTitle').textContent='Lugares';$('#panelSubtitle').textContent='Sitios que te gustan o que quieres descubrir';
-  $('#panelAction').innerHTML=`<button id="placeAdd" class="primary-button">${uiIcon('plus')} Guardar lugar</button>`;
-  $('#placeAdd').addEventListener('click',()=>openPlaceEditor());
-  $('#panelContent').innerHTML=`<div class="place-toolbar"><label>Buscar lugar<input id="placeSearch" type="search" placeholder="Nombre, descripción o ubicación" value="${escAttr(state.placeSearch)}"></label><label>Etiqueta<select id="placeFilter"><option value="all">Todas las etiquetas</option>${labels.map(label=>`<option value="${escAttr(label)}" ${label===state.placeFilter?'selected':''}>${esc(label)}</option>`).join('')}</select></label></div><p id="placeCount" class="small muted" aria-live="polite"></p><div id="placeList" class="stack"></div>`;
+  $('#panelAction').innerHTML='';
+  $('#panelContent').innerHTML=`<div class="place-toolbar"><label>Buscar lugar<input id="placeSearch" type="search" placeholder="Nombre o descripción" value="${escAttr(state.placeSearch)}"></label><label>Etiqueta<select id="placeFilter"><option value="all">Todas las etiquetas</option>${labels.map(label=>`<option value="${escAttr(label)}" ${label===state.placeFilter?'selected':''}>${esc(label)}</option>`).join('')}</select></label></div><p id="placeCount" class="small muted" aria-live="polite"></p><div id="placeList" class="stack"></div>`;
   $('#placeSearch').addEventListener('input',()=>{state.placeSearch=$('#placeSearch').value;renderPlacesList();});
   $('#placeFilter').addEventListener('change',()=>{state.placeFilter=$('#placeFilter').value;renderPlacesList();});
-  renderPlacesList();
+  renderPlacesList();updateFloatingActions();
 }
 function renderPlacesList(){
   const tokens=normVoiceText(state.placeSearch).split(' ').filter(Boolean);
@@ -3067,13 +3067,14 @@ function openPlaceEditor(id=0){
   });
   $('#placeDelete')?.addEventListener('click',()=>confirmDeleteItem(i));
 }
+
 function renderParkingPanel(){
   const p=parseNative(NexoNative.getLastParking(),{});$('#panelTitle').textContent='Aparcamiento';$('#panelSubtitle').textContent='El último lugar donde has dejado el coche';
-  $('#panelAction').innerHTML='<button id="parkingPanelSave" class="primary-button">Guardar ubicación</button>';
-  $('#parkingPanelSave').addEventListener('click',()=>openParkingModal());
-  $('#panelContent').innerHTML=p.id?`<div class="parking-panel-card"><strong>${esc(p.title||'Coche aparcado')}</strong><p>${esc(p.body||p.locationText||'Ubicación guardada')}</p><p class="small muted">${esc(fmtDate(p.createdAt||p.updatedAt,true))}</p><div class="item-actions"><button id="parkingPanelDirections" class="primary-button">${uiIcon('pin')} Ir al coche</button><button id="parkingPanelDelete" class="danger-button">Eliminar ubicación</button></div></div>`:'<div class="empty-state">Aún no has guardado un aparcamiento.</div>';
+  $('#panelAction').innerHTML='';
+  $('#panelContent').innerHTML=p.id?`<div class="parking-panel-card"><strong>${esc(p.title||'Coche aparcado')}</strong><p>${esc(p.body||p.locationText||'Ubicación guardada')}</p><p class="small muted">${esc(fmtDate(p.createdAt||p.updatedAt,true))}</p><div class="item-actions"><button id="parkingPanelDirections" class="primary-button">${uiIcon('pin')} Ir al coche</button><button id="parkingPanelDelete" class="danger-button">Eliminar ubicación</button></div></div>`:'<div class="empty-state">Aún no has guardado un aparcamiento. Usa + para guardar la ubicación actual del coche.</div>';
   $('#parkingPanelDirections')?.addEventListener('click',()=>NexoNative.openParkingDirections());
   $('#parkingPanelDelete')?.addEventListener('click',()=>confirmGeneric('Eliminar aparcamiento','Se eliminará la ubicación guardada del coche.',()=>{const ok=NexoNative.deleteParking();toast(ok?'Aparcamiento eliminado':'No se pudo eliminar');refreshCurrent();}));
+  updateFloatingActions();
 }
 function updateListCheck(id,checked,row){
   if(!row)return;
