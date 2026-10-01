@@ -57,7 +57,7 @@ import com.jruiz.nexo.input.SmsWatchEngine;
 import com.jruiz.nexo.input.SmsWatchScheduler;
 import com.jruiz.nexo.input.GmailWatchEngine;
 import com.jruiz.nexo.input.GmailWatchScheduler;
-import com.jruiz.nexo.migration.NexoFamiliaImporter;
+import com.jruiz.nexo.migration.NexoFamiliaImporter;\nimport com.jruiz.nexo.migration.NexoFamiliaCloudSync;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -123,13 +123,15 @@ public class MainActivity extends Activity {
     private String playingRecordingId = "";
     private float recordingPlaybackSpeed = 1.0f;
     private String pendingRecordingExportId = "";
-    private volatile boolean transcriptionModelDownloadActive = false;
+    private volatile boolean transcriptionModelDownloadActive = false;\n    private NexoFamiliaCloudSync familiaCloudSync;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = new DatabaseHelper(getApplicationContext());
         service = new NexoService(this, db);
-        applyBundledNexoFamiliaMigration();
+        familiaCloudSync = new NexoFamiliaCloudSync(getApplicationContext(), db);
+        // La antigua instantánea incluida queda solo como compatibilidad manual.
+        // La agenda de Nexo Familia se sincroniza ahora directamente con Supabase.
         setupWebView();
         handleIncomingIntent(getIntent());
     }
@@ -2211,6 +2213,30 @@ public class MainActivity extends Activity {
             catch(Exception e) { return new JSONObject().toString(); }
         }
         @JavascriptInterface public boolean archivePerson(long id) { return db.archivePerson(id); }
+        @JavascriptInterface public String getNexoFamiliaCloudStatus() {
+            return familiaCloudSync == null ? "{}" : familiaCloudSync.getStatus().toString();
+        }
+        @JavascriptInterface public void linkNexoFamilia(String email, String password) {
+            new Thread(() -> {
+                JSONObject result = familiaCloudSync.link(email, password);
+                if (result.optBoolean("ok", false)) jsCallbackJson("onNexoFamiliaLinked", result);
+                else jsCallback("onNexoFamiliaCloudError", result.optString("error", "No se pudo vincular Nexo Familia."));
+            }, "nexo-familia-link").start();
+        }
+        @JavascriptInterface public void syncNexoFamiliaEvents() {
+            new Thread(() -> {
+                JSONObject result = familiaCloudSync.syncNewEvents();
+                if (result.optBoolean("ok", false)) jsCallbackJson("onNexoFamiliaSyncDone", result);
+                else {
+                    if (result.optBoolean("sessionExpired", false)) jsCallbackJson("onNexoFamiliaSessionExpired", result);
+                    else jsCallback("onNexoFamiliaCloudError", result.optString("error", "No se pudo importar Nexo Familia."));
+                }
+            }, "nexo-familia-cloud-sync").start();
+        }
+        @JavascriptInterface public void disconnectNexoFamilia() {
+            if (familiaCloudSync != null) familiaCloudSync.disconnect();
+            jsCallbackJson("onNexoFamiliaDisconnected", familiaCloudSync == null ? new JSONObject() : familiaCloudSync.getStatus());
+        }
         @JavascriptInterface public void chooseNexoFamiliaImport() { MainActivity.this.chooseNexoFamiliaImport(); }
         @JavascriptInterface public void repairBundledNexoFamiliaMigration() {
             new Thread(() -> {
@@ -2254,6 +2280,10 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String getNexoFamiliaMembers() {
             try {
+                if (familiaCloudSync != null) {
+                    JSONArray cloudMembers = familiaCloudSync.getCachedMembers();
+                    if (cloudMembers.length() > 0) return cloudMembers.toString();
+                }
                 JSONArray members=MainActivity.this.readBundledNexoFamiliaPayload().optJSONArray("members");
                 return members==null?"[]":members.toString();
             } catch(Exception ignored) { return "[]"; }
