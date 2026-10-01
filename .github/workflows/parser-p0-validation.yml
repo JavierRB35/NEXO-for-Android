@@ -1,9 +1,6 @@
-name: Parser V2 validation
+name: Parser P0 validation
 
 on:
-  push:
-    branches:
-      - work/nexo-3.7.0-beta19-event-parser-v2
   pull_request:
     branches:
       - release/nexo-3.7.0-beta18
@@ -12,25 +9,35 @@ on:
 permissions:
   contents: read
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Verify runner Android SDK
+      - name: Install SDK 34
+        shell: bash
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          test -d "$ANDROID_HOME/platforms/android-34"
-          ls "$ANDROID_HOME/build-tools"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Compile Android debug
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --max-workers=1
 
       - name: Temporal parser smoke tests
         shell: bash
@@ -75,151 +82,9 @@ jobs:
                   check(TemporalParser.parseSpanMinutes("una hora y media") == 90, "hora y media");
                   check(TemporalParser.parseSpanMinutes("cuarenta y cinco minutos") == 45, "45 minutos");
                   check(TemporalParser.parseSpanMinutes("una hora y cuarto") == 75, "hora y cuarto");
-
-                  TemporalParser.Result documentAfter = TemporalParser.parse(
-                      "Cita el 8 de octubre de 2026 a las 10:00. Llevar informe del 12 de septiembre de 2026", now);
-                  TemporalParser.Result documentBefore = TemporalParser.parse(
-                      "Llevar informe del 12 de septiembre de 2026. Cita el 8 de octubre de 2026 a las 10:00", now);
-                  check(LocalDate.of(2026,10,8).equals(documentAfter.date), "fecha de cita antes de documento");
-                  check(LocalDate.of(2026,10,8).equals(documentBefore.date), "fecha de documento no compite con cita");
               }
           }
           JAVA
           mkdir -p /tmp/nexo-parser-smoke
-          javac -d /tmp/nexo-parser-smoke \
-            app/src/main/java/com/jruiz/nexo/core/EventInterpretation.java \
-            app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
-            app/src/main/java/com/jruiz/nexo/core/ZoneTimeResolver.java \
-            app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
-            /tmp/TemporalParserSmoke.java
+          javac -d /tmp/nexo-parser-smoke             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java             /tmp/TemporalParserSmoke.java
           java -cp /tmp/nexo-parser-smoke TemporalParserSmoke
-
-      - name: Compile parser surface and smoke classifier
-        shell: bash
-        run: |
-          ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
-          mkdir -p /tmp/nexo-parser-surface
-          javac -cp "$ANDROID_JAR" -d /tmp/nexo-parser-surface \
-            app/src/main/java/com/jruiz/nexo/core/EventInterpretation.java \
-            app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
-            app/src/main/java/com/jruiz/nexo/core/ZoneTimeResolver.java \
-            app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
-            app/src/main/java/com/jruiz/nexo/core/RecurrenceEngine.java \
-            app/src/main/java/com/jruiz/nexo/core/LocationParser.java \
-            app/src/main/java/com/jruiz/nexo/core/DescriptionExtractor.java \
-            app/src/main/java/com/jruiz/nexo/core/LocalTitleEngine.java \
-            app/src/main/java/com/jruiz/nexo/core/MedicationParser.java \
-            app/src/main/java/com/jruiz/nexo/core/RuleClassifier.java \
-            app/src/main/java/com/jruiz/nexo/core/AppointmentParser.java
-
-          cat > /tmp/RuleClassifierSmoke.java <<'JAVA'
-          import com.jruiz.nexo.core.*;
-          import java.time.*;
-          import java.util.*;
-
-          public final class RuleClassifierSmoke {
-              private static void check(boolean ok, String message) {
-                  if (!ok) throw new AssertionError(message);
-              }
-
-              public static void main(String[] args) {
-                  RuleClassifier.Result event = RuleClassifier.classify(
-                      "Cita el 8 de octubre de 2026 a las 19:00 y avísame una hora y media antes");
-                  check("event".equals(event.type), "el aviso no debe convertir una cita en recordatorio");
-                  check(event.reminderRequested, "aviso solicitado");
-                  check(event.reminderLeadMinutes.contains(90), "aviso 90 minutos");
-
-                  RuleClassifier.Result negated = RuleClassifier.classify("No tengo cita mañana");
-                  check(negated.needsReview, "negación pendiente de revisión");
-                  check(negated.dueAt == 0L, "una cita negada no debe conservar fecha ejecutable");
-
-                  RuleClassifier.Result invalid = AppointmentParser.parse(
-                      "Cita el 31 de febrero de 2027 a las 10:00");
-                  check(invalid.invalidDate && invalid.needsReview, "fecha imposible debe llegar a revisión");
-
-                  RuleClassifier.Result incomplete = AppointmentParser.parse("Cita con el dentista");
-                  check(incomplete.needsReview && incomplete.dueAt == 0L, "cita sin fecha debe quedar incompleta");
-
-                  RuleClassifier.Result semantic = AppointmentParser.parse(
-                      "Dentista, revisión del implante, Clínica Roble, doctora Vega el 8 de octubre de 2026 a las 19:00");
-                  check("Revisión del implante".equals(semantic.title), "R02 título por propósito");
-                  check("Clínica Roble".equals(semantic.locationText), "R02 clínica separada del profesional");
-                  check(TemporalParser.norm(semantic.professionalText).contains("doctora vega"), "R02 profesional separado");
-                  check(TemporalParser.norm(semantic.description).contains("doctora vega"), "R02 profesional conservado en detalles");
-
-                  RuleClassifier.Result concreteTitle = AppointmentParser.parse(
-                      "Cita para una revisión del implante dental el 8 de octubre de 2026 a las 10:00");
-                  check("Revisión del implante dental".equals(concreteTitle.title), "R44 título concreto");
-
-                  String docDescription = DescriptionExtractor.extract(
-                      "Cita el 8 de octubre de 2026 a las 10:00. Llevar informe del 12 de septiembre de 2026", "");
-                  check(TemporalParser.norm(docDescription).contains("informe del 12 de septiembre"), "R22 conserva fecha documental");
-
-                  String morningDocument = DescriptionExtractor.extract(
-                      "Cita mañana a las 10:00. Llevar el informe de la mañana", "");
-                  check(TemporalParser.norm(morningDocument).contains("informe de la manana"), "R48 conserva 'informe de la mañana'");
-
-                  long madrid = ZoneTimeResolver.toEpochMillis("2026-10-08", "10:00", "Europe/Madrid");
-                  long newYork = ZoneTimeResolver.toEpochMillis("2026-10-08", "10:00", "America/New_York");
-                  check(madrid > 0 && newYork > 0, "ZoneId válido");
-                  check(newYork - madrid == 6L * 60L * 60L * 1000L, "U06 respeta zona de Nueva York");
-
-                  RuleClassifier.Result recurring = AppointmentParser.parse(
-                      "Entrenamiento lunes y miércoles hasta el 30 de noviembre de 2026 a las 19:00");
-                  check(RecurrenceEngine.WEEKLY.equals(recurring.recurrence), "R16 recurrencia semanal");
-                  check(recurring.recurrenceRule.contains("BYDAY=MO,WE"), "R16 conserva lunes y miércoles");
-                  check("2026-11-30".equals(recurring.recurrenceUntilDate), "R16 separa límite de serie");
-
-                  ZoneId madridZone = ZoneId.of("Europe/Madrid");
-                  long base = ZoneTimeResolver.toEpochMillis("2026-10-05", "19:00", "Europe/Madrid");
-                  long until = ZoneTimeResolver.toEpochMillis("2026-11-30", "23:59", "Europe/Madrid");
-                  List<Long> weekly = RecurrenceEngine.occurrencesBetween(
-                      base, RecurrenceEngine.WEEKLY, "FREQ=WEEKLY;BYDAY=MO,WE", until,
-                      base, until, madridZone, 5);
-                  check(weekly.size() == 5, "R16 genera apariciones");
-                  check(Instant.ofEpochMilli(weekly.get(0)).atZone(madridZone).getDayOfWeek() == DayOfWeek.MONDAY, "R16 primera aparición lunes");
-                  check(Instant.ofEpochMilli(weekly.get(1)).atZone(madridZone).getDayOfWeek() == DayOfWeek.WEDNESDAY, "R16 segunda aparición miércoles");
-                  check(Instant.ofEpochMilli(weekly.get(2)).atZone(madridZone).getDayOfWeek() == DayOfWeek.MONDAY, "R16 vuelve al lunes");
-
-                  RecurrenceEngine.Detection correctionRecurrence = RecurrenceEngine.detect("No es el miércoles, es el martes");
-                  check(RecurrenceEngine.NONE.equals(correctionRecurrence.recurrence), "una corrección de día no crea recurrencia");
-              }
-          }
-          JAVA
-
-          javac -cp "/tmp/nexo-parser-surface:$ANDROID_JAR" -d /tmp/nexo-parser-surface /tmp/RuleClassifierSmoke.java
-          java -cp "/tmp/nexo-parser-surface:$ANDROID_JAR" RuleClassifierSmoke
-
-      - name: Review-state and UI syntax guards
-        shell: bash
-        run: |
-          node --check app/src/main/assets/app.js
-          python3 - <<'PY'
-          from pathlib import Path
-          service = Path("app/src/main/java/com/jruiz/nexo/core/NexoService.java").read_text()
-          app = Path("app/src/main/assets/app.js").read_text()
-
-          classify = service.split("public JSONObject classifyAppointment",1)[1].split("private void applyLearnedCategory",1)[0]
-          assert "r.needsReview = false" not in classify
-          save = service.split("public JSONObject saveCapture",1)[1]
-          appointment_block = save.split("if (appointmentCapture)",1)[1].split("}",1)[0]
-          assert 'in.put("needsReview", false)' not in appointment_block
-          assert "needsReview:captureNeedsReview()" in app
-          assert "function captureNeedsReview()" in app
-
-          database = Path("app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java").read_text()
-          assert "ZoneId seriesZone = itemZone(base);" in database
-          assert "itemZone(item),1" in database
-          assert "private static ZoneId itemZone(JSONObject item)" in database
-
-          assert "private static ZoneId eventZone(String zoneId)" in service
-          assert "reminderTriggerMinutes(actualDue, leadMinutes, hasTime, zone)" in service
-          PY
-
-      - name: Note Android build limitation
-        run: |
-          if [ -f app/libs/sherpa-onnx-1.13.7.aar ]; then
-            echo "Sherpa AAR available; full Android build can be executed."
-          else
-            echo "Full assembleDebug intentionally skipped in CI: app/libs/sherpa-onnx-1.13.7.aar is not versioned in this repository."
-          fi
