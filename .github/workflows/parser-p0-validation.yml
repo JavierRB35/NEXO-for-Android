@@ -23,11 +23,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
       - name: Verify runner Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
@@ -84,5 +79,11 @@ jobs:
           javac -d /tmp/nexo-parser-smoke             app/src/main/java/com/jruiz/nexo/core/TemporalParser.java             /tmp/TemporalParserSmoke.java
           java -cp /tmp/nexo-parser-smoke TemporalParserSmoke
 
+      - name: Install official Gradle 8.9
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o /tmp/gradle-8.9-bin.zip
+          unzip -q /tmp/gradle-8.9-bin.zip -d /tmp
+          echo "/tmp/gradle-8.9/bin" >> "$GITHUB_PATH"
+
       - name: Compile Android debug
-        run: gradle assembleDebug --no-daemon --max-workers=1
+        run: /tmp/gradle-8.9/bin/gradle assembleDebug --no-daemon --max-workers=1
