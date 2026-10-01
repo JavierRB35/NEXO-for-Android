@@ -20,6 +20,12 @@ public final class LocalTitleEngine {
 
         String birthday = birthdayTitle(text);
         if (!birthday.isBlank()) return limit(birthday);
+
+        EventInterpretation semantic = EventSemanticParser.parse(text);
+        if (semantic.purpose.hasValue()) {
+            String candidate = semantic.titleCandidate();
+            if (!candidate.isBlank()) return limitSemantic(candidate);
+        }
         if (n.contains("itv")) return "ITV";
         if (n.contains("seguro") && (n.contains("coche") || "Coche".equals(category))) {
             if (n.contains("renov") || n.contains("vence") || n.contains("caduc")) return "Renovar seguro del coche";
@@ -101,6 +107,16 @@ public final class LocalTitleEngine {
         String n = TemporalParser.norm(first);
         if (n.contains("hospital") || n.contains("clinica") || n.contains("centro")) return first;
         return "";
+    }
+
+    private static String limitSemantic(String s) {
+        s = cleanup(s);
+        if (s.isBlank()) return "Nueva cita";
+        if (s.length() <= 80) return s;
+        String shortened = s.substring(0, 80).trim();
+        int boundary = shortened.lastIndexOf(' ');
+        if (boundary > 45) shortened = shortened.substring(0, boundary);
+        return cleanup(shortened);
     }
 
     private static String limit(String s) {
