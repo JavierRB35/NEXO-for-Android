@@ -2458,8 +2458,8 @@ function medicationVoiceNorm(value){
 }
 function medicationVoiceDoseAction(text){
   const n=medicationVoiceNorm(text);
-  if(/\b(?:he|ya he|la he|lo he|me la he|me lo he)\s+tomad[oa]\b/.test(n)||/\bmarca(?:r)?\b.*\bcomo\s+tomad[oa]\b/.test(n))return 'taken';
   if(/\b(?:he|ya he|la he|lo he)\s+omitid[oa]\b/.test(n)||/\bmarca(?:r)?\b.*\bcomo\s+omitid[oa]\b/.test(n)||/\bno\s+(?:me\s+)?(?:la|lo)?\s*he\s+tomad[oa]\b/.test(n))return 'skipped';
+  if(/\b(?:he|ya he|la he|lo he|me la he|me lo he)\s+tomad[oa]\b/.test(n)||/\bmarca(?:r)?\b.*\bcomo\s+tomad[oa]\b/.test(n))return 'taken';
   return '';
 }
 function medicationVoiceTimeMinutes(text){
