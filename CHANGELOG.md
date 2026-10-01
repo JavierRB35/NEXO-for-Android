@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.0-beta22 · versionCode 87 · Motor de eventos auditado y portada simplificada
+
+- Integra el bloque P0–P2 de la auditoría del reconocimiento de eventos sobre la base beta21.
+- Conserva correcciones temporales, fechas/horas inválidas, avisos y duraciones compuestas sin silencios.
+- Protege las ediciones manuales por campo y respeta la zona horaria real del evento.
+- Mejora títulos, descripción, lugar, profesional, fechas documentales y reuniones virtuales.
+- Admite dos citas en un mismo dictado mediante propuestas separadas.
+- Añade recurrencias semanales por varios días con RRULE `BYDAY`.
+- Expone estado por campo (`explicit`, `inferred`, `ambiguous`, `invalid`, `missing`) y mantiene `needsReview`.
+- Conserva enlaces Meet/Zoom/Teams, instrucciones breves y etiquetas orales sin dos puntos.
+- En Inicio se eliminan los rótulos verdes “Resumen familiar”, “Accesos rápidos” y “Agenda familiar”; se mantienen únicamente los títulos negros.
+- Se mantienen JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta21 · versionCode 86 · Formularios compactos y nuevo branding
 
 - Fecha inicio + Fecha fin se muestran en la misma línea en móvil.
