@@ -384,12 +384,13 @@ function updateFloatingActions(){
   if(!voice||!add)return;
   const panel=state.screen==='panel'?state.lastPanel:'';
   const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
+  const noteEditorActive=!!state.noteEditor&&panel==='notes'&&!$('#modal')?.classList.contains('hidden');
   const journalEditorActive=!!state.journalEditor&&panel==='journal'&&!$('#modal')?.classList.contains('hidden');
   const quoteEditorActive=!!state.quoteEditor&&panel==='quotes'&&!$('#modal')?.classList.contains('hidden');
   const medicationEditorActive=!!state.medicationEditor&&panel==='medications'&&!$('#modal')?.classList.contains('hidden');
   const placeEditorActive=!!state.placeEditor&&panel==='places'&&!$('#modal')?.classList.contains('hidden');
   const documentEditorActive=!!state.documentEditor&&panel==='documents'&&!$('#modal')?.classList.contains('hidden');
-  const contextualEditorActive=journalEditorActive||quoteEditorActive||medicationEditorActive||placeEditorActive||documentEditorActive;
+  const contextualEditorActive=noteEditorActive||journalEditorActive||quoteEditorActive||medicationEditorActive||placeEditorActive||documentEditorActive;
   let recordingActive=false;
   if(panel==='recordings')recordingActive=!!parseNative(NexoNative.getRecordingStatus(),{}).active;
 
@@ -412,6 +413,7 @@ function updateFloatingActions(){
   if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}
 
   const voiceLabel=
+    noteEditorActive?'Dictar nota':
     medicationEditorActive?'Completar pauta por voz':
     journalEditorActive?'Dictar contenido':
     quoteEditorActive?'Dictar frase':
@@ -532,6 +534,7 @@ function applySearchVoice(text){
 
 
 function runFloatingVoice(){
+  if(state.noteEditor&&state.screen==='panel'&&state.lastPanel==='notes'){startNoteEditorVoice();return;}
   if(state.medicationEditor&&state.screen==='panel'&&state.lastPanel==='medications'){startMedicationEditorVoice();return;}
   if(state.journalEditor&&state.screen==='panel'&&state.lastPanel==='journal'){startJournalEditorVoice();return;}
   if(state.quoteEditor&&state.screen==='panel'&&state.lastPanel==='quotes'){startQuoteEditorVoice();return;}
@@ -1058,6 +1061,13 @@ function startNoteVoice(base='',id=0,title='',titleManual=false){
   startManagedDictation('note',{base:String(base||'').trim(),title:'Dictar nota',hint:'Dicta tu anotación. Puedes hacer pausas y pulsar TERMINAR cuando acabes.'});
 }
 
+function startNoteEditorVoice(){
+  const ed=state.noteEditor,titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
+  if(!ed||!titleEl||!bodyEl)return;
+  const noteId=flushNoteAutosave(),currentBody=bodyEl.value.trim(),currentTitle=titleEl.value.trim(),manual=!!ed.titleManual;
+  state.noteEditor=null;closeModal();startNoteVoice(currentBody,noteId,currentTitle,manual);
+}
+
 function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=false){
   const editing=Number(id)>0,existing=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
   if(editing&&(!existing.id||existing.type!=='note')){toast('La nota ya no existe.');refreshNotesSurface();return;}
@@ -1065,7 +1075,7 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
   const titleManual=editing?!!existing.noteTitleManual:!!titleManualPrefill;
   let title=editing?String(existing.title||''):String(titlePrefill||'');
   if(!titleManual)title=noteSuggestedTitle(body);
-  openModal(editing?'Editar nota':'Nueva nota',`<div class="note-compose modal-form"><div class="note-compose-top"><button id="noteVoiceBtn" class="secondary-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Dictar nota</button><span id="noteSaveStatus" class="note-save-status" data-state="${editing?'saved':'idle'}">${editing?'✓ Guardado':'Empieza a escribir…'}</span></div><label>Título<input id="noteTitle" type="text" maxlength="120" value="${escAttr(title)}" placeholder="Se generará automáticamente al escribir"></label><div class="small muted note-title-help">Nexo propone el título a partir de la idea principal. Si lo cambias tú, dejará de modificarlo.</div><label>Anotación<textarea id="noteBody" rows="10" placeholder="Escribe o dicta lo que quieras conservar…">${esc(body)}</textarea></label><div class="small muted">Autoguardado local: no necesitas pulsar Guardar.</div></div><div id="noteSavedActions" class="modal-actions wrap-actions ${editing?'':'hidden'}"><button id="noteDelete" class="danger-button" type="button">Eliminar</button><button id="noteShare" class="secondary-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button></div>`);
+  openModal(editing?'Editar nota':'Nueva nota',`<div class="note-compose modal-form"><div class="note-compose-top"><span id="noteSaveStatus" class="note-save-status" data-state="${editing?'saved':'idle'}">${editing?'✓ Guardado':'Empieza a escribir…'}</span></div><label>Título<input id="noteTitle" type="text" maxlength="120" value="${escAttr(title)}" placeholder="Se generará automáticamente al escribir"></label><div class="small muted note-title-help">Nexo propone el título a partir de la idea principal. Si lo cambias tú, dejará de modificarlo.</div><label>Anotación<textarea id="noteBody" rows="10" placeholder="Escribe o dicta lo que quieras conservar…">${esc(body)}</textarea></label><div class="small muted">Autoguardado local: no necesitas pulsar Guardar.</div></div><div id="noteSavedActions" class="modal-actions wrap-actions ${editing?'':'hidden'}"><button id="noteDelete" class="danger-button" type="button">Eliminar</button><button id="noteShare" class="secondary-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button></div>`);
   state.noteEditor={id:editing?Number(id):0,titleManual,lastSaved:editing?`${titleManual?'1':'0'}\n${title.trim()}\n${String(existing.body||'').trim()}`:'',timer:null};
   const titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
   bodyEl.addEventListener('input',()=>{if(!state.noteEditor?.titleManual)refreshAutoNoteTitle();scheduleNoteAutosave();});
@@ -1074,11 +1084,6 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
     if(titleEl.value.trim())ed.titleManual=true;
     else{ed.titleManual=false;refreshAutoNoteTitle();}
     scheduleNoteAutosave();
-  });
-  $('#noteVoiceBtn').addEventListener('click',()=>{
-    const ed=state.noteEditor;if(!ed)return;
-    const noteId=flushNoteAutosave(),currentBody=bodyEl.value.trim(),currentTitle=titleEl.value.trim(),manual=!!ed.titleManual;
-    state.noteEditor=null;closeModal();startNoteVoice(currentBody,noteId,currentTitle,manual);
   });
   const share=()=>{const ed=state.noteEditor;if(!ed)return;const noteId=flushNoteAutosave();if(noteId>0)NexoNative.shareNexoItem(noteId,0,false);};
   const del=()=>{
@@ -1955,7 +1960,7 @@ function openPanel(panel,options={}){
   $('#panelTitle').textContent=cfg[0];$('#panelSubtitle').textContent=cfg[1];$('#panelAction').innerHTML='';
   if(panel==='appointments')renderAppointmentsPanel();
   else if(panel==='lists') renderListsPanel();
-  else if(panel==='inbox'){renderInboxPanel();NexoNative.scanInputHubNow();}
+  else if(panel==='inbox') renderInboxPanel();
   else if(panel==='history') renderHistoryPanel();
   else if(panel==='backup') renderBackupPanel();
   else if(panel==='medications') renderMedicationsPanel();
@@ -3165,7 +3170,7 @@ function documentDescription(item){
 
 function documentCard(i){
   const own=i.type==='document',id=Number(i.id),description=documentDescription(i)||i.attachmentName||'Documento',label=own?String(i.subcategory||'').trim():'';
-  return `<article class="document-card" data-document-card="${id}"><button type="button" class="document-open" data-document-open="${id}" aria-label="Abrir ${escAttr(i.attachmentName||'documento')}">${label?`<span class="document-label">${esc(label)}</span>`:''}<span class="document-description">${esc(description)}</span><span class="document-filename">${uiIcon('file')}${esc(i.attachmentName||'Sin archivo adjunto')}</span></button><div class="record-card-actions">${own?recordIconAction('edit','Editar documento',`data-document-edit="${id}"`):''}${i.attachmentPath?recordIconAction('share','Compartir documento',`data-document-share="${id}"`):''}${own?recordIconAction('trash','Eliminar documento',`data-document-delete="${id}"`,'icon-action--danger'):''}</div>${i.attachmentPath?`<div class="document-actions"><button type="button" class="secondary-button" data-document-open="${id}">Abrir archivo</button><button type="button" class="secondary-button" data-document-download="${id}">${uiIcon('download')} Descargar</button></div>`:''}${!own?`<button type="button" class="document-source text-button" data-document-source="${id}">Ver ${esc(typeLabel(i.type).toLowerCase())} de origen</button>`:''}</article>`;
+  return `<article class="document-card" data-document-card="${id}"><button type="button" class="document-open" data-document-open="${id}" aria-label="Abrir ${escAttr(i.attachmentName||'documento')}">${label?`<span class="document-label">${esc(label)}</span>`:''}<span class="document-description">${esc(description)}</span><span class="document-filename">${uiIcon('file')}${esc(i.attachmentName||'Sin archivo adjunto')}</span></button><div class="record-card-actions">${own?recordIconAction('edit','Editar documento',`data-document-edit="${id}"`):''}${i.attachmentPath?recordIconAction('share','Compartir documento',`data-document-share="${id}"`):''}${own?recordIconAction('trash','Eliminar documento',`data-document-delete="${id}"`,'icon-action--danger'):''}</div>${i.attachmentPath?`<div class="document-actions"><button type="button" class="secondary-button" data-document-download="${id}">${uiIcon('download')} Descargar</button></div>`:''}${!own?`<button type="button" class="document-source text-button" data-document-source="${id}">Ver ${esc(typeLabel(i.type).toLowerCase())} de origen</button>`:''}</article>`;
 }
 function bindDocumentButtons(root){
   root.querySelectorAll('[data-document-edit]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openDocumentEditor(Number(b.dataset.documentEdit));}));
