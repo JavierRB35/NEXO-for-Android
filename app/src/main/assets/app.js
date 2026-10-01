@@ -383,17 +383,25 @@ function updateFloatingActions(){
   const contentPanel=state.screen==='panel'&&state.lastPanel!=='backup';
   const voiceVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||state.screen==='save'||contentPanel);
   const eventVisible=!modalOpen&&(state.screen==='today'||state.screen==='calendar'||state.screen==='search'||state.screen==='tools'||contentPanel||state.screen==='panel'&&state.lastPanel==='appointments');
+  const notesContext=state.screen==='panel'&&state.lastPanel==='notes';
   voice.classList.remove('is-recording');
-  voice.setAttribute('aria-label','Hablar con Nexo');voice.setAttribute('title','Hablar con Nexo');
+  voice.setAttribute('aria-label',notesContext?'Dictar nota':'Hablar con Nexo');
+  voice.setAttribute('title',notesContext?'Dictar nota':'Hablar con Nexo');
+  add.setAttribute('aria-label',notesContext?'Nueva nota':'Añadir evento');
+  add.setAttribute('title',notesContext?'Nueva nota':'Añadir evento');
   voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!eventVisible);
 }
-function runEventAddFab(){const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);}
+function runEventAddFab(){
+  if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
+  const today=isoDateLocal(new Date());prepareCaptureForDate(state.screen==='calendar'?(state.calendarSelected||today):today);
+}
 function runFloatingVoice(){
   if(state.screen==='save'){
     const base=$('#captureText')?.value.trim()||'';
     startManagedDictation('capture-edit',{base,title:'Habla con Nexo',hint:'Dicta o amplía la tarea. Nexo volverá a interpretar fecha, hora, lugar y avisos.'});
     return;
   }
+  if(state.screen==='panel'&&state.lastPanel==='notes'){startNoteVoice();return;}
   if(state.screen==='panel'&&state.lastPanel==='quotes'){startJournalVoice('','quote');return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){startJournalVoice('','');return;}
   if(state.screen==='panel'&&state.lastPanel==='medications'){startMedicationVoice('');return;}
