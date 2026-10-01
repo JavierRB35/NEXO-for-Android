@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.0-beta18 · versionCode 83 · Sincronización directa con Nexo Familia
+
+- Sustituye el panel antiguo de reparación/JSON por una vinculación directa con **Nexo Familia mediante Supabase Auth**.
+- La vinculación usa el correo y contraseña del usuario de Nexo Familia; la contraseña no se guarda.
+- Access/refresh token se almacenan cifrados con **Android Keystore + AES-GCM**.
+- La primera importación descarga y valida los eventos antes de sustituir únicamente la agenda local; no toca notas, listas, medicación, documentos, lugares, Cuaderno ni grabaciones.
+- Cada evento conserva el **UUID original de Supabase** y el estado fuente (`pending`, `completed`, `cancelled`).
+- Tras la migración inicial, **solo se añaden UUID nuevos**. Un evento ya existente en Nexo Android no vuelve a modificarse aunque cambie después en Nexo Familia.
+- Se importan eventos pasados, presentes y futuros, junto con las reglas de aviso de los eventos nuevos.
+- La snapshot empaquetada deja de ejecutarse automáticamente al arrancar y queda solo como compatibilidad histórica.
+- Rediseño responsive del panel para evitar desbordes laterales en móvil.
+- Baseline AndroidIDE sin cambios: JDK 17, SDK 34, Build Tools 34.0.4, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.0-beta17 · versionCode 82 · Estado, edición y acceso a Agenda
 
 - Corrige la persistencia del estado manual de citas: **Completada**, **Pospuesta**, **Cancelada** y **Pendiente** ya no son sustituidos por la fecha durante el guardado.
