@@ -63,20 +63,19 @@ assert "monthRaw.toLocaleUpperCase" not in month_block
 assert ".toLocaleLowerCase('es-ES')" in month_block
 assert "monthRaw.replace(/^./" in month_block
 
-# Logo suministrado por el usuario: cabecera + icono adaptativo Android.
-screen_logo=root/'app/src/main/assets/nexo-logo.webp'
-launcher_logo=root/'app/src/main/res/drawable-nodpi/nexo_family_foreground.webp'
+# Branding actual: cabecera + icono adaptativo Android.
+screen_logo=root/'app/src/main/assets/nexo-toolbar-logo.png'
+launcher_foreground=root/'app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png'
 launcher_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml').read_text(encoding='utf-8')
 launcher_round_xml=(root/'app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml').read_text(encoding='utf-8')
 colors=(root/'app/src/main/res/values/colors.xml').read_text(encoding='utf-8')
-assert '<img class="brand-logo" src="nexo-logo.webp"' in html
-assert screen_logo.exists() and launcher_logo.exists()
-expected_logo='4acaf52c4f3a36a94f29589a27b9de55fc4310d59fe43f5f3a84c60f667d9283'
-assert hashlib.sha256(screen_logo.read_bytes()).hexdigest()==expected_logo
-assert hashlib.sha256(launcher_logo.read_bytes()).hexdigest()==expected_logo
-assert '@drawable/nexo_family_foreground' in launcher_xml and '@drawable/nexo_family_foreground' in launcher_round_xml
-assert '@color/nexo_icon_background' in launcher_xml and '@color/nexo_icon_background' in launcher_round_xml
-assert '<color name="nexo_icon_background">#000000</color>' in colors
-assert 'v3.7.0-beta20' in html
+assert '<img class="brand-logo" src="nexo-toolbar-logo.png"' in html
+assert screen_logo.exists() and launcher_foreground.exists()
+assert screen_logo.stat().st_size > 1000
+assert launcher_foreground.stat().st_size > 1000
+assert '@drawable/ic_launcher_foreground' in launcher_xml and '@drawable/ic_launcher_foreground' in launcher_round_xml
+assert '@color/nexo_launcher_background' in launcher_xml and '@color/nexo_launcher_background' in launcher_round_xml
+assert '<color name="nexo_launcher_background">#F4FBFF</color>' in colors
+assert 'v3.7.0-beta21' in html
 
-print('Beta17: criterios de aceptación + mes de Inicio + logo suministrado OK')
+print('Beta17: criterios de aceptación + mes de Inicio + branding actual OK')

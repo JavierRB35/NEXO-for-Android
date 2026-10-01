@@ -2061,3 +2061,182 @@ main{max-width:720px}
   .family-sync-card .backup-icon{width:36px;height:36px;border-radius:11px}
   .family-sync-heading{align-items:flex-start;flex-direction:column;gap:5px}
 }
+
+
+/* Nexo 3.7.0-beta21 · formularios compactos y branding moderno */
+.event-form-grid{
+  grid-template-columns:1fr;
+  gap:12px;
+}
+.event-form-grid>.form-span-2{grid-column:1/-1}
+
+.event-range-grid,
+.event-settings-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px 12px;
+  min-width:0;
+}
+.event-range-grid>label,
+.event-settings-grid>label{
+  min-width:0;
+}
+.event-range-grid .date-wrap{
+  min-width:0;
+  min-height:52px;
+  padding:0 8px;
+  border-radius:14px;
+}
+.event-range-grid input[type="date"],
+.event-range-grid input[type="time"]{
+  width:100%;
+  min-width:0;
+  min-height:50px;
+  padding:0 1px!important;
+  border:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+  font-size:.94rem;
+  font-weight:750;
+}
+.event-all-day-row{
+  min-height:46px;
+  padding:5px 2px;
+  align-items:center;
+}
+.event-all-day-row input[type="checkbox"]{
+  width:24px;
+  height:24px;
+  flex:0 0 auto;
+}
+.event-all-day-row>span{
+  display:grid;
+  gap:2px;
+}
+.event-all-day-row small{
+  display:block;
+  color:var(--muted);
+  font-size:.76rem;
+  font-weight:500;
+  line-height:1.35;
+}
+.event-settings-grid{
+  margin-top:14px;
+}
+.event-settings-grid select{
+  width:100%;
+  min-width:0;
+  min-height:52px;
+}
+.capture-basics>label,
+.capture-basics .event-range-grid label,
+.detail-grid .event-range-grid label{
+  color:var(--text);
+  font-weight:750;
+}
+.capture-basics input[type="text"],
+.capture-basics textarea,
+.capture-basics select,
+.detail-grid input[type="text"],
+.detail-grid textarea,
+.detail-grid select,
+.modal-form input[type="text"],
+.modal-form input[type="number"],
+.modal-form select,
+.modal-form textarea{
+  border-radius:14px;
+}
+.form-field-label{
+  display:block;
+  color:var(--text);
+  font-weight:750;
+}
+.multi-time-field{
+  display:grid!important;
+  gap:9px;
+}
+.multi-time-heading{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.multi-time-picker{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.multi-time-row{
+  position:relative;
+  min-width:0;
+}
+.multi-time-row input[type="time"]{
+  width:100%;
+  min-width:0;
+  min-height:52px;
+  padding:0 42px 0 10px;
+  border:1px solid #dce1e9;
+  border-radius:14px;
+  outline:0;
+  background:#fff;
+  color:var(--text);
+  font-size:.95rem;
+  font-weight:750;
+}
+.multi-time-row input[type="time"]:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(49,88,212,.10);
+}
+.multi-time-remove{
+  position:absolute;
+  top:6px;
+  right:6px;
+  width:40px;
+  height:40px;
+  padding:0;
+  border:0;
+  border-radius:10px;
+  background:#eef2f7;
+  color:#68758a;
+  font-size:1.35rem;
+  line-height:1;
+}
+.multi-time-add{
+  justify-self:start;
+  min-height:44px;
+}
+
+@media(max-width:520px){
+  .event-form-grid{
+    grid-template-columns:1fr!important;
+  }
+  .event-range-grid,
+  .event-settings-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px;
+  }
+  .event-range-grid .date-wrap{
+    padding-inline:6px;
+  }
+  .event-range-grid input[type="date"],
+  .event-range-grid input[type="time"]{
+    font-size:.88rem;
+  }
+  .event-range-grid label,
+  .event-settings-grid label{
+    font-size:.79rem;
+  }
+}
+@media(max-width:350px){
+  .event-range-grid{
+    gap:6px;
+  }
+  .event-range-grid input[type="date"],
+  .event-range-grid input[type="time"]{
+    font-size:.82rem;
+  }
+  .multi-time-picker{
+    grid-template-columns:1fr;
+  }
+}
