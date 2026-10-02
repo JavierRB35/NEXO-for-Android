@@ -41,6 +41,8 @@ public final class GmailFilterSelfTest {
                 "una reserva confirmada debe capturarse");
         expect(gmail("Recoge tu pedido mañana"),
                 "una acción concreta para el usuario debe capturarse");
+        expect(gmail("Rv: Recordatorio: Cumpleaños de Valentin Miragany\nSu aviso para Cumpleaños de Valentin Miragany\n27/09/2026\nTodo el día"),
+                "un recordatorio reenviado de cumpleaños debe capturarse");
 
         JSONObject explained=RuleClassifier.classify("Tu póliza vence el 30/11").toJson();
         expect(NotificationCandidateFilter.shouldCaptureGmail("Tu póliza vence el 30/11",explained),

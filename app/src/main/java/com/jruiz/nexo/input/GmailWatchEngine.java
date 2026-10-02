@@ -30,8 +30,9 @@ public final class GmailWatchEngine {
     private static final String API = "https://gmail.googleapis.com/gmail/v1/users/me";
 
     // No se limita a INBOX: un filtro/regla de Gmail puede archivar automáticamente
-    // un correo relevante. Se excluyen enviados y borradores, no el correo recibido.
-    private static final String QUERY = "newer_than:30d -in:sent -in:drafts";
+    // un correo relevante. Se excluyen borradores y los enviados puros, pero se conservan
+    // mensajes que Gmail marca a la vez como SENT e INBOX (p. ej. reenvíos/a uno mismo).
+    private static final String QUERY = "newer_than:30d -in:drafts {-in:sent in:inbox}";
     private static final String FILTER_REVISION = "gmail-filter-v7:";
     private static final long DEDUPE_WINDOW_MS = 45L * 60L * 1000L;
     private static final int MAX_TEXT_ATTACHMENT_BYTES = 256 * 1024;

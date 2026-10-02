@@ -324,7 +324,7 @@ public final class TranscriptionModelManager {
         File tmp=new File(target.getPath()+".part");if(tmp.exists())tmp.delete();
         HttpURLConnection con=(HttpURLConnection)new URL(url).openConnection();
         con.setInstanceFollowRedirects(true);con.setConnectTimeout(30000);con.setReadTimeout(60000);
-        con.setRequestProperty("User-Agent","Nexo-Android/3.7.5");
+        con.setRequestProperty("User-Agent","Nexo-Android/3.7.6");
         int code=con.getResponseCode();if(code<200||code>=400)throw new IOException("Descarga HTTP "+code);
         long len=con.getContentLengthLong(),done=0;byte[] buf=new byte[64*1024];int last=-1;
         try(InputStream in=new BufferedInputStream(con.getInputStream());OutputStream out=new BufferedOutputStream(new FileOutputStream(tmp))){
