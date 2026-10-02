@@ -1,5 +1,13 @@
 # Changelog de Nexo
 
+## 3.7.1 · versionCode 94 · Hotfix Calendar/Inbox
+
+- Corrige el error `no column named revisit` al guardar elementos en instalaciones actualizadas desde esquemas anteriores.
+- `revisit` queda limitado al Cuaderno (`journal_entries`); `items` deja de depender de una columna que no existía en todas las bases v24.
+- Calendar busca una coincidencia inequívoca por título, fecha/hora y tipo de día completo antes de crear un elemento nuevo.
+- Las capturas de Calendar ya existentes en Inbox también intentan ese enlace al abrirse, evitando duplicados cuando el evento ya está en Nexo.
+- El esquema lógico continúa en **nexo.db v24** y no se aplica ninguna migración destructiva.
+
 ## 3.7.0 · versionCode 93 · Base estable
 
 - Se consolida como versión estable la línea validada hasta **3.7.0-beta22.4**.
