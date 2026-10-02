@@ -2648,7 +2648,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public long findRecentEquivalentInboxCapture(String sourceFamily, String sender, String text, long windowMs) {
         String target = normalizeInboxText(text);
         if (target.isBlank()) return 0L;
-        String targetSender = normalizeInboxText(sender);
+        String targetSender = normalizeInboxSender(sender);
         long cutoff = System.currentTimeMillis() - Math.max(60_000L, windowMs);
         String sql = "SELECT id,source,source_package,sender,raw_text FROM inbox_captures " +
                 "WHERE created_at>=? AND status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 120";
@@ -2658,7 +2658,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 String pkg = c.isNull(2) ? "" : c.getString(2);
                 if (!sameInboxSourceFamily(sourceFamily, source, pkg)) continue;
 
-                String candidateSender = normalizeInboxText(c.isNull(3) ? "" : c.getString(3));
+                String candidateSender = normalizeInboxSender(c.isNull(3) ? "" : c.getString(3));
                 String candidate = normalizeInboxText(c.isNull(4) ? "" : c.getString(4));
                 if (candidate.isBlank()) continue;
 
@@ -2672,8 +2672,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 // El texto por sí solo no identifica una comunicación: dos remitentes
                 // distintos pueden enviar exactamente el mismo contenido.
                 boolean senderMatch = targetSender.isBlank() || candidateSender.isBlank() ||
-                        candidateSender.equals(targetSender) ||
-                        candidateSender.contains(targetSender) || targetSender.contains(candidateSender);
+                        candidateSender.equals(targetSender);
                 if (senderMatch) return c.getLong(0);
             }
         } catch (Exception ignored) {}
@@ -2693,6 +2692,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     p.contains("message") || "android.sms".equals(p);
         }
         return true;
+    }
+
+    private static String normalizeInboxSender(String value) {
+        String normalized = normalizeInboxText(value);
+        if (normalized.isBlank()) return "";
+
+        java.util.regex.Matcher email = java.util.regex.Pattern
+                .compile("[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}")
+                .matcher(normalized);
+        if (email.find()) return email.group();
+
+        String digits = normalized.replaceAll("[^0-9]+", "");
+        if (digits.length() >= 7) {
+            // Igualamos +34 612 345 678 y 612345678 sin confundir nombres parciales.
+            return digits.length() > 9 ? digits.substring(digits.length() - 9) : digits;
+        }
+        return normalized.replaceAll("[^a-z0-9]+", " ").trim();
     }
 
     private static String normalizeInboxText(String value) {
