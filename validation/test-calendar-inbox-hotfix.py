@@ -20,7 +20,7 @@ assert calendar.count("findMatchingCalendarItem") >= 3, "Calendar debe enlazar e
 assert "normalizedDueAt(event)" in calendar
 assert "@JavascriptInterface public long findMatchingCalendarItem" in main
 assert "NexoNative.findMatchingCalendarItem" in app, "Inbox debe reparar capturas Calendar antiguas al abrirlas"
-assert "versionCode 94" in gradle and "versionName '3.7.1'" in gradle
-assert "private static final int DB_VERSION = 24;" in db, "hotfix sin migración destructiva"
+assert "versionCode 95" in gradle and "versionName '3.7.2'" in gradle
+assert "private static final int DB_VERSION = 25;" in db, "3.7.2 usa migración incremental segura"
 
-print("OK: hotfix Calendar/Inbox 3.7.1 validado")
+print("OK: Calendar/Inbox 3.7.2 validado")
