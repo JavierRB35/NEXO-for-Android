@@ -25,7 +25,10 @@ assert 'function showNoteUnsavedGuard()' in js
 assert 'data-note-close-save' in js
 assert 'data-note-close-discard' in js
 assert 'data-note-close-cancel' in js
-assert "if(noteWasOpen&&!force&&noteHasUnsavedChanges())" in js
+assert 'const forced=force===true;' in js
+assert "if(noteWasOpen&&!forced&&noteHasUnsavedChanges())" in js
+# Un evento DOM pasado por addEventListener no puede actuar como force=true.
+assert "$('#modalClose').addEventListener('click',closeModal)" in js
 
 # El borrador temporal es solo una red de recuperación; ocultar/cerrar WebView no guarda en BD.
 assert 'nexo-note-recovery-v1-' in js

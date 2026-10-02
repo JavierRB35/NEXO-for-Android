@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.7.3 · versionCode 96 · Notas y calidad de transcripción
+
+- El micrófono vuelve a estar disponible al editar una nota existente y permite continuar dictando sobre esa misma nota.
+- El texto dictado queda en el editor como cambio pendiente; la nota real sigue guardándose únicamente al pulsar el disquete.
+- La X, el botón Atrás y el cierre del editor ya no pueden descartar cambios de una nota sin mostrar “Cambios sin guardar”.
+- Grabadora / Transcripción incorpora tres perfiles locales: **Rápida** (Whisper Base INT8), **Alta precisión** (Whisper Small INT8) y **Máxima precisión** (Whisper Medium INT8), siempre multilingües.
+- Los modelos se descargan bajo demanda fuera del APK, se verifican antes de utilizarse, se conservan localmente y pueden eliminarse desde Ajustes.
+- Nexo muestra RAM y almacenamiento disponibles, recomienda un perfil según el dispositivo y bloquea la carga de modelos cuando no existe un margen razonable de memoria.
+- Cada transcripción conserva la calidad con la que se inició, muestra nivel, estado, progreso y cancelación, y continúa ejecutándose en el proceso local aislado `:transcription`.
+- Se mantienen sin cambios las grabaciones existentes, los TXT ya transcritos, la base de datos `nexo.db v25`, sherpa-onnx 1.13.7 y el baseline AndroidIDE/JDK 17/SDK 34/Gradle 8.9/AGP 8.7.3.
+
 ## 3.7.2 · versionCode 95 · Fiabilidad e integridad de datos
 
 - Notas elimina el autoguardado de la nota real: el usuario guarda explícitamente con el botón de disquete.

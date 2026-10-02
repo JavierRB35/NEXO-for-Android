@@ -34,11 +34,13 @@ for control in ['editItemTopBtn','shareItemBtn','deleteItemBtn','editOccurrenceT
     assert control in js, control
 assert '.record-form-actions' in css
 
-# FAB en horizontal.
-start=css.index('.floating-actions{')
-block=css[start:css.index('}',start)+1]
+# FAB base en horizontal. Hay reglas contextuales posteriores para editores,
+# por lo que buscamos el bloque que realmente define el contenedor fijo.
+blocks=re.findall(r'\.floating-actions\s*\{[^}]*\}',css)
+block=next((b for b in blocks if 'position:fixed' in b),'')
 assert 'display:flex' in block
 assert 'flex-direction:row' in block
+assert '.note-editor-open .floating-actions{z-index:130}' in css
 
-assert 'v3.7.2' in html
+assert 'v3.7.3' in html
 print('Beta17 conserva las correcciones beta13 de interacción: OK')

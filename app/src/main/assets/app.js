@@ -1224,6 +1224,8 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
     lastSaved:savedSignature,
     draftKey:noteDraftStorageKey(Number(id)||0)
   };
+  document.body.classList.add('note-editor-open');
+  requestAnimationFrame(updateFloatingActions);
   const titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
 
   if(dirty)persistNoteRecoveryDraft();
@@ -1308,10 +1310,12 @@ function startRecordingPolling(initial){
 }
 function transcriptionStatus(id){return parseNative(NexoNative.getTranscriptionStatus(String(id)),{});}
 function transcriptionSummary(id){
-  const t=transcriptionStatus(id),stateName=String(t.state||'idle');
-  if(NexoNative.hasTranscription(String(id))||stateName==='done')return `<div class="transcription-status done"><strong>TRANSCRIPCIÓN TERMINADA</strong><span>El texto está guardado localmente.</span><button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver texto</button></div>`;
-  if(stateName==='running'||stateName==='starting')return `<div class="transcription-status running"><strong>${esc(t.message||'Transcribiendo…')}</strong><span>${Math.max(0,Number(t.progress||0))}%</span><progress max="100" value="${Math.max(0,Number(t.progress||0))}"></progress><button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar</button></div>`;
-  if(stateName==='error')return `<div class="transcription-status error"><strong>ERROR DE TRANSCRIPCIÓN</strong><span>${esc(t.message||'El motor no pudo completar la transcripción.')}</span><button class="secondary-button" data-transcription-diagnostic="${escAttr(id)}">Copiar diagnóstico</button></div>`;
+  const t=transcriptionStatus(id),stateName=String(t.state||'idle'),quality=String(t.qualityLabel||'').trim();
+  const qualityText=quality?'Calidad: '+quality:'';
+  if(NexoNative.hasTranscription(String(id))||stateName==='done')return `<div class="transcription-status done"><strong>TRANSCRIPCIÓN TERMINADA</strong><span>${esc(qualityText?qualityText+' · El texto está guardado localmente.':'El texto está guardado localmente.')}</span><button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver texto</button></div>`;
+  if(stateName==='running'||stateName==='starting')return `<div class="transcription-status running"><strong>TRANSCRIBIENDO${quality?' · '+esc(quality):''}</strong><span>${esc(t.message||'Procesando audio…')} · ${Math.max(0,Number(t.progress||0))}%</span><progress max="100" value="${Math.max(0,Number(t.progress||0))}"></progress><button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar</button></div>`;
+  if(stateName==='error')return `<div class="transcription-status error"><strong>ERROR DE TRANSCRIPCIÓN${quality?' · '+esc(quality):''}</strong><span>${esc(t.message||'El motor no pudo completar la transcripción.')}</span><button class="secondary-button" data-transcription-diagnostic="${escAttr(id)}">Copiar diagnóstico</button></div>`;
+  if(stateName==='cancelled')return `<div class="transcription-status"><strong>Transcripción cancelada</strong>${quality?`<span>Calidad: ${esc(quality)}</span>`:''}</div>`;
   return '';
 }
 function stopTranscriptionPolling(){if(state.transcriptionPoll){clearInterval(state.transcriptionPoll);state.transcriptionPoll=0;}}
@@ -1326,11 +1330,14 @@ function recordingCard(r,modelStatus=null){
   const player=playing?`<div class="recording-player" data-recording-player="${escAttr(r.id)}"><input class="recording-seek" data-recording-seek="${escAttr(r.id)}" type="range" min="0" max="${Math.max(1,Number(r.durationMs||1))}" value="0" step="250"><div class="recording-player-row"><span data-recording-time="${escAttr(r.id)}">00:00 / ${recordingDuration(r.durationMs||0)}</span><div class="recording-speed" role="group" aria-label="Velocidad"><button data-recording-speed="1" type="button">1×</button><button data-recording-speed="1.5" type="button">1,5×</button><button data-recording-speed="2" type="button">2×</button></div></div></div>`:'';
   const id=String(r.id),transcribed=NexoNative.hasTranscription(id),t=transcriptionStatus(id),stateName=String(t.state||'idle');
   const running=stateName==='running'||stateName==='starting';
-  const model=modelStatus||parseNative(NexoNative.getTranscriptionModelStatus(),{});
+  const model=modelStatus||parseNative(NexoNative.getTranscriptionModelStatus(),{}),activeModel=selectedTranscriptionModel(model);
+  const ready=!!model.installed&&activeModel.canRun!==false;
   const transcribeAction=!transcribed&&!running
-    ?(model.installed
-      ?`<button class="secondary-button recording-transcribe-button" data-transcription-start="${escAttr(id)}">${stateName==='error'?'Reintentar transcripción':'Transcribir'}</button>`
-      :`<button class="secondary-button recording-transcribe-button" data-transcription-needs-model="${escAttr(id)}">Transcribir</button>`)
+    ?(ready
+      ?`<button class="secondary-button recording-transcribe-button" data-transcription-start="${escAttr(id)}">${stateName==='error'?'Reintentar transcripción':'Transcribir · '+esc(activeModel.label||model.qualityLabel||'')}</button>`
+      :(model.installed
+        ?`<button class="secondary-button recording-transcribe-button" type="button" disabled>Recursos insuficientes</button>`
+        :`<button class="secondary-button recording-transcribe-button" data-transcription-needs-model="${escAttr(id)}">Transcribir</button>`))
     :'';
   return `<div class="recording-card"><div class="recording-card-main"><div><strong>${esc(r.title||'Grabación')}</strong><span>${esc(fmtDate(Number(r.startedAt||0),true))}</span></div><div class="recording-meta"><span>${esc(recordingDuration(r.durationMs||0))}</span><span>${esc(recordingSize(r.sizeBytes||0))}${transcribed?' · Transcrita':''}</span></div></div>${player}<div data-transcription-host="${escAttr(id)}">${transcriptionSummary(id)}</div><div class="recording-actions"><button class="primary-button" data-recording-play="${escAttr(id)}">${uiIcon(playing?'close':'play')}${playing?' Detener':' Reproducir'}</button>${transcribed?`<button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver texto</button>`:transcribeAction}<button class="secondary-button recording-options-button" data-recording-menu="${escAttr(id)}" aria-label="Opciones de ${escAttr(r.title||'grabación')}">⋯ Opciones</button><div class="record-card-actions">${recordIconAction('edit','Renombrar grabación',`data-recording-rename="${escAttr(id)}"`)}${recordIconAction('share','Compartir audio',`data-recording-share="${escAttr(id)}"`)}${recordIconAction('trash','Eliminar grabación',`data-recording-delete="${escAttr(id)}"`,'icon-action--danger')}</div></div></div>`;
 }
@@ -1361,7 +1368,7 @@ function bindRecordingButtons(root){
   root.querySelectorAll('[data-recording-speed]').forEach(b=>b.addEventListener('click',()=>{NexoNative.setRecordingPlaybackSpeed(Number(b.dataset.recordingSpeed||1));updateRecordingPlaybackUi();}));
   root.querySelectorAll('[data-transcription-view]').forEach(b=>b.addEventListener('click',()=>openTranscription(String(b.dataset.transcriptionView))));
   root.querySelectorAll('[data-transcription-start]').forEach(b=>b.addEventListener('click',()=>{const id=String(b.dataset.transcriptionStart),fromModal=!!b.closest('#modalBody');b.disabled=true;b.textContent='Iniciando…';NexoNative.transcribeRecording(id);if(fromModal)closeModal();startTranscriptionPolling();toast('Preparando el archivo para transcripción…');}));
-  root.querySelectorAll('[data-transcription-needs-model]').forEach(b=>b.addEventListener('click',()=>{const fromModal=!!b.closest('#modalBody');confirmGeneric('Preparar transcripción','Para transcribir sin enviar el audio a Internet, Nexo necesita descargar una vez Whisper Base multilingüe INT8 (~161 MB).',()=>{if(fromModal)closeModal();NexoNative.downloadTranscriptionModel();toast('Descargando modelo de transcripción…','',null,5000);},'Descargar');}));
+  root.querySelectorAll('[data-transcription-needs-model]').forEach(b=>b.addEventListener('click',()=>{const fromModal=!!b.closest('#modalBody'),status=parseNative(NexoNative.getTranscriptionModelStatus(),{}),model=selectedTranscriptionModel(status),label=String(model.label||status.qualityLabel||'Rápida'),size=transcriptionBytesLabel(model.downloadBytes||0);confirmGeneric('Preparar transcripción','Calidad seleccionada: '+label+'. El modelo se descargará una sola vez ('+size+' aprox.) y el audio seguirá procesándose en local.',()=>{if(fromModal)closeModal();NexoNative.downloadTranscriptionModelQuality(String(model.id||status.selected||'fast'));toast('Descargando modelo '+label+'…','',null,5000);},'Descargar');}));
   root.querySelectorAll('[data-transcription-cancel]').forEach(b=>b.addEventListener('click',()=>NexoNative.cancelTranscription(String(b.dataset.transcriptionCancel))));
   root.querySelectorAll('[data-transcription-copy]').forEach(b=>b.addEventListener('click',()=>{NexoNative.copyTranscription(String(b.dataset.transcriptionCopy));toast('Transcripción copiada');}));
   root.querySelectorAll('[data-transcription-share]').forEach(b=>b.addEventListener('click',()=>NexoNative.shareTranscription(String(b.dataset.transcriptionShare))));
@@ -1379,11 +1386,15 @@ function renderRecordingsPanel(){
   $('#panelAction').innerHTML='';
   const live=status.active?`<div class="recording-live-card ${status.paused?'paused':''}"><div class="recording-live-head"><span class="recording-live-dot"></span><div><strong id="recordingLiveState">${status.paused?'EN PAUSA':'GRABANDO'}</strong><span>${esc(status.title||'Grabación')}</span></div><div id="recordingLiveTimer" class="recording-timer">${esc(recordingDuration(status.elapsedMs||0))}</div></div><div class="recording-live-actions"><button id="recordingPauseBtn" class="secondary-button" type="button">${status.paused?'▶ Continuar':'Ⅱ Pausar'}</button><button id="recordingStopBtn" class="danger-button solid" type="button">■ Terminar</button></div><div class="small muted">La grabación continúa con la pantalla apagada. Android mostrará el indicador de micrófono y una notificación silenciosa.</div></div>`:'';
   const empty=!rows.length&&!status.active?'<div class="empty-state">Todavía no tienes grabaciones. Usa el micrófono flotante para comenzar.</div>':'';
-  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{});const modelCard=model.installed?`<div class="recording-info-card transcription-model-ready"><strong>Transcripción local preparada</strong><span>${esc(model.name||'Whisper Base INT8')} · el audio no sale del teléfono.</span></div>`:`<div class="recording-info-card"><strong>Transcripción local</strong><span>Descarga una vez Whisper Base multilingüe INT8 (~161 MB) para transcribir sin enviar audio a Internet.</span><button id="downloadTranscriptionModel" class="secondary-button" type="button">Descargar modelo</button><div id="transcriptionModelProgress" class="small muted"></div></div>`;
+  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{}),activeModel=selectedTranscriptionModel(model);
+  const modelLabel=String(activeModel.label||model.qualityLabel||'Rápida'),modelSize=transcriptionBytesLabel(activeModel.downloadBytes||0);
+  const modelCard=model.installed
+    ?`<div class="recording-info-card transcription-model-ready"><strong>Transcripción local · ${esc(modelLabel)}</strong><span>${esc(activeModel.modelName||model.name||'Whisper multilingüe INT8')} · el audio no sale del teléfono.${activeModel.canRun===false?' '+esc(activeModel.resourceWarning||'Recursos insuficientes para cargar este modelo ahora.') : ''}</span></div>`
+    :`<div class="recording-info-card"><strong>Transcripción local · ${esc(modelLabel)}</strong><span>Modelo no instalado · descarga aproximada ${esc(modelSize)}. Se descargará fuera del APK y se conservará en este teléfono.</span><button id="downloadTranscriptionModel" class="secondary-button" type="button" ${activeModel.canDownload===false?'disabled':''}>Descargar modelo</button><div id="transcriptionModelProgress" class="small muted">${activeModel.storageWarning?esc(activeModel.storageWarning):''}</div></div>`;
   $('#panelContent').innerHTML=`${live}<div class="recording-info-card"><strong>Grabación local</strong><span>Nexo no emite sonidos al iniciar o terminar. Los archivos se guardan solo en este dispositivo. Usa “Descargas” para crear una copia accesible en Descargas/Nexo.</span></div>${modelCard}${rows.length?`<div class="recording-list">${rows.map(r=>recordingCard(r,model)).join('')}</div>`:empty}`;
   $('#recordingPauseBtn')?.addEventListener('click',()=>{if(status.paused)NexoNative.resumeRecording();else NexoNative.pauseRecording();});
   $('#recordingStopBtn')?.addEventListener('click',()=>{NexoNative.stopRecording();toast('Finalizando y guardando grabación…');});
-  $('#downloadTranscriptionModel')?.addEventListener('click',()=>{const b=$('#downloadTranscriptionModel');b.disabled=true;b.textContent='Descargando…';NexoNative.downloadTranscriptionModel();});
+  $('#downloadTranscriptionModel')?.addEventListener('click',()=>{const b=$('#downloadTranscriptionModel');b.disabled=true;b.textContent='Descargando…';NexoNative.downloadTranscriptionModelQuality(String(activeModel.id||model.selected||'fast'));});
   bindRecordingButtons($('#panelContent'));startRecordingPolling(status);if(rows.some(r=>{const t=transcriptionStatus(r.id);return t.state==='running'||t.state==='starting';}))startTranscriptionPolling();
   updateFloatingActions();
 }
@@ -2019,13 +2030,61 @@ function openPersonEditor(id=0){
   setTimeout(()=>$('#personName')?.focus(),70);
 }
 
+function transcriptionBytesLabel(bytes){
+  const n=Math.max(0,Number(bytes||0));
+  if(n>=1024*1024*1024)return (n/(1024*1024*1024)).toFixed(1)+' GB';
+  return Math.max(1,Math.round(n/(1000*1000)))+' MB';
+}
+function selectedTranscriptionModel(status){
+  const rows=Array.isArray(status?.models)?status.models:[];
+  return rows.find(m=>m&&m.selected)||rows.find(m=>m&&m.id===status?.selected)||rows[0]||{};
+}
+function renderTranscriptionQualitySettings(){
+  const host=$('#transcriptionQualitySettings');if(!host)return;
+  const status=parseNative(NexoNative.getTranscriptionModelStatus(),{}),models=Array.isArray(status.models)?status.models:[],device=status.device||{};
+  const ram=transcriptionBytesLabel(device.totalRamBytes||0),avail=transcriptionBytesLabel(device.availableRamBytes||0),storage=transcriptionBytesLabel(device.storageAvailableBytes||0);
+  const rows=models.map(m=>{
+    const disabled=!m.canRun,selected=!!m.selected,recommended=!!m.recommended,installed=!!m.installed;
+    const warn=String(m.resourceWarning||m.storageWarning||'').trim();
+    const badges=(recommended?'<span class="transcription-quality-badge recommended">Recomendado para este dispositivo</span>':'')+(selected?'<span class="transcription-quality-badge selected">Seleccionada</span>':'');
+    const stateText=installed?'Modelo instalado · '+transcriptionBytesLabel(m.installedBytes):'Modelo no instalado · descarga aprox. '+transcriptionBytesLabel(m.downloadBytes);
+    let action='';
+    if(installed)action='<button type="button" class="ghost-button" data-transcription-model-delete="'+escAttr(m.id)+'">Eliminar modelo</button>';
+    else if(selected)action='<button type="button" class="secondary-button" data-transcription-model-download="'+escAttr(m.id)+'" '+(m.canDownload?'':'disabled')+'>Descargar</button>';
+    else action='<span class="small muted">Selecciona este nivel para poder descargarlo.</span>';
+    return '<article class="transcription-quality-card '+(selected?'is-selected ':'')+(disabled?'is-disabled':'')+'"><label class="transcription-quality-choice"><input type="radio" name="transcriptionQuality" data-transcription-quality="'+escAttr(m.id)+'" '+(selected?'checked ':'')+(disabled?'disabled':'')+'><span><strong>'+esc(m.label||m.id)+'</strong><small>'+esc(m.modelName||'Whisper multilingüe INT8')+'</small></span></label>'+badges+'<p>'+esc(m.description||'')+'</p><div class="transcription-quality-meta"><span>'+stateText+'</span><span>RAM estimada: '+transcriptionBytesLabel(m.estimatedRamBytes)+'</span></div>'+(warn?'<div class="transcription-quality-warning">'+esc(warn)+'</div>':'')+'<div class="transcription-quality-actions">'+action+'<span class="small muted" data-transcription-model-progress="'+escAttr(m.id)+'"></span></div></article>';
+  }).join('');
+  host.innerHTML='<div class="transcription-device-summary"><strong>Recursos del dispositivo</strong><span>RAM total '+ram+' · disponible '+avail+' · almacenamiento libre '+storage+'</span></div>'+rows;
+  host.querySelectorAll('[data-transcription-quality]').forEach(input=>input.addEventListener('change',()=>{
+    const id=String(input.dataset.transcriptionQuality||'fast'),model=models.find(m=>m.id===id)||{};
+    if(!NexoNative.setTranscriptionQuality(id)){toast(model.resourceWarning||'Este nivel no es seguro con los recursos disponibles.','',null,6500);renderTranscriptionQualitySettings();return;}
+    toast('Calidad de transcripción: '+String(model.label||id));renderTranscriptionQualitySettings();
+    if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+  }));
+  host.querySelectorAll('[data-transcription-model-download]').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=String(btn.dataset.transcriptionModelDownload||'fast'),model=models.find(m=>m.id===id)||{};
+    if(!NexoNative.setTranscriptionQuality(id)){toast(model.resourceWarning||'Este modelo no es compatible con el dispositivo.');return;}
+    btn.disabled=true;btn.textContent='Descargando…';NexoNative.downloadTranscriptionModelQuality(id);
+    const p=host.querySelector('[data-transcription-model-progress="'+CSS.escape(id)+'"]');if(p)p.textContent='Preparando descarga…';
+  }));
+  host.querySelectorAll('[data-transcription-model-delete]').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=String(btn.dataset.transcriptionModelDelete||'fast'),model=models.find(m=>m.id===id)||{};
+    confirmGeneric('Eliminar modelo', 'Se eliminará '+String(model.label||'este modelo')+' del teléfono. Las grabaciones y transcripciones existentes se conservan.', ()=>{
+      const ok=!!NexoNative.deleteTranscriptionModel(id);
+      toast(ok?'Modelo eliminado':'No se puede eliminar un modelo mientras hay una transcripción en curso.');
+      renderTranscriptionQualitySettings();if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+    }, 'Eliminar');
+  }));
+}
+
 function renderMore(){
   $('#startScreen').value=String(NexoNative.getStartScreen()||'today');
   const lists=parseNative(NexoNative.getLists(),[]),preferred=Number(NexoNative.getPreferredShoppingList())||0;
   $('#preferredShoppingList').innerHTML='<option value="0">Elegir al pulsar Mi compra</option>'+lists.map(l=>`<option value="${Number(l.id)}">${esc(l.title)}</option>`).join('');
   $('#preferredShoppingList').value=lists.some(l=>Number(l.id)===preferred)?String(preferred):'0';
-  $$('[data-display-mode]').forEach(b=>{const selected=b.dataset.displayMode===state.displayMode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
+  $('[data-display-mode]').forEach(b=>{const selected=b.dataset.displayMode===state.displayMode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
   renderPeopleSettings();
+  renderTranscriptionQualitySettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
 }
@@ -2689,11 +2748,14 @@ function openModal(title,html){
 
 
 function closeModal(force=false){
+  // Los listeners DOM pasan un Event como primer argumento. Solo el booleano
+  // literal true puede saltarse las protecciones de cierre.
+  const forced=force===true;
   const noteWasOpen=!!state.noteEditor;
-  if(noteWasOpen&&!force&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
+  if(noteWasOpen&&!forced&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
 
   const journalWasOpen=!!state.journalEditor;
-  if(journalWasOpen&&!force){
+  if(journalWasOpen&&!forced){
     flushJournalAutosave();
     if(state.journalEditor?.saveFailed){
       toast('No se pudo guardar la entrada. El texto sigue en pantalla.');
@@ -2709,7 +2771,7 @@ function closeModal(force=false){
   if(journalWasOpen)state.journalEditor=null;
   const medicationWasOpen=!!state.medicationEditor;if(medicationWasOpen)state.medicationEditor=null;
   state.quoteEditor=null;state.placeEditor=null;
-  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
+  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','note-editor-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
   if(noteWasOpen)refreshNotesSurface();
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
   if(state.modalReturnFocus?.isConnected)state.modalReturnFocus.focus({preventScroll:true});state.modalReturnFocus=null;
@@ -3065,9 +3127,26 @@ window.NexoUI={
   onRecordingError(msg){toast(msg||'No se pudo completar la acción de grabación.','',null,5500);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   onRecordingPlaybackStarted(id){state.playingRecordingId=String(id||'');refreshRecordingSurface();setTimeout(startRecordingPlaybackPolling,80);},
   onRecordingPlaybackStopped(id){stopRecordingPlaybackPolling();if(!id||state.playingRecordingId===String(id))state.playingRecordingId='';refreshRecordingSurface();},
-  onTranscriptionModelProgress(raw){const x=parseNative(raw,{}),el=$('#transcriptionModelProgress');if(el)el.textContent=`${x.message||'Descargando…'} ${Number(x.progress||0)}%`;},
-  onTranscriptionModelReady(raw){toast('Modelo de transcripción preparado');if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
-  onTranscriptionModelError(msg){toast(msg||'No se pudo descargar el modelo.','',null,7000);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
+  onTranscriptionModelProgress(raw){
+    const x=parseNative(raw,{}),text=`${x.message||'Descargando…'} ${Number(x.progress||0)}%`,panelEl=$('#transcriptionModelProgress');
+    if(panelEl)panelEl.textContent=text;
+    const id=String(x.modelId||'');
+    if(id){
+      const settingsEl=document.querySelector(`[data-transcription-model-progress="${CSS.escape(id)}"]`);
+      if(settingsEl)settingsEl.textContent=text;
+    }
+  },
+  onTranscriptionModelReady(raw){
+    const x=parseNative(raw,{}),model=selectedTranscriptionModel(x);
+    toast('Modelo '+String(model.label||x.qualityLabel||'de transcripción')+' preparado');
+    if(state.screen==='more')renderTranscriptionQualitySettings();
+    if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+  },
+  onTranscriptionModelError(msg){
+    toast(msg||'No se pudo descargar el modelo.','',null,7000);
+    if(state.screen==='more')renderTranscriptionQualitySettings();
+    if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+  },
   onTranscriptionStarted(id){startTranscriptionPolling();},
   onTranscriptionError(msg){toast(msg||'No se pudo iniciar la transcripción.','',null,7000);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   receiveShare(raw){
@@ -3131,13 +3210,23 @@ window.NexoUI={
     if(state.voiceMode==='document-search'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.documentSearch=combined;renderCollectionPanel('documents');return;}
     if(state.voiceMode==='document-editor'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyDocumentEditorVoice(combined);return;}
     const pinned=state.voicePinnedDate,type=state.voicePinnedType,base=state.voiceBaseText||'';navigate('save');if(pinned){state.capturePinnedDate=pinned;state.capturePinnedType=type||'';state.captureReturn='today';clearCapture(true);$('#captureDate').value=pinned;if(type)$('#captureType').value=type;refreshCaptureAlertEditor();}else if(!base) clearCapture();state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';const combined=[base,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();$('#captureText').value=combined;setInterpretationStatus('working',base?'Dictado añadido · interpretando localmente…':'Voz transcrita · interpretando localmente…');analyzeCapture({immediate:true});toast('Voz transcrita. Revisa lo que Nexo ha entendido.');},
-  onVoiceError(msg){$('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');toast(msg);},
+  onVoiceError(msg){
+    const restoreNote=state.voiceMode==='note',noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,noteBody=state.managedVoiceBase;
+    $('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');
+    if(restoreNote)openNoteComposer(noteId,noteBody,noteTitle,noteTitleManual);
+    toast(msg);
+  },
   onManagedVoiceFallback(msg){$('#voiceOverlay').classList.add('hidden');toast(msg||'Usando el dictado estándar de Android.');},
   onManagedVoiceState(kind){if($('#voiceOverlay').classList.contains('hidden'))return;const label=kind==='processing'?'PROCESANDO UNA PAUSA…':kind==='starting'?'PREPARANDO MICRÓFONO…':'ESCUCHANDO…';$('#managedVoiceStatus').textContent=label;},
   onManagedVoicePartial(text){state.managedVoicePartial=String(text||'').trim();updateManagedVoiceTranscript();},
   onManagedVoiceSegment(text){const value=String(text||'').trim();if(value&&state.managedVoiceSegments[state.managedVoiceSegments.length-1]!==value)state.managedVoiceSegments.push(value);state.managedVoicePartial='';updateManagedVoiceTranscript();},
   onManagedVoiceStopped(){finalizeManagedDictation();},
-  onManagedVoiceError(msg){$('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;toast(msg||'No se pudo continuar el dictado.');},
+  onManagedVoiceError(msg){
+    const restoreNote=state.voiceMode==='note',noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,noteBody=state.managedVoiceBase;
+    $('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;
+    if(restoreNote)openNoteComposer(noteId,noteBody,noteTitle,noteTitleManual);
+    toast(msg||'No se pudo continuar el dictado.');
+  },
   onSystemAlarmCreated(msg){closeModal();toast(msg||'Alarma enviada al sistema del teléfono.','',null,5000);},
   onSystemAlarmError(msg){if($('#alarmCreate')){$('#alarmCreate').disabled=false;$('#alarmCreate').textContent='Intentar de nuevo';}toast(msg||'No se pudo crear la alarma.','',null,6000);},
   onNexoFamiliaLinked(raw){
@@ -3650,9 +3739,20 @@ function refreshNotesSurface(){if(state.screen==='panel'&&state.lastPanel==='not
 function refreshRecordingSurface(){if(state.screen==='search')runSearch();else if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();}
 function openRecordingActions(id){
   const r=parseNative(NexoNative.getRecordings(),[]).find(r=>String(r.id)===String(id));if(!r){toast('La grabación ya no existe');return;}
-  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{}),has=NexoNative.hasTranscription(String(id)),t=transcriptionStatus(id),running=t.state==='running'||t.state==='starting';
-  const transcription=has?`<button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver transcripción</button>`:(running?`<button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar transcripción</button>`:(model.installed?`<button class="primary-button" data-transcription-start="${escAttr(id)}">Transcribir grabación</button>`:`<button class="primary-button" data-transcription-needs-model="${escAttr(id)}">Preparar transcripción</button>`));
-  openModal(r.title||'Grabación',`<div class="scope-buttons">${transcription}<button class="secondary-button" data-recording-share="${escAttr(id)}">${uiIcon('share')} Compartir audio</button><button class="secondary-button" data-recording-export="${escAttr(id)}">${uiIcon('download')} Guardar audio en Descargas</button><button class="secondary-button" data-recording-rename="${escAttr(id)}">${uiIcon('edit')} Renombrar</button><button class="danger-button" data-recording-delete="${escAttr(id)}">Eliminar grabación</button></div><p class="small muted">Los audios se exportan por separado de la copia .nexo.</p>`);
+  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{}),activeModel=selectedTranscriptionModel(model),has=NexoNative.hasTranscription(String(id)),t=transcriptionStatus(id),running=t.state==='running'||t.state==='starting';
+  const ready=!!model.installed&&activeModel.canRun!==false;
+  const label=String(activeModel.label||model.qualityLabel||'Rápida');
+  const transcription=has
+    ?`<button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver transcripción</button>`
+    :(running
+      ?`<button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar transcripción</button>`
+      :(ready
+        ?`<button class="primary-button" data-transcription-start="${escAttr(id)}">Transcribir · ${esc(label)}</button>`
+        :(model.installed
+          ?`<button class="primary-button" type="button" disabled>Recursos insuficientes · ${esc(label)}</button>`
+          :`<button class="primary-button" data-transcription-needs-model="${escAttr(id)}">Preparar ${esc(label)}</button>`)));
+  const warning=model.installed&&activeModel.canRun===false?`<p class="small transcription-quality-warning">${esc(activeModel.resourceWarning||'No hay recursos suficientes para cargar este modelo ahora.')}</p>`:'';
+  openModal(r.title||'Grabación',`<div class="scope-buttons">${transcription}<button class="secondary-button" data-recording-share="${escAttr(id)}">${uiIcon('share')} Compartir audio</button><button class="secondary-button" data-recording-export="${escAttr(id)}">${uiIcon('download')} Guardar audio en Descargas</button><button class="secondary-button" data-recording-rename="${escAttr(id)}">${uiIcon('edit')} Renombrar</button><button class="danger-button" data-recording-delete="${escAttr(id)}">Eliminar grabación</button></div>${warning}<p class="small muted">Calidad seleccionada: ${esc(label)}. Los audios se exportan por separado de la copia .nexo.</p>`);
   bindRecordingButtons($('#modalBody'));
 }
 
