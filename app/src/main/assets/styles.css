@@ -277,6 +277,11 @@ main{max-width:760px;margin:0 auto}.screen{display:none;padding:20px 16px 28px}.
 .note-save-status[data-state="error"]{color:#9b3030;background:#fceeee}
 .note-title-help{margin-top:-7px;line-height:1.35}
 
+/* El micrófono contextual debe seguir accesible mientras se edita una nota. */
+.note-editor-open .floating-actions{z-index:130}
+.note-editor-open .floating-actions .fab-add{display:none!important}
+.note-editor-open .modal-sheet{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+
 
 /* Grabaciones · Nexo 3.1 */
 .recording-start-button{min-width:96px}
