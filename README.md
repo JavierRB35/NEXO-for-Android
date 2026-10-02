@@ -6,7 +6,7 @@ Esta rama de estabilización corresponde a **Nexo 3.7.3**, `versionCode 96`, `ap
 
 ## Base estable
 
-Nexo 3.7.3 mantiene la base estable validada hasta `3.7.0-beta22.4` e incorpora un hotfix de compatibilidad SQLite y enlace Calendar/Inbox.
+Nexo 3.7.3 mantiene la base estable de 3.7.2 y añade correcciones del editor de Notas y selección protegida de calidad para la transcripción local.
 
 Entre los comportamientos ya integrados:
 
@@ -15,11 +15,11 @@ Entre los comportamientos ya integrados:
 - Durante el splash: escaneo resiliente de Inbox y precarga del resumen de Inicio en paralelo.
 - Agenda y Calendario con edición de eventos, recurrencias, participantes, categorías, ubicaciones y festivos.
 - Voz contextual según pantalla y captura universal **Habla con Nexo**.
-- Notas con lectura completa desplazable dentro de la ficha y edición separada.
+- Notas con guardado explícito, aviso al salir con cambios y dictado contextual para continuar una nota abierta.
 - Listas, Documentos, Cuaderno, Frases, Medicación, Grabaciones, Lugares y Aparcamiento.
 - Input Hub para Calendar, SMS y Gmail, además de captura compatible mediante notificaciones.
 - Integración con Nexo Familia mediante Supabase Auth y sincronización/importación controlada.
-- Grabación local y transcripción local mediante sherpa-onnx.
+- Grabación local y transcripción 100 % local mediante sherpa-onnx 1.13.7, con perfiles Whisper Base/Small/Medium multilingües INT8 descargados bajo demanda según los recursos del dispositivo.
 
 ## Entorno Android validado
 
