@@ -813,22 +813,28 @@ function flushJournalAutosave(){
   if(!ed||!titleEl||!bodyEl)return ed?.id||0;
   if(ed.timer){clearTimeout(ed.timer);ed.timer=null;}
   const body=bodyEl.value.trim();
-  if(!body){setJournalSaveStatus('Empieza a escribir…','idle');return ed.id||0;}
+  if(!body){ed.saveFailed=false;setJournalSaveStatus('Empieza a escribir…','idle');return ed.id||0;}
   if(!ed.titleManual)refreshAutoJournalTitle();
   const auto=parseNative(NexoNative.synthesizeJournal(body),{});
   const title=titleEl.value.trim()||String(auto.title||'Entrada');
   const favorite=!!$('#journalFavorite')?.checked,revisit=!!$('#journalRevisit')?.checked;
   const signature=JSON.stringify({body,title,favorite,revisit});
-  if(signature===ed.lastSaved){setJournalSaveStatus('✓ Guardado','saved');return ed.id||0;}
+  if(signature===ed.lastSaved){ed.saveFailed=false;setJournalSaveStatus('✓ Guardado','saved');return ed.id||0;}
   const payload={body,kind:'thought',title,summary:String(auto.summary||''),tags:String(auto.tags||''),favorite,revisit,source:'manual'};
-  let ok=false;
-  if(ed.id>0){ok=!!NexoNative.updateJournal(JSON.stringify({...payload,id:ed.id}));}
-  else{
-    const id=Number(NexoNative.saveJournal(JSON.stringify(payload)))||0;
-    if(id>0){ed.id=id;ok=true;}
+  try{
+    let ok=false;
+    if(ed.id>0){ok=!!NexoNative.updateJournal(JSON.stringify(Object.assign({},payload,{id:ed.id})));}
+    else{
+      const id=Number(NexoNative.saveJournal(JSON.stringify(payload)))||0;
+      if(id>0){ed.id=id;ok=true;}
+    }
+    ed.saveFailed=!ok;
+    if(ok){ed.lastSaved=signature;setJournalSaveStatus('✓ Guardado','saved');}
+    else setJournalSaveStatus('No se pudo guardar','error');
+  }catch(_){
+    ed.saveFailed=true;
+    setJournalSaveStatus('No se pudo guardar','error');
   }
-  if(ok){ed.lastSaved=signature;setJournalSaveStatus('✓ Guardado','saved');}
-  else setJournalSaveStatus('No se pudo guardar','error');
   return ed.id||0;
 }
 function scheduleJournalAutosave(delay=800){
