@@ -64,5 +64,10 @@ assert 'data-transcription-model-progress' in js
 assert "data-transcription-cancel" in js
 assert "qualityLabel" in js
 assert "renderTranscriptionQualitySettings();" in js
+assert "function transcriptionModelStatusSafe()" in js
+assert "TRANSCRIPTION_PROFILE_FALLBACKS" in js
+assert "fallbackStatus(Context c,Throwable failure)" in manager
+assert 'out.put("models",models);' in manager
+assert "catch(Throwable failure)" in manager
 
-print('Transcripción 3.7.3: perfiles, recursos, descarga y UX validados')
+print('Transcripción 3.7.4: perfiles, recursos, fallback y UX validados')
