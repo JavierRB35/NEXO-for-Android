@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  * convertir un correo en una captura.
  */
 public final class NotificationCandidateFilter {
-    public static final String GMAIL_FILTER_RULE = "gmail-v7";
+    public static final String GMAIL_FILTER_RULE = "gmail-filter-v7";
     private static final Pattern OTP_PATTERN = Pattern.compile("\\b\\d{4,8}\\b");
 
     private static final String[] ACTION_TERMS = {
@@ -38,15 +38,12 @@ public final class NotificationCandidateFilter {
      * "failed": necesitan contexto adicional para no llenar el Inbox.
      */
     private static final String[] GMAIL_STRONG_TERMS = {
-            "recuerda","recordatorio","acuerdate","cita","consulta","reunion","reunión",
-            "llama","llamar","reserva","reservado","confirmacion de reserva","confirmación de reserva",
-            "vuelo","embarque","tren","vence","vencimiento","caduca","caducidad","renovar",
-            "pagar","pago pendiente","pedido","recoger","recogida","entrega prevista","entrega programada",
-            "visita","doctor","medico","médico","hospital","itv","cumpleanos","cumpleaños",
-            "invitacion","invitación","invitation","evento","te esperamos","appointment","meeting",
-            "save the date","asistencia","convocatoria","sesion","sesión","clase","examen",
-            "analitica","analítica","dentista","vacuna","tratamiento","taller","mantenimiento",
-            "comprar","trae","lleva"
+            "tu reserva","su reserva","reserva confirmada","confirmacion de reserva","confirmación de reserva","reservado para",
+            "tu vuelo","su vuelo","embarque","boarding","tren sale","salida del tren",
+            "appointment","meeting","save the date","convocatoria","te esperamos",
+            "pedido listo","puedes recoger","puede recoger","recogida","entrega prevista","entrega programada",
+            "pago pendiente","debes pagar","debe pagar","pagar antes","recibo pendiente",
+            "renovar antes","renovacion pendiente","renovación pendiente"
     };
 
     private static final String[] TECHNICAL_MAIL_TERMS = {
@@ -165,7 +162,7 @@ public final class NotificationCandidateFilter {
 
     private static boolean isActionableType(String type) {
         return "event".equals(type) || "task".equals(type) || "reminder".equals(type) ||
-                "expiry".equals(type) || "restaurant".equals(type) || "place".equals(type);
+                "expiry".equals(type);
     }
 
     private static String firstMatching(String normalized, String[] terms) {
