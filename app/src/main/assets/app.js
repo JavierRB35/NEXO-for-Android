@@ -3210,13 +3210,23 @@ window.NexoUI={
     if(state.voiceMode==='document-search'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.documentSearch=combined;renderCollectionPanel('documents');return;}
     if(state.voiceMode==='document-editor'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applyDocumentEditorVoice(combined);return;}
     const pinned=state.voicePinnedDate,type=state.voicePinnedType,base=state.voiceBaseText||'';navigate('save');if(pinned){state.capturePinnedDate=pinned;state.capturePinnedType=type||'';state.captureReturn='today';clearCapture(true);$('#captureDate').value=pinned;if(type)$('#captureType').value=type;refreshCaptureAlertEditor();}else if(!base) clearCapture();state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';const combined=[base,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();$('#captureText').value=combined;setInterpretationStatus('working',base?'Dictado añadido · interpretando localmente…':'Voz transcrita · interpretando localmente…');analyzeCapture({immediate:true});toast('Voz transcrita. Revisa lo que Nexo ha entendido.');},
-  onVoiceError(msg){$('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');toast(msg);},
+  onVoiceError(msg){
+    const restoreNote=state.voiceMode==='note',noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,noteBody=state.managedVoiceBase;
+    $('#voiceOverlay').classList.add('hidden');state.voiceMode='capture';state.journalVoiceBase='';state.journalVoiceKind='';state.medicationVoiceBase='';state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;state.voicePinnedDate='';state.voicePinnedType='';state.voiceBaseText='';setInterpretationStatus('idle','Interpretación local preparada');
+    if(restoreNote)openNoteComposer(noteId,noteBody,noteTitle,noteTitleManual);
+    toast(msg);
+  },
   onManagedVoiceFallback(msg){$('#voiceOverlay').classList.add('hidden');toast(msg||'Usando el dictado estándar de Android.');},
   onManagedVoiceState(kind){if($('#voiceOverlay').classList.contains('hidden'))return;const label=kind==='processing'?'PROCESANDO UNA PAUSA…':kind==='starting'?'PREPARANDO MICRÓFONO…':'ESCUCHANDO…';$('#managedVoiceStatus').textContent=label;},
   onManagedVoicePartial(text){state.managedVoicePartial=String(text||'').trim();updateManagedVoiceTranscript();},
   onManagedVoiceSegment(text){const value=String(text||'').trim();if(value&&state.managedVoiceSegments[state.managedVoiceSegments.length-1]!==value)state.managedVoiceSegments.push(value);state.managedVoicePartial='';updateManagedVoiceTranscript();},
   onManagedVoiceStopped(){finalizeManagedDictation();},
-  onManagedVoiceError(msg){$('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;toast(msg||'No se pudo continuar el dictado.');},
+  onManagedVoiceError(msg){
+    const restoreNote=state.voiceMode==='note',noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,noteBody=state.managedVoiceBase;
+    $('#voiceOverlay').classList.add('hidden');resetManagedVoice();state.medicationVoiceEditor=false;state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;
+    if(restoreNote)openNoteComposer(noteId,noteBody,noteTitle,noteTitleManual);
+    toast(msg||'No se pudo continuar el dictado.');
+  },
   onSystemAlarmCreated(msg){closeModal();toast(msg||'Alarma enviada al sistema del teléfono.','',null,5000);},
   onSystemAlarmError(msg){if($('#alarmCreate')){$('#alarmCreate').disabled=false;$('#alarmCreate').textContent='Intentar de nuevo';}toast(msg||'No se pudo crear la alarma.','',null,6000);},
   onNexoFamiliaLinked(raw){
