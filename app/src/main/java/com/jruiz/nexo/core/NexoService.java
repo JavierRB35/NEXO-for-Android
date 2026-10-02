@@ -130,6 +130,13 @@ public class NexoService {
         RuleClassifier.Result r = AppointmentParser.parse(text);
         applyLearnedCategory(text, r);
         if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
+
+        // Una cita puede guardarse voluntariamente sin fecha. Eso no es lo mismo
+        // que haber escrito una fecha/hora que el parser no ha podido interpretar.
+        if (r.dueAt <= 0 && !r.invalidDate && !r.invalidTime && !r.ambiguousTime) {
+            r.needsReview = false;
+            if ("Falta la fecha de la cita".equals(r.reason)) r.reason = "Cita sin fecha";
+        }
         return r.toJson();
     }
 
