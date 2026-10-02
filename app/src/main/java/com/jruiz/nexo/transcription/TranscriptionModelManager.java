@@ -261,7 +261,8 @@ public final class TranscriptionModelManager {
     private static String recommendedQuality(DeviceResources r){
         if(canRun(MAX,r)&&r.totalRam>=12L*GIB&&r.availableRam>=5L*GIB)return QUALITY_MAX;
         if(canRun(HIGH,r)&&r.availableRam>=2500L*MIB)return QUALITY_HIGH;
-        return QUALITY_FAST;
+        if(canRun(FAST,r))return QUALITY_FAST;
+        return "";
     }
     private static boolean canRun(Spec s,DeviceResources r){
         return !r.lowMemory&&r.totalRam>=s.minTotalRamBytes&&r.availableRam>=s.minAvailableRamBytes;
