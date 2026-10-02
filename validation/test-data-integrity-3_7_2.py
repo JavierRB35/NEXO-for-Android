@@ -25,6 +25,9 @@ assert 'showNoteUnsavedGuard()' in js
 assert 'data-note-close-save' in js and 'data-note-close-discard' in js and 'data-note-close-cancel' in js
 assert 'persistNoteRecoveryDraft()' in js
 assert 'state.journalEditor?.saveFailed' in js
+assert "if(ed.saveFailed){" in js and "El dictado no se ha iniciado" in js
+assert "const editorHandoff=prefill!=='';" in js
+assert "let title=editorHandoff?String(titlePrefill||'')" in js
 
 # P1-03: la primera sustitución de agenda es transaccional y las alarmas se difieren.
 assert 'sql.beginTransaction()' in cloud and 'sql.setTransactionSuccessful()' in cloud and 'sql.endTransaction()' in cloud

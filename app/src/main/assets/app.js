@@ -846,6 +846,10 @@ function scheduleJournalAutosave(delay=800){
 function startJournalEditorVoice(){
   const ed=state.journalEditor;if(!ed){startJournalVoice('','');return;}
   const id=flushJournalAutosave();
+  if(ed.saveFailed){
+    toast('No se pudo guardar la entrada. El dictado no se ha iniciado y el texto sigue en pantalla.');
+    return;
+  }
   const context={
     id,
     title:$('#journalTitle')?.value.trim()||'',
@@ -1185,9 +1189,10 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
 
   const savedBody=String(existing.body||''),savedTitle=String(existing.title||'');
   const savedTitleManual=editing?!!existing.noteTitleManual:false;
-  let body=prefill!==''?String(prefill):savedBody;
-  let titleManual=editing?savedTitleManual:!!titleManualPrefill;
-  let title=editing?savedTitle:String(titlePrefill||'');
+  const editorHandoff=prefill!=='';
+  let body=editorHandoff?String(prefill):savedBody;
+  let titleManual=editorHandoff?!!titleManualPrefill:(editing?savedTitleManual:!!titleManualPrefill);
+  let title=editorHandoff?String(titlePrefill||''):(editing?savedTitle:String(titlePrefill||''));
   const savedSignature=editing?noteSignature(savedTitle,savedBody,savedTitleManual):noteSignature('','',false);
 
   if(prefill===''){
