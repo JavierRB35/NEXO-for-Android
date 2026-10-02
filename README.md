@@ -1,12 +1,12 @@
-# Nexo 3.7.0
+# Nexo 3.7.1
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.0**, `versionCode 93`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **24**.
+Esta rama de estabilización corresponde a **Nexo 3.7.1**, `versionCode 94`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **24**.
 
 ## Base estable
 
-Nexo 3.7.0 consolida como versión estable el trabajo validado hasta `3.7.0-beta22.4`.
+Nexo 3.7.1 mantiene la base estable validada hasta `3.7.0-beta22.4` e incorpora un hotfix de compatibilidad SQLite y enlace Calendar/Inbox.
 
 Entre los comportamientos ya integrados:
 
