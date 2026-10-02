@@ -125,8 +125,6 @@ public class NexoService {
         RuleClassifier.Result r = AppointmentParser.parse(text);
         applyLearnedCategory(text, r);
         if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
-        r.needsReview = false;
-        r.reason = "";
         return r.toJson();
     }
 
@@ -139,10 +137,17 @@ public class NexoService {
         if (learned.isBlank()) return;
         boolean weakLocal = "Otros".equals(r.category) || r.confidence < .72;
         if (weakLocal) {
+            boolean parserNeedsReview = r.needsReview;
+            String parserReason = r.reason;
             r.category = learned;
             r.confidence = Math.max(r.confidence, .80);
-            r.needsReview = false;
-            r.reason = "Clasificación aprendida de correcciones anteriores";
+            if (parserNeedsReview) {
+                r.needsReview = true;
+                r.reason = parserReason;
+            } else {
+                r.needsReview = false;
+                r.reason = "Clasificación aprendida de correcciones anteriores";
+            }
         }
     }
 
