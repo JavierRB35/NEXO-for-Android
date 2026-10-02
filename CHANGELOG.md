@@ -1,5 +1,13 @@
 # Changelog de Nexo
 
+## 3.7.6 · versionCode 99 · Reenvíos Gmail y mensajes a uno mismo
+
+- Corrige un caso real en el que Gmail etiqueta simultáneamente un mensaje como `INBOX` y `SENT`, habitual en reenvíos o mensajes enviados a uno mismo.
+- La consulta directa deja de usar `-in:sent` de forma absoluta y pasa a conservar mensajes recibidos aunque también tengan etiqueta de enviados.
+- Los enviados normales continúan excluidos y los borradores siguen fuera del escaneo.
+- Se añade una regresión con un recordatorio reenviado de cumpleaños para asegurar que llegue al filtro contextual y al Inbox.
+- Sin cambios en el filtro Gmail v7, base de datos v25, permisos, OAuth ni baseline AndroidIDE.
+
 ## 3.7.5 · versionCode 98 · Gmail contextual e Inbox explicable
 
 - Gmail automático deja de aceptar fechas u horas aisladas como motivo suficiente para crear una captura.
