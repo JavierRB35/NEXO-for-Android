@@ -27,6 +27,7 @@ python validation/test-nexoshare-intents.py
 python validation/test-notes-home.py
 python validation/test-medication-repeat-integration.py
 python validation/test-transcription-integration.py
+python validation/test-transcription-quality.py
 python validation/test-temporal-status.py
 python validation/test-version-identity.py
 python validation/test-input-hub-reliability.py
