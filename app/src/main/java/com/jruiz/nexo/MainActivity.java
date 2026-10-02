@@ -2224,6 +2224,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String restoreItem(String token) { return service.restoreItem(token).toString(); }
         @JavascriptInterface public String finalizeDelete(String token) { return service.finalizeDelete(token).toString(); }
         @JavascriptInterface public String getItem(long id) { return db.getItem(id).toString(); }
+        @JavascriptInterface public long findMatchingCalendarItem(String title,long dueAt,boolean allDay) {
+            return db.findMatchingCalendarItem(title,dueAt,allDay);
+        }
         @JavascriptInterface public String getNotes() { return db.getNotes().toString(); }
         @JavascriptInterface public long saveNote(String json) {
             try { return db.insertNote(new JSONObject(json)); } catch(Exception e) { return 0; }
