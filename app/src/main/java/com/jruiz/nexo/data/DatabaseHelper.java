@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 24;
+    private static final int DB_VERSION = 25;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -234,9 +234,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 23) {
             createItemPeopleTable(db);
         }
-        if (oldVersion < 24) {
+        if (oldVersion < 25 && !columnExists(db, "journal_entries", "revisit")) {
             db.execSQL("ALTER TABLE journal_entries ADD COLUMN revisit INTEGER NOT NULL DEFAULT 0");
         }
+    }
+
+    private static boolean columnExists(SQLiteDatabase db, String table, String column) {
+        try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
+            int nameIndex = c.getColumnIndex("name");
+            while (c.moveToNext()) {
+                if (nameIndex >= 0 && column.equalsIgnoreCase(c.getString(nameIndex))) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
 
@@ -387,7 +397,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         JSONArray ids = new JSONArray();
         if (sourceEventId == null || sourceEventId.isBlank()) return ids;
         SQLiteDatabase db = getWritableDatabase();
-        db.beginTransaction();
+        boolean ownsTransaction = !db.inTransaction();
+        if (ownsTransaction) db.beginTransaction();
         try {
             ArrayList<Long> values = new ArrayList<>();
             try (Cursor c = db.rawQuery(
@@ -400,8 +411,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 db.delete("reminders", "id=?", new String[]{String.valueOf(id)});
             }
             db.delete("nexo_familia_reminders", "source_event_id=?", new String[]{sourceEventId});
-            db.setTransactionSuccessful();
-        } finally { db.endTransaction(); }
+            if (ownsTransaction) db.setTransactionSuccessful();
+        } finally { if (ownsTransaction) db.endTransaction(); }
         return ids;
     }
 
@@ -478,7 +489,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONArray resetAllAppointmentsForNexoFamiliaMigration() {
         JSONArray reminderIds = new JSONArray();
         SQLiteDatabase db = getWritableDatabase();
-        db.beginTransaction();
+        boolean ownsTransaction = !db.inTransaction();
+        if (ownsTransaction) db.beginTransaction();
         try {
             final String appointmentIds = "SELECT id FROM items WHERE type IN ('event','task','reminder','expiry')";
 
@@ -505,9 +517,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.delete("nexo_familia_events", null, null);
             db.execSQL("DELETE FROM items WHERE type IN ('event','task','reminder','expiry')");
 
-            db.setTransactionSuccessful();
+            if (ownsTransaction) db.setTransactionSuccessful();
         } finally {
-            db.endTransaction();
+            if (ownsTransaction) db.endTransaction();
         }
         return reminderIds;
     }
