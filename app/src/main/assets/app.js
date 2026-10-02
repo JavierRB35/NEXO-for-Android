@@ -3127,9 +3127,26 @@ window.NexoUI={
   onRecordingError(msg){toast(msg||'No se pudo completar la acción de grabación.','',null,5500);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   onRecordingPlaybackStarted(id){state.playingRecordingId=String(id||'');refreshRecordingSurface();setTimeout(startRecordingPlaybackPolling,80);},
   onRecordingPlaybackStopped(id){stopRecordingPlaybackPolling();if(!id||state.playingRecordingId===String(id))state.playingRecordingId='';refreshRecordingSurface();},
-  onTranscriptionModelProgress(raw){const x=parseNative(raw,{}),el=$('#transcriptionModelProgress');if(el)el.textContent=`${x.message||'Descargando…'} ${Number(x.progress||0)}%`;},
-  onTranscriptionModelReady(raw){toast('Modelo de transcripción preparado');if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
-  onTranscriptionModelError(msg){toast(msg||'No se pudo descargar el modelo.','',null,7000);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
+  onTranscriptionModelProgress(raw){
+    const x=parseNative(raw,{}),text=`${x.message||'Descargando…'} ${Number(x.progress||0)}%`,panelEl=$('#transcriptionModelProgress');
+    if(panelEl)panelEl.textContent=text;
+    const id=String(x.modelId||'');
+    if(id){
+      const settingsEl=document.querySelector(`[data-transcription-model-progress="${CSS.escape(id)}"]`);
+      if(settingsEl)settingsEl.textContent=text;
+    }
+  },
+  onTranscriptionModelReady(raw){
+    const x=parseNative(raw,{}),model=selectedTranscriptionModel(x);
+    toast('Modelo '+String(model.label||x.qualityLabel||'de transcripción')+' preparado');
+    if(state.screen==='more')renderTranscriptionQualitySettings();
+    if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+  },
+  onTranscriptionModelError(msg){
+    toast(msg||'No se pudo descargar el modelo.','',null,7000);
+    if(state.screen==='more')renderTranscriptionQualitySettings();
+    if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+  },
   onTranscriptionStarted(id){startTranscriptionPolling();},
   onTranscriptionError(msg){toast(msg||'No se pudo iniciar la transcripción.','',null,7000);if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();},
   receiveShare(raw){
@@ -3712,9 +3729,20 @@ function refreshNotesSurface(){if(state.screen==='panel'&&state.lastPanel==='not
 function refreshRecordingSurface(){if(state.screen==='search')runSearch();else if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();}
 function openRecordingActions(id){
   const r=parseNative(NexoNative.getRecordings(),[]).find(r=>String(r.id)===String(id));if(!r){toast('La grabación ya no existe');return;}
-  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{}),has=NexoNative.hasTranscription(String(id)),t=transcriptionStatus(id),running=t.state==='running'||t.state==='starting';
-  const transcription=has?`<button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver transcripción</button>`:(running?`<button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar transcripción</button>`:(model.installed?`<button class="primary-button" data-transcription-start="${escAttr(id)}">Transcribir grabación</button>`:`<button class="primary-button" data-transcription-needs-model="${escAttr(id)}">Preparar transcripción</button>`));
-  openModal(r.title||'Grabación',`<div class="scope-buttons">${transcription}<button class="secondary-button" data-recording-share="${escAttr(id)}">${uiIcon('share')} Compartir audio</button><button class="secondary-button" data-recording-export="${escAttr(id)}">${uiIcon('download')} Guardar audio en Descargas</button><button class="secondary-button" data-recording-rename="${escAttr(id)}">${uiIcon('edit')} Renombrar</button><button class="danger-button" data-recording-delete="${escAttr(id)}">Eliminar grabación</button></div><p class="small muted">Los audios se exportan por separado de la copia .nexo.</p>`);
+  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{}),activeModel=selectedTranscriptionModel(model),has=NexoNative.hasTranscription(String(id)),t=transcriptionStatus(id),running=t.state==='running'||t.state==='starting';
+  const ready=!!model.installed&&activeModel.canRun!==false;
+  const label=String(activeModel.label||model.qualityLabel||'Rápida');
+  const transcription=has
+    ?`<button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver transcripción</button>`
+    :(running
+      ?`<button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar transcripción</button>`
+      :(ready
+        ?`<button class="primary-button" data-transcription-start="${escAttr(id)}">Transcribir · ${esc(label)}</button>`
+        :(model.installed
+          ?`<button class="primary-button" type="button" disabled>Recursos insuficientes · ${esc(label)}</button>`
+          :`<button class="primary-button" data-transcription-needs-model="${escAttr(id)}">Preparar ${esc(label)}</button>`)));
+  const warning=model.installed&&activeModel.canRun===false?`<p class="small transcription-quality-warning">${esc(activeModel.resourceWarning||'No hay recursos suficientes para cargar este modelo ahora.')}</p>`:'';
+  openModal(r.title||'Grabación',`<div class="scope-buttons">${transcription}<button class="secondary-button" data-recording-share="${escAttr(id)}">${uiIcon('share')} Compartir audio</button><button class="secondary-button" data-recording-export="${escAttr(id)}">${uiIcon('download')} Guardar audio en Descargas</button><button class="secondary-button" data-recording-rename="${escAttr(id)}">${uiIcon('edit')} Renombrar</button><button class="danger-button" data-recording-delete="${escAttr(id)}">Eliminar grabación</button></div>${warning}<p class="small muted">Calidad seleccionada: ${esc(label)}. Los audios se exportan por separado de la copia .nexo.</p>`);
   bindRecordingButtons($('#modalBody'));
 }
 
