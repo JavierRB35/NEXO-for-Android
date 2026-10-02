@@ -2046,8 +2046,8 @@ public class MainActivity extends Activity {
                     }
                 } finally {
                     if (atomicInboxCreate) {
-                        sql.endTransaction();
-                        service.setReminderSchedulingDeferred(false);
+                        try { sql.endTransaction(); }
+                        finally { service.setReminderSchedulingDeferred(false); }
                     }
                 }
 
@@ -2055,9 +2055,9 @@ public class MainActivity extends Activity {
                     scheduleCommittedCaptureReminders(result.optLong("id", 0L));
                 }
 
-                if (result.has("reminderId") ||
+                if (result.optBoolean("ok", false) && (result.has("reminderId") ||
                         (result.optJSONArray("reminderIds") != null && result.optJSONArray("reminderIds").length()>0) ||
-                        (result.optJSONArray("rescheduled") != null && result.optJSONArray("rescheduled").length()>0)) {
+                        (result.optJSONArray("rescheduled") != null && result.optJSONArray("rescheduled").length()>0))) {
                     ensureNotificationPermission();
                 }
                 return result.toString();
