@@ -179,13 +179,13 @@ public final class TranscriptionModelManager {
         JSONObject out=new JSONObject();
         try{
             DeviceResources r=deviceResources(c);
-            String selected=selectedQuality(c),recommended=recommendedQuality(r);
+            String selected=safeSelectedQuality(c),recommended=recommendedQuality(r);
             Spec current=spec(selected);
             out.put("selected",selected);
             out.put("qualityLabel",current.label);
             out.put("modelName",current.modelName);
             out.put("name",current.modelName);
-            out.put("installed",installed(c,selected));
+            out.put("installed",safeInstalled(c,selected));
             out.put("recommended",recommended);
             JSONObject device=new JSONObject();
             device.put("totalRamBytes",r.totalRam);
@@ -194,26 +194,114 @@ public final class TranscriptionModelManager {
             device.put("lowMemory",r.lowMemory);
             out.put("device",device);
             JSONArray models=new JSONArray();
-            for(Spec s:SPECS)models.put(modelStatus(c,s,r,selected,recommended));
+            for(Spec model:SPECS)models.put(modelStatus(c,model,r,selected,recommended));
             out.put("models",models);
-        }catch(Exception ignored){}
+            out.put("ok",true);
+            return out;
+        }catch(Throwable failure){
+            return fallbackStatus(c,failure);
+        }
+    }
+
+    public static JSONObject fallbackStatus(Context c,Throwable failure){
+        JSONObject out=new JSONObject();
+        try{
+            String selected=safeSelectedQuality(c);
+            Spec current=spec(selected);
+            out.put("selected",selected);
+            out.put("qualityLabel",current.label);
+            out.put("modelName",current.modelName);
+            out.put("name",current.modelName);
+            out.put("installed",false);
+            out.put("recommended","");
+            out.put("ok",false);
+            out.put("error",failure==null?"No se pudo leer el estado de los modelos.":safeMessage(failure));
+            JSONObject device=new JSONObject();
+            device.put("totalRamBytes",0);
+            device.put("availableRamBytes",0);
+            device.put("storageAvailableBytes",0);
+            device.put("lowMemory",false);
+            out.put("device",device);
+            JSONArray models=new JSONArray();
+            for(Spec model:SPECS){
+                JSONObject o=baseModelStatus(model,selected,"");
+                o.put("installed",false);
+                o.put("installedBytes",0);
+                o.put("canRun",QUALITY_FAST.equals(model.id));
+                o.put("canDownload",QUALITY_FAST.equals(model.id));
+                o.put("resourceWarning",QUALITY_FAST.equals(model.id)
+                        ?"No se pudieron leer todos los recursos del dispositivo. Se mantiene disponible únicamente el perfil Rápida por seguridad."
+                        :"No se pudieron leer los recursos del dispositivo; este perfil queda deshabilitado por seguridad.");
+                o.put("storageWarning","");
+                models.put(o);
+            }
+            out.put("models",models);
+        }catch(Throwable ignored){}
         return out;
     }
+
     private static JSONObject modelStatus(Context c,Spec s,DeviceResources r,String selected,String recommended){
-        JSONObject o=new JSONObject();
+        JSONObject o=baseModelStatus(s,selected,recommended);
         try{
-            boolean isInstalled=installed(c,s.id),canRun=canRun(s,r);
-            long onDisk=modelBytes(c,s);
+            boolean isInstalled=safeInstalled(c,s.id),canRun=canRun(s,r);
+            long onDisk=safeModelBytes(c,s);
             long requiredStorage=Math.max(64L*MIB,s.downloadBytes-Math.min(s.downloadBytes,onDisk)+DOWNLOAD_MARGIN);
             boolean canDownload=canRun&&r.storageAvailable>=requiredStorage;
-            o.put("id",s.id);o.put("label",s.label);o.put("modelName",s.modelName);o.put("description",s.description);
-            o.put("installed",isInstalled);o.put("installedBytes",onDisk);o.put("downloadBytes",s.downloadBytes);
-            o.put("estimatedRamBytes",s.estimatedRamBytes);o.put("minTotalRamBytes",s.minTotalRamBytes);o.put("minAvailableRamBytes",s.minAvailableRamBytes);
-            o.put("canRun",canRun);o.put("canDownload",canDownload);o.put("selected",s.id.equals(selected));o.put("recommended",s.id.equals(recommended));
+            o.put("installed",isInstalled);
+            o.put("installedBytes",onDisk);
+            o.put("canRun",canRun);
+            o.put("canDownload",canDownload);
             o.put("resourceWarning",canRun?"":resourceWarning(s,r));
             o.put("storageWarning",r.storageAvailable>=requiredStorage?"":"No hay espacio libre suficiente para descargar este modelo con margen de seguridad.");
-        }catch(Exception ignored){}
+        }catch(Throwable failure){
+            try{
+                o.put("installed",false);
+                o.put("installedBytes",0);
+                o.put("canRun",false);
+                o.put("canDownload",false);
+                o.put("resourceWarning","No se pudo comprobar este modelo: "+safeMessage(failure));
+                o.put("storageWarning","");
+            }catch(Throwable ignored){}
+        }
         return o;
+    }
+
+    private static JSONObject baseModelStatus(Spec s,String selected,String recommended){
+        JSONObject o=new JSONObject();
+        try{
+            o.put("id",s.id);
+            o.put("label",s.label);
+            o.put("modelName",s.modelName);
+            o.put("description",s.description);
+            o.put("installed",false);
+            o.put("installedBytes",0);
+            o.put("downloadBytes",s.downloadBytes);
+            o.put("estimatedRamBytes",s.estimatedRamBytes);
+            o.put("minTotalRamBytes",s.minTotalRamBytes);
+            o.put("minAvailableRamBytes",s.minAvailableRamBytes);
+            o.put("canRun",false);
+            o.put("canDownload",false);
+            o.put("selected",s.id.equals(selected));
+            o.put("recommended",s.id.equals(recommended));
+            o.put("resourceWarning","");
+            o.put("storageWarning","");
+        }catch(Throwable ignored){}
+        return o;
+    }
+
+    private static String safeSelectedQuality(Context c){
+        try{return selectedQuality(c);}catch(Throwable ignored){return QUALITY_FAST;}
+    }
+    private static boolean safeInstalled(Context c,String quality){
+        try{return installed(c,quality);}catch(Throwable ignored){return false;}
+    }
+    private static long safeModelBytes(Context c,Spec s){
+        try{return modelBytes(c,s);}catch(Throwable ignored){return 0L;}
+    }
+    private static String safeMessage(Throwable t){
+        if(t==null)return "Error desconocido";
+        String m=t.getMessage();
+        return m==null||m.isBlank()?t.getClass().getSimpleName():m;
     }
 
     public static void download(Context c,Progress progress)throws Exception{download(c,selectedQuality(c),progress);}
@@ -236,7 +324,7 @@ public final class TranscriptionModelManager {
         File tmp=new File(target.getPath()+".part");if(tmp.exists())tmp.delete();
         HttpURLConnection con=(HttpURLConnection)new URL(url).openConnection();
         con.setInstanceFollowRedirects(true);con.setConnectTimeout(30000);con.setReadTimeout(60000);
-        con.setRequestProperty("User-Agent","Nexo-Android/3.7.3");
+        con.setRequestProperty("User-Agent","Nexo-Android/3.7.4");
         int code=con.getResponseCode();if(code<200||code>=400)throw new IOException("Descarga HTTP "+code);
         long len=con.getContentLengthLong(),done=0;byte[] buf=new byte[64*1024];int last=-1;
         try(InputStream in=new BufferedInputStream(con.getInputStream());OutputStream out=new BufferedOutputStream(new FileOutputStream(tmp))){

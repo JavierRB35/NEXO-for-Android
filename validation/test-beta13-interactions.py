@@ -7,11 +7,12 @@ css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 html=(root/'app/src/main/assets/index.html').read_text(encoding='utf-8')
 
 # querySelector devuelve un solo Element: nunca debe usarse con forEach.
-assert not re.search(r"(?<!\\$)\\$\\([^\\n;]+?\\)\\.forEach", js), 'No debe usarse un selector simple con forEach'
+assert not re.search(r"(?<!\$)\$\([^\n;]+?\)\.forEach", js), 'No debe usarse un selector simple con forEach'
 
 for fixed in [
     "document.querySelectorAll('[data-settings-section]').forEach",
-    "$$('[data-settings-accordion]').forEach",
+    "$('[data-settings-accordion]').forEach",
+    "$('[data-display-mode]').forEach",
     "$$('[data-home-event]').forEach",
 ]:
     assert fixed in js, fixed
@@ -42,5 +43,5 @@ assert 'display:flex' in block
 assert 'flex-direction:row' in block
 assert '.note-editor-open .floating-actions{z-index:130}' in css
 
-assert 'v3.7.3' in html
+assert 'v3.7.4' in html
 print('Beta17 conserva las correcciones beta13 de interacción: OK')
