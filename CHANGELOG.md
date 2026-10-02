@@ -1,5 +1,17 @@
 # Changelog de Nexo
 
+## 3.7.5 · versionCode 98 · Gmail Inbox contextual
+
+- Gmail automático pasa al filtro **gmail-v7**: una fecha u hora aislada ya no basta para crear una captura.
+- La API directa de Gmail y el respaldo mediante notificaciones Android comparten el mismo criterio contextual.
+- `TemporalParser` deja de interpretar versiones técnicas como `v3.7.4`, `fix/3.7.4-...` o `release 3.7.4` como fechas, manteniendo fechas legítimas como `03.07.2027`.
+- La primera conexión de Gmail crea únicamente el baseline del correo existente; ya no reevalúa automáticamente los últimos 7 días.
+- Los errores reales de red/parsing siguen siendo reintentables.
+- Cada captura nueva puede mostrar **Por qué entró**, la evidencia y la revisión de regla que la aceptó.
+- Inbox detecta los avisos técnicos de GitHub/CI acumulados por el filtro anterior y permite descartarlos juntos con **Deshacer**, sin borrar mensajes de Gmail ni hacer que reaparezcan al escanear.
+- `Compartir con Nexo` permanece fuera de este filtro automático.
+- Sin cambio de esquema: `nexo.db` continúa en versión 25.
+
 ## 3.7.4 · versionCode 97 · Hotfix selector de transcripción
 
 - Corrige el caso en que **Grabadora / Transcripción** se abría pero las opciones Rápida, Alta precisión y Máxima precisión no se mostraban.
