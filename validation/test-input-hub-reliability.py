@@ -17,8 +17,8 @@ assert 'sms-error:' in sms
 assert 'findRecentEquivalentInboxCapture' in sms
 
 assert 'gmail-filter-v7:' in gmail
-assert 'newer_than:30d -in:sent -in:drafts' in gmail
-assert 'in:inbox newer_than:30d' not in gmail
+assert 'newer_than:30d -in:drafts {-in:sent in:inbox}' in gmail
+assert '-in:sent -in:drafts' not in gmail
 assert '/attachments/' in gmail
 assert 'gmail-error:' in gmail
 assert 'findRecentEquivalentInboxCapture' in gmail
