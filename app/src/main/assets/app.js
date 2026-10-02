@@ -2055,7 +2055,17 @@ function openInboxCaptureEditor(capture,incoming=false){
   const suggested=allowed.includes(detected.type)?detected.type:(capture.attachmentPath?'document':'note');
   state.inboxCaptureId=id;
   state.inboxCaptureOriginal=capture;
-  state.calendarUpdateItemId=Number(detected.existingItemId||0);
+  let calendarUpdateItemId=Number(detected.existingItemId||0);
+  if(!calendarUpdateItemId&&capture.source==='calendar'){
+    const calendarTitle=String(detected.title||capture.subject||'').trim();
+    const calendarDueAt=Number(detected.dueAt||0);
+    const calendarAllDay=detected.hasTime===false;
+    if(calendarTitle&&calendarDueAt>0){
+      calendarUpdateItemId=Number(NexoNative.findMatchingCalendarItem(calendarTitle,calendarDueAt,calendarAllDay)||0);
+      if(calendarUpdateItemId)detected={...detected,existingItemId:calendarUpdateItemId};
+    }
+  }
+  state.calendarUpdateItemId=calendarUpdateItemId;
   if(state.calendarUpdateItemId){
     const existing=parseNative(NexoNative.getItem(state.calendarUpdateItemId),{});
     state.captureParticipantIds=normalizeParticipantIds(existing.participantIds||[]);
