@@ -23,6 +23,8 @@ assert "document.body.classList.add('note-editor-open')" in app
 assert 'requestAnimationFrame(updateFloatingActions);' in app
 assert '.note-editor-open .floating-actions{z-index:130}' in css
 assert '.note-editor-open .floating-actions .fab-add{display:none!important}' in css
+assert "restoreNote=state.voiceMode==='note'" in app
+assert "if(restoreNote)openNoteComposer(noteId,noteBody,noteTitle,noteTitleManual);" in app
 
 # Listas: + crea lista; micrófono añade elementos. La cabecera no duplica + Lista.
 assert "panel==='lists'?'Añadir elementos por voz':" in app
