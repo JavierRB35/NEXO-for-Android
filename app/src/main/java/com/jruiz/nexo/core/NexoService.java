@@ -462,7 +462,7 @@ public class NexoService {
                 if (!completed && trigger <= System.currentTimeMillis()) continue;
                 long rid = db.insertReminderMinutes(itemId, title, trigger, leadMinutes, occurrenceAt);
                 if (completed) db.setReminderEnabled(rid, false);
-                else ReminderScheduler.schedule(context, rid, title, trigger);
+                else if (!db.getWritableDatabase().inTransaction()) ReminderScheduler.schedule(context, rid, title, trigger);
                 created.put(rid);
             }
         } catch (Exception ignored) {}
