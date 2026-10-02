@@ -100,8 +100,8 @@ public final class TranscriptionModelManager {
     }
     public static Spec selectedSpec(Context c){return spec(selectedQuality(c));}
     public static boolean setSelected(Context c,String quality){
+        if(!QUALITY_FAST.equals(quality)&&!QUALITY_HIGH.equals(quality)&&!QUALITY_MAX.equals(quality))return false;
         Spec s=spec(quality);
-        if(!s.id.equals(normalizeQuality(quality)))return false;
         DeviceResources r=deviceResources(c);
         if(!canRun(s,r))return false;
         c.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit().putString(PREF_QUALITY,s.id).apply();
