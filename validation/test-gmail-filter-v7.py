@@ -17,9 +17,9 @@ js=read('app/src/main/assets/app.js')
 assert 'gmail-filter-v7:' in gmail
 assert 'shouldCaptureGmail(text, classification)' in gmail
 assert 'NotificationCandidateFilter.shouldCaptureGmail(payload.text, classification)' in listener
-assert 'GMAIL_FILTER_RULE = "gmail-v7"' in flt
-assert 'TECHNICAL_MAIL_TERMS' in flt
-assert 'GMAIL_STRONG_TERMS' in flt
+assert 'GMAIL_FILTER_REVISION = "gmail-filter-v7"' in flt
+assert 'GMAIL_ACTION_TERMS' in flt
+assert 'shouldCaptureGmail' in flt
 
 # La fecha no se vuelve a interpretar con una regex independiente en el filtro.
 assert 'DATE_PATTERN' not in flt
