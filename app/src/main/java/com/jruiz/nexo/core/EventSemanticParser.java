@@ -108,7 +108,9 @@ public final class EventSemanticParser {
     private static int countExplicitDates(String n) {
         int count = 0;
         Matcher numeric = NUMERIC_DATE.matcher(n);
-        while (numeric.find()) count++;
+        while (numeric.find()) {
+            if (!TemporalParser.isTechnicalNumericDate(n, numeric.start(), numeric.end(), numeric.group(0))) count++;
+        }
         Matcher words = WORD_DATE_NORMALIZED.matcher(n);
         while (words.find()) count++;
         return count;
