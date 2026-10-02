@@ -182,6 +182,10 @@ public final class TemporalParser {
         String after = normalizedText.substring(Math.min(end, normalizedText.length()), to);
         String around = normalizedText.substring(from, to);
 
+        // El matcher de fecha puede quedarse en "3.7" dentro de "3.7.4"
+        // porque el tercer bloque de una fecha exige al menos dos cifras.
+        if (after.matches("^\\s*[.]\\s*\\d(?:\\D|$).*")) return true;
+
         if (before.matches("(?s).*\\bv\\s*$")) return true;
         if (before.matches("(?s).*(?:\\bversion|\\brelease|\\bhotfix|\\bfix|\\bbeta|\\brc|\\bbuild|\\btag|\\bbranch|\\bcommit|\\bpackage|\\bapk|\\bnexo)\\s*[-_/:]*\\s*$")) return true;
         if (around.matches("(?s).*(?:github|workflow|actions|ci\\b|gradle|android|release|build|commit|branch|tag|package|hotfix|beta|rc)[^\\n]{0,80}.*")) {
