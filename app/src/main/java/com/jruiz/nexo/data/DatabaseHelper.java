@@ -580,6 +580,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "body TEXT NOT NULL," +
                 "tags TEXT NOT NULL DEFAULT ''," +
                 "favorite INTEGER NOT NULL DEFAULT 0," +
+                "revisit INTEGER NOT NULL DEFAULT 0," +
                 "source TEXT NOT NULL DEFAULT 'manual'," +
                 "created_at INTEGER NOT NULL," +
                 "updated_at INTEGER NOT NULL" +
