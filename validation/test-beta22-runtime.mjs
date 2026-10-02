@@ -93,6 +93,17 @@ assert.ok(calls.includes('getHomeDashboard'),'Inicio debe usar el resumen ligero
 assert.ok(!calls.includes('getCalendar'),'Inicio no debe expandir el calendario completo desde JavaScript');
 assert.ok(!calls.includes('getFamilyStyleSearchIndex'),'Inicio no debe construir el índice global antes de buscar');
 
+// Una respuesta nativa antigua/incompleta no puede dejar vacío el selector de transcripción.
+window.document.querySelector('#settingsBtn').dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true}));
+assert.equal(window.__nexoTestState.screen,'more','Ajustes debe abrir la pantalla more');
+const transcriptionCards=window.document.querySelectorAll('#transcriptionQualitySettings .transcription-quality-card');
+assert.equal(transcriptionCards.length,3,'El selector de transcripción debe mostrar siempre Rápida, Alta y Máxima');
+assert.match(window.document.querySelector('#transcriptionQualitySettings')?.textContent||'',/Rápida/);
+assert.match(window.document.querySelector('#transcriptionQualitySettings')?.textContent||'',/Alta precisión/);
+assert.match(window.document.querySelector('#transcriptionQualitySettings')?.textContent||'',/Máxima precisión/);
+assert.equal(errors.length,0,'Ajustes de transcripción lanzó errores: '+errors.join('\n'));
+window.document.querySelector('[data-nav="today"]').dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true}));
+
 const expected={
   notes:'Notas',
   recordings:'Grabaciones',
