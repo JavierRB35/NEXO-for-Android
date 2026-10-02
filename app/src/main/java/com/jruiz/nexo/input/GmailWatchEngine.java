@@ -227,6 +227,10 @@ public final class GmailWatchEngine {
                 }
             }
 
+            if (candidate && captureId <= 0L) {
+                throw new IllegalStateException("No se pudo guardar la captura de Gmail.");
+            }
+
             String decision = captureId > 0L ? "captured:" : "rejected:";
             db.rememberExternalInput("gmail", id, FILTER_REVISION + decision + id, captureId);
             return true;

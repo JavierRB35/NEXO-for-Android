@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 24;
+    private static final int DB_VERSION = 25;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -234,9 +234,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 23) {
             createItemPeopleTable(db);
         }
-        if (oldVersion < 24) {
+        if (oldVersion < 25 && !columnExists(db, "journal_entries", "revisit")) {
             db.execSQL("ALTER TABLE journal_entries ADD COLUMN revisit INTEGER NOT NULL DEFAULT 0");
         }
+    }
+
+    private static boolean columnExists(SQLiteDatabase db, String table, String column) {
+        try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
+            int nameIndex = c.getColumnIndex("name");
+            while (c.moveToNext()) {
+                if (nameIndex >= 0 && column.equalsIgnoreCase(c.getString(nameIndex))) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
 
@@ -387,7 +397,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         JSONArray ids = new JSONArray();
         if (sourceEventId == null || sourceEventId.isBlank()) return ids;
         SQLiteDatabase db = getWritableDatabase();
-        db.beginTransaction();
+        boolean ownsTransaction = !db.inTransaction();
+        if (ownsTransaction) db.beginTransaction();
         try {
             ArrayList<Long> values = new ArrayList<>();
             try (Cursor c = db.rawQuery(
@@ -400,8 +411,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 db.delete("reminders", "id=?", new String[]{String.valueOf(id)});
             }
             db.delete("nexo_familia_reminders", "source_event_id=?", new String[]{sourceEventId});
-            db.setTransactionSuccessful();
-        } finally { db.endTransaction(); }
+            if (ownsTransaction) db.setTransactionSuccessful();
+        } finally { if (ownsTransaction) db.endTransaction(); }
         return ids;
     }
 
@@ -478,7 +489,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONArray resetAllAppointmentsForNexoFamiliaMigration() {
         JSONArray reminderIds = new JSONArray();
         SQLiteDatabase db = getWritableDatabase();
-        db.beginTransaction();
+        boolean ownsTransaction = !db.inTransaction();
+        if (ownsTransaction) db.beginTransaction();
         try {
             final String appointmentIds = "SELECT id FROM items WHERE type IN ('event','task','reminder','expiry')";
 
@@ -505,11 +517,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.delete("nexo_familia_events", null, null);
             db.execSQL("DELETE FROM items WHERE type IN ('event','task','reminder','expiry')");
 
-            db.setTransactionSuccessful();
+            if (ownsTransaction) db.setTransactionSuccessful();
         } finally {
-            db.endTransaction();
+            if (ownsTransaction) db.endTransaction();
         }
         return reminderIds;
+    }
+
+    public JSONArray getNexoFamiliaPendingReminderSchedules() {
+        JSONArray out = new JSONArray();
+        long now = System.currentTimeMillis();
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT r.id,r.title,r.trigger_at FROM reminders r " +
+                "JOIN nexo_familia_reminders nf ON nf.local_reminder_id=r.id " +
+                "WHERE r.enabled<>0 AND r.trigger_at>? ORDER BY r.trigger_at ASC",
+                new String[]{String.valueOf(now)})) {
+            while (c.moveToNext()) {
+                JSONObject row = new JSONObject();
+                row.put("id", c.getLong(0));
+                row.put("title", c.getString(1));
+                row.put("triggerAt", c.getLong(2));
+                out.put(row);
+            }
+        } catch (Exception ignored) {}
+        return out;
     }
 
     public boolean hasNexoFamiliaReminderMapping(String sourceRuleId) {
@@ -2617,7 +2648,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public long findRecentEquivalentInboxCapture(String sourceFamily, String sender, String text, long windowMs) {
         String target = normalizeInboxText(text);
         if (target.isBlank()) return 0L;
-        String targetSender = normalizeInboxText(sender);
+        String targetSender = normalizeInboxSender(sender);
         long cutoff = System.currentTimeMillis() - Math.max(60_000L, windowMs);
         String sql = "SELECT id,source,source_package,sender,raw_text FROM inbox_captures " +
                 "WHERE created_at>=? AND status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 120";
@@ -2627,7 +2658,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 String pkg = c.isNull(2) ? "" : c.getString(2);
                 if (!sameInboxSourceFamily(sourceFamily, source, pkg)) continue;
 
-                String candidateSender = normalizeInboxText(c.isNull(3) ? "" : c.getString(3));
+                String candidateSender = normalizeInboxSender(c.isNull(3) ? "" : c.getString(3));
                 String candidate = normalizeInboxText(c.isNull(4) ? "" : c.getString(4));
                 if (candidate.isBlank()) continue;
 
@@ -2638,13 +2669,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 }
                 if (!textMatch) continue;
 
-                // Texto exactamente igual es suficiente: la notificación puede mostrar
-                // el nombre del contacto mientras el proveedor SMS entrega el teléfono.
-                if (candidate.equals(target)) return c.getLong(0);
-
+                // El texto por sí solo no identifica una comunicación: dos remitentes
+                // distintos pueden enviar exactamente el mismo contenido.
                 boolean senderMatch = targetSender.isBlank() || candidateSender.isBlank() ||
-                        candidateSender.equals(targetSender) ||
-                        candidateSender.contains(targetSender) || targetSender.contains(candidateSender);
+                        candidateSender.equals(targetSender);
                 if (senderMatch) return c.getLong(0);
             }
         } catch (Exception ignored) {}
@@ -2664,6 +2692,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     p.contains("message") || "android.sms".equals(p);
         }
         return true;
+    }
+
+    private static String normalizeInboxSender(String value) {
+        String normalized = normalizeInboxText(value);
+        if (normalized.isBlank()) return "";
+
+        java.util.regex.Matcher email = java.util.regex.Pattern
+                .compile("[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}")
+                .matcher(normalized);
+        if (email.find()) return email.group();
+
+        String digits = normalized.replaceAll("[^0-9]+", "");
+        if (digits.length() >= 7) {
+            // Igualamos +34 612 345 678 y 612345678 sin confundir nombres parciales.
+            return digits.length() > 9 ? digits.substring(digits.length() - 9) : digits;
+        }
+        return normalized.replaceAll("[^a-z0-9]+", " ").trim();
     }
 
     private static String normalizeInboxText(String value) {

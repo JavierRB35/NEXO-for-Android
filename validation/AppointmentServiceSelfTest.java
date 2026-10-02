@@ -26,6 +26,9 @@ public final class AppointmentServiceSelfTest {
         scenario("Learned categories cannot restore the old Task or Reminder identity",()->{
             DatabaseHelper db=new DatabaseHelper();db.learned="Tareas";NexoService service=new NexoService(new Context(),db);JSONObject result=service.classifyAppointment("Llamar a Ana");check("event".equals(result.optString("type"))&&!result.optBoolean("needsReview"),"Type changed");check("Tarea / Recado".equals(result.optString("category")),"Learned old category overrode current local category");
         });
+        scenario("Invalid explicit appointment dates remain flagged for review",()->{
+            DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(new Context(),db);JSONObject result=service.classifyAppointment("Dentista el 31 de febrero a las 10:00");check("event".equals(result.optString("type")),"Type changed");check(result.optBoolean("needsReview"),"Invalid date warning was silenced");check(result.optBoolean("invalidDate"),"Invalid date flag lost");check(!result.optString("reason").isBlank(),"Review reason lost");
+        });
         scenario("Explicitly cleared fields win over the original dictation",()->{
             DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(new Context(),db);JSONObject p=draft("Cita mañana a las diez en Clínica Norte").put("title","Título corregido").put("body","").put("dueAt",0).put("locationText","").put("recurrence","none");JSONObject result=service.saveCapture(p);check(result.optBoolean("ok"),"Save failed");JSONObject i=db.getItem(result.optLong("id"));check(i.optLong("dueAt")==0&&!i.optBoolean("hasTime"),"Date restored");check(i.optString("body").isEmpty()&&i.optString("locationText").isEmpty(),"Cleared text restored");check("event".equals(i.optString("type"))&&"pending".equals(i.optString("status")),"Wrong canonical identity");
         });

@@ -16,12 +16,17 @@ import java.time.ZoneId;
 public class NexoService {
     private final Context context;
     private final DatabaseHelper db;
+    private boolean reminderSchedulingDeferred = false;
 
     public NexoService(Context context, DatabaseHelper db) {
         this.context = context.getApplicationContext();
         this.db = db;
         cleanupInterruptedDeletes();
         silenceArchiveReminders();
+    }
+
+    public void setReminderSchedulingDeferred(boolean deferred) {
+        reminderSchedulingDeferred = deferred;
     }
 
     /** Retire alerts left on old place/document cards, retaining their stored rules and content. */
@@ -125,8 +130,13 @@ public class NexoService {
         RuleClassifier.Result r = AppointmentParser.parse(text);
         applyLearnedCategory(text, r);
         if ("Tareas".equals(r.category) || "Recordatorios".equals(r.category)) r.category = "Personal";
-        r.needsReview = false;
-        r.reason = "";
+
+        // Una cita puede guardarse voluntariamente sin fecha. Eso no es lo mismo
+        // que haber escrito una fecha/hora que el parser no ha podido interpretar.
+        if (r.dueAt <= 0 && !r.invalidDate && !r.invalidTime && !r.ambiguousTime) {
+            r.needsReview = false;
+            if ("Falta la fecha de la cita".equals(r.reason)) r.reason = "Cita sin fecha";
+        }
         return r.toJson();
     }
 
@@ -139,10 +149,17 @@ public class NexoService {
         if (learned.isBlank()) return;
         boolean weakLocal = "Otros".equals(r.category) || r.confidence < .72;
         if (weakLocal) {
+            boolean parserNeedsReview = r.needsReview;
+            String parserReason = r.reason;
             r.category = learned;
             r.confidence = Math.max(r.confidence, .80);
-            r.needsReview = false;
-            r.reason = "Clasificación aprendida de correcciones anteriores";
+            if (parserNeedsReview) {
+                r.needsReview = true;
+                r.reason = parserReason;
+            } else {
+                r.needsReview = false;
+                r.reason = "Clasificación aprendida de correcciones anteriores";
+            }
         }
     }
 
@@ -457,7 +474,7 @@ public class NexoService {
                 if (!completed && trigger <= System.currentTimeMillis()) continue;
                 long rid = db.insertReminderMinutes(itemId, title, trigger, leadMinutes, occurrenceAt);
                 if (completed) db.setReminderEnabled(rid, false);
-                else ReminderScheduler.schedule(context, rid, title, trigger);
+                else if (!reminderSchedulingDeferred) ReminderScheduler.schedule(context, rid, title, trigger);
                 created.put(rid);
             }
         } catch (Exception ignored) {}

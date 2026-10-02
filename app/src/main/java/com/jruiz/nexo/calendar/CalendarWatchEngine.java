@@ -68,7 +68,9 @@ public final class CalendarWatchEngine {
                 if (state.length() == 0) {
                     long linkedItem = db.findMatchingCalendarItem(event.title, normalizedDueAt(event), event.allDay);
                     long captureId = createOrUpdateCapture(context, db, event, 0L, linkedItem, "new");
-                    db.rememberCalendarEvent(event.id, event.fingerprint, captureId, linkedItem);
+                    if (captureId > 0L) {
+                        db.rememberCalendarEvent(event.id, event.fingerprint, captureId, linkedItem);
+                    }
                     continue;
                 }
 
@@ -92,7 +94,9 @@ public final class CalendarWatchEngine {
                     linkedItem = db.findMatchingCalendarItem(event.title, normalizedDueAt(event), event.allDay);
                 }
                 long captureId = createOrUpdateCapture(context, db, event, pendingCapture, linkedItem, "updated");
-                db.rememberCalendarEvent(event.id, event.fingerprint, captureId, linkedItem);
+                if (captureId > 0L) {
+                    db.rememberCalendarEvent(event.id, event.fingerprint, captureId, linkedItem);
+                }
             }
         } finally {
             db.close();

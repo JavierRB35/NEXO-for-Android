@@ -1,5 +1,20 @@
 # Changelog de Nexo
 
+## 3.7.2 · versionCode 95 · Fiabilidad e integridad de datos
+
+- Notas elimina el autoguardado de la nota real: el usuario guarda explícitamente con el botón de disquete.
+- Los cambios de una nota se protegen al salir y un borrador temporal local permite recuperar una edición interrumpida sin modificar la nota guardada.
+- Cuaderno conserva el editor abierto si falla una escritura al cerrar.
+- El esquema local sube a **nexo.db v25** y repara también bases v24 defectuosas que no llegaron a incorporar `journal_entries.revisit`.
+- La primera importación desde Nexo Familia pasa a ser transaccional; si falla, la agenda anterior permanece intacta y las alarmas del sistema solo cambian después del commit.
+- Se retira de la APK la snapshot familiar histórica y sus rutas de compatibilidad.
+- La conversión de una captura de Inbox en un elemento nuevo se realiza de forma atómica.
+- Calendar y Gmail vuelven a intentar capturas cuya persistencia falló en lugar de consolidarlas como procesadas.
+- La deduplicación de comunicaciones exige compatibilidad de remitente; un texto idéntico de dos personas distintas ya no basta para fusionarlas.
+- Las advertencias del parser de citas dejan de silenciarse antes de la revisión.
+- La creación fallida de una lista conserva el formulario en pantalla.
+
+
 ## 3.7.1 · versionCode 94 · Hotfix Calendar/Inbox
 
 - Corrige el error `no column named revisit` al guardar elementos en instalaciones actualizadas desde esquemas anteriores.

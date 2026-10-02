@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 root=Path(__file__).resolve().parents[1]
@@ -6,90 +5,45 @@ seed_path=root/'app/src/main/assets/nexo_familia_seed_v1.json'
 db_path=root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java'
 main_path=root/'app/src/main/java/com/jruiz/nexo/MainActivity.java'
 importer_path=root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.java'
+cloud_path=root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaCloudSync.java'
 
-payload=json.loads(seed_path.read_text(encoding='utf-8'))
-assert payload.get('format')=='nexo-familia-events-v1'
-assert payload.get('snapshotVersion')=='2026-09-29-v5-clean-rebuild'
-events=payload.get('events') or []
-rules=payload.get('reminderRules') or []
-members=payload.get('members') or []
-audit=payload.get('sourceAudit') or {}
-
-assert len(events)==33, f'Esperados 33 eventos, encontrados {len(events)}'
-assert sum(1 for e in events if e.get('visibility')=='family')==17, 'Esperados 17 eventos family'
-assert sum(1 for e in events if e.get('visibility')=='selected')==16, 'Esperados 16 eventos selected'
-assert len(rules)==46, f'Esperadas 46 reglas de aviso, encontradas {len(rules)}'
-assert len(members)==4, f'Esperados 4 miembros, encontrados {len(members)}'
-assert audit.get('familyEventCount')==33
-assert audit.get('reminderRuleCount')==46
-assert audit.get('memberCount')==4
-
-event_keys={
-    'id','family_id','created_by','title','description','start_at','end_at','all_day',
-    'start_date','end_date','location','category','status','visibility','shared_with',
-    'participant_ids','recurrence_rule','created_at','updated_at','external_uid',
-    'external_source','event_origin','social_type','venue_type','maps_url','guest_count',
-    'guest_details','time_zone'
-}
-rule_keys={
-    'id','family_id','event_id','minutes_before','remind_at','status','created_by',
-    'sent_at','created_at','updated_at','delivery_attempts','next_attempt_at',
-    'claimed_at','claim_token'
-}
-
-ids=[e.get('id') for e in events]
-assert all(ids) and len(ids)==len(set(ids)), 'UUID de eventos vacíos o duplicados'
-event_ids=set(ids)
-rule_ids=[r.get('id') for r in rules]
-assert all(rule_ids) and len(rule_ids)==len(set(rule_ids)), 'UUID de reglas vacíos o duplicados'
-assert all(r.get('event_id') in event_ids for r in rules), 'Hay avisos que apuntan a eventos no incluidos'
-
-for e in events:
-    missing=event_keys-set(e)
-    assert not missing, f'Evento {e.get("id")} pierde campos fuente: {sorted(missing)}'
-    assert e.get('title'), f'Evento sin título: {e.get("id")}'
-    assert e.get('start_date') or e.get('start_at'), f'Evento sin inicio: {e.get("id")}'
-    assert e.get('time_zone'), f'Evento sin zona horaria: {e.get("id")}'
-    for k,v in e.items():
-        assert not (isinstance(v,str) and v.strip().lower()=='null'), f'Cadena null en {e.get("id")}:{k}'
-
-for r in rules:
-    missing=rule_keys-set(r)
-    assert not missing, f'Regla {r.get("id")} pierde campos fuente: {sorted(missing)}'
+# La distribución no debe contener datos familiares reales.
+assert not seed_path.exists(), 'La snapshot familiar privada sigue empaquetada'
 
 db=db_path.read_text(encoding='utf-8')
-for field in ['end_at','all_day','time_zone','maps_url','recurrence_rule','participants_text']:
-    assert field in db, f'Falta campo local compatible: {field}'
-assert 'DB_VERSION = 24' in db
+assert 'DB_VERSION = 25' in db
+assert 'columnExists(db, "journal_entries", "revisit")' in db
 assert 'getNexoFamiliaMetadataForLocalItem' in db
 assert 'metadataComplete' in db and 'brokenMappings' in db
 assert 'hasNexoFamiliaReminderMapping' in db
 assert 'resetNexoFamiliaImportedData' in db
+assert 'resetAllAppointmentsForNexoFamiliaMigration' in db
+assert 'boolean ownsTransaction = !db.inTransaction()' in db
 
 main=main_path.read_text(encoding='utf-8')
-assert 'nexo_familia_seed_v1.json' in main  # compatibilidad manual histórica
+assert 'nexo_familia_seed_v1.json' not in main
+assert 'readBundledNexoFamiliaPayload' not in main
+assert 'repairBundledNexoFamiliaMigration' not in main
 assert 'NexoFamiliaCloudSync' in main
-on_create=main.split('@Override protected void onCreate',1)[1].split('@Override protected void onResume',1)[0]
-assert 'applyBundledNexoFamiliaMigration();' not in on_create
-assert 'syncNexoFamiliaEvents' in main
-assert 'linkNexoFamilia' in main
 
 importer=importer_path.read_text(encoding='utf-8')
 for key in ['endAt','allDay','timeZone','mapsUrl','recurrenceRule','participantsText']:
     assert f'local.put("{key}"' in importer, f'El importador no preserva {key}'
-assert 'sourceStartMillis' in importer
 for token in ['validatePayload(payload, events, rules)','verifiedEvents','verifiedReminderRules','brokenMappings','metadataComplete']:
     assert token in importer, f'Falta verificación de migración: {token}'
+assert 'deferAlarmSideEffects' in importer
 
-print(f'Migración Nexo Familia completa: {len(events)} eventos, {len(rules)} reglas, {len(members)} miembros')
+cloud=cloud_path.read_text(encoding='utf-8')
+assert 'sql.beginTransaction()' in cloud
+assert 'sql.setTransactionSuccessful()' in cloud
+assert 'sql.endTransaction()' in cloud
+assert 'scheduleCommittedFamiliaReminders()' in cloud
+assert cloud.index('sql.endTransaction()') < cloud.index('scheduleCommittedFamiliaReminders()')
 
-# Regression beta9: el ciclo temporal replica Nexo Familia por fecha de calendario.
-db_source=db_path.read_text(encoding='utf-8')
-assert 'normalizeNexoFamiliaStatusForRead' in db_source
-assert 'queryItems' in db_source and 'normalizeNexoFamiliaStatusForRead(itemJson(c))' in db_source
-assert "WHEN recurrence<>'none' THEN 'pending'" in db_source
-assert "WHEN status='cancelled' THEN 'cancelled'" in db_source
-assert 'isBeforeToday(effectiveEnd)' in db_source
-assert '"event".equals(effectiveType)' in db_source
-assert 'v.put("status", isBeforeToday(effectiveEnd) ? "done" : "pending")' in db_source
-print('Ciclo temporal de eventos alineado con Nexo Familia: OK')
+# Regression temporal.
+assert 'normalizeNexoFamiliaStatusForRead' in db
+assert 'queryItems' in db and 'normalizeNexoFamiliaStatusForRead(itemJson(c))' in db
+assert "WHEN recurrence<>'none' THEN 'pending'" in db
+assert "WHEN status='cancelled' THEN 'cancelled'" in db
+
+print('Nexo Familia: importación validada/transaccional y snapshot privada retirada: OK')

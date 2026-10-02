@@ -2,6 +2,7 @@ package com.jruiz.nexo.migration;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -159,14 +160,25 @@ public final class NexoFamiliaCloudSync {
 
             if (firstBaseline) {
                 removedLocalAppointments = db.countLocalAppointments();
-                JSONArray reminderIds = db.resetAllAppointmentsForNexoFamiliaMigration();
+                JSONArray reminderIds = new JSONArray();
+                SQLiteDatabase sql = db.getWritableDatabase();
+                sql.beginTransaction();
+                try {
+                    reminderIds = db.resetAllAppointmentsForNexoFamiliaMigration();
+                    result = NexoFamiliaImporter.importPayload(context, db, payload);
+                    if (result.optBoolean("ok", false)) sql.setTransactionSuccessful();
+                } finally {
+                    sql.endTransaction();
+                }
+
+                if (!result.optBoolean("ok", false)) return result;
+
+                // Solo después de confirmar la transacción se modifican las alarmas del sistema.
                 for (int i = 0; i < reminderIds.length(); i++) {
                     ReminderScheduler.cancel(context, reminderIds.optLong(i));
                 }
-                result = NexoFamiliaImporter.importPayload(context, db, payload);
-                if (result.optBoolean("ok", false)) {
-                    prefs.edit().putBoolean(PREF_BASELINE, true).apply();
-                }
+                scheduleCommittedFamiliaReminders();
+                prefs.edit().putBoolean(PREF_BASELINE, true).apply();
             } else {
                 result = NexoFamiliaImporter.importNewOnly(context, db, payload);
             }
@@ -200,6 +212,18 @@ public final class NexoFamiliaCloudSync {
             } catch (Exception ignored) {}
         }
         return out;
+    }
+
+    private void scheduleCommittedFamiliaReminders() {
+        JSONArray rows = db.getNexoFamiliaPendingReminderSchedules();
+        for (int i = 0; i < rows.length(); i++) {
+            JSONObject row = rows.optJSONObject(i);
+            if (row == null) continue;
+            long id = row.optLong("id", 0L);
+            long triggerAt = row.optLong("triggerAt", 0L);
+            if (id <= 0L || triggerAt <= System.currentTimeMillis()) continue;
+            ReminderScheduler.schedule(context, id, row.optString("title", "Recordatorio"), triggerAt);
+        }
     }
 
     public void disconnect() {

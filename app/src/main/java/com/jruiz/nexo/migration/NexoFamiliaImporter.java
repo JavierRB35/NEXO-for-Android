@@ -150,6 +150,8 @@ public final class NexoFamiliaImporter {
                 rulesByEvent.computeIfAbsent(eventId,k->new ArrayList<>()).add(rule);
             }
 
+            final boolean deferAlarmSideEffects = db.getWritableDatabase().inTransaction();
+
             for (int i=0;i<events.length();i++) {
                 JSONObject event=events.optJSONObject(i);
                 if(event==null){skipped++;continue;}
@@ -173,7 +175,9 @@ public final class NexoFamiliaImporter {
                     preserved++;
 
                     JSONArray oldReminderIds=db.deleteNexoFamiliaImportedReminders(sourceId);
-                    for(int n=0;n<oldReminderIds.length();n++) ReminderScheduler.cancel(context,oldReminderIds.optLong(n));
+                    if(!deferAlarmSideEffects) {
+                        for(int n=0;n<oldReminderIds.length();n++) ReminderScheduler.cancel(context,oldReminderIds.optLong(n));
+                    }
 
                     for(JSONObject rule:rulesByEvent.getOrDefault(sourceId,Collections.emptyList())) {
                         int minutes=Math.max(0,rule.optInt("minutes_before",0));
@@ -186,7 +190,9 @@ public final class NexoFamiliaImporter {
                             if(trigger>System.currentTimeMillis()) {
                                 localReminderId=db.insertReminderMinutes(localId,local.optString("title","Recordatorio"),trigger,minutes,occurrence);
                                 if(localReminderId>0) {
-                                    ReminderScheduler.schedule(context,localReminderId,local.optString("title","Recordatorio"),trigger);
+                                    if(!deferAlarmSideEffects) {
+                                        ReminderScheduler.schedule(context,localReminderId,local.optString("title","Recordatorio"),trigger);
+                                    }
                                     reminderCount++;
                                 }
                             }
