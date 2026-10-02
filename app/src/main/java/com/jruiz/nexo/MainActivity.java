@@ -2019,7 +2019,10 @@ public class MainActivity extends Activity {
                 SQLiteDatabase sql = atomicInboxCreate ? db.getWritableDatabase() : null;
                 JSONObject result = new JSONObject();
 
-                if (atomicInboxCreate) sql.beginTransaction();
+                if (atomicInboxCreate) {
+                    sql.beginTransaction();
+                    service.setReminderSchedulingDeferred(true);
+                }
                 try {
                     if (updateItemId > 0L) {
                         input.put("id", updateItemId);
@@ -2042,7 +2045,10 @@ public class MainActivity extends Activity {
                         sql.setTransactionSuccessful();
                     }
                 } finally {
-                    if (atomicInboxCreate) sql.endTransaction();
+                    if (atomicInboxCreate) {
+                        sql.endTransaction();
+                        service.setReminderSchedulingDeferred(false);
+                    }
                 }
 
                 if (atomicInboxCreate && result.optBoolean("ok", false)) {
