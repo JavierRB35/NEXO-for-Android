@@ -16,12 +16,17 @@ import java.time.ZoneId;
 public class NexoService {
     private final Context context;
     private final DatabaseHelper db;
+    private boolean reminderSchedulingDeferred = false;
 
     public NexoService(Context context, DatabaseHelper db) {
         this.context = context.getApplicationContext();
         this.db = db;
         cleanupInterruptedDeletes();
         silenceArchiveReminders();
+    }
+
+    public void setReminderSchedulingDeferred(boolean deferred) {
+        reminderSchedulingDeferred = deferred;
     }
 
     /** Retire alerts left on old place/document cards, retaining their stored rules and content. */
@@ -462,7 +467,7 @@ public class NexoService {
                 if (!completed && trigger <= System.currentTimeMillis()) continue;
                 long rid = db.insertReminderMinutes(itemId, title, trigger, leadMinutes, occurrenceAt);
                 if (completed) db.setReminderEnabled(rid, false);
-                else if (!db.getWritableDatabase().inTransaction()) ReminderScheduler.schedule(context, rid, title, trigger);
+                else if (!reminderSchedulingDeferred) ReminderScheduler.schedule(context, rid, title, trigger);
                 created.put(rid);
             }
         } catch (Exception ignored) {}
