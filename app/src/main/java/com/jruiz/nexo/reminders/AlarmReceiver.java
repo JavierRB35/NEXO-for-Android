@@ -42,7 +42,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             PendingIntent content = PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(context, CHANNEL_ID) : new Notification.Builder(context);
-            b.setSmallIcon(R.drawable.ic_notification)
+            b.setSmallIcon(R.drawable.ic_notification_nexo)
                     .setContentTitle("Nexo")
                     .setContentText(title)
                     .setStyle(new Notification.BigTextStyle().bigText(title))

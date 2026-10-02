@@ -8,6 +8,13 @@ dev	TEMP	Apunta pasado mañana a las 9	2026-08-25|09:00	temporal con contexto
 dev	TEMP	hoy a las 20:15	2026-08-23|20:15	temporal base
 dev	TEMP	La reunión es hoy a las 20:15	2026-08-23|20:15	temporal con contexto
 dev	TEMP	esta mañana a las 9	2026-08-23|09:00	temporal base
+dev	TEMP	esta tarde a las cinco y media	2026-08-23|17:30	franja antes de hora hablada
+dev	TEMP	Tengo que ir a casa de mis padres esta tarde a las cinco y media	2026-08-23|17:30	caso real tarde
+dev	TEMP	esta tarde a las 5:30	2026-08-23|17:30	franja antes de hora numérica
+dev	TEMP	mañana por la tarde a las cinco y media	2026-08-24|17:30	mañana + tarde
+dev	TEMP	mañana por la tarde a las 5:30	2026-08-24|17:30	mañana + tarde numérica
+dev	TEMP	mañana por la mañana a las cinco y media	2026-08-24|05:30	mañana + franja mañana
+dev	TEMP	esta noche a las nueve	2026-08-23|21:00	franja noche
 dev	TEMP	Necesito acordarme esta mañana a las 9	2026-08-23|09:00	temporal con contexto
 dev	TEMP	el lunes a las 11	2026-08-24|11:00	temporal base
 dev	TEMP	Recuérdame el lunes a las 11	2026-08-24|11:00	temporal con contexto
@@ -209,66 +216,66 @@ holdout	ROUTE	Borra el café de la lista de la compra	shopping	enrutado holdout
 holdout	ROUTE	Estoy aparcado aquí	parking	enrutado holdout
 holdout	ROUTE	Recuérdame la cita del martes	capture	enrutado holdout
 holdout	ROUTE	Evento en Valencia mañana	capture	enrutado holdout
-dev	CLASS	Cita con el cardiólogo mañana a las 10	event|Salud	clasificación
-dev	CLASS	PET-TAC en Hospital Vithas el martes	event|Salud	clasificación
-dev	CLASS	Analítica de sangre el lunes	event|Salud	clasificación
-dev	CLASS	Dentista el jueves a las 17	event|Salud	clasificación
+dev	CLASS	Cita con el cardiólogo mañana a las 10	event|Salud / Médico	clasificación
+dev	CLASS	PET-TAC en Hospital Vithas el martes	event|Salud / Médico	clasificación
+dev	CLASS	Analítica de sangre el lunes	event|Salud / Médico	clasificación
+dev	CLASS	Dentista el jueves a las 17	event|Salud / Médico	clasificación
 dev	CLASS	Cumpleaños de Ana el 3 de septiembre	event|Cumpleaños	clasificación
 dev	CLASS	Cumple de Carlos mañana	event|Cumpleaños	clasificación
-dev	CLASS	Recuérdame llamar a Juan mañana	reminder|Recordatorios	clasificación
-dev	CLASS	Avísame de pagar el recibo mañana	reminder|Finanzas	clasificación
-dev	CLASS	Acuérdate de llevar el coche al taller	reminder|Coche	clasificación
+dev	CLASS	Recuérdame llamar a Juan mañana	reminder|Recordatorio	clasificación
+dev	CLASS	Avísame de pagar el recibo mañana	reminder|Trámites	clasificación
+dev	CLASS	Acuérdate de llevar el coche al taller	reminder|Vehículos / ITV	clasificación
 dev	CLASS	Comprar detergente	task|Compras	clasificación
-dev	CLASS	Tengo que llamar al fontanero	task|Tareas	clasificación
-dev	CLASS	Hay que enviar el documento	task|Documentos	clasificación
-dev	CLASS	Llevar el coche al taller	task|Coche	clasificación
-dev	CLASS	Renovar el seguro del coche	expiry|Coche	clasificación
-dev	CLASS	El seguro vence el 1 de octubre	expiry|Coche	clasificación
-dev	CLASS	Caduca la garantía en noviembre	expiry|Documentos	clasificación
-dev	CLASS	Reserva de hotel en Madrid	note|Viajes	clasificación
-dev	CLASS	Vuelo a Roma el viernes	note|Viajes	clasificación
-dev	CLASS	Comer en Restaurante Navarro	restaurant|Restaurantes	clasificación
-dev	CLASS	Cena en bar Ricardo	restaurant|Restaurantes	clasificación
-dev	CLASS	Factura de electricidad	document|Documentos	clasificación
-dev	CLASS	Contrato de alquiler	document|Documentos	clasificación
-dev	CLASS	Pago del impuesto de circulación	note|Finanzas	clasificación
-dev	CLASS	Ingreso de la pensión	note|Finanzas	clasificación
+dev	CLASS	Tengo que llamar al fontanero	task|Tarea / Recado	clasificación
+dev	CLASS	Hay que enviar el documento	task|Trámites	clasificación
+dev	CLASS	Llevar el coche al taller	task|Vehículos / ITV	clasificación
+dev	CLASS	Renovar el seguro del coche	expiry|Vehículos / ITV	clasificación
+dev	CLASS	El seguro vence el 1 de octubre	expiry|Vehículos / ITV	clasificación
+dev	CLASS	Caduca la garantía en noviembre	expiry|Trámites	clasificación
+dev	CLASS	Reserva de hotel en Madrid	note|Viaje	clasificación
+dev	CLASS	Vuelo a Roma el viernes	note|Viaje	clasificación
+dev	CLASS	Comer en Restaurante Navarro	restaurant|Ocio / Social	clasificación
+dev	CLASS	Cena en bar Ricardo	restaurant|Ocio / Social	clasificación
+dev	CLASS	Factura de electricidad	document|Trámites	clasificación
+dev	CLASS	Contrato de alquiler	document|Trámites	clasificación
+dev	CLASS	Pago del impuesto de circulación	note|Trámites	clasificación
+dev	CLASS	Ingreso de la pensión	note|Trámites	clasificación
 dev	CLASS	Revisión de la caldera	note|Casa	clasificación
 dev	CLASS	Cambiar filtro del aire acondicionado	note|Casa	clasificación
-dev	CLASS	Idea para reorganizar el salón	note|Ideas	clasificación
-dev	CLASS	Se me ocurre hacer un viaje	note|Viajes	clasificación
-dev	CLASS	ITV del coche el martes	note|Coche	clasificación
-dev	CLASS	Cambio de aceite del coche	note|Coche	clasificación
+dev	CLASS	Idea para reorganizar el salón	note|Otro	clasificación
+dev	CLASS	Se me ocurre hacer un viaje	note|Viaje	clasificación
+dev	CLASS	ITV del coche el martes	note|Vehículos / ITV	clasificación
+dev	CLASS	Cambio de aceite del coche	note|Vehículos / ITV	clasificación
 dev	CLASS	Farmacia comprar medicación	task|Compras	clasificación
-dev	CLASS	Tomar Losartán 50 mg a las 8	medication|Medicamentos	clasificación
-dev	CLASS	Medicamento Eliquis 5 mg a las 20	medication|Medicamentos	clasificación
-dev	CLASS	Reunión de trabajo mañana a las 9	event|Otros	clasificación
-dev	CLASS	Consulta en el hospital mañana	event|Salud	clasificación
-dev	CLASS	Evento en el auditorio	event|Otros	clasificación
-dev	CLASS	Comprar billetes para el viaje	task|Viajes	clasificación
-dev	CLASS	Pedir cita al médico	event|Salud	clasificación
-dev	CLASS	Solicitar presupuesto de seguro	task|Coche	clasificación
-dev	CLASS	Documento PDF de la garantía	document|Documentos	clasificación
-dev	CLASS	Manual de la lavadora	document|Documentos	clasificación
-dev	CLASS	Quiero recordar una idea	reminder|Ideas	clasificación
-dev	CLASS	Avisarme por voz de la cita	reminder|Recordatorios	clasificación
-dev	CLASS	Recordatorio hablado para llamar a Ana	reminder|Recordatorios	clasificación
-dev	CLASS	Cita médica en centro de salud	event|Salud	clasificación
-holdout	CLASS	Consulta de medicina nuclear el miércoles	event|Salud	clasificación holdout
-holdout	CLASS	Cita para radiodiagnóstico mañana	event|Salud	clasificación holdout
+dev	CLASS	Tomar Losartán 50 mg a las 8	medication|Salud / Médico	clasificación
+dev	CLASS	Medicamento Eliquis 5 mg a las 20	medication|Salud / Médico	clasificación
+dev	CLASS	Reunión de trabajo mañana a las 9	event|Otro	clasificación
+dev	CLASS	Consulta en el hospital mañana	event|Salud / Médico	clasificación
+dev	CLASS	Evento en el auditorio	event|Otro	clasificación
+dev	CLASS	Comprar billetes para el viaje	task|Viaje	clasificación
+dev	CLASS	Pedir cita al médico	event|Salud / Médico	clasificación
+dev	CLASS	Solicitar presupuesto de seguro	task|Vehículos / ITV	clasificación
+dev	CLASS	Documento PDF de la garantía	document|Trámites	clasificación
+dev	CLASS	Manual de la lavadora	document|Trámites	clasificación
+dev	CLASS	Quiero recordar una idea	reminder|Recordatorio	clasificación
+dev	CLASS	Avisarme por voz de la cita	event|Otro	clasificación
+dev	CLASS	Recordatorio hablado para llamar a Ana	reminder|Recordatorio	clasificación
+dev	CLASS	Cita médica en centro de salud	event|Salud / Médico	clasificación
+holdout	CLASS	Consulta de medicina nuclear el miércoles	event|Salud / Médico	clasificación holdout
+holdout	CLASS	Cita para radiodiagnóstico mañana	event|Salud / Médico	clasificación holdout
 holdout	CLASS	Cumpleaños de Marta el domingo	event|Cumpleaños	clasificación holdout
-holdout	CLASS	Recuérdame pagar la hipoteca	reminder|Finanzas	clasificación holdout
-holdout	CLASS	Avísame de la revisión del coche	reminder|Coche	clasificación holdout
-holdout	CLASS	Tengo que recoger un paquete	task|Tareas	clasificación holdout
+holdout	CLASS	Recuérdame pagar la hipoteca	reminder|Trámites	clasificación holdout
+holdout	CLASS	Avísame de la revisión del coche	reminder|Vehículos / ITV	clasificación holdout
+holdout	CLASS	Tengo que recoger un paquete	task|Tarea / Recado	clasificación holdout
 holdout	CLASS	Comprar café y azúcar	task|Compras	clasificación holdout
-holdout	CLASS	Renovación del seguro del coche	expiry|Coche	clasificación holdout
-holdout	CLASS	Vencimiento de contrato el mes que viene	expiry|Documentos	clasificación holdout
-holdout	CLASS	Hotel para vacaciones	note|Viajes	clasificación holdout
-holdout	CLASS	Cenar en cafetería Lisboa	restaurant|Restaurantes	clasificación holdout
-holdout	CLASS	Garantía de frigorífico	document|Documentos	clasificación holdout
-holdout	CLASS	Idea para una nueva lista	note|Ideas	clasificación holdout
-holdout	CLASS	Tomarme Metformina 850 mg a las 20	medication|Medicamentos	clasificación holdout
-holdout	CLASS	Reunión con Pedro el jueves	event|Otros	clasificación holdout
+holdout	CLASS	Renovación del seguro del coche	expiry|Vehículos / ITV	clasificación holdout
+holdout	CLASS	Vencimiento de contrato el mes que viene	expiry|Trámites	clasificación holdout
+holdout	CLASS	Hotel para vacaciones	note|Viaje	clasificación holdout
+holdout	CLASS	Cenar en cafetería Lisboa	restaurant|Ocio / Social	clasificación holdout
+holdout	CLASS	Garantía de frigorífico	document|Trámites	clasificación holdout
+holdout	CLASS	Idea para una nueva lista	note|Otro	clasificación holdout
+holdout	CLASS	Tomarme Metformina 850 mg a las 20	medication|Salud / Médico	clasificación holdout
+holdout	CLASS	Reunión con Pedro el jueves	event|Otro	clasificación holdout
 dev	REC	cada día	daily	recurrencia
 dev	REC	todos los días	daily	recurrencia
 dev	REC	diariamente	daily	recurrencia

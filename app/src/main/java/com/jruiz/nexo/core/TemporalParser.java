@@ -22,6 +22,10 @@ public final class TemporalParser {
         public boolean hasDate;
         public boolean hasTime;
         public boolean hasEndTime;
+        public boolean invalidDate;
+        public boolean invalidTime;
+        public boolean ambiguousTime;
+        public int explicitDurationMinutes;
         public String dateSource = "";
         public String timeSource = "";
         public String endTimeSource = "";
@@ -36,12 +40,14 @@ public final class TemporalParser {
         public String timeIso() { return hasTime && time != null ? String.format(Locale.ROOT, "%02d:%02d", time.getHour(), time.getMinute()) : ""; }
         public String endTimeIso() { return hasEndTime && endTime != null ? String.format(Locale.ROOT, "%02d:%02d", endTime.getHour(), endTime.getMinute()) : ""; }
         public int durationMinutes() {
-            if (!hasTime || time == null || !hasEndTime || endTime == null) return 0;
-            int start = time.getHour()*60 + time.getMinute();
-            int end = endTime.getHour()*60 + endTime.getMinute();
-            int diff = end - start;
-            if (diff <= 0) diff += 24*60;
-            return diff > 0 && diff <= 24*60 ? diff : 0;
+            if (hasTime && time != null && hasEndTime && endTime != null) {
+                int start = time.getHour()*60 + time.getMinute();
+                int end = endTime.getHour()*60 + endTime.getMinute();
+                int diff = end - start;
+                if (diff <= 0) diff += 24*60;
+                if (diff > 0 && diff <= 24*60) return diff;
+            }
+            return explicitDurationMinutes > 0 ? explicitDurationMinutes : 0;
         }
     }
 
@@ -50,7 +56,7 @@ public final class TemporalParser {
             "julio","agosto","septiembre","octubre","noviembre","diciembre"
     };
 
-    private static final Map<String, DayOfWeek> WEEKDAYS = new HashMap<>();
+    private static final Map<String, DayOfWeek> WEEKDAYS = new LinkedHashMap<>();
     private static final Map<String, Integer> NUMBERS = new HashMap<>();
     private static final Map<String, Integer> HUNDREDS = new HashMap<>();
     static {
@@ -77,67 +83,67 @@ public final class TemporalParser {
         ZoneId zone = ZoneId.systemDefault();
         LocalDate today = now.toLocalDate();
 
-        parseExplicitTime(n, out);
+        parseExplicitTime(correctedTimeScope(n), out);
         parseExplicitEndTime(n, out);
+        parseExplicitDuration(n, out);
+        // Las fechas de documentos (p. ej. "informe del 12 de septiembre") no
+        // compiten con la fecha del evento cuando el dictado contiene varias fechas.
+        String dateN = EventSemanticParser.preferredDateText(raw);
+        if (out.explicitDurationMinutes > 0 && out.hasTime && out.time != null && !out.hasEndTime) {
+            out.endTime = out.time.plusMinutes(out.explicitDurationMinutes);
+            out.hasEndTime = true;
+            out.endTimeSource = "duración explícita";
+        }
 
-        // 1) Fechas numéricas: 23/11/2026, 23-11-26, 23.11.2026, 23/11.
-        Matcher numeric = Pattern.compile("(?<!\\d)(\\d{1,2})\\s*[./-]\\s*(\\d{1,2})(?:\\s*[./-]\\s*(\\d{2,4}))?(?!\\d)").matcher(n);
-        while (numeric.find() && !out.hasDate) {
+        Matcher numeric = Pattern.compile("(?<!\\d)(\\d{1,2})\\s*[./-]\\s*(\\d{1,2})(?:\\s*[./-]\\s*(\\d{2,4}))?(?!\\d)").matcher(dateN);
+        while (numeric.find() && !out.hasDate && !out.invalidDate) {
+            String token = numeric.group(0);
+            String prefix = dateN.substring(Math.max(0, numeric.start()-14), numeric.start());
+            if (token.contains(".") && numeric.group(3) == null &&
+                    (prefix.matches(".*\\ba\\s+las?\\s*$") || prefix.matches(".*\\bhora\\s*$"))) continue;
             try {
-                String token = numeric.group(0);
-                // "a las 18.05" es una hora; un 18.05 sin marcador se interpreta como fecha española.
-                String prefix = n.substring(Math.max(0, numeric.start()-14), numeric.start());
-                if (token.contains(".") && numeric.group(3) == null && (prefix.matches(".*\\ba\\s+las?\\s*$") || prefix.matches(".*\\bhora\\s*$"))) continue;
                 int d = Integer.parseInt(numeric.group(1));
                 int m = Integer.parseInt(numeric.group(2));
                 Integer y = numeric.group(3) == null ? null : Integer.parseInt(numeric.group(3));
                 if (y != null && y < 100) y += 2000;
-                LocalDate date = resolveYear(d, m, y, today);
-                out.date = date; out.hasDate = true; out.dateSource = "fecha numérica";
-            } catch (Exception ignored) {}
+                out.date = resolveYear(d, m, y, today);
+                out.hasDate = true;
+                out.dateSource = "fecha numérica";
+            } catch (Exception invalid) {
+                out.invalidDate = true;
+                out.dateSource = "fecha explícita inválida";
+            }
         }
 
-        // 2) Fechas explícitas escritas con palabras. Deben ganar a expresiones
-        // de franja horaria como "de la mañana". Ejemplo:
-        // "martes veinticinco de agosto a las 8:15 de la mañana" -> 25/08,
-        // nunca "mañana" (día siguiente).
-        if (!out.hasDate) parseMonthWords(n, today, out);
+        if (!out.hasDate && !out.invalidDate) parseMonthWords(dateN, today, out);
+        if (!out.hasDate && !out.invalidDate) parseWeekday(dateN, today, out);
 
-        // 3) Día de la semana explícito: "martes por la mañana" debe conservar
-        // el martes y no interpretar "mañana" como el día siguiente.
-        if (!out.hasDate) parseWeekday(n, today, out);
-
-        // 4) Relativas. "pasado mañana" se evalúa antes que "mañana".
-        // Se distingue "mañana" = tomorrow de "de/por la mañana" = franja horaria.
-        if (!out.hasDate && n.contains("pasado manana")) {
+        if (!out.hasDate && !out.invalidDate && dateN.contains("pasado manana")) {
             out.date = today.plusDays(2); out.hasDate = true; out.dateSource = "pasado mañana";
         }
-        if (!out.hasDate && Pattern.compile("\\besta\\s+manana\\b").matcher(n).find()) {
-            out.date = today; out.hasDate = true; out.dateSource = "esta mañana";
+        if (!out.hasDate && !out.invalidDate && Pattern.compile("\\besta\\s+(?:manana|tarde|noche|madrugada)\\b").matcher(dateN).find()) {
+            out.date = today; out.hasDate = true; out.dateSource = "esta franja del día";
         }
-        // "hoy" es una referencia de fecha explícita y debe ganar a cualquier
-        // aparición posterior de "mañana" usada como franja horaria:
-        // "hoy a las 10 durante toda la mañana" -> hoy, no mañana.
-        if (!out.hasDate && Pattern.compile("\\bhoy\\b").matcher(n).find()) {
+        if (!out.hasDate && !out.invalidDate && Pattern.compile("\\bhoy\\b").matcher(dateN).find()) {
             out.date = today; out.hasDate = true; out.dateSource = "hoy";
         }
-        if (!out.hasDate && containsTomorrowReference(n)) {
+        if (!out.hasDate && !out.invalidDate && containsTomorrowReference(dateN)) {
             out.date = today.plusDays(1); out.hasDate = true; out.dateSource = "mañana";
         }
 
-        if (!out.hasDate) parseRelativeAmount(n, today, out);
+        if (!out.hasDate && !out.invalidDate) parseRelativeAmount(dateN, today, out);
 
-        // Si solo se indicó una hora, interpretarla para hoy si aún no ha pasado; si no, mañana.
-        if (!out.hasDate && out.hasTime && out.time != null) {
+        if (!out.hasDate && !out.invalidDate && !out.invalidTime && out.hasTime && out.time != null) {
             LocalDate candidate = today;
             if (out.time.isBefore(now.toLocalTime()) || out.time.equals(now.toLocalTime())) candidate = candidate.plusDays(1);
             out.date = candidate; out.hasDate = true; out.dateSource = "día inferido por hora";
         }
 
-        // Protege valores imposibles antes de convertir a epoch.
         if (out.hasDate && out.date != null) {
             try { out.date.atTime(out.hasTime && out.time != null ? out.time : LocalTime.of(9,0)).atZone(zone).toInstant(); }
-            catch (Exception e) { out.date=null; out.hasDate=false; out.dateSource=""; }
+            catch (Exception e) {
+                out.date=null; out.hasDate=false; out.invalidDate=true; out.dateSource="fecha explícita inválida";
+            }
         }
         return out;
     }
@@ -184,6 +190,18 @@ public final class TemporalParser {
     }
 
     private static void parseWeekday(String n, LocalDate today, Result out) {
+        String days = "(lunes|martes|miercoles|jueves|viernes|sabado|domingo)";
+        Matcher correction = Pattern.compile("\\bno\\s+(?:es\\s+)?(?:el\\s+)?"+days+
+                "\\b\\s*[,;]?\\s*(?:sino\\s+)?(?:es\\s+)?(?:el\\s+)?"+days+"\\b").matcher(n);
+        if (correction.find()) {
+            DayOfWeek day = WEEKDAYS.get(correction.group(2));
+            if (day != null) {
+                out.date = today.with(TemporalAdjusters.nextOrSame(day));
+                out.hasDate = true;
+                out.dateSource = "día de la semana corregido";
+                return;
+            }
+        }
         for (Map.Entry<String,DayOfWeek> e : WEEKDAYS.entrySet()) {
             if (!Pattern.compile("\\b"+e.getKey()+"\\b").matcher(n).find()) continue;
             boolean next = n.contains("proximo " + e.getKey()) || n.contains("proxima " + e.getKey()) || n.contains("siguiente " + e.getKey());
@@ -227,7 +245,9 @@ public final class TemporalParser {
             }
             try {
                 out.date=resolveYear(day,month,year,today); out.hasDate=true; out.dateSource="fecha escrita con palabras"; return;
-            } catch(Exception ignored) {}
+            } catch(Exception invalid) {
+                out.invalidDate=true; out.dateSource="fecha explícita inválida"; return;
+            }
         }
     }
 
@@ -240,21 +260,24 @@ public final class TemporalParser {
         if (n.contains("medianoche")) { out.time=LocalTime.MIDNIGHT; out.hasTime=true; out.timeSource="medianoche"; return; }
         if (n.contains("mediodia")) { out.time=LocalTime.NOON; out.hasTime=true; out.timeSource="mediodía"; return; }
 
-        // Hora con separador, con o sin "a las": 18:30 / 18.30.
         Matcher m = Pattern.compile("(?:\\ba\\s+las?\\s+|\\blas?\\s+)?(?<![./\\d])(\\d{1,2})[:.](\\d{2})(?!\\d)").matcher(n);
         while (m.find()) {
-            // Evita confundir el comienzo de una fecha con punto (23.11.2026) con una hora.
             int k=m.end(); while(k<n.length() && Character.isWhitespace(n.charAt(k))) k++;
             if (k<n.length() && (n.charAt(k)=='.' || n.charAt(k)=='/' || n.charAt(k)=='-')) continue;
-            int h=Integer.parseInt(m.group(1)), min=Integer.parseInt(m.group(2));
+            int rawHour=Integer.parseInt(m.group(1)), min=Integer.parseInt(m.group(2));
             String matched = m.group(0);
             boolean explicitCue = matched.matches(".*\\ba\\s+las?.*") || matched.matches(".*\\blas?.*");
-            if (matched.contains(".") && !explicitCue && h>=1 && h<=31 && min>=1 && min<=12) continue;
-            String tail=n.substring(m.end()); h=adjustDayPart(h,tail);
-            if (validTime(h,min)) { out.time=LocalTime.of(h,min); out.hasTime=true; out.timeSource="hora numérica"; return; }
+            if (matched.contains(".") && !explicitCue && rawHour>=1 && rawHour<=31 && min>=1 && min<=12) continue;
+            int h=adjustDayPartFromContext(rawHour,n,m.start(),m.end());
+            if (validTime(h,min)) {
+                out.time=LocalTime.of(h,min); out.hasTime=true; out.timeSource="hora numérica";
+                // HH:mm es una hora explícita de 24 horas; no necesita AM/PM.
+                out.ambiguousTime=false;
+                return;
+            }
+            out.invalidTime=true; out.timeSource="hora explícita inválida"; return;
         }
 
-        // "a las 10" o "a las seis y media de la tarde".
         Matcher marker = Pattern.compile("\\b(?:a|desde|de)\\s+las?\\s+").matcher(n);
         boolean markerFound = marker.find();
         if (!markerFound) { marker = Pattern.compile("\\b(?:a|desde|de)\\s+la\\s+").matcher(n); markerFound = marker.find(); }
@@ -263,10 +286,11 @@ public final class TemporalParser {
             String[] tokens=tail.replaceAll("[^a-z0-9]+"," ").trim().split("\\s+");
             if (tokens.length>0) {
                 int h=0, used=0;
-                // La hora española normalizada (seis, diez, veintidós, 18) cabe en el primer token.
                 int hv=parseNumberTokens(tokens,0,1);
                 if (hv>=0 && hv<=23) { h=hv; used=1; }
+                else if (hv>23) { out.invalidTime=true; out.timeSource="hora explícita inválida"; return; }
                 if (used>0) {
+                    int rawHour=h;
                     int min=0;
                     if (used+1<tokens.length && tokens[used].equals("y") && tokens[used+1].equals("media")) { min=30; used+=2; }
                     else if (used+1<tokens.length && tokens[used].equals("y") && tokens[used+1].equals("cuarto")) { min=15; used+=2; }
@@ -275,16 +299,76 @@ public final class TemporalParser {
                         int[] parsed=parseSmallNumber(tokens,used+1,59);
                         if (parsed[0]>=0) { min=parsed[0]; used=parsed[1]; }
                     } else {
-                        // También acepta habla natural del tipo "a las dieciocho treinta".
                         int[] parsed=parseSmallNumber(tokens,used,59);
                         if (parsed[0]>=0) { min=parsed[0]; used=parsed[1]; }
                     }
-                    String remainder=String.join(" ",Arrays.copyOfRange(tokens,Math.min(used,tokens.length),tokens.length));
-                    h=adjustDayPart(h,remainder);
-                    if (validTime(h,min)) { out.time=LocalTime.of(h,min); out.hasTime=true; out.timeSource="hora escrita con palabras"; }
+                    h=adjustDayPartFromContext(h,n,marker.start(),marker.end());
+                    if (validTime(h,min)) {
+                        out.time=LocalTime.of(h,min); out.hasTime=true; out.timeSource="hora escrita con palabras";
+                        out.ambiguousTime=rawHour>=1 && rawHour<=11 && !hasDayPartAround(n,marker.start(),marker.end());
+                    } else {
+                        out.invalidTime=true; out.timeSource="hora explícita inválida";
+                    }
                 }
             }
         }
+    }
+
+    private static boolean hasDayPartAround(String n, int start, int end) {
+        String around=n.substring(Math.max(0,start-28),Math.min(n.length(),end+40));
+        // "mañana a las cinco" fija el día, pero no distingue 05:00/17:00.
+        // Solo una franja explícita ("de la tarde", "por la mañana", "esta noche"...)
+        // desambigua una hora hablada de 1 a 11.
+        return Pattern.compile("\\b(?:(?:de|por)\\s+la|esta)\\s+(?:manana|tarde|noche|madrugada)\\b|\\b(?:mediodia|medianoche)\\b")
+                .matcher(around).find();
+    }
+
+    private static String correctedTimeScope(String n) {
+        if (n==null || n.isBlank()) return n;
+        Matcher cue=Pattern.compile("\\b(?:perdon|mejor|rectifico|corrijo|quiero\\s+decir)\\b").matcher(n);
+        int last=-1; while(cue.find()) last=cue.start();
+        if(last<0) return n;
+        String tail=n.substring(last);
+        if(Pattern.compile("\\b(?:a|desde|de)\\s+las?\\s+|\\b(?:a|desde|de)\\s+la\\s+|\\d{1,2}[:.]\\d{2}").matcher(tail).find()) return tail;
+        return n;
+    }
+
+    private static void parseExplicitDuration(String n, Result out) {
+        if(n==null || n.isBlank()) return;
+        Matcher m=Pattern.compile("\\b(?:durante|duracion(?:\\s+de)?|dura|durara)\\s+([^,.;]{2,90})").matcher(n);
+        while(m.find()){
+            int minutes=parseSpanMinutes(m.group(1));
+            if(minutes>0 && minutes<=10080){out.explicitDurationMinutes=minutes;return;}
+        }
+    }
+
+    public static int parseSpanMinutes(String phrase) {
+        if(phrase==null) return -1;
+        String p=norm(phrase).trim();
+        p=p.replaceFirst("^(?:durante|duracion(?:\\s+de)?|dura|durara)\\s+","").trim();
+        p=p.replaceFirst("\\s+antes\\b.*$","").trim();
+        if(p.matches("^media\\s+hora\\b.*")) return 30;
+        if(p.matches("^(?:un\\s+)?cuarto\\s+de\\s+hora\\b.*")) return 15;
+
+        Matcher hours=Pattern.compile("(?:(.{1,45}?)\\s+)?horas?\\b").matcher(p);
+        if(hours.find()){
+            String number=hours.group(1)==null?"":hours.group(1).trim();
+            int h=number.isBlank()?1:parseNumberPhrase(number);
+            if(h<0)return -1;
+            int minutes=h*60;
+            String tail=p.substring(hours.end()).trim();
+            if(tail.matches("^y\\s+media\\b.*"))minutes+=30;
+            else if(tail.matches("^y\\s+cuarto\\b.*"))minutes+=15;
+            else{
+                Matcher extra=Pattern.compile("^(?:y\\s+)?(.{1,35}?)\\s+minutos?\\b").matcher(tail);
+                if(extra.find()){int m=parseNumberPhrase(extra.group(1));if(m>=0&&m<60)minutes+=m;}
+            }
+            return minutes;
+        }
+
+        Matcher minutes=Pattern.compile("(.{1,45}?)\\s+minutos?\\b").matcher(p);
+        if(minutes.find()){int m=parseNumberPhrase(minutes.group(1));return m>=0?m:-1;}
+        return -1;
     }
 
     /**
@@ -393,6 +477,29 @@ public final class TemporalParser {
             if (v>=0 && v<=max) { best=v; bestEnd=start+len; }
         }
         return new int[]{best,bestEnd};
+    }
+
+    /**
+     * Ajusta una hora de 12 h usando la franja horaria más cercana al marcador.
+     * Esto cubre tanto "a las cinco de la tarde" como "esta tarde a las cinco"
+     * y "mañana por la tarde a las cinco y media".
+     */
+    private static int adjustDayPartFromContext(int hour, String full, int anchorStart, int anchorEnd) {
+        if (full == null || full.isBlank()) return hour;
+        Matcher cue = Pattern.compile("\\b(?:esta|por\\s+la|de\\s+la|durante\\s+(?:toda\\s+)?la)\\s+(manana|tarde|noche|madrugada)\\b").matcher(full);
+        String best = "";
+        int bestDistance = Integer.MAX_VALUE;
+        while (cue.find()) {
+            int distance;
+            if (cue.end() <= anchorStart) distance = anchorStart - cue.end();
+            else if (cue.start() >= anchorEnd) distance = cue.start() - anchorEnd;
+            else distance = 0;
+            if (distance <= 80 && distance < bestDistance) {
+                bestDistance = distance;
+                best = cue.group(1);
+            }
+        }
+        return best.isBlank() ? hour : adjustDayPart(hour, best);
     }
 
     private static int adjustDayPart(int hour, String tail) {

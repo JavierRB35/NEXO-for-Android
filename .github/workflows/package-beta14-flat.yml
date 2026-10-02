@@ -1,0 +1,41 @@
+name: package-beta14-flat
+
+on:
+  push:
+    branches:
+      - release/nexo-3.7.0-beta14
+  workflow_dispatch:
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate beta14
+        shell: bash
+        run: |
+          python3 validation/test-version-identity.py
+          python3 validation/test-beta13-interactions.py
+          python3 validation/test-beta14-gmail.py
+
+      - name: Create flat source ZIP
+        shell: bash
+        run: |
+          rm -f Nexo_3_7_0_beta14.zip
+          zip -r Nexo_3_7_0_beta14.zip . \
+            -x '.git/*' \
+               '.github/workflows/package-beta12-flat.yml' \
+               '.github/workflows/package-beta13-flat.yml' \
+               '.github/workflows/package-beta14-flat.yml' \
+               'Nexo_3_7_0_beta14.zip' \
+               'app/build/*' \
+               '.gradle/*'
+
+      - name: Upload flat source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexo_3_7_0_beta14
+          path: Nexo_3_7_0_beta14.zip
+          if-no-files-found: error

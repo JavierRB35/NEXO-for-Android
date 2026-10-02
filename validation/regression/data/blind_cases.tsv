@@ -61,26 +61,26 @@ blind	ROUTE	He aparcado el coche aquí	parking	blind route
 blind	ROUTE	Aparcado en este sitio	parking	blind route
 blind	ROUTE	Recuérdame pagar el seguro	capture	blind route
 blind	ROUTE	Cita con traumatólogo el lunes	capture	blind route
-blind	CLASS	Cita con traumatólogo mañana	event|Salud	blind class
-blind	CLASS	Consulta de cardiología el jueves	event|Salud	blind class
+blind	CLASS	Cita con traumatólogo mañana	event|Salud / Médico	blind class
+blind	CLASS	Consulta de cardiología el jueves	event|Salud / Médico	blind class
 blind	CLASS	Cumpleaños de Elena el lunes	event|Cumpleaños	blind class
-blind	CLASS	Recuérdame pagar el recibo del gas	reminder|Finanzas	blind class
-blind	CLASS	Avísame de llevar el coche al taller	reminder|Coche	blind class
-blind	CLASS	Tengo que enviar una carta	task|Tareas	blind class
+blind	CLASS	Recuérdame pagar el recibo del gas	reminder|Trámites	blind class
+blind	CLASS	Avísame de llevar el coche al taller	reminder|Vehículos / ITV	blind class
+blind	CLASS	Tengo que enviar una carta	task|Tarea / Recado	blind class
 blind	CLASS	Comprar arroz	task|Compras	blind class
-blind	CLASS	Renovar la póliza del coche	expiry|Coche	blind class
-blind	CLASS	Caduca el contrato en diciembre	expiry|Documentos	blind class
-blind	CLASS	Reserva de vuelo a Sevilla	note|Viajes	blind class
-blind	CLASS	Comer en bar Central	restaurant|Restaurantes	blind class
-blind	CLASS	Manual de instrucciones del horno	document|Documentos	blind class
-blind	CLASS	Factura del teléfono	document|Documentos	blind class
-blind	CLASS	Pago del IBI	note|Finanzas	blind class
+blind	CLASS	Renovar la póliza del coche	expiry|Vehículos / ITV	blind class
+blind	CLASS	Caduca el contrato en diciembre	expiry|Trámites	blind class
+blind	CLASS	Reserva de vuelo a Sevilla	note|Viaje	blind class
+blind	CLASS	Comer en bar Central	restaurant|Ocio / Social	blind class
+blind	CLASS	Manual de instrucciones del horno	document|Trámites	blind class
+blind	CLASS	Factura del teléfono	document|Trámites	blind class
+blind	CLASS	Pago del IBI	note|Trámites	blind class
 blind	CLASS	Revisar el frigorífico	note|Casa	blind class
-blind	CLASS	Idea para organizar fotografías	note|Ideas	blind class
-blind	CLASS	ITV en septiembre	note|Coche	blind class
-blind	CLASS	Tomar Crestor 20 mg a las 22	medication|Medicamentos	blind class
-blind	CLASS	Evento familiar el sábado	event|Otros	blind class
-blind	CLASS	Reunión con el administrador el lunes	event|Otros	blind class
+blind	CLASS	Idea para organizar fotografías	note|Otro	blind class
+blind	CLASS	ITV en septiembre	note|Vehículos / ITV	blind class
+blind	CLASS	Tomar Crestor 20 mg a las 22	medication|Salud / Médico	blind class
+blind	CLASS	Evento familiar el sábado	event|Otro	blind class
+blind	CLASS	Reunión con el administrador el lunes	event|Otro	blind class
 blind	REC	Esto se repite diariamente	daily	blind recurrence
 blind	REC	Hazlo cada semana	weekly	blind recurrence
 blind	REC	Pago mensual todos los meses	monthly	blind recurrence

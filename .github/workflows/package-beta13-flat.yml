@@ -1,0 +1,33 @@
+name: package-beta13-flat
+
+on:
+  push:
+    branches:
+      - release/nexo-3.7.0-beta13
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create flat source ZIP
+        shell: bash
+        run: |
+          rm -f Nexo_3_7_0_beta13.zip
+          zip -r Nexo_3_7_0_beta13.zip . \
+            -x '.git/*' \
+               '.github/workflows/package-beta12-flat.yml' \
+               '.github/workflows/package-beta13-flat.yml' \
+               'Nexo_3_7_0_beta13.zip' \
+               'app/build/*' \
+               '.gradle/*'
+
+      - name: Upload flat source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexo_3_7_0_beta13
+          path: Nexo_3_7_0_beta13.zip
+          if-no-files-found: error

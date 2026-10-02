@@ -27,6 +27,10 @@ import com.jruiz.nexo.core.NexoService;
 import com.jruiz.nexo.core.PlaceEntry;
 import com.jruiz.nexo.calendar.CalendarExporter;
 import com.jruiz.nexo.calendar.CalendarImporter;
+import com.jruiz.nexo.calendar.CalendarCapturePrefs;
+import com.jruiz.nexo.calendar.CalendarWatchEngine;
+import com.jruiz.nexo.calendar.CalendarWatchScheduler;
+import com.jruiz.nexo.calendar.HolidayCalendarService;
 import com.jruiz.nexo.exchange.NexoExchangeManager;
 import com.jruiz.nexo.backup.NexoBackupManager;
 import com.jruiz.nexo.data.DatabaseHelper;
@@ -46,6 +50,22 @@ import com.jruiz.nexo.recordings.RecordingNaming;
 import com.jruiz.nexo.transcription.TranscriptionModelManager;
 import com.jruiz.nexo.transcription.TranscriptionStore;
 import com.jruiz.nexo.transcription.TranscriptionService;
+import com.jruiz.nexo.communications.CommunicationCapturePrefs;
+import com.jruiz.nexo.communications.NexoNotificationListener;
+import com.jruiz.nexo.input.InputHubPrefs;
+import com.jruiz.nexo.input.SmsWatchEngine;
+import com.jruiz.nexo.input.SmsWatchScheduler;
+import com.jruiz.nexo.input.GmailWatchEngine;
+import com.jruiz.nexo.input.GmailWatchScheduler;
+import com.jruiz.nexo.migration.NexoFamiliaImporter;
+import com.jruiz.nexo.migration.NexoFamiliaCloudSync;
+
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -68,6 +88,10 @@ public class MainActivity extends Activity {
     private static final int REQ_RECORDING_EXPORT = 109;
     private static final int REQ_DOCUMENT_FILE = 110;
     private static final int REQ_DOCUMENT_EXPORT = 111;
+    private static final int REQ_CALENDAR = 112;
+    private static final int REQ_GMAIL_SIGN_IN = 113;
+    private static final int REQ_SMS = 114;
+    private static final int REQ_NEXO_FAMILIA_IMPORT = 115;
     private String pendingDocumentRequest = "";
     private String pendingDocumentExportPath = "";
 
@@ -78,6 +102,7 @@ public class MainActivity extends Activity {
     private JSONObject pendingIncoming;
     private JSONObject pendingSharedImport;
     private JSONObject pendingSharedPreview;
+    private long pendingInboxCaptureId = 0L;
     private String pendingParkingNote = "";
     private LocationManager parkingLocationManager;
     private LocationListener parkingGpsListener;
@@ -100,11 +125,17 @@ public class MainActivity extends Activity {
     private float recordingPlaybackSpeed = 1.0f;
     private String pendingRecordingExportId = "";
     private volatile boolean transcriptionModelDownloadActive = false;
+    private volatile boolean startupInboxScanRunning = false;
+    private boolean firstResumeAfterCreate = true;
+    private NexoFamiliaCloudSync familiaCloudSync;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = new DatabaseHelper(getApplicationContext());
         service = new NexoService(this, db);
+        familiaCloudSync = new NexoFamiliaCloudSync(getApplicationContext(), db);
+        // La antigua instantánea incluida queda solo como compatibilidad manual.
+        // La agenda de Nexo Familia se sincroniza ahora directamente con Supabase.
         setupWebView();
         handleIncomingIntent(getIntent());
     }
@@ -116,8 +147,52 @@ public class MainActivity extends Activity {
                 db.reconcileTemporalStatuses();
                 JSONArray meds=db.getMedications("","active");
                 for(int i=0;i<meds.length();i++){JSONObject m=meds.optJSONObject(i);if(m!=null)MedicationScheduler.scheduleNext(this,db,m.optLong("id"),System.currentTimeMillis()-1);}
-                
             } catch(Exception ignored) {}
+        }
+        boolean firstResume = firstResumeAfterCreate;
+        firstResumeAfterCreate = false;
+        if (!firstResume && InputHubPrefs.autoScanEnabled(this)) {
+            if (CalendarCapturePrefs.isEnabled(this) &&
+                    checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
+                new Thread(() -> {
+                    Context app = getApplicationContext();
+                    if (!CalendarCapturePrefs.isBaselined(app)) {
+                        CalendarWatchEngine.initializeBaseline(app);
+                    } else {
+                        // Recupera cambios que Android/Calendar pudiera no haber entregado
+                        // mientras Nexo estaba en segundo plano y vuelve a armar el watcher.
+                        CalendarWatchEngine.scan(app);
+                        CalendarWatchScheduler.schedule(app);
+                    }
+                    jsCallback("onInputHubChanged", "calendar");
+                }, "nexo-calendar-resume").start();
+            }
+            if (InputHubPrefs.smsEnabled(this) &&
+                    checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) {
+                new Thread(() -> {
+                    if (!InputHubPrefs.smsBaselined(getApplicationContext())) SmsWatchEngine.initializeBaseline(getApplicationContext());
+                    else SmsWatchEngine.scan(getApplicationContext());
+                    SmsWatchScheduler.schedule(getApplicationContext());
+                }, "nexo-sms-resume").start();
+            }
+            if (InputHubPrefs.gmailEnabled(this)) {
+                if (GmailWatchEngine.hasAuthorizedAccount(this)) {
+                    new Thread(() -> {
+                        if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
+                        else GmailWatchEngine.scan(getApplicationContext());
+                        GmailWatchScheduler.schedule(getApplicationContext());
+                        jsCallback("onInputHubChanged", "gmail");
+                    }, "nexo-gmail-resume").start();
+                } else {
+                    InputHubPrefs.setGmailError(this, "Conecta una cuenta de Gmail desde Ajustes.");
+                }
+            }
+            }
+        if (pageReady) {
+            jsCallback("onNotificationAccessChanged", isNotificationAccessEnabled() ? "1" : "0");
+            jsCallback("onCalendarAccessChanged",
+                    checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED ? "1" : "0");
+            jsCallback("onInputHubChanged", "resume");
         }
     }
 
@@ -163,12 +238,20 @@ public class MainActivity extends Activity {
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        String uiAssetVersion = BuildConfig.VERSION_NAME;
+        android.content.SharedPreferences uiPrefs = getSharedPreferences("nexo-ui-assets", MODE_PRIVATE);
+        if (!uiAssetVersion.equals(uiPrefs.getString("version", ""))) {
+            webView.clearCache(true);
+            uiPrefs.edit().putString("version", uiAssetVersion).apply();
+        }
         // La WebView no realiza cargas de red: la lógica de Nexo permanece local.
         s.setBlockNetworkLoads(true);
         webView.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 pageReady = true;
                 deliverIncomingIfReady();
+                deliverInboxReviewIfReady();
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri u = request.getUrl();
@@ -186,6 +269,11 @@ public class MainActivity extends Activity {
     private void handleIncomingIntent(Intent intent) {
         if (intent == null) return;
         String action = intent.getAction();
+        if (NexoNotificationListener.ACTION_REVIEW.equals(action)) {
+            pendingInboxCaptureId = intent.getLongExtra("captureId", 0L);
+            deliverInboxReviewIfReady();
+            return;
+        }
         if (!Intent.ACTION_SEND.equals(action) && !Intent.ACTION_VIEW.equals(action)) return;
         try {
             String mime = intent.getType() == null ? "" : intent.getType();
@@ -222,6 +310,18 @@ public class MainActivity extends Activity {
                 p.put("attachmentMime", f.optString("mime"));
                 if (p.optString("text").isBlank()) p.put("text", f.optString("name", "Archivo compartido"));
             }
+            // Persistir antes de abrir la interfaz: si Android mata la actividad o el usuario sale,
+            // el contenido recibido seguirá disponible en Nexo Inbox.
+            JSONObject classification = new JSONObject();
+            String sharedText = p.optString("text", "");
+            if (!sharedText.isBlank()) {
+                try { classification = service.classify(sharedText); }
+                catch (Exception ignored) { classification = new JSONObject(); }
+            }
+            long captureId = db.insertInboxCapture(p, classification);
+            if (captureId > 0) p.put("captureId", captureId);
+            if (classification.length() > 0) p.put("classification", classification);
+
             pendingIncoming = p;
             deliverIncomingIfReady();
         } catch (Exception e) {
@@ -273,6 +373,293 @@ public class MainActivity extends Activity {
         final String js = "window.NexoUI && window.NexoUI.receiveShare(" + JSONObject.quote(pendingIncoming.toString()) + ");";
         pendingIncoming = null;
         webView.evaluateJavascript(js, null);
+    }
+
+    private void deliverInboxReviewIfReady() {
+        if (!pageReady || pendingInboxCaptureId <= 0 || webView == null) return;
+        long id = pendingInboxCaptureId;
+        pendingInboxCaptureId = 0L;
+        webView.evaluateJavascript(
+                "window.NexoUI && window.NexoUI.reviewInboxCaptureFromNotification(" + id + ");",
+                null
+        );
+    }
+
+    private boolean isNotificationAccessEnabled() {
+        try {
+            String enabled = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+            if (enabled == null || enabled.isBlank()) return false;
+            ComponentName target = new ComponentName(this, NexoNotificationListener.class);
+            String full = target.flattenToString();
+            String shortName = target.flattenToShortString();
+            for (String part : enabled.split(":")) {
+                if (full.equals(part) || shortName.equals(part)) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private void openNotificationAccessSettings() {
+        runOnUiThread(() -> {
+            try {
+                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+            } catch (Exception e) {
+                Toast.makeText(this, "No se pudo abrir el acceso a notificaciones", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private boolean hasCalendarPermission() {
+        return checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void setCalendarCaptureEnabled(boolean enabled) {
+        runOnUiThread(() -> {
+            if (!enabled) {
+                CalendarCapturePrefs.setEnabled(this, false);
+                CalendarWatchScheduler.cancel(this);
+                jsCallback("onCalendarAccessChanged", "0");
+                return;
+            }
+
+            CalendarCapturePrefs.setEnabled(this, true);
+            if (!hasCalendarPermission()) {
+                requestPermissions(new String[]{Manifest.permission.READ_CALENDAR}, REQ_CALENDAR);
+                return;
+            }
+
+            ensureNotificationPermission();
+            if (InputHubPrefs.autoScanEnabled(this)) {
+                new Thread(() -> {
+                    CalendarWatchEngine.initializeBaseline(getApplicationContext());
+                    jsCallback("onCalendarAccessChanged", "1");
+                }, "nexo-calendar-baseline").start();
+            } else {
+                jsCallback("onCalendarAccessChanged", "1");
+                jsCallback("onInputHubChanged", "calendar");
+            }
+        });
+    }
+
+    private boolean hasSmsPermission() {
+        return checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void setSmsCaptureEnabled(boolean enabled) {
+        runOnUiThread(() -> {
+            if (!enabled) {
+                InputHubPrefs.setSmsEnabled(this, false);
+                InputHubPrefs.setSmsBaselined(this, false);
+                SmsWatchScheduler.cancel(this);
+                CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
+                jsCallback("onInputHubChanged", "sms");
+                return;
+            }
+            InputHubPrefs.setSmsEnabled(this, true);
+            CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
+            if (!hasSmsPermission()) {
+                requestPermissions(new String[]{Manifest.permission.READ_SMS}, REQ_SMS);
+                return;
+            }
+            ensureNotificationPermission();
+            if (InputHubPrefs.autoScanEnabled(this)) {
+                new Thread(() -> {
+                    SmsWatchEngine.initializeBaseline(getApplicationContext());
+                    jsCallback("onInputHubChanged", "sms");
+                }, "nexo-sms-baseline").start();
+            } else {
+                jsCallback("onInputHubChanged", "sms");
+            }
+        });
+    }
+
+    private void clearGmailConnectionError() {
+        InputHubPrefs.setGmailError(this, "");
+        InputHubPrefs.setGmailErrorDetail(this, "");
+    }
+
+    private void setGmailConnectionError(Exception error) {
+        int code = -1;
+        String status = "";
+        if (error instanceof ApiException) {
+            code = ((ApiException) error).getStatusCode();
+            status = GoogleSignInStatusCodes.getStatusCodeString(code);
+        }
+        String friendly;
+        if (code == 10) {
+            friendly = "Google todavía no reconoce esta versión de Nexo.";
+        } else if (code == 12501) {
+            friendly = "Conexión con Gmail cancelada.";
+        } else if (code == 7) {
+            friendly = "No se pudo contactar con Google. Comprueba tu conexión a Internet.";
+        } else if (error instanceof IllegalStateException && error.getMessage() != null && error.getMessage().contains("permiso")) {
+            friendly = "La cuenta no concedió permiso para leer Gmail.";
+        } else {
+            friendly = "No se pudo conectar Gmail.";
+        }
+        StringBuilder detail = new StringBuilder();
+        if (!status.isBlank()) detail.append("Google Sign-In: ").append(status);
+        if (code >= 0) {
+            if (detail.length() > 0) detail.append(" · ");
+            detail.append("código ").append(code);
+        }
+        if (detail.length() == 0 && error.getMessage() != null && !error.getMessage().isBlank()) {
+            detail.append(error.getMessage());
+        }
+        InputHubPrefs.setGmailError(this, friendly);
+        InputHubPrefs.setGmailErrorDetail(this, detail.toString());
+    }
+
+    private void connectGmail() {
+        runOnUiThread(() -> {
+            try {
+                clearGmailConnectionError();
+                InputHubPrefs.setGmailEnabled(this, true);
+                GoogleSignInClient client = GoogleSignIn.getClient(this, GmailWatchEngine.signInOptions());
+                startActivityForResult(client.getSignInIntent(), REQ_GMAIL_SIGN_IN);
+                jsCallback("onInputHubChanged", "gmail");
+            } catch (Exception e) {
+                InputHubPrefs.setGmailEnabled(this, false);
+                setGmailConnectionError(e);
+                jsCallback("onInputHubChanged", "gmail");
+            }
+        });
+    }
+
+    private void disconnectGmail() {
+        runOnUiThread(() -> {
+            GmailWatchScheduler.cancel(this);
+            InputHubPrefs.setGmailEnabled(this, false);
+            InputHubPrefs.setGmailBaselined(this, false);
+            InputHubPrefs.setGmailEmail(this, "");
+            clearGmailConnectionError();
+            try {
+                GoogleSignInClient client = GoogleSignIn.getClient(this, GmailWatchEngine.signInOptions());
+                client.signOut().addOnCompleteListener(task -> jsCallback("onInputHubChanged", "gmail"));
+            } catch (Exception ignored) {
+                jsCallback("onInputHubChanged", "gmail");
+            }
+        });
+    }
+
+    private void scanGmailNow() {
+        if (!GmailWatchEngine.hasAuthorizedAccount(this)) {
+            InputHubPrefs.setGmailEnabled(this, false);
+            InputHubPrefs.setGmailError(this, "Conecta Gmail antes de escanear.");
+            InputHubPrefs.setGmailErrorDetail(this, "");
+            jsCallback("onInputHubChanged", "gmail");
+            return;
+        }
+        InputHubPrefs.setGmailEnabled(this, true);
+        clearGmailConnectionError();
+        new Thread(() -> {
+            if (!InputHubPrefs.gmailBaselined(getApplicationContext())) {
+                GmailWatchEngine.initializeBaseline(getApplicationContext());
+            } else {
+                GmailWatchEngine.scan(getApplicationContext());
+            }
+            if (InputHubPrefs.autoScanEnabled(getApplicationContext())) {
+                GmailWatchScheduler.schedule(getApplicationContext());
+            }
+            jsCallback("onInputHubChanged", "gmail");
+        }, "nexo-gmail-manual-scan").start();
+    }
+
+    private void setGmailCaptureEnabled(boolean enabled) {
+        if (!enabled) {
+            InputHubPrefs.setGmailEnabled(this, false);
+            InputHubPrefs.setGmailBaselined(this, false);
+            GmailWatchScheduler.cancel(this);
+            jsCallback("onInputHubChanged", "gmail");
+            return;
+        }
+        if (!GmailWatchEngine.hasAuthorizedAccount(this)) {
+            connectGmail();
+            return;
+        }
+        InputHubPrefs.setGmailEnabled(this, true);
+        clearGmailConnectionError();
+        if (InputHubPrefs.autoScanEnabled(this)) {
+            new Thread(() -> {
+                if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
+                else GmailWatchEngine.scan(getApplicationContext());
+                GmailWatchScheduler.schedule(getApplicationContext());
+                jsCallback("onInputHubChanged", "gmail");
+            }, "nexo-gmail-enable").start();
+        } else {
+            jsCallback("onInputHubChanged", "gmail");
+        }
+    }
+
+    private void setInputHubAutoScanEnabled(boolean enabled) {
+        InputHubPrefs.setAutoScanEnabled(getApplicationContext(), enabled);
+        Context app = getApplicationContext();
+        if (!enabled) {
+            CalendarWatchScheduler.cancel(app);
+            SmsWatchScheduler.cancel(app);
+            GmailWatchScheduler.cancel(app);
+            return;
+        }
+        if (CalendarCapturePrefs.isEnabled(app) && hasCalendarPermission()) CalendarWatchScheduler.schedule(app);
+        if (InputHubPrefs.smsEnabled(app) && hasSmsPermission()) SmsWatchScheduler.schedule(app);
+        if (InputHubPrefs.gmailEnabled(app) && GmailWatchEngine.hasAuthorizedAccount(app)) GmailWatchScheduler.schedule(app);
+    }
+
+    private boolean startStartupInboxScan() {
+        if (startupInboxScanRunning) return false;
+        startupInboxScanRunning = true;
+        new Thread(() -> {
+            boolean partial = false;
+            Context app = getApplicationContext();
+            boolean schedule = InputHubPrefs.autoScanEnabled(app);
+            try {
+                try {
+                    if (InputHubPrefs.smsEnabled(app) && hasSmsPermission()) {
+                        if (!InputHubPrefs.smsBaselined(app)) SmsWatchEngine.initializeBaseline(app);
+                        else SmsWatchEngine.scan(app);
+                        if (schedule) SmsWatchScheduler.schedule(app);
+                    }
+                } catch (Exception ignored) { partial = true; }
+
+                try {
+                    if (InputHubPrefs.gmailEnabled(app) && GmailWatchEngine.hasAuthorizedAccount(app)) {
+                        if (!InputHubPrefs.gmailBaselined(app)) GmailWatchEngine.initializeBaseline(app);
+                        else GmailWatchEngine.scan(app);
+                        if (schedule) GmailWatchScheduler.schedule(app);
+                    }
+                } catch (Exception ignored) { partial = true; }
+
+                try {
+                    if (CalendarCapturePrefs.isEnabled(app) && hasCalendarPermission()) {
+                        if (!CalendarCapturePrefs.isBaselined(app)) CalendarWatchEngine.initializeBaseline(app);
+                        else CalendarWatchEngine.scan(app);
+                        if (schedule) CalendarWatchScheduler.schedule(app);
+                    }
+                } catch (Exception ignored) { partial = true; }
+            } finally {
+                startupInboxScanRunning = false;
+                jsCallback("onInputHubChanged", "startup");
+                jsCallback("onStartupInboxScanFinished", partial ? "partial" : "ok");
+            }
+        }, "nexo-startup-inbox").start();
+        return true;
+    }
+
+    private void scanInputHubNow() {
+        new Thread(() -> {
+            if (InputHubPrefs.smsEnabled(getApplicationContext()) && hasSmsPermission()) {
+                if (!InputHubPrefs.smsBaselined(getApplicationContext())) SmsWatchEngine.initializeBaseline(getApplicationContext());
+                else SmsWatchEngine.scan(getApplicationContext());
+            }
+            if (InputHubPrefs.gmailEnabled(getApplicationContext()) && GmailWatchEngine.hasAuthorizedAccount(getApplicationContext())) {
+                if (!InputHubPrefs.gmailBaselined(getApplicationContext())) GmailWatchEngine.initializeBaseline(getApplicationContext());
+                else GmailWatchEngine.scan(getApplicationContext());
+            }
+            if (CalendarCapturePrefs.isEnabled(getApplicationContext()) && hasCalendarPermission()) {
+                CalendarWatchEngine.scan(getApplicationContext());
+            }
+            jsCallback("onInputHubChanged", "scan");
+        }, "nexo-input-hub-scan").start();
     }
 
     private JSONObject copyUriToInternal(Uri uri, String mimeHint) throws Exception {
@@ -378,6 +765,253 @@ public class MainActivity extends Activity {
                 jsCallback("onDocumentActionResult","No se pudo guardar la copia del documento. Comprueba el destino y el espacio disponible.");
             }
         },"nexo-document-export").start();
+    }
+
+    private void applyBundledNexoFamiliaMigration() {
+        applyBundledNexoFamiliaMigration(false);
+    }
+
+    private void applyBundledNexoFamiliaMigration(boolean force) {
+        final String assetName = "nexo_familia_seed_v1.json";
+        try {
+            String raw;
+            try (InputStream in = getAssets().open(assetName);
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[16384];
+                int n;
+                while ((n = in.read(buffer)) != -1) if (n > 0) out.write(buffer, 0, n);
+                raw = out.toString(java.nio.charset.StandardCharsets.UTF_8);
+            }
+            JSONObject payload = new JSONObject(raw);
+            String snapshot = payload.optString("snapshotVersion", "v1");
+            SharedPreferences prefs = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
+            JSONObject beforeAudit = auditBundledNexoFamiliaPayload(payload);
+            boolean cleanRebuildDone = snapshot.equals(prefs.getString("cleanRebuildVersion", ""));
+            if (!force && cleanRebuildDone &&
+                    snapshot.equals(prefs.getString("snapshotVersion", "")) &&
+                    beforeAudit.optBoolean("complete", false)) {
+                // Aunque los 33 UUID ya estén presentes, una versión anterior pudo
+                // dejar estados temporales incorrectos. Se concilian antes de abrir UI.
+                db.reconcileTemporalStatuses();
+                return;
+            }
+
+            // Beta6: no intentamos reparar sobre una migración dudosa. Reconstruimos
+            // únicamente las copias procedentes de Nexo Familia y mantenemos intactos
+            // todos los datos manuales y de otras fuentes de Nexo Android.
+            JSONArray oldReminderIds = db.resetNexoFamiliaImportedData();
+            for (int i=0;i<oldReminderIds.length();i++) {
+                ReminderScheduler.cancel(getApplicationContext(), oldReminderIds.optLong(i));
+            }
+
+            JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
+            JSONObject afterAudit = auditBundledNexoFamiliaPayload(payload);
+            int expected = payload.optJSONArray("events") == null ? 0 : payload.optJSONArray("events").length();
+            JSONArray expectedRulesArray = payload.optJSONArray("reminderRules");
+            if (expectedRulesArray == null) expectedRulesArray = payload.optJSONArray("reminder_rules");
+            int expectedRules = expectedRulesArray == null ? 0 : expectedRulesArray.length();
+
+            int preserved = result.optInt("preserved", 0);
+            int verifiedEvents = result.optInt("verifiedEvents", 0);
+            int verifiedRules = result.optInt("verifiedReminderRules", 0);
+            int skipped = result.optInt("skipped", 0);
+            boolean complete = result.optBoolean("ok", false) &&
+                    expected > 0 &&
+                    preserved == expected &&
+                    verifiedEvents == expected &&
+                    verifiedRules == expectedRules &&
+                    skipped == 0 &&
+                    afterAudit.optBoolean("complete", false);
+
+            prefs.edit()
+                    .putInt("expectedEvents", expected)
+                    .putInt("expectedReminderRules", expectedRules)
+                    .putInt("lastPreserved", preserved)
+                    .putInt("lastVerifiedEvents", verifiedEvents)
+                    .putInt("lastVerifiedReminderRules", verifiedRules)
+                    .putInt("lastSkipped", skipped)
+                    .putBoolean("lastComplete", complete)
+                    .putLong("lastAttemptAt", System.currentTimeMillis())
+                    .apply();
+
+            if (complete) {
+                prefs.edit()
+                        .putString("snapshotVersion", snapshot)
+                        .putString("cleanRebuildVersion", snapshot)
+                        .putInt("events", verifiedEvents)
+                        .putInt("reminderRules", verifiedRules)
+                        .putLong("importedAt", System.currentTimeMillis())
+                        .apply();
+                db.reconcileTemporalStatuses();
+            } else {
+                prefs.edit()
+                        .remove("snapshotVersion")
+                        .remove("cleanRebuildVersion")
+                        .apply();
+            }
+        } catch (Exception ignored) {
+            // La app debe seguir abriendo aunque el snapshot opcional no pueda migrarse.
+            // Si falla no se marca como completado y se volverá a intentar en el siguiente arranque.
+        }
+    }
+
+    private JSONObject auditBundledNexoFamiliaPayload(JSONObject payload) {
+        JSONObject out = new JSONObject();
+        JSONArray missingEvents = new JSONArray();
+        JSONArray missingRules = new JSONArray();
+        try {
+            JSONArray events = payload == null ? null : payload.optJSONArray("events");
+            JSONArray rules = payload == null ? null : payload.optJSONArray("reminderRules");
+            if (rules == null && payload != null) rules = payload.optJSONArray("reminder_rules");
+            if (events == null) events = new JSONArray();
+            if (rules == null) rules = new JSONArray();
+
+            int verifiedEvents = 0;
+            int expectedFamily = 0, verifiedFamily = 0, familyPending = 0, familyDone = 0;
+            int expectedSelected = 0, verifiedSelected = 0, selectedPending = 0, selectedDone = 0;
+
+            for (int i=0;i<events.length();i++) {
+                JSONObject event = events.optJSONObject(i);
+                if (event == null) continue;
+                String sourceId = event.optString("id", "").trim();
+                String visibility = event.optString("visibility", "").trim();
+                if ("family".equals(visibility)) expectedFamily++;
+                if ("selected".equals(visibility)) expectedSelected++;
+
+                long localId = sourceId.isEmpty() ? 0L : db.getNexoFamiliaLocalItemId(sourceId);
+                JSONObject local = localId > 0L ? db.getItem(localId) : new JSONObject();
+                long expectedStart = NexoFamiliaImporter.sourceStartMillis(event);
+                boolean valid = local.length() > 0 &&
+                        "nexo-familia".equals(local.optString("source", "")) &&
+                        "event".equals(local.optString("type", "")) &&
+                        event.optString("title", "").equals(local.optString("title", "")) &&
+                        expectedStart > 0L &&
+                        Math.abs(local.optLong("dueAt", 0L) - expectedStart) < 1000L;
+
+                if (valid) {
+                    verifiedEvents++;
+                    String localStatus = local.optString("status", "");
+                    if ("family".equals(visibility)) {
+                        verifiedFamily++;
+                        if ("done".equals(localStatus)) familyDone++; else if ("pending".equals(localStatus) || "active".equals(localStatus) || "postponed".equals(localStatus)) familyPending++;
+                    }
+                    if ("selected".equals(visibility)) {
+                        verifiedSelected++;
+                        if ("done".equals(localStatus)) selectedDone++; else if ("pending".equals(localStatus) || "active".equals(localStatus) || "postponed".equals(localStatus)) selectedPending++;
+                    }
+                } else {
+                    JSONObject miss = new JSONObject();
+                    miss.put("id", sourceId);
+                    miss.put("title", event.optString("title", "Evento sin título"));
+                    miss.put("visibility", visibility);
+                    miss.put("expectedStart", expectedStart);
+                    miss.put("localItemId", localId);
+                    miss.put("localStart", local.optLong("dueAt", 0L));
+                    missingEvents.put(miss);
+                }
+            }
+
+            int verifiedRules = 0;
+            for (int i=0;i<rules.length();i++) {
+                JSONObject rule = rules.optJSONObject(i);
+                if (rule == null) continue;
+                String ruleId = rule.optString("id", "").trim();
+                if (!ruleId.isEmpty() && db.hasNexoFamiliaReminderMapping(ruleId)) verifiedRules++;
+                else missingRules.put(ruleId);
+            }
+
+            JSONObject stats = db.getNexoFamiliaImportStats();
+            boolean complete = events.length() > 0 &&
+                    verifiedEvents == events.length() &&
+                    verifiedFamily == expectedFamily &&
+                    verifiedSelected == expectedSelected &&
+                    verifiedRules == rules.length() &&
+                    stats.optLong("brokenMappings", 0L) == 0L;
+
+            out.put("expectedEvents", events.length());
+            out.put("verifiedEvents", verifiedEvents);
+            out.put("expectedFamily", expectedFamily);
+            out.put("verifiedFamily", verifiedFamily);
+            out.put("expectedSelected", expectedSelected);
+            out.put("verifiedSelected", verifiedSelected);
+            out.put("familyPending", familyPending);
+            out.put("familyDone", familyDone);
+            out.put("selectedPending", selectedPending);
+            out.put("selectedDone", selectedDone);
+            out.put("expectedReminderRules", rules.length());
+            out.put("verifiedReminderRules", verifiedRules);
+            out.put("missingEvents", missingEvents);
+            out.put("missingReminderRules", missingRules);
+            out.put("complete", complete);
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    private JSONObject readBundledNexoFamiliaPayload() {
+        try (InputStream in = getAssets().open("nexo_familia_seed_v1.json");
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[16384];
+            int n;
+            while ((n = in.read(buffer)) != -1) if (n > 0) out.write(buffer, 0, n);
+            return new JSONObject(out.toString(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception ignored) {
+            return new JSONObject();
+        }
+    }
+
+    private void chooseNexoFamiliaImport() {
+        runOnUiThread(() -> {
+            try {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                i.setType("application/json");
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivityForResult(i, REQ_NEXO_FAMILIA_IMPORT);
+            } catch (Exception e) {
+                jsCallback("onNexoFamiliaImportError", "No se pudo abrir el selector de archivos.");
+            }
+        });
+    }
+
+    private void importNexoFamiliaFrom(Uri uri) {
+        new Thread(() -> {
+            try {
+                String raw = readUriUtf8(uri, 8 * 1024 * 1024);
+                JSONObject payload = new JSONObject(raw);
+                JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
+                if (result.optBoolean("ok", false)) {
+                    jsCallbackJson("onNexoFamiliaImportDone", result);
+                } else {
+                    String message = result.optString("error", "");
+                    if (message.isBlank()) {
+                        message = "Migración incompleta: " +
+                                result.optInt("verifiedEvents", 0) + "/" + result.optInt("expectedEvents", 0) +
+                                " eventos y " +
+                                result.optInt("verifiedReminderRules", 0) + "/" + result.optInt("expectedReminderRules", 0) +
+                                " reglas verificadas.";
+                    }
+                    jsCallback("onNexoFamiliaImportError", message);
+                }
+            } catch (Exception e) {
+                jsCallback("onNexoFamiliaImportError", "El archivo de Nexo Familia no es válido o está dañado.");
+            }
+        }, "nexo-familia-import").start();
+    }
+
+    private String readUriUtf8(Uri uri, int maxBytes) throws IOException {
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            if (in == null) throw new IOException("Archivo no disponible");
+            byte[] buffer = new byte[16384];
+            int total = 0, n;
+            while ((n = in.read(buffer)) != -1) {
+                if (n <= 0) continue;
+                total += n;
+                if (total > maxBytes) throw new IOException("Archivo demasiado grande");
+                out.write(buffer, 0, n);
+            }
+            return new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+        }
     }
 
     private void chooseBackupExport() {
@@ -669,6 +1303,38 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_GMAIL_SIGN_IN) {
+            try {
+                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                if (account == null || !GoogleSignIn.hasPermissions(account, GmailWatchEngine.GMAIL_SCOPE)) {
+                    throw new IllegalStateException("Falta permiso de lectura de Gmail");
+                }
+                InputHubPrefs.setGmailEnabled(this, true);
+                InputHubPrefs.setGmailBaselined(this, false);
+                InputHubPrefs.setGmailEmail(this, account.getEmail());
+                clearGmailConnectionError();
+                CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);
+                if (InputHubPrefs.autoScanEnabled(this)) {
+                    new Thread(() -> {
+                        GmailWatchEngine.initializeBaseline(getApplicationContext());
+                        GmailWatchScheduler.schedule(getApplicationContext());
+                        jsCallback("onInputHubChanged", "gmail");
+                    }, "nexo-gmail-baseline").start();
+                } else {
+                    jsCallback("onInputHubChanged", "gmail");
+                }
+            } catch (Exception e) {
+                InputHubPrefs.setGmailEnabled(this, false);
+                setGmailConnectionError(e);
+                jsCallback("onInputHubChanged", "gmail");
+            }
+            return;
+        }
+        if (requestCode == REQ_NEXO_FAMILIA_IMPORT) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) importNexoFamiliaFrom(data.getData());
+            return;
+        }
         if (requestCode == REQ_BACKUP_EXPORT) {
             if (resultCode == RESULT_OK && data != null && data.getData() != null) exportBackupTo(data.getData());
             return;
@@ -985,6 +1651,49 @@ public class MainActivity extends Activity {
             boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (ok) startManagedVoiceInternal();
             else jsCallback("onManagedVoiceError", "Necesito permiso de micrófono para poder escucharte.");
+        } else if (requestCode == REQ_CALENDAR) {
+            boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (ok) {
+                CalendarCapturePrefs.setEnabled(this, true);
+                ensureNotificationPermission();
+                if (InputHubPrefs.autoScanEnabled(this)) {
+                    new Thread(() -> {
+                        CalendarWatchEngine.initializeBaseline(getApplicationContext());
+                        jsCallback("onCalendarAccessChanged", "1");
+                        jsCallback("onInputHubChanged", "calendar");
+                    }, "nexo-calendar-baseline").start();
+                } else {
+                    jsCallback("onCalendarAccessChanged", "1");
+                    jsCallback("onInputHubChanged", "calendar");
+                }
+            } else {
+                CalendarCapturePrefs.setEnabled(this, false);
+                CalendarWatchScheduler.cancel(this);
+                jsCallback("onCalendarAccessChanged", "0");
+                jsCallback("onInputHubChanged", "calendar");
+                Toast.makeText(this, "Nexo necesita permiso de calendario para detectar eventos nuevos.", Toast.LENGTH_LONG).show();
+            }
+        } else if (requestCode == REQ_SMS) {
+            boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (ok) {
+                InputHubPrefs.setSmsEnabled(this, true);
+                CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
+                ensureNotificationPermission();
+                if (InputHubPrefs.autoScanEnabled(this)) {
+                    new Thread(() -> {
+                        SmsWatchEngine.initializeBaseline(getApplicationContext());
+                        jsCallback("onInputHubChanged", "sms");
+                    }, "nexo-sms-baseline").start();
+                } else {
+                    jsCallback("onInputHubChanged", "sms");
+                }
+            } else {
+                InputHubPrefs.setSmsEnabled(this, false);
+                SmsWatchScheduler.cancel(this);
+                CommunicationCapturePrefs.setAppEnabled(this, "sms", true);
+                jsCallback("onInputHubChanged", "sms");
+                Toast.makeText(this, "Nexo necesita permiso de SMS para leer directamente los mensajes recibidos.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -1237,6 +1946,22 @@ public class MainActivity extends Activity {
         } catch(Exception e){runOnUiThread(() -> Toast.makeText(this,"No se pudo compartir la entrada",Toast.LENGTH_SHORT).show());}
     }
 
+    private void sharePlainText(String title, String text) {
+        final String safeTitle = title == null || title.isBlank() ? "Nexo" : title;
+        final String safeText = text == null ? "" : text;
+        runOnUiThread(() -> {
+            try {
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("text/plain");
+                share.putExtra(Intent.EXTRA_SUBJECT, safeTitle);
+                share.putExtra(Intent.EXTRA_TEXT, safeText);
+                startActivity(Intent.createChooser(share, "Compartir"));
+            } catch (Exception e) {
+                Toast.makeText(this, "No se pudo abrir el menú para compartir", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private void shareExchangeUri(Uri uri, String title) {
         runOnUiThread(() -> {
             try {
@@ -1326,12 +2051,18 @@ public class MainActivity extends Activity {
         if (webView == null) return;
         runOnUiThread(() -> webView.evaluateJavascript("window.NexoUI && window.NexoUI."+fn+"("+JSONObject.quote(msg)+");",null));
     }
+    private void requestHolidayCalendar(int year) {
+        if (year < 2000 || year > 2100) { JSONObject o=new JSONObject(); try{o.put("year",year);o.put("status","unavailable");o.put("holidays",new JSONArray());}catch(Exception ignored){} jsCallbackJson("onHolidayCalendarLoaded",o); return; }
+        new Thread(() -> jsCallbackJson("onHolidayCalendarLoaded", HolidayCalendarService.load(this, year)), "nexo-holidays-" + year).start();
+    }
+
     private void jsCallbackJson(String fn,JSONObject data) {
         if (webView == null) return;
         runOnUiThread(() -> webView.evaluateJavascript("window.NexoUI && window.NexoUI."+fn+"("+JSONObject.quote(data.toString())+");",null));
     }
     public final class Bridge {
         @JavascriptInterface public String classify(String text) { return service.classify(text).toString(); }
+        @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
         @JavascriptInterface public String getAppointments() { return db.getAppointments().toString(); }
         @JavascriptInterface public void startVoiceInput() { MainActivity.this.startVoiceInput(); }
@@ -1358,6 +2089,72 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void setPreferredShoppingList(long id) {
             getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putLong("shopping_list_id", Math.max(0L,id)).apply();
+        }
+        @JavascriptInterface public boolean hasNotificationAccess() { return MainActivity.this.isNotificationAccessEnabled(); }
+        @JavascriptInterface public void openNotificationAccessSettings() { MainActivity.this.openNotificationAccessSettings(); }
+        @JavascriptInterface public String getCommunicationCaptureSettings() {
+            JSONObject o = CommunicationCapturePrefs.toJson(MainActivity.this);
+            try {
+                o.put("autoScanEnabled", InputHubPrefs.autoScanEnabled(MainActivity.this));
+                o.put("calendarEnabled", CalendarCapturePrefs.isEnabled(MainActivity.this));
+                o.put("calendarPermission", MainActivity.this.hasCalendarPermission());
+                o.put("calendarBaselined", CalendarCapturePrefs.isBaselined(MainActivity.this));
+                o.put("smsDirectEnabled", InputHubPrefs.smsEnabled(MainActivity.this));
+                o.put("smsPermission", MainActivity.this.hasSmsPermission());
+                o.put("smsBaselined", InputHubPrefs.smsBaselined(MainActivity.this));
+                o.put("smsLastSync", InputHubPrefs.smsLastSync(MainActivity.this));
+                o.put("smsError", InputHubPrefs.smsError(MainActivity.this));
+                JSONObject watch = db.getExternalWatchDiagnostics();
+                o.put("smsSeen", watch.optLong("smsSeen", 0));
+                o.put("smsCaptured", watch.optLong("smsCaptured", 0));
+                o.put("smsRejected", watch.optLong("smsRejected", 0));
+                o.put("smsErrors", watch.optLong("smsErrors", 0));
+                o.put("gmailSeen", watch.optLong("gmailSeen", 0));
+                o.put("gmailCaptured", watch.optLong("gmailCaptured", 0));
+                o.put("gmailRejected", watch.optLong("gmailRejected", 0));
+                o.put("gmailErrors", watch.optLong("gmailErrors", 0));
+                o.put("gmailDirectEnabled", InputHubPrefs.gmailEnabled(MainActivity.this));
+                o.put("gmailAuthorized", GmailWatchEngine.hasAuthorizedAccount(MainActivity.this));
+                o.put("gmailEmail", InputHubPrefs.gmailEmail(MainActivity.this));
+                o.put("gmailBaselined", InputHubPrefs.gmailBaselined(MainActivity.this));
+                o.put("gmailLastSync", InputHubPrefs.gmailLastSync(MainActivity.this));
+                o.put("gmailError", InputHubPrefs.gmailError(MainActivity.this));
+                o.put("gmailErrorDetail", InputHubPrefs.gmailErrorDetail(MainActivity.this));
+            } catch (Exception ignored) {}
+            return o.toString();
+        }
+        @JavascriptInterface public void setCommunicationCaptureEnabled(boolean enabled) {
+            CommunicationCapturePrefs.setEnabled(MainActivity.this, enabled);
+        }
+        @JavascriptInterface public void setInputHubAutoScanEnabled(boolean enabled) {
+            MainActivity.this.setInputHubAutoScanEnabled(enabled);
+        }
+        @JavascriptInterface public void setCommunicationAppEnabled(String key, boolean enabled) {
+            CommunicationCapturePrefs.setAppEnabled(MainActivity.this, key, enabled);
+        }
+        @JavascriptInterface public void setCalendarCaptureEnabled(boolean enabled) {
+            MainActivity.this.setCalendarCaptureEnabled(enabled);
+        }
+        @JavascriptInterface public void setSmsCaptureEnabled(boolean enabled) {
+            MainActivity.this.setSmsCaptureEnabled(enabled);
+        }
+        @JavascriptInterface public void connectGmail() {
+            MainActivity.this.connectGmail();
+        }
+        @JavascriptInterface public void disconnectGmail() {
+            MainActivity.this.disconnectGmail();
+        }
+        @JavascriptInterface public void scanGmailNow() {
+            MainActivity.this.scanGmailNow();
+        }
+        @JavascriptInterface public void setGmailCaptureEnabled(boolean enabled) {
+            MainActivity.this.setGmailCaptureEnabled(enabled);
+        }
+        @JavascriptInterface public void scanInputHubNow() {
+            MainActivity.this.scanInputHubNow();
+        }
+        @JavascriptInterface public boolean startStartupInboxScan() {
+            return MainActivity.this.startStartupInboxScan();
         }
         @JavascriptInterface public String getMedicationMessages() {
             JSONArray a=new JSONArray();
@@ -1393,8 +2190,26 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String saveCapture(String json) {
             try {
-                JSONObject result = service.saveCapture(new JSONObject(json));
-                if (result.has("reminderId") || (result.optJSONArray("reminderIds") != null && result.optJSONArray("reminderIds").length()>0)) ensureNotificationPermission();
+                JSONObject input = new JSONObject(json);
+                long updateItemId = input.optLong("updateItemId", 0L);
+                JSONObject result;
+                if (updateItemId > 0L) {
+                    input.put("id", updateItemId);
+                    result = service.updateItem(input);
+                    if (result.optBoolean("ok", false)) result.put("id", updateItemId);
+                } else {
+                    result = service.saveCapture(input);
+                }
+                if (result.optBoolean("ok", false)) {
+                    long captureId = input.optLong("inboxCaptureId", 0);
+                    long createdId = result.optLong("id", 0);
+                    if (captureId > 0 && createdId > 0) db.markInboxCaptureConverted(captureId, "item", createdId);
+                }
+                if (result.has("reminderId") ||
+                        (result.optJSONArray("reminderIds") != null && result.optJSONArray("reminderIds").length()>0) ||
+                        (result.optJSONArray("rescheduled") != null && result.optJSONArray("rescheduled").length()>0)) {
+                    ensureNotificationPermission();
+                }
                 return result.toString();
             } catch (Exception e) { return "{\"ok\":false,\"error\":\"Datos no válidos\"}"; }
         }
@@ -1438,8 +2253,91 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String deleteOccurrence(long seriesId,long occurrenceAt,String scope) { return service.deleteOccurrence(seriesId,occurrenceAt,scope).toString(); }
         @JavascriptInterface public String setOccurrenceStatus(long seriesId,long occurrenceAt,String status) { return service.setOccurrenceStatus(seriesId,occurrenceAt,status).toString(); }
+        @JavascriptInterface public String getHomeDashboard() { return db.getHomeDashboardData().toString(); }
         @JavascriptInterface public String getToday() { return db.getTodayData().toString(); }
         @JavascriptInterface public String getMoreSummary() { return db.getMoreSummary().toString(); }
+        @JavascriptInterface public String getPeople() { return db.getPeople().toString(); }
+        @JavascriptInterface public String getPerson(long id) { return db.getPerson(id).toString(); }
+        @JavascriptInterface public String savePerson(String json) {
+            try { return db.savePerson(new JSONObject(json)).toString(); }
+            catch(Exception e) { return new JSONObject().toString(); }
+        }
+        @JavascriptInterface public boolean archivePerson(long id) { return db.archivePerson(id); }
+        @JavascriptInterface public String getNexoFamiliaCloudStatus() {
+            return familiaCloudSync == null ? "{}" : familiaCloudSync.getStatus().toString();
+        }
+        @JavascriptInterface public void linkNexoFamilia(String email, String password) {
+            new Thread(() -> {
+                JSONObject result = familiaCloudSync.link(email, password);
+                if (result.optBoolean("ok", false)) jsCallbackJson("onNexoFamiliaLinked", result);
+                else jsCallback("onNexoFamiliaCloudError", result.optString("error", "No se pudo vincular Nexo Familia."));
+            }, "nexo-familia-link").start();
+        }
+        @JavascriptInterface public void syncNexoFamiliaEvents() {
+            new Thread(() -> {
+                JSONObject result = familiaCloudSync.syncNewEvents();
+                if (result.optBoolean("ok", false)) jsCallbackJson("onNexoFamiliaSyncDone", result);
+                else {
+                    if (result.optBoolean("sessionExpired", false)) jsCallbackJson("onNexoFamiliaSessionExpired", result);
+                    else jsCallback("onNexoFamiliaCloudError", result.optString("error", "No se pudo importar Nexo Familia."));
+                }
+            }, "nexo-familia-cloud-sync").start();
+        }
+        @JavascriptInterface public void disconnectNexoFamilia() {
+            if (familiaCloudSync != null) familiaCloudSync.disconnect();
+            jsCallbackJson("onNexoFamiliaDisconnected", familiaCloudSync == null ? new JSONObject() : familiaCloudSync.getStatus());
+        }
+        @JavascriptInterface public void chooseNexoFamiliaImport() { MainActivity.this.chooseNexoFamiliaImport(); }
+        @JavascriptInterface public void repairBundledNexoFamiliaMigration() {
+            new Thread(() -> {
+                MainActivity.this.applyBundledNexoFamiliaMigration(true);
+                JSONObject audit = MainActivity.this.auditBundledNexoFamiliaPayload(MainActivity.this.readBundledNexoFamiliaPayload());
+                jsCallbackJson("onNexoFamiliaRepairDone", audit);
+            }, "nexo-familia-repair").start();
+        }
+        @JavascriptInterface public String getNexoFamiliaImportStats() {
+            JSONObject stats = db.getNexoFamiliaImportStats();
+            SharedPreferences p = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
+            try {
+                JSONObject audit = MainActivity.this.auditBundledNexoFamiliaPayload(MainActivity.this.readBundledNexoFamiliaPayload());
+                stats.put("expectedEvents", audit.optInt("expectedEvents", p.getInt("expectedEvents", 0)));
+                stats.put("verifiedEvents", audit.optInt("verifiedEvents", 0));
+                stats.put("expectedFamily", audit.optInt("expectedFamily", 0));
+                stats.put("verifiedFamily", audit.optInt("verifiedFamily", 0));
+                stats.put("expectedSelected", audit.optInt("expectedSelected", 0));
+                stats.put("verifiedSelected", audit.optInt("verifiedSelected", 0));
+                stats.put("familyPending", audit.optInt("familyPending", 0));
+                stats.put("familyDone", audit.optInt("familyDone", 0));
+                stats.put("selectedPending", audit.optInt("selectedPending", 0));
+                stats.put("selectedDone", audit.optInt("selectedDone", 0));
+                stats.put("expectedReminderRules", audit.optInt("expectedReminderRules", p.getInt("expectedReminderRules", 0)));
+                stats.put("verifiedReminderRules", audit.optInt("verifiedReminderRules", 0));
+                stats.put("missingEvents", audit.optJSONArray("missingEvents"));
+                stats.put("missingReminderRules", audit.optJSONArray("missingReminderRules"));
+                stats.put("complete", audit.optBoolean("complete", false));
+                stats.put("lastPreserved", p.getInt("lastPreserved", 0));
+                stats.put("lastSkipped", p.getInt("lastSkipped", 0));
+                stats.put("lastAttemptAt", p.getLong("lastAttemptAt", 0L));
+                stats.put("snapshotVersion", p.getString("snapshotVersion", ""));
+            } catch (Exception ignored) {}
+            return stats.toString();
+        }
+        @JavascriptInterface public String getFamilyStyleSearchIndex() {
+            JSONObject out=db.getFamilyStyleSearchIndex();
+            try { out.put("recordings", RecordingStore.list(MainActivity.this)); }
+            catch(Exception ignored) {}
+            return out.toString();
+        }
+        @JavascriptInterface public String getNexoFamiliaMembers() {
+            try {
+                if (familiaCloudSync != null) {
+                    JSONArray cloudMembers = familiaCloudSync.getCachedMembers();
+                    if (cloudMembers.length() > 0) return cloudMembers.toString();
+                }
+                JSONArray members=MainActivity.this.readBundledNexoFamiliaPayload().optJSONArray("members");
+                return members==null?"[]":members.toString();
+            } catch(Exception ignored) { return "[]"; }
+        }
         @JavascriptInterface public String search(String q) { return db.search(q).toString(); }
         @JavascriptInterface public String synthesizeJournal(String text) { return db.synthesizeJournal(text).toString(); }
         @JavascriptInterface public long saveJournal(String json) { try { return db.insertJournalEntry(new JSONObject(json)); } catch(Exception e) { return 0; } }
@@ -1469,6 +2367,23 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String getTasks(String mode) { return db.getTasks(mode).toString(); }
         @JavascriptInterface public boolean setTaskStatus(long id,String status) { return db.setTaskStatus(id,status); }
         @JavascriptInterface public String getInbox() { return db.getInbox().toString(); }
+        @JavascriptInterface public String getInboxCaptures() { return db.getInboxCaptures().toString(); }
+        @JavascriptInterface public String getInboxCapture(long id) { return db.getInboxCapture(id).toString(); }
+        @JavascriptInterface public long getInboxCaptureCount() { return db.getPendingInboxCaptureCount(); }
+        @JavascriptInterface public boolean updateInboxCaptureClassification(long id,String json) {
+            try { return db.updateInboxCaptureClassification(id,new JSONObject(json)); }
+            catch(Exception e) { return false; }
+        }
+        @JavascriptInterface public boolean markInboxCaptureConverted(long id,String entity,long convertedId) {
+            return db.markInboxCaptureConverted(id,entity,convertedId);
+        }
+        @JavascriptInterface public boolean discardInboxCapture(long id) {
+            JSONObject capture=db.getInboxCapture(id);
+            String path=capture.optString("attachmentPath","");
+            boolean ok=db.discardInboxCapture(id);
+            if(ok && !path.isBlank()) service.discardUnusedAttachment(path);
+            return ok;
+        }
         @JavascriptInterface public String getFavorites() { return db.getFavorites().toString(); }
         @JavascriptInterface public String getHistory() { return db.getRecentHistory().toString(); }
         @JavascriptInterface public String getReminders() { return db.getFutureReminders().toString(); }
@@ -1497,6 +2412,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void shareNexoItem(long itemId,long occurrenceAt,boolean wholeSeries) { MainActivity.this.shareNexoItem(itemId,occurrenceAt,wholeSeries); }
         @JavascriptInterface public void shareNexoList(long listId) { MainActivity.this.shareNexoList(listId); }
         @JavascriptInterface public void shareNexoJournal(long journalId) { MainActivity.this.shareNexoJournal(journalId); }
+        @JavascriptInterface public void sharePlainText(String title,String text) { MainActivity.this.sharePlainText(title,text); }
         @JavascriptInterface public void confirmSharedImport() { MainActivity.this.confirmSharedImport(); }
         @JavascriptInterface public void cancelSharedImport() { MainActivity.this.cancelSharedImport(); }
         @JavascriptInterface public String getBackupStatus() { return backupStatus().toString(); }

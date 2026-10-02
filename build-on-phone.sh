@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-APP_NAME="Nexo_v3_4_9_RELEASE"
+APP_NAME="Nexo_3_7_0"
+DOWNLOAD_DIR="/storage/emulated/0/Download"
 KEY_DIR="${NEXO_KEY_DIR:-$HOME/.nexo-release}"
 KEYSTORE="$KEY_DIR/nexo-release.p12"
 PASSWORD_FILE="$KEY_DIR/nexo-release.password"
@@ -49,13 +50,19 @@ APK="app/build/outputs/apk/release/app-release.apk"
 
 "$APKSIGNER" verify --verbose --print-certs "$APK"
 
-DEST="/storage/emulated/0/Download/${APP_NAME}.apk"
-cp "$APK" "$DEST"
+# Copia final SIEMPRE directamente a Descargas, nunca a subcarpetas del proyecto.
+mkdir -p "$DOWNLOAD_DIR"
+DEST="$DOWNLOAD_DIR/${APP_NAME}.apk"
+cp -f "$APK" "$DEST"
+sync
+[ -f "$DEST" ] || { echo "ERROR: no se pudo copiar el APK a Descargas"; exit 1; }
 
 echo ""
 echo "RELEASE BUILD OK"
 echo "FIRMA VERIFICADA"
+echo "APK FINAL EN DESCARGAS:"
 echo "$DEST"
+ls -lh "$DEST"
 echo ""
 echo "COPIA PERMANENTE DE FIRMA:"
-echo "/storage/emulated/0/Download/Nexo_Signing_Backup"
+echo "$DOWNLOAD_DIR/Nexo_Signing_Backup"

@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 14;
+    private static final int DB_VERSION = 24;
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -41,18 +41,26 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "subcategory TEXT NOT NULL DEFAULT ''," +
                 "tags TEXT NOT NULL DEFAULT ''," +
                 "due_at INTEGER NOT NULL DEFAULT 0," +
+                "end_at INTEGER NOT NULL DEFAULT 0," +
                 "has_time INTEGER NOT NULL DEFAULT 0," +
+                "all_day INTEGER NOT NULL DEFAULT 0," +
+                "time_zone TEXT NOT NULL DEFAULT 'Europe/Madrid'," +
+                "maps_url TEXT NOT NULL DEFAULT ''," +
+                "recurrence_rule TEXT NOT NULL DEFAULT ''," +
+                "participants_text TEXT NOT NULL DEFAULT ''," +
                 "deleted_at INTEGER NOT NULL DEFAULT 0," +
                 "lat REAL," +
                 "lon REAL," +
                 "location_text TEXT NOT NULL DEFAULT ''," +
                 "priority INTEGER NOT NULL DEFAULT 1," +
                 "favorite INTEGER NOT NULL DEFAULT 0," +
+                "revisit INTEGER NOT NULL DEFAULT 0," +
                 "source TEXT NOT NULL DEFAULT 'manual'," +
                 "attachment_path TEXT NOT NULL DEFAULT ''," +
                 "attachment_name TEXT NOT NULL DEFAULT ''," +
                 "attachment_mime TEXT NOT NULL DEFAULT ''," +
                 "status TEXT NOT NULL DEFAULT 'active'," +
+                "status_manual INTEGER NOT NULL DEFAULT 0," +
                 "needs_review INTEGER NOT NULL DEFAULT 0," +
                 "recurrence TEXT NOT NULL DEFAULT 'none'," +
                 "recurrence_until INTEGER NOT NULL DEFAULT 0," +
@@ -127,9 +135,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "PRIMARY KEY(term,category)" +
                 ")");
 
+        createInboxTables(db);
+        createCalendarWatchTables(db);
+        createExternalWatchTables(db);
+        createNexoFamiliaCompatibilityTables(db);
         createJournalTables(db);
         seedJournalBiblicalLibrary(db);
         createMedicationTables(db);
+        createPeopleTables(db);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -181,6 +194,381 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE items ADD COLUMN note_title_manual INTEGER NOT NULL DEFAULT 0");
             db.execSQL("UPDATE items SET note_title_manual=1 WHERE type='note'");
         }
+        if (oldVersion < 15) {
+            createInboxTables(db);
+        }
+        if (oldVersion < 16) {
+            db.execSQL("ALTER TABLE inbox_captures ADD COLUMN source_package TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE inbox_captures ADD COLUMN sender TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE inbox_captures ADD COLUMN source_key TEXT NOT NULL DEFAULT ''");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_key ON inbox_captures(source_key)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_package ON inbox_captures(source_package,status)");
+        }
+        if (oldVersion < 17) {
+            createCalendarWatchTables(db);
+        }
+        if (oldVersion < 18) {
+            createExternalWatchTables(db);
+        }
+        if (oldVersion < 19) {
+            createNexoFamiliaCompatibilityTables(db);
+        }
+        if (oldVersion < 20) {
+            db.execSQL("ALTER TABLE items ADD COLUMN end_at INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE items ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE items ADD COLUMN time_zone TEXT NOT NULL DEFAULT 'Europe/Madrid'");
+            db.execSQL("ALTER TABLE items ADD COLUMN maps_url TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE items ADD COLUMN recurrence_rule TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE items ADD COLUMN participants_text TEXT NOT NULL DEFAULT ''");
+            db.execSQL("UPDATE items SET end_at=CASE WHEN duration_minutes>0 THEN due_at+(duration_minutes*60000) ELSE due_at END WHERE due_at>0 AND end_at=0");
+            db.execSQL("UPDATE items SET all_day=1 WHERE due_at>0 AND has_time=0 AND type IN ('event','task','reminder','expiry')");
+        }
+        if (oldVersion < 21) {
+            db.execSQL("ALTER TABLE items ADD COLUMN status_manual INTEGER NOT NULL DEFAULT 0");
+            // No se puede distinguir retrospectivamente un 'done/postponed/cancelled' manual
+            // de uno calculado. Priorizamos no perder una decisión explícita ya existente.
+            db.execSQL("UPDATE items SET status_manual=1 WHERE status IN ('done','postponed','cancelled')");
+        }
+        if (oldVersion < 22) {
+            createPeopleTables(db);
+        }
+        if (oldVersion < 23) {
+            createItemPeopleTable(db);
+        }
+        if (oldVersion < 24) {
+            db.execSQL("ALTER TABLE journal_entries ADD COLUMN revisit INTEGER NOT NULL DEFAULT 0");
+        }
+    }
+
+
+    private static void createInboxTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS inbox_captures (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "source TEXT NOT NULL DEFAULT 'android-share'," +
+                "mime TEXT NOT NULL DEFAULT ''," +
+                "subject TEXT NOT NULL DEFAULT ''," +
+                "raw_text TEXT NOT NULL DEFAULT ''," +
+                "attachment_path TEXT NOT NULL DEFAULT ''," +
+                "attachment_name TEXT NOT NULL DEFAULT ''," +
+                "attachment_mime TEXT NOT NULL DEFAULT ''," +
+                "detected_type TEXT NOT NULL DEFAULT ''," +
+                "detected_title TEXT NOT NULL DEFAULT ''," +
+                "classification_json TEXT NOT NULL DEFAULT '{}'," +
+                "status TEXT NOT NULL DEFAULT 'new'," +
+                "converted_entity TEXT NOT NULL DEFAULT ''," +
+                "converted_id INTEGER NOT NULL DEFAULT 0," +
+                "created_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL," +
+                "source_package TEXT NOT NULL DEFAULT ''," +
+                "sender TEXT NOT NULL DEFAULT ''," +
+                "source_key TEXT NOT NULL DEFAULT ''" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_status_created ON inbox_captures(status,created_at DESC)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_converted ON inbox_captures(converted_entity,converted_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_key ON inbox_captures(source_key)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_inbox_captures_source_package ON inbox_captures(source_package,status)");
+    }
+
+
+    private static void createCalendarWatchTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS calendar_watch_events (" +
+                "event_id INTEGER PRIMARY KEY," +
+                "fingerprint TEXT NOT NULL DEFAULT ''," +
+                "capture_id INTEGER NOT NULL DEFAULT 0," +
+                "linked_item_id INTEGER NOT NULL DEFAULT 0," +
+                "last_seen_at INTEGER NOT NULL DEFAULT 0" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_calendar_watch_capture ON calendar_watch_events(capture_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_calendar_watch_linked_item ON calendar_watch_events(linked_item_id)");
+    }
+
+
+    private static void createExternalWatchTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS external_watch_items (" +
+                "source TEXT NOT NULL," +
+                "external_id TEXT NOT NULL," +
+                "fingerprint TEXT NOT NULL DEFAULT ''," +
+                "capture_id INTEGER NOT NULL DEFAULT 0," +
+                "last_seen_at INTEGER NOT NULL DEFAULT 0," +
+                "PRIMARY KEY(source,external_id)" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_external_watch_capture ON external_watch_items(capture_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_external_watch_seen ON external_watch_items(source,last_seen_at)");
+    }
+
+
+    private static void createNexoFamiliaCompatibilityTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS nexo_familia_events (" +
+                "source_event_id TEXT PRIMARY KEY," +
+                "local_item_id INTEGER NOT NULL DEFAULT 0," +
+                "family_id TEXT NOT NULL DEFAULT ''," +
+                "created_by TEXT NOT NULL DEFAULT ''," +
+                "participant_ids_json TEXT NOT NULL DEFAULT '[]'," +
+                "visibility TEXT NOT NULL DEFAULT ''," +
+                "shared_with_json TEXT NOT NULL DEFAULT '[]'," +
+                "event_origin TEXT NOT NULL DEFAULT ''," +
+                "social_type TEXT NOT NULL DEFAULT ''," +
+                "venue_type TEXT NOT NULL DEFAULT ''," +
+                "maps_url TEXT NOT NULL DEFAULT ''," +
+                "guest_count INTEGER NOT NULL DEFAULT 0," +
+                "guest_details_json TEXT NOT NULL DEFAULT '[]'," +
+                "external_uid TEXT NOT NULL DEFAULT ''," +
+                "external_source TEXT NOT NULL DEFAULT ''," +
+                "source_status TEXT NOT NULL DEFAULT ''," +
+                "time_zone TEXT NOT NULL DEFAULT 'Europe/Madrid'," +
+                "recurrence_rule TEXT NOT NULL DEFAULT ''," +
+                "start_raw TEXT NOT NULL DEFAULT ''," +
+                "end_raw TEXT NOT NULL DEFAULT ''," +
+                "raw_json TEXT NOT NULL DEFAULT '{}'," +
+                "imported_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_nexo_familia_local_item ON nexo_familia_events(local_item_id)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS nexo_familia_reminders (" +
+                "source_rule_id TEXT PRIMARY KEY," +
+                "source_event_id TEXT NOT NULL DEFAULT ''," +
+                "local_item_id INTEGER NOT NULL DEFAULT 0," +
+                "local_reminder_id INTEGER NOT NULL DEFAULT 0," +
+                "minutes_before INTEGER NOT NULL DEFAULT 0," +
+                "source_status TEXT NOT NULL DEFAULT ''," +
+                "raw_json TEXT NOT NULL DEFAULT '{}'," +
+                "imported_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_nexo_familia_reminder_event ON nexo_familia_reminders(source_event_id)");
+    }
+
+    public long getNexoFamiliaLocalItemId(String sourceEventId) {
+        if (sourceEventId == null || sourceEventId.isBlank()) return 0L;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT local_item_id FROM nexo_familia_events WHERE source_event_id=?",
+                new String[]{sourceEventId})) {
+            return c.moveToFirst() ? c.getLong(0) : 0L;
+        } catch (Exception ignored) { return 0L; }
+    }
+
+    public void rememberNexoFamiliaEvent(String sourceEventId, long localItemId, JSONObject source) {
+        if (sourceEventId == null || sourceEventId.isBlank() || localItemId <= 0 || source == null) return;
+        long now = System.currentTimeMillis();
+        ContentValues v = new ContentValues();
+        v.put("source_event_id", sourceEventId);
+        v.put("local_item_id", localItemId);
+        v.put("family_id", cleanJsonString(source, "family_id"));
+        v.put("created_by", cleanJsonString(source, "created_by"));
+        v.put("participant_ids_json", String.valueOf(source.optJSONArray("participant_ids") == null ? new JSONArray() : source.optJSONArray("participant_ids")));
+        v.put("visibility", cleanJsonString(source, "visibility"));
+        v.put("shared_with_json", String.valueOf(source.optJSONArray("shared_with") == null ? new JSONArray() : source.optJSONArray("shared_with")));
+        v.put("event_origin", cleanJsonString(source, "event_origin"));
+        v.put("social_type", cleanJsonString(source, "social_type"));
+        v.put("venue_type", cleanJsonString(source, "venue_type"));
+        v.put("maps_url", cleanJsonString(source, "maps_url"));
+        v.put("guest_count", Math.max(0, source.optInt("guest_count", 0)));
+        Object guestDetails = source.opt("guest_details");
+        v.put("guest_details_json", guestDetails == null || guestDetails == JSONObject.NULL ? "[]" : String.valueOf(guestDetails));
+        v.put("external_uid", cleanJsonString(source, "external_uid"));
+        v.put("external_source", cleanJsonString(source, "external_source"));
+        v.put("source_status", cleanJsonString(source, "status"));
+        v.put("time_zone", nonBlank(source.optString("time_zone"), "Europe/Madrid"));
+        v.put("recurrence_rule", cleanJsonString(source, "recurrence_rule"));
+        v.put("start_raw", source.optBoolean("all_day", false) ? cleanJsonString(source, "start_date") : cleanJsonString(source, "start_at"));
+        v.put("end_raw", source.optBoolean("all_day", false) ? cleanJsonString(source, "end_date") : cleanJsonString(source, "end_at"));
+        v.put("raw_json", source.toString());
+        v.put("updated_at", now);
+        long importedAt = now;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT imported_at FROM nexo_familia_events WHERE source_event_id=?",
+                new String[]{sourceEventId})) {
+            if (c.moveToFirst()) importedAt = c.getLong(0);
+        } catch (Exception ignored) {}
+        v.put("imported_at", importedAt);
+        getWritableDatabase().insertWithOnConflict("nexo_familia_events", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public JSONArray deleteNexoFamiliaImportedReminders(String sourceEventId) {
+        JSONArray ids = new JSONArray();
+        if (sourceEventId == null || sourceEventId.isBlank()) return ids;
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            ArrayList<Long> values = new ArrayList<>();
+            try (Cursor c = db.rawQuery(
+                    "SELECT local_reminder_id FROM nexo_familia_reminders WHERE source_event_id=? AND local_reminder_id>0",
+                    new String[]{sourceEventId})) {
+                while (c.moveToNext()) values.add(c.getLong(0));
+            }
+            for (Long id : values) {
+                ids.put(id);
+                db.delete("reminders", "id=?", new String[]{String.valueOf(id)});
+            }
+            db.delete("nexo_familia_reminders", "source_event_id=?", new String[]{sourceEventId});
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+        return ids;
+    }
+
+    public void rememberNexoFamiliaReminder(String sourceRuleId, String sourceEventId, long localItemId,
+                                            long localReminderId, int minutesBefore, String sourceStatus,
+                                            JSONObject raw) {
+        if (sourceRuleId == null || sourceRuleId.isBlank()) return;
+        long now = System.currentTimeMillis();
+        ContentValues v = new ContentValues();
+        v.put("source_rule_id", sourceRuleId);
+        v.put("source_event_id", sourceEventId == null ? "" : sourceEventId);
+        v.put("local_item_id", Math.max(0, localItemId));
+        v.put("local_reminder_id", Math.max(0, localReminderId));
+        v.put("minutes_before", Math.max(0, minutesBefore));
+        v.put("source_status", sourceStatus == null ? "" : sourceStatus);
+        v.put("raw_json", raw == null ? "{}" : raw.toString());
+        v.put("updated_at", now);
+        long importedAt = now;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT imported_at FROM nexo_familia_reminders WHERE source_rule_id=?",
+                new String[]{sourceRuleId})) {
+            if (c.moveToFirst()) importedAt = c.getLong(0);
+        } catch (Exception ignored) {}
+        v.put("imported_at", importedAt);
+        getWritableDatabase().insertWithOnConflict("nexo_familia_reminders", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    /**
+     * Elimina únicamente los datos locales creados por la migración de Nexo Familia.
+     * No toca eventos manuales ni otras fuentes. Devuelve los IDs de avisos eliminados
+     * para cancelar sus alarmas del sistema.
+     */
+    public JSONArray resetNexoFamiliaImportedData() {
+        JSONArray reminderIds = new JSONArray();
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            String targetItems = "item_id IN (SELECT local_item_id FROM nexo_familia_events) " +
+                    "OR item_id IN (SELECT id FROM items WHERE source='nexo-familia')";
+            try (Cursor c = db.rawQuery(
+                    "SELECT id FROM reminders WHERE " + targetItems,
+                    null)) {
+                while (c.moveToNext()) reminderIds.put(c.getLong(0));
+            }
+
+            db.delete("reminders", targetItems, null);
+            db.execSQL("DELETE FROM recurrence_exceptions WHERE series_id IN (SELECT local_item_id FROM nexo_familia_events) " +
+                    "OR series_id IN (SELECT id FROM items WHERE source='nexo-familia')");
+            db.execSQL("DELETE FROM items WHERE id IN (SELECT local_item_id FROM nexo_familia_events) OR source='nexo-familia'");
+            db.delete("nexo_familia_reminders", null, null);
+            db.delete("nexo_familia_events", null, null);
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return reminderIds;
+    }
+
+    public int countLocalAppointments() {
+        try {
+            return (int) scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type IN ('event','task','reminder','expiry')");
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    /**
+     * Primera vinculación online con Nexo Familia: elimina únicamente la agenda local
+     * (eventos/citas/tareas/recordatorios/vencimientos) para reconstruirla desde los
+     * UUID de Supabase. No toca notas, listas, Cuaderno, medicación, documentos,
+     * grabaciones, lugares ni el resto de datos de Nexo.
+     */
+    public JSONArray resetAllAppointmentsForNexoFamiliaMigration() {
+        JSONArray reminderIds = new JSONArray();
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            final String appointmentIds = "SELECT id FROM items WHERE type IN ('event','task','reminder','expiry')";
+
+            try (Cursor c = db.rawQuery(
+                    "SELECT id FROM reminders WHERE item_id IN (" + appointmentIds + ")",
+                    null)) {
+                while (c.moveToNext()) reminderIds.put(c.getLong(0));
+            }
+
+            db.execSQL("DELETE FROM reminders WHERE item_id IN (" + appointmentIds + ")");
+            db.execSQL("DELETE FROM recurrence_exceptions WHERE series_id IN (" + appointmentIds + ")");
+            try { db.execSQL("DELETE FROM item_people WHERE item_id IN (" + appointmentIds + ")"); }
+            catch (Exception ignored) {}
+            try {
+                db.execSQL("UPDATE inbox_captures SET converted_entity='', converted_id=0 " +
+                        "WHERE converted_entity='item' AND converted_id IN (" + appointmentIds + ")");
+            } catch (Exception ignored) {}
+            try {
+                db.execSQL("DELETE FROM history WHERE entity_id IN (" + appointmentIds + ") " +
+                        "AND entity_type IN ('event','task','reminder','expiry')");
+            } catch (Exception ignored) {}
+
+            db.delete("nexo_familia_reminders", null, null);
+            db.delete("nexo_familia_events", null, null);
+            db.execSQL("DELETE FROM items WHERE type IN ('event','task','reminder','expiry')");
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return reminderIds;
+    }
+
+    public boolean hasNexoFamiliaReminderMapping(String sourceRuleId) {
+        if (sourceRuleId == null || sourceRuleId.isBlank()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM nexo_familia_reminders WHERE source_rule_id=? LIMIT 1",
+                new String[]{sourceRuleId})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Devuelve el registro original completo de Nexo Familia asociado al evento local.
+     * El modelo Android conserva además los campos de uso diario normalizados; aquí se
+     * mantienen sin pérdida los campos sociales, de visibilidad, UUID, invitados,
+     * origen externo y cualquier otro valor presente en Supabase.
+     */
+    public JSONObject getNexoFamiliaMetadataForLocalItem(long localItemId) {
+        JSONObject out = new JSONObject();
+        if (localItemId <= 0) return out;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT source_event_id,raw_json FROM nexo_familia_events WHERE local_item_id=? LIMIT 1",
+                new String[]{String.valueOf(localItemId)})) {
+            if (!c.moveToFirst()) return out;
+            String sourceEventId = c.getString(0);
+            String raw = c.getString(1);
+            JSONObject source = new JSONObject(raw == null || raw.isBlank() ? "{}" : raw);
+            out.put("sourceEventId", sourceEventId);
+            out.put("source", source);
+
+            JSONArray rules = new JSONArray();
+            try (Cursor r = getReadableDatabase().rawQuery(
+                    "SELECT raw_json FROM nexo_familia_reminders WHERE source_event_id=? ORDER BY minutes_before DESC,source_rule_id ASC",
+                    new String[]{sourceEventId})) {
+                while (r.moveToNext()) {
+                    String ruleRaw = r.getString(0);
+                    try { rules.put(new JSONObject(ruleRaw == null || ruleRaw.isBlank() ? "{}" : ruleRaw)); }
+                    catch (Exception ignored) {}
+                }
+            }
+            out.put("reminderRules", rules);
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public JSONObject getNexoFamiliaImportStats() {
+        JSONObject out = new JSONObject();
+        try {
+            out.put("events", scalar("SELECT COUNT(*) FROM nexo_familia_events nf JOIN items i ON i.id=nf.local_item_id WHERE i.deleted_at=0"));
+            out.put("mappings", scalar("SELECT COUNT(*) FROM nexo_familia_events"));
+            out.put("reminders", scalar("SELECT COUNT(*) FROM nexo_familia_reminders"));
+            out.put("metadataComplete", scalar("SELECT COUNT(*) FROM nexo_familia_events WHERE raw_json<>'' AND raw_json<>'{}'"));
+            out.put("brokenMappings", scalar("SELECT COUNT(*) FROM nexo_familia_events nf LEFT JOIN items i ON i.id=nf.local_item_id WHERE i.id IS NULL OR i.deleted_at<>0"));
+            out.put("emptySourceIds", scalar("SELECT COUNT(*) FROM nexo_familia_events WHERE source_event_id=''"));
+        } catch (Exception ignored) {}
+        return out;
     }
 
 
@@ -241,6 +629,188 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "UNIQUE(medication_id,scheduled_at)" +
                 ")");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_medication_doses_med_time ON medication_doses(medication_id,scheduled_at)");
+    }
+
+    private static void createPeopleTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS people (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "name TEXT NOT NULL," +
+                "color TEXT NOT NULL DEFAULT '#3158D4'," +
+                "archived_at INTEGER NOT NULL DEFAULT 0," +
+                "created_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_people_active_name ON people(archived_at,name COLLATE NOCASE)");
+        createItemPeopleTable(db);
+    }
+
+    private static void createItemPeopleTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS item_people (" +
+                "item_id INTEGER NOT NULL," +
+                "person_id INTEGER NOT NULL," +
+                "assigned_at INTEGER NOT NULL," +
+                "PRIMARY KEY(item_id,person_id)" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_item_people_person ON item_people(person_id,item_id)");
+    }
+
+    private static String normalizePersonColor(String value) {
+        String color=value==null?"":value.trim().toUpperCase(Locale.ROOT);
+        return color.matches("^#[0-9A-F]{6}$") ? color : "#3158D4";
+    }
+
+    private static JSONObject personJson(Cursor c) {
+        JSONObject out=new JSONObject();
+        try {
+            out.put("id",c.getLong(c.getColumnIndexOrThrow("id")));
+            out.put("name",c.getString(c.getColumnIndexOrThrow("name")));
+            out.put("color",c.getString(c.getColumnIndexOrThrow("color")));
+            out.put("archivedAt",c.getLong(c.getColumnIndexOrThrow("archived_at")));
+            out.put("createdAt",c.getLong(c.getColumnIndexOrThrow("created_at")));
+            out.put("updatedAt",c.getLong(c.getColumnIndexOrThrow("updated_at")));
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public JSONArray getPeople() {
+        JSONArray out=new JSONArray();
+        try (Cursor c=getReadableDatabase().rawQuery(
+                "SELECT id,name,color,archived_at,created_at,updated_at FROM people WHERE archived_at=0 ORDER BY name COLLATE NOCASE,id",null)) {
+            while(c.moveToNext())out.put(personJson(c));
+        }
+        return out;
+    }
+
+    public JSONObject getPerson(long id) {
+        if(id<=0)return new JSONObject();
+        try (Cursor c=getReadableDatabase().rawQuery(
+                "SELECT id,name,color,archived_at,created_at,updated_at FROM people WHERE id=? LIMIT 1",
+                new String[]{String.valueOf(id)})) {
+            return c.moveToFirst()?personJson(c):new JSONObject();
+        }
+    }
+
+    public JSONObject savePerson(JSONObject in) {
+        JSONObject out=new JSONObject();
+        try {
+            long id=in.optLong("id",0);
+            String name=in.optString("name","").trim();
+            if(name.isBlank())return out.put("ok",false).put("error","Escribe el nombre de la persona.");
+            if(name.length()>100)return out.put("ok",false).put("error","El nombre es demasiado largo.");
+            String color=normalizePersonColor(in.optString("color","#3158D4"));
+
+            String duplicateSql=id>0
+                    ?"SELECT id FROM people WHERE archived_at=0 AND name=? COLLATE NOCASE AND id<>? LIMIT 1"
+                    :"SELECT id FROM people WHERE archived_at=0 AND name=? COLLATE NOCASE LIMIT 1";
+            String[] duplicateArgs=id>0
+                    ?new String[]{name,String.valueOf(id)}
+                    :new String[]{name};
+            try(Cursor c=getReadableDatabase().rawQuery(duplicateSql,duplicateArgs)) {
+                if(c.moveToFirst())return out.put("ok",false).put("error","Ya existe una persona con ese nombre.");
+            }
+
+            long now=System.currentTimeMillis();
+            ContentValues v=new ContentValues();
+            v.put("name",name);
+            v.put("color",color);
+            v.put("updated_at",now);
+            if(id>0) {
+                int changed=getWritableDatabase().update("people",v,"id=? AND archived_at=0",new String[]{String.valueOf(id)});
+                if(changed<=0)return out.put("ok",false).put("error","No se encuentra esta persona.");
+            } else {
+                v.put("archived_at",0);
+                v.put("created_at",now);
+                id=getWritableDatabase().insert("people",null,v);
+                if(id<=0)return out.put("ok",false).put("error","No se pudo guardar la persona.");
+            }
+            return out.put("ok",true).put("id",id).put("person",getPerson(id));
+        } catch(Exception e) {
+            try{return out.put("ok",false).put("error","No se pudo guardar la persona.");}
+            catch(Exception ignored){return out;}
+        }
+    }
+
+    public boolean archivePerson(long id) {
+        if(id<=0)return false;
+        long now=System.currentTimeMillis();
+        ContentValues v=new ContentValues();
+        v.put("archived_at",now);
+        v.put("updated_at",now);
+        return getWritableDatabase().update("people",v,"id=? AND archived_at=0",new String[]{String.valueOf(id)})>0;
+    }
+
+    public boolean replaceItemPeople(long itemId, JSONArray ids) {
+        if(itemId<=0)return false;
+        SQLiteDatabase db=getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete("item_people","item_id=?",new String[]{String.valueOf(itemId)});
+            LinkedHashSet<Long> unique=new LinkedHashSet<>();
+            if(ids!=null)for(int i=0;i<ids.length();i++){long id=ids.optLong(i,0);if(id>0)unique.add(id);}
+            long now=System.currentTimeMillis();
+            for(long personId:unique){
+                try(Cursor c=db.rawQuery("SELECT 1 FROM people WHERE id=? LIMIT 1",new String[]{String.valueOf(personId)})){
+                    if(!c.moveToFirst())continue;
+                }
+                ContentValues v=new ContentValues();
+                v.put("item_id",itemId);v.put("person_id",personId);v.put("assigned_at",now);
+                db.insertWithOnConflict("item_people",null,v,SQLiteDatabase.CONFLICT_IGNORE);
+            }
+            db.setTransactionSuccessful();
+            return true;
+        } finally { db.endTransaction(); }
+    }
+
+    public JSONArray getItemPeople(long itemId) {
+        JSONArray out=new JSONArray();
+        if(itemId<=0)return out;
+        try(Cursor c=getReadableDatabase().rawQuery(
+                "SELECT p.id,p.name,p.color,p.archived_at FROM item_people ip JOIN people p ON p.id=ip.person_id WHERE ip.item_id=? ORDER BY p.name COLLATE NOCASE,p.id",
+                new String[]{String.valueOf(itemId)})){
+            while(c.moveToNext()){
+                JSONObject p=new JSONObject();
+                p.put("id",c.getLong(0));p.put("name",c.getString(1));p.put("color",c.getString(2));p.put("archived",c.getLong(3)>0);
+                out.put(p);
+            }
+        } catch(Exception ignored){}
+        return out;
+    }
+
+    private JSONObject attachParticipantsFromIds(JSONObject item, JSONArray ids) {
+        try {
+            JSONArray participants=new JSONArray(),normalizedIds=new JSONArray();
+            StringBuilder names=new StringBuilder();
+            LinkedHashSet<Long> unique=new LinkedHashSet<>();
+            if(ids!=null)for(int i=0;i<ids.length();i++){long id=ids.optLong(i,0);if(id>0)unique.add(id);}
+            for(long personId:unique){
+                JSONObject p=getPerson(personId);if(p.length()==0)continue;
+                JSONObject compact=new JSONObject();
+                compact.put("id",personId);compact.put("name",p.optString("name","Persona"));compact.put("color",p.optString("color","#3158D4"));compact.put("archived",p.optLong("archivedAt",0)>0);
+                participants.put(compact);normalizedIds.put(personId);
+                if(names.length()>0)names.append(", ");names.append(compact.optString("name"));
+            }
+            item.put("participantIds",normalizedIds);
+            item.put("participants",participants);
+            if(participants.length()>0)item.put("participantsText",names.toString());
+        } catch(Exception ignored){}
+        return item;
+    }
+
+    private JSONObject attachItemPeople(JSONObject item) {
+        if(item==null||item.length()==0)return item;
+        long itemId=item.optLong("id",0);
+        JSONArray participants=getItemPeople(itemId),ids=new JSONArray();
+        for(int i=0;i<participants.length();i++){JSONObject p=participants.optJSONObject(i);if(p!=null)ids.put(p.optLong("id",0));}
+        try{
+            item.put("participantIds",ids);
+            item.put("participants",participants);
+            if(participants.length()>0){
+                StringBuilder names=new StringBuilder();
+                for(int i=0;i<participants.length();i++){JSONObject p=participants.optJSONObject(i);if(p==null)continue;if(names.length()>0)names.append(", ");names.append(p.optString("name","Persona"));}
+                item.put("participantsText",names.toString());
+            }
+        }catch(Exception ignored){}
+        return item;
     }
 
     /** Evita duplicar la cita de ejemplo al actualizar desde versiones anteriores. */
@@ -343,29 +913,45 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("category", nonBlank(in.optString("category"), "Otros"));
         v.put("subcategory", in.optString("subcategory", ""));
         v.put("tags", in.optString("tags", ""));
-        v.put("due_at", Math.max(0, in.optLong("dueAt", 0)));
-        v.put("has_time", in.optBoolean("hasTime", false) ? 1 : 0);
+        long dueAt = Math.max(0, in.optLong("dueAt", 0));
+        boolean hasTime = in.optBoolean("hasTime", false);
+        int durationMinutes = Math.max(0, in.optInt("durationMinutes", 0));
+        long endAt = Math.max(0, in.optLong("endAt", 0));
+        if (endAt <= 0 && dueAt > 0) endAt = durationMinutes > 0 ? dueAt + durationMinutes * 60000L : dueAt;
+        boolean allDay = in.has("allDay") ? in.optBoolean("allDay") :
+                (dueAt > 0 && !hasTime && isAppointmentTypeForStatus(itemType));
+        v.put("due_at", dueAt);
+        v.put("end_at", endAt);
+        v.put("has_time", hasTime ? 1 : 0);
+        v.put("all_day", allDay ? 1 : 0);
+        v.put("time_zone", nonBlank(in.optString("timeZone"), "Europe/Madrid"));
+        v.put("maps_url", in.optString("mapsUrl", ""));
+        v.put("recurrence_rule", in.optString("recurrenceRule", ""));
+        v.put("participants_text", in.optString("participantsText", ""));
         v.put("deleted_at", 0);
         if (in.has("lat") && !in.isNull("lat")) v.put("lat", in.optDouble("lat"));
         if (in.has("lon") && !in.isNull("lon")) v.put("lon", in.optDouble("lon"));
         v.put("location_text", in.optString("locationText", ""));
         v.put("priority", clamp(in.optInt("priority", 1), 1, 3));
         v.put("favorite", in.optBoolean("favorite", false) ? 1 : 0);
+        v.put("revisit", in.optBoolean("revisit", false) ? 1 : 0);
         v.put("source", in.optString("source", "manual"));
         v.put("attachment_path", in.optString("attachmentPath", ""));
         v.put("attachment_name", in.optString("attachmentName", ""));
         v.put("attachment_mime", in.optString("attachmentMime", ""));
         String status = in.optString("status", in.optString("type", "note").equals("task") ? "pending" : "active");
         v.put("status", status);
+        v.put("status_manual", in.optBoolean("statusManual", false) ? 1 : 0);
         v.put("needs_review", in.optBoolean("needsReview", false) ? 1 : 0);
         v.put("recurrence", RecurrenceEngine.normalize(in.optString("recurrence", RecurrenceEngine.NONE)));
         v.put("recurrence_until", Math.max(0, in.optLong("recurrenceUntil", 0)));
-        v.put("duration_minutes", Math.max(0, in.optInt("durationMinutes", 0)));
+        v.put("duration_minutes", durationMinutes);
         v.put("voice_enabled", in.optBoolean("voiceEnabled", false) ? 1 : 0);
         v.put("note_title_manual", in.has("noteTitleManual") ? (in.optBoolean("noteTitleManual") ? 1 : 0) : ("note".equals(itemType) ? 1 : 0));
         v.put("created_at", now);
         v.put("updated_at", now);
         long id = getWritableDatabase().insertOrThrow("items", null, v);
+        if(in.has("participantIds"))replaceItemPeople(id,in.optJSONArray("participantIds"));
         addHistory("guardado", in.optString("type", "note"), id, in.optString("title", "Nota rápida"));
         return id;
     }
@@ -391,30 +977,61 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 v.put("status", "task".equals(newType) ? "pending" : "active");
             }
         }
-        if (in.has("dueAt")) v.put("due_at", Math.max(0, in.optLong("dueAt", 0)));
+        if (in.has("dueAt")) {
+            long newDue=Math.max(0,in.optLong("dueAt",0));
+            v.put("due_at",newDue);
+            if(!in.has("endAt")) {
+                long oldDue=old.optLong("dueAt",0),oldEnd=old.optLong("endAt",0);
+                long span=Math.max(0L,oldEnd-oldDue);
+                if(span<=0&&old.optInt("durationMinutes",0)>0)span=old.optInt("durationMinutes",0)*60000L;
+                v.put("end_at",newDue>0?newDue+span:0L);
+            }
+        }
+        if (in.has("endAt")) v.put("end_at", Math.max(0, in.optLong("endAt", 0)));
         if (in.has("hasTime")) v.put("has_time", in.optBoolean("hasTime") ? 1 : 0);
+        if (in.has("allDay")) v.put("all_day", in.optBoolean("allDay") ? 1 : 0);
+        if (in.has("timeZone")) v.put("time_zone", nonBlank(in.optString("timeZone"), "Europe/Madrid"));
+        if (in.has("mapsUrl")) v.put("maps_url", in.optString("mapsUrl", ""));
+        if (in.has("recurrenceRule")) v.put("recurrence_rule", in.optString("recurrenceRule", ""));
+        if (in.has("participantsText")) v.put("participants_text", in.optString("participantsText", ""));
         if (in.has("locationText")) v.put("location_text", in.optString("locationText", ""));
         if (in.has("priority")) v.put("priority", clamp(in.optInt("priority", 1), 1, 3));
         if (in.has("favorite")) v.put("favorite", in.optBoolean("favorite") ? 1 : 0);
-        if (in.has("status")) v.put("status", in.optString("status", "active"));
+        if (in.has("status")) {
+            v.put("status", in.optString("status", "active"));
+            // Si un consumidor envía un estado, se considera una decisión manual salvo
+            // que indique expresamente statusManual=false (p. ej. una importación).
+            v.put("status_manual", in.has("statusManual") ? (in.optBoolean("statusManual") ? 1 : 0) : 1);
+        } else if (in.has("statusManual")) {
+            v.put("status_manual", in.optBoolean("statusManual") ? 1 : 0);
+        }
         if (in.has("needsReview")) v.put("needs_review", in.optBoolean("needsReview") ? 1 : 0);
         if (in.has("recurrence")) v.put("recurrence", RecurrenceEngine.normalize(in.optString("recurrence", RecurrenceEngine.NONE)));
         if (in.has("recurrenceUntil")) v.put("recurrence_until", Math.max(0, in.optLong("recurrenceUntil", 0)));
         if (in.has("durationMinutes")) v.put("duration_minutes", Math.max(0, in.optInt("durationMinutes", 0)));
         if (in.has("voiceEnabled")) v.put("voice_enabled", in.optBoolean("voiceEnabled") ? 1 : 0);
         if (in.has("noteTitleManual")) v.put("note_title_manual", in.optBoolean("noteTitleManual") ? 1 : 0);
-        // Reprogramar una cita/tarea decide de nuevo su estado temporal: hoy/futuro = pendiente, pasado = finalizada.
-        if (in.has("dueAt")) {
+
+        // La fecha puede sugerir estado solo cuando el usuario NO lo ha elegido.
+        // Un estado explícito (Completada, Pospuesta, Cancelada o Pendiente) manda.
+        if (in.has("dueAt") && !in.has("status") && !old.optBoolean("statusManual", false)) {
             String effectiveType=in.optString("type",old.optString("type","note"));
+            String effectiveRecurrence=RecurrenceEngine.normalize(in.optString("recurrence",old.optString("recurrence",RecurrenceEngine.NONE)));
             long newDue=Math.max(0,in.optLong("dueAt",0));
-            long oldDue=Math.max(0,old.optLong("dueAt",0));
-            if(newDue>0 && newDue!=oldDue && isAppointmentTypeForStatus(effectiveType) && !RecurrenceEngine.isRecurring(in.optString("recurrence",old.optString("recurrence",RecurrenceEngine.NONE)))) {
-                v.put("status", isBeforeToday(newDue) ? "done" : "pending");
+            long newEnd=in.has("endAt")?Math.max(0,in.optLong("endAt",0)):Math.max(0,old.optLong("endAt",0));
+            if ("event".equals(effectiveType)) {
+                if (RecurrenceEngine.isRecurring(effectiveRecurrence)) {
+                    v.put("status","pending");
+                } else if (newDue>0) {
+                    long effectiveEnd=newEnd>0?newEnd:newDue;
+                    v.put("status", isBeforeToday(effectiveEnd) ? "done" : "pending");
+                }
             }
         }
         v.put("updated_at", System.currentTimeMillis());
         int rows = getWritableDatabase().update("items", v, "id=?", new String[]{String.valueOf(id)});
         if (rows > 0) {
+            if(in.has("participantIds"))replaceItemPeople(id,in.optJSONArray("participantIds"));
             String oldCat = old.optString("category");
             String newCat = in.optString("category", oldCat);
             if (!newCat.equals(oldCat)) learnFromCorrection(old.optString("title") + " " + old.optString("body"), newCat);
@@ -425,40 +1042,77 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public JSONObject getItem(long id) {
         try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM items WHERE id=? AND deleted_at=0", new String[]{String.valueOf(id)})) {
-            return c.moveToFirst() ? itemJson(c) : new JSONObject();
+            if (!c.moveToFirst()) return new JSONObject();
+            JSONObject item = normalizeNexoFamiliaStatusForRead(itemJson(c));
+            if ("nexo-familia".equals(item.optString("source", ""))) {
+                JSONObject metadata = getNexoFamiliaMetadataForLocalItem(id);
+                if (metadata.length() > 0) item.put("nexoFamilia", metadata);
+            }
+            return item;
+        } catch (Exception ignored) {
+            return new JSONObject();
         }
     }
 
     /** Concilia estados dependientes de la fecha sin tocar cancelados/omitidos. */
     public synchronized void reconcileTemporalStatuses() {
         SQLiteDatabase db=getWritableDatabase();
+        long now=System.currentTimeMillis();
         long start=LocalDate.now(ZoneId.systemDefault()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",System.currentTimeMillis());
-        db.update("items",done,"deleted_at=0 AND due_at>0 AND due_at<? AND recurrence='none' AND type IN ('event','task','reminder','expiry') AND status IN ('active','pending','postponed')",new String[]{String.valueOf(start)});
-        // Los cumpleaños se evalúan contra la aparición del año actual. Hoy todavía queda pendiente.
-        try(Cursor c=db.rawQuery("SELECT id,due_at,status,recurrence,recurrence_until FROM items WHERE deleted_at=0 AND due_at>0 AND lower(category) IN ('cumpleanos','cumpleaños','cumple')",null)){
+
+        // Eventos: misma semántica que Nexo Familia. Se decide por DÍA de fin,
+        // no por la hora actual. Cancelado siempre se conserva.
+        try {
+            db.execSQL(
+                    "UPDATE items SET status=CASE " +
+                    "WHEN status_manual=1 THEN status " +
+                    "WHEN status='cancelled' THEN 'cancelled' " +
+                    "WHEN recurrence<>'none' THEN 'pending' " +
+                    "WHEN status='done' THEN 'done' " +
+                    "WHEN status='postponed' THEN 'postponed' " +
+                    "WHEN due_at>0 AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) THEN 'done' " +
+                    "ELSE 'pending' END, updated_at=? " +
+                    "WHERE deleted_at=0 AND type='event'",
+                    new Object[]{start,now});
+        } catch (Exception ignored) {}
+
+        // Tareas, recordatorios y vencimientos conservan su semántica propia.
+        ContentValues done=new ContentValues();done.put("status","done");done.put("updated_at",now);
+        db.update("items",done,
+                "deleted_at=0 AND due_at>0 " +
+                "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER) " +
+                "AND recurrence='none' AND type IN ('task','reminder','expiry') " +
+                "AND status_manual=0 AND status IN ('active','pending','postponed')",
+                new String[]{String.valueOf(start)});
+
+        // Las series recurrentes de eventos permanecen abiertas; las excepciones
+        // representan el estado de cada aparición concreta.
+        try(Cursor cur=db.rawQuery(
+                "SELECT id,due_at,status,recurrence,recurrence_until FROM items " +
+                "WHERE deleted_at=0 AND type='event' AND due_at>0 AND recurrence<>'none' AND status<>'cancelled'",
+                null)){
             ZoneId zone=ZoneId.systemDefault();LocalDate today=LocalDate.now(zone);
             long yearStart=LocalDate.of(today.getYear(),1,1).atStartOfDay(zone).toInstant().toEpochMilli();
             long yearEnd=LocalDate.of(today.getYear()+1,1,1).atStartOfDay(zone).toInstant().toEpochMilli()-1;
-            while(c.moveToNext()){
-                long id=c.getLong(0),at=c.getLong(1),until=c.getLong(4);String status=c.getString(2),recurrence=c.getString(3);
-                if(RecurrenceEngine.isRecurring(recurrence)){
-                    // La serie debe seguir abierta; el completado pertenece solo al cumpleaños de este año.
-                    if("done".equals(status)){
-                        ContentValues baseOpen=new ContentValues();baseOpen.put("status","pending");baseOpen.put("updated_at",System.currentTimeMillis());
-                        db.update("items",baseOpen,"id=?",new String[]{String.valueOf(id)});
-                    }
+            while(cur.moveToNext()){
+                long id=cur.getLong(0),at=cur.getLong(1),until=cur.getLong(4);String recurrence=cur.getString(3);
+                ContentValues open=new ContentValues();open.put("status","pending");open.put("updated_at",now);
+                db.update("items",open,"id=? AND status_manual=0",new String[]{String.valueOf(id)});
+
+                // Para cumpleaños/aniversarios y demás series anuales, la aparición
+                // pasada puede constar como hecha sin cerrar la serie.
+                if (RecurrenceEngine.ANNUAL.equals(RecurrenceEngine.normalize(recurrence))) {
                     List<Long> occs=RecurrenceEngine.occurrencesBetween(at,recurrence,until,yearStart,yearEnd,zone,20);
                     if(!occs.isEmpty()){
-                        long key=occs.get(0);LocalDate d=Instant.ofEpochMilli(key).atZone(zone).toLocalDate();String wanted=d.isBefore(today)?"done":"active";
-                        JSONObject ex=getRecurrenceException(id,key);String current=ex.length()==0?"active":ex.optString("state","active");
-                        if(!wanted.equals(current))setOccurrenceStatus(id,key,wanted);
+                        long key=occs.get(0);
+                        LocalDate d=Instant.ofEpochMilli(key).atZone(zone).toLocalDate();
+                        String wanted=d.isBefore(today)?"done":"active";
+                        JSONObject ex=getRecurrenceException(id,key);
+                        String current=ex.length()==0?"active":ex.optString("state","active");
+                        // Solo conciliamos apariciones que siguen en estado automático.
+                        // pending/done/postponed/cancelled representan decisiones manuales.
+                        if("active".equals(current) && !"active".equals(wanted))setOccurrenceStatus(id,key,wanted);
                     }
-                }else{
-                    LocalDate stored=Instant.ofEpochMilli(at).atZone(zone).toLocalDate();LocalDate thisYear;
-                    try{thisYear=LocalDate.of(today.getYear(),stored.getMonthValue(),stored.getDayOfMonth());}catch(DateTimeException e){thisYear=LocalDate.of(today.getYear(),2,28);}
-                    String wanted=thisYear.isBefore(today)?"done":"pending";
-                    if(!wanted.equals(status)){ContentValues v=new ContentValues();v.put("status",wanted);v.put("updated_at",System.currentTimeMillis());db.update("items",v,"id=?",new String[]{String.valueOf(id)});}
                 }
             }
         }catch(Exception ignored){}
@@ -466,6 +1120,93 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static boolean isAppointmentTypeForStatus(String type){return "event".equals(type)||"task".equals(type)||"reminder".equals(type)||"expiry".equals(type);}
     private static boolean isBeforeToday(long at){if(at<=0)return false;ZoneId z=ZoneId.systemDefault();return Instant.ofEpochMilli(at).atZone(z).toLocalDate().isBefore(LocalDate.now(z));}
+
+    /**
+     * Datos mínimos de Inicio. Evita expandir cientos de días de recurrencias y
+     * devuelve únicamente lo necesario para pintar la pantalla principal.
+     */
+    public JSONObject getHomeDashboardData() {
+        JSONObject out = new JSONObject();
+        try {
+            ZoneId zone = ZoneId.systemDefault();
+            LocalDate today = LocalDate.now(zone);
+            long start = today.atStartOfDay(zone).toInstant().toEpochMilli();
+            long endToday = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1;
+            long end7 = today.plusDays(7).atStartOfDay(zone).toInstant().toEpochMilli() - 1;
+
+            LinkedHashMap<Long, JSONObject> firstBySeries = new LinkedHashMap<>();
+            JSONArray near = getCalendar(start, end7);
+            for (int i=0;i<near.length();i++) {
+                JSONObject item = near.optJSONObject(i);
+                if (item == null || !isAppointmentTypeForStatus(item.optString("type"))) continue;
+                String status = item.optString("status","active");
+                String occurrenceStatus = item.optString("occurrenceStatus","");
+                if ("cancelled".equals(status) || "done".equals(status) ||
+                        "deleted".equals(occurrenceStatus) || "cancelled".equals(occurrenceStatus) || "done".equals(occurrenceStatus)) continue;
+                long due = item.optLong("dueAt",0L);
+                if (due < start) continue;
+                long key = item.optLong("seriesId", item.optLong("id",0L));
+                if (key > 0 && !firstBySeries.containsKey(key)) firstBySeries.put(key,item);
+            }
+
+            int todayCount = 0, weekCount = 0;
+            for (JSONObject item : firstBySeries.values()) {
+                long due = item.optLong("dueAt",0L);
+                if (due >= start && due <= endToday) todayCount++;
+                if (due >= start && due <= end7) weekCount++;
+            }
+
+            ArrayList<JSONObject> upcoming = new ArrayList<>(firstBySeries.values());
+
+            // Completa la lista con eventos no recurrentes posteriores a esta semana.
+            if (upcoming.size() < 10) {
+                JSONArray later = queryItems(
+                        "type IN ('event','task','reminder','expiry') AND due_at>? AND recurrence='none' AND status NOT IN ('done','cancelled')",
+                        new String[]{String.valueOf(end7)},
+                        "due_at ASC", 40);
+                for (int i=0;i<later.length();i++) {
+                    JSONObject item=later.optJSONObject(i); if(item==null)continue;
+                    long key=item.optLong("id",0L);
+                    if(key>0 && !firstBySeries.containsKey(key)){
+                        firstBySeries.put(key,item);upcoming.add(item);
+                    }
+                    if(upcoming.size()>=10)break;
+                }
+            }
+
+            // Para cada serie recurrente solo calcula su próxima aparición efectiva.
+            if (upcoming.size() < 10) {
+                JSONArray series = queryItems(
+                        "type IN ('event','task','reminder','expiry') AND due_at>0 AND recurrence<>'none' AND status<>'cancelled'",
+                        null, "due_at ASC", 500);
+                for (int i=0;i<series.length() && upcoming.size()<10;i++) {
+                    JSONObject base=series.optJSONObject(i); if(base==null)continue;
+                    long id=base.optLong("id",0L);
+                    if(id<=0 || firstBySeries.containsKey(id))continue;
+                    long occurrenceKey=findNextOccurrence(id,end7);
+                    if(occurrenceKey<=0)continue;
+                    JSONObject item=getOccurrence(id,occurrenceKey);
+                    if(item.length()==0)continue;
+                    String status=item.optString("status","active"), occurrenceStatus=item.optString("occurrenceStatus","");
+                    if("done".equals(status)||"cancelled".equals(status)||"deleted".equals(occurrenceStatus)||
+                            "done".equals(occurrenceStatus)||"cancelled".equals(occurrenceStatus))continue;
+                    firstBySeries.put(id,item);upcoming.add(item);
+                }
+            }
+
+            upcoming.sort(Comparator.comparingLong(o -> o.optLong("dueAt",Long.MAX_VALUE)));
+            JSONArray shown=new JSONArray();
+            for(int i=0;i<upcoming.size() && i<10;i++)shown.put(upcoming.get(i));
+
+            out.put("upcoming",shown);
+            out.put("todayCount",todayCount);
+            out.put("weekCount",weekCount);
+            out.put("inboxCount",
+                    scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1") +
+                    getPendingInboxCaptureCount());
+        } catch (Exception ignored) {}
+        return out;
+    }
 
     public JSONObject getTodayData() {
         reconcileTemporalStatuses();
@@ -496,7 +1237,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 JSONObject o=past.optJSONObject(i); if(o==null)continue;
                 String type = o.optString("type");
                 if (("event".equals(type) || "task".equals(type) || "reminder".equals(type) || "expiry".equals(type))
-                        && !"done".equals(o.optString("status")) && !"deleted".equals(o.optString("occurrenceStatus"))) overdue.put(o);
+                        && !"done".equals(o.optString("status")) && !"cancelled".equals(o.optString("status")) && !"deleted".equals(o.optString("occurrenceStatus"))) overdue.put(o);
             }
             out.put("overdueTasks", overdue);
 
@@ -504,13 +1245,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             for (int i=0;i<future.length() && upcoming.length()<20;i++) {
                 JSONObject o=future.optJSONObject(i); if(o==null)continue;
                 String status=o.optString("status","active");
-                if (!"done".equals(status) && !"deleted".equals(o.optString("occurrenceStatus"))) upcoming.put(o);
+                if (!"done".equals(status) && !"cancelled".equals(status) && !"deleted".equals(o.optString("occurrenceStatus"))) upcoming.put(o);
             }
             out.put("upcoming", upcoming);
             out.put("important", queryItems("priority=3 AND (status='active' OR status='pending')", null, "due_at ASC, updated_at DESC", 8));
             out.put("recent", queryItems("type<>'parking'", null, "created_at DESC", 6));
             out.put("reminders", queryReminders(System.currentTimeMillis(), next7, 12));
-            out.put("pendingTasks", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type IN ('event','task','reminder','expiry') AND status<>'done'"));
+            out.put("pendingTasks", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type IN ('event','task','reminder','expiry') AND status NOT IN ('done','cancelled')"));
             out.put("inboxCount", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1"));
             out.put("lastParking", getLastParking());
         } catch (Exception ignored) {}
@@ -590,12 +1331,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONArray getAppointments() {
         reconcileTemporalStatuses();
         return queryItems("type IN ('event','task','reminder','expiry')", null,
-                "CASE WHEN status='done' THEN 1 ELSE 0 END, CASE WHEN due_at=0 THEN 1 ELSE 0 END, due_at ASC, created_at DESC", -1);
+                "CASE WHEN status IN ('done','cancelled') THEN 1 ELSE 0 END, CASE WHEN due_at=0 THEN 1 ELSE 0 END, due_at ASC, created_at DESC", -1);
     }
 
     public boolean setTaskStatus(long id, String status) {
         ContentValues v = new ContentValues();
         v.put("status", status);
+        v.put("status_manual", 1);
         v.put("updated_at", System.currentTimeMillis());
         int rows = getWritableDatabase().update("items", v, "id=? AND type='task' AND deleted_at=0", new String[]{String.valueOf(id)});
         if (rows > 0) addHistory(status.equals("done") ? "tarea realizada" : "tarea actualizada", "task", id, getItem(id).optString("title"));
@@ -792,7 +1534,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public JSONArray getDeletedItems() {
         JSONArray a = new JSONArray();
         try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM items WHERE deleted_at>0 ORDER BY deleted_at ASC", null)) {
-            while (c.moveToNext()) a.put(itemJson(c));
+            while (c.moveToNext()) a.put(normalizeNexoFamiliaStatusForRead(itemJson(c)));
         } catch (Exception ignored) {}
         return a;
     }
@@ -809,6 +1551,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             db.delete("reminders", "item_id=?", new String[]{String.valueOf(id)});
             db.delete("recurrence_exceptions", "series_id=?", new String[]{String.valueOf(id)});
+            db.delete("item_people", "item_id=?", new String[]{String.valueOf(id)});
             int rows = db.delete("items", "id=? AND deleted_at>0", new String[]{String.valueOf(id)});
             db.setTransactionSuccessful();
             return rows > 0;
@@ -826,10 +1569,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
 
         // Elementos no recurrentes.
-        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at BETWEEN ? AND ? AND recurrence='none' ORDER BY due_at ASC",
-                new String[]{String.valueOf(start), String.valueOf(end)})) {
+        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND due_at<=CAST(? AS INTEGER) AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=CAST(? AS INTEGER) AND recurrence='none' ORDER BY due_at ASC",
+                new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
-                JSONObject o = itemJson(c);
+                JSONObject o = normalizeNexoFamiliaStatusForRead(itemJson(c));
                 o.put("recurring", false); o.put("seriesId", o.optLong("id")); o.put("occurrenceAt", o.optLong("dueAt")); o.put("occurrenceStatus", o.optString("status", "active"));
                 rows.add(o);
             }
@@ -839,17 +1582,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND recurrence<>'none' AND due_at<=? AND (recurrence_until=0 OR recurrence_until>=?)",
                 new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
-                JSONObject base = itemJson(c);
+                JSONObject base = normalizeNexoFamiliaStatusForRead(itemJson(c));
                 long seriesId = base.optLong("id");
                 HashMap<Long, JSONObject> exceptions = recurrenceExceptions(seriesId, start, end);
                 HashSet<Long> emitted = new HashSet<>();
-                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), start, end, ZoneId.systemDefault(), 5000);
+                long spanMillis = Math.max(0L, base.optLong("endAt",0) - base.optLong("dueAt",0));
+                if (spanMillis <= 0 && base.optInt("durationMinutes",0) > 0) spanMillis = base.optInt("durationMinutes",0) * 60000L;
+                long expansionStart = Math.max(0L, start - spanMillis);
+                List<Long> occurrences = RecurrenceEngine.occurrencesBetween(base.optLong("dueAt"), base.optString("recurrence"), base.optLong("recurrenceUntil"), expansionStart, end, ZoneId.systemDefault(), 5000);
                 for (long occurrenceAt : occurrences) {
                     JSONObject ex = exceptions.get(occurrenceAt);
                     JSONObject occ = buildOccurrence(base, occurrenceAt, ex);
                     if (occ == null) continue;
                     long actual = occ.optLong("dueAt", occurrenceAt);
-                    if (actual < start || actual > end) continue;
+                    long actualEnd = occ.optLong("endAt", actual);
+                    if (actual > end || actualEnd < start) continue;
                     rows.add(occ); emitted.add(occurrenceAt);
                 }
                 // Excepciones movidas desde otra fecha hacia el rango actual.
@@ -929,13 +1676,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     /** Devuelve la clave original de la próxima aparición efectiva posterior a afterMillis. */
     public long findNextOccurrence(long seriesId, long afterMillis) {
         JSONObject base = getItem(seriesId); if (base.length() == 0 || base.optLong("dueAt",0)<=0) return 0;
-        if ("done".equals(base.optString("status")) || PlaceEntry.isPlace(base.optString("type")) || "document".equals(base.optString("type"))) return 0;
+        if ("done".equals(base.optString("status")) || "cancelled".equals(base.optString("status")) || PlaceEntry.isPlace(base.optString("type")) || "document".equals(base.optString("type"))) return 0;
         String recurrence = base.optString("recurrence", RecurrenceEngine.NONE);
         if (!RecurrenceEngine.isRecurring(recurrence)) return base.optLong("dueAt") > afterMillis ? base.optLong("dueAt") : 0;
 
         long bestKey = 0, bestActual = Long.MAX_VALUE;
         // Apariciones movidas hacia el futuro pueden proceder de una clave original ya pasada.
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT occurrence_at,override_due_at,state FROM recurrence_exceptions WHERE series_id=? AND override_due_at>? AND state NOT IN ('deleted','done') ORDER BY override_due_at ASC LIMIT 1",
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT occurrence_at,override_due_at,state FROM recurrence_exceptions WHERE series_id=? AND override_due_at>? AND state NOT IN ('deleted','done','cancelled') ORDER BY override_due_at ASC LIMIT 1",
                 new String[]{String.valueOf(seriesId), String.valueOf(afterMillis)})) {
             if (c.moveToFirst()) { bestKey=c.getLong(0); bestActual=c.getLong(1); }
         } catch (Exception ignored) {}
@@ -948,7 +1695,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (occ.length() > 0) {
                 String state = occ.optString("occurrenceStatus", "active");
                 long actual = occ.optLong("dueAt", key);
-                if (!"deleted".equals(state) && !"done".equals(state) && actual > afterMillis && actual < bestActual) { bestKey=key; bestActual=actual; }
+                if (!"deleted".equals(state) && !"done".equals(state) && !"cancelled".equals(state) && actual > afterMillis && actual < bestActual) { bestKey=key; bestActual=actual; }
                 if (actual > afterMillis && actual >= bestActual) break;
             }
             cursor = key;
@@ -983,17 +1730,33 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             String state = ex == null ? "active" : ex.optString("state", "active");
             if ("deleted".equals(state)) return null;
             JSONObject o = new JSONObject(base.toString());
+            long baseStart=base.optLong("dueAt",0),baseEnd=base.optLong("endAt",0);
+            long span=Math.max(0L,baseEnd-baseStart);
+            if(span<=0&&base.optInt("durationMinutes",0)>0)span=base.optInt("durationMinutes",0)*60000L;
             o.put("recurring", true); o.put("seriesId", base.optLong("id")); o.put("occurrenceAt", occurrenceAt); o.put("dueAt", occurrenceAt);
+            o.put("endAt", occurrenceAt + span);
             o.put("occurrenceStatus", state);
-            if ("done".equals(state) || "postponed".equals(state)) o.put("status", state);
+            if ("done".equals(state) || "postponed".equals(state) || "cancelled".equals(state)) o.put("status", state);
+            else if ("pending".equals(state)) o.put("status", "pending");
             if (ex != null) {
                 String raw = ex.optString("overrideJson", "");
                 if (!raw.isBlank()) {
                     JSONObject ov = new JSONObject(raw);
-                    String[] keys = {"title","body","category","type","dueAt","hasTime","durationMinutes","locationText","priority","favorite","status","needsReview"};
+                    String[] keys = {"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","status","needsReview"};
                     for (String key : keys) if (ov.has(key)) o.put(key, ov.get(key));
+                    if(ov.has("participantIds"))attachParticipantsFromIds(o,ov.optJSONArray("participantIds"));
                 }
-                long moved = ex.optLong("overrideDueAt",0); if (moved>0) o.put("dueAt",moved);
+                long moved = ex.optLong("overrideDueAt",0); if (moved>0) {
+                    long overriddenEnd = o.optLong("endAt",0);
+                    boolean hasExplicitEnd = false;
+                    try {
+                        String rawEnd = ex.optString("overrideJson","");
+                        hasExplicitEnd = !rawEnd.isBlank() && new JSONObject(rawEnd).has("endAt");
+                    } catch(Exception ignored) {}
+                    o.put("dueAt",moved);
+                    if (!hasExplicitEnd) o.put("endAt",moved+span);
+                    else if (overriddenEnd < moved) o.put("endAt",moved);
+                }
             }
             return o;
         } catch (Exception e) { return null; }
@@ -1006,6 +1769,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public boolean isAttachmentReferenced(String path) {
         // Include soft-deleted items because the user may still undo their deletion.
         try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM items WHERE attachment_path=? LIMIT 1",new String[]{path})) {
+            if(c.moveToFirst()) return true;
+        }
+        // Una captura pendiente también es propietaria del adjunto hasta convertirse o descartarse.
+        try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM inbox_captures WHERE attachment_path=? AND status IN ('new','reviewing') LIMIT 1",new String[]{path})) {
             return c.moveToFirst();
         }
     }
@@ -1034,6 +1801,44 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return new JSONArray();
     }
 
+    /**
+     * Índice completo para reproducir en WebView el mismo algoritmo de búsqueda
+     * de Nexo Familia. No filtra por texto: el ranking se hace de forma uniforme
+     * en JavaScript sobre todos los dominios locales.
+     */
+    public JSONObject getFamilyStyleSearchIndex() {
+        JSONObject out=new JSONObject();
+        try {
+            out.put("items", queryItems("1=1", null, "updated_at DESC", 3000));
+            out.put("lists", getListsForSearchIndex());
+            out.put("medications", getMedications("", "all"));
+            out.put("journal", getJournalEntries("", "", false));
+            out.put("inbox", getInboxCaptures());
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    private JSONArray getListsForSearchIndex() {
+        JSONArray out=new JSONArray();
+        try (Cursor c=getReadableDatabase().rawQuery(
+                "SELECT l.id,l.title,l.kind,l.favorite,l.updated_at," +
+                "COALESCE(GROUP_CONCAT(e.text||' '||e.category,' '),'') " +
+                "FROM lists l LEFT JOIN list_entries e ON e.list_id=l.id " +
+                "GROUP BY l.id ORDER BY l.updated_at DESC",null)) {
+            while(c.moveToNext()) {
+                JSONObject o=new JSONObject();
+                o.put("id",c.getLong(0));
+                o.put("title",c.getString(1));
+                o.put("kind",c.getString(2));
+                o.put("favorite",c.getInt(3)==1);
+                o.put("updatedAt",c.getLong(4));
+                o.put("entriesText",c.getString(5));
+                out.put(o);
+            }
+        } catch(Exception ignored) {}
+        return out;
+    }
+
     public JSONArray search(String raw) {
         String q = RuleClassifier.norm(raw == null ? "" : raw.trim()).replaceAll("\\s+", " ").trim();
         JSONArray out = new JSONArray();
@@ -1057,7 +1862,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         boolean genericPending = q.equals("pendiente") || q.equals("pendientes") || q.contains("que tengo pendiente") || q.contains("tengo pendiente") || q.contains("pendiente esta semana") || q.contains("pendientes esta semana");
         if (pending && (q.contains("tarea") || (!domainPending && genericPending))) {
             long limit = week ? endOfCurrentWeekMillis() : Long.MAX_VALUE;
-            JSONArray a = queryItems("type IN ('event','task','reminder','expiry') AND status<>'done' AND (due_at=0 OR due_at<=?)",
+            JSONArray a = queryItems("type IN ('event','task','reminder','expiry') AND status NOT IN ('done','cancelled') AND (due_at=0 OR due_at<=?)",
                     new String[]{String.valueOf(limit)}, "priority DESC, due_at ASC", 200);
             for (int i=0;i<a.length();i++) out.put(withResultKind(a.optJSONObject(i), "item"));
             return out;
@@ -1353,6 +2158,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (in.has("body")) v.put("body", in.optString("body", ""));
         if (in.has("tags")) v.put("tags", in.optString("tags", ""));
         if (in.has("favorite")) v.put("favorite", in.optBoolean("favorite", false) ? 1 : 0);
+        if (in.has("revisit")) v.put("revisit", in.optBoolean("revisit", false) ? 1 : 0);
         v.put("updated_at", System.currentTimeMillis());
         boolean ok = getWritableDatabase().update("journal_entries", v, "id=?", new String[]{String.valueOf(id)}) > 0;
         if (ok) addHistory("cuaderno editado", "journal", id, in.optString("title", ""));
@@ -1369,7 +2175,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public JSONObject getJournalEntry(long id) {
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,source,created_at,updated_at FROM journal_entries WHERE id=?", new String[]{String.valueOf(id)})) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,revisit,source,created_at,updated_at FROM journal_entries WHERE id=?", new String[]{String.valueOf(id)})) {
             return c.moveToFirst() ? journalJson(c) : new JSONObject();
         } catch (Exception e) { return new JSONObject(); }
     }
@@ -1381,7 +2187,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (k.isBlank() && (q.contains("pensamiento") || q.contains("reflexion"))) k = "thought";
         ArrayList<JSONObject> matches = new ArrayList<>();
         ArrayList<Integer> scores = new ArrayList<>();
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC LIMIT 3000", null)) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,revisit,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC LIMIT 3000", null)) {
             while (c.moveToNext()) {
                 JSONObject o = journalJson(c);
                 if (!k.isBlank() && !k.equals(o.optString("kind"))) continue;
@@ -1418,14 +2224,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String day = dayKey == null ? "" : dayKey.trim();
         if (!day.matches("\\d{4}-\\d{2}-\\d{2}")) day = LocalDate.now().toString();
         if (!forceNew) {
-            try (Cursor c = getReadableDatabase().rawQuery("SELECT j.id,j.kind,j.title,j.summary,j.body,j.tags,j.favorite,j.source,j.created_at,j.updated_at FROM journal_daily_pick p JOIN journal_entries j ON j.id=p.entry_id WHERE p.day_key=?", new String[]{day})) {
+            try (Cursor c = getReadableDatabase().rawQuery("SELECT j.id,j.kind,j.title,j.summary,j.body,j.tags,j.favorite,j.revisit,j.source,j.created_at,j.updated_at FROM journal_daily_pick p JOIN journal_entries j ON j.id=p.entry_id WHERE p.day_key=?", new String[]{day})) {
                 if (c.moveToFirst()) return journalJson(c);
             } catch (Exception ignored) {}
         }
         ArrayList<JSONObject> all = new ArrayList<>();
         HashSet<Long> recent = new HashSet<>();
         try (Cursor c = getReadableDatabase().rawQuery("SELECT entry_id FROM journal_daily_pick ORDER BY created_at DESC LIMIT 7", null)) { while(c.moveToNext()) recent.add(c.getLong(0)); } catch(Exception ignored){}
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC", null)) { while(c.moveToNext()) all.add(journalJson(c)); } catch(Exception ignored){}
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT id,kind,title,summary,body,tags,favorite,revisit,source,created_at,updated_at FROM journal_entries ORDER BY created_at DESC", null)) { while(c.moveToNext()) all.add(journalJson(c)); } catch(Exception ignored){}
         if (all.isEmpty()) return new JSONObject();
         ArrayList<JSONObject> pool = new ArrayList<>(); for(JSONObject o:all) if(!recent.contains(o.optLong("id"))) pool.add(o); if(pool.isEmpty()) pool.addAll(all);
         ArrayList<JSONObject> weighted = new ArrayList<>(); for(JSONObject o:pool){weighted.add(o);if(o.optBoolean("favorite",false))weighted.add(o);} 
@@ -1441,7 +2247,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             o.put("resultKind","journal"); o.put("id",c.getLong(0)); o.put("kind",c.getString(1)); o.put("title",c.getString(2));
             o.put("summary",c.getString(3)); o.put("body",c.getString(4)); o.put("tags",c.getString(5)); o.put("favorite",c.getInt(6)==1);
-            o.put("source",c.getString(7)); o.put("createdAt",c.getLong(8)); o.put("updatedAt",c.getLong(9));
+            o.put("revisit",c.getInt(7)==1); o.put("source",c.getString(8)); o.put("createdAt",c.getLong(9)); o.put("updatedAt",c.getLong(10));
         } catch(Exception ignored){}
         return o;
     }
@@ -1550,7 +2356,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             o.put("tasks", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND type='task' AND status='pending'"));
             o.put("lists", scalar("SELECT COUNT(*) FROM lists"));
-            o.put("inbox", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1"));
+            o.put("inbox", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1") + getPendingInboxCaptureCount());
             o.put("favorites", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND favorite=1") + scalar("SELECT COUNT(*) FROM lists WHERE favorite=1"));
             o.put("reminders", scalar("SELECT COUNT(*) FROM reminders WHERE enabled=1 AND trigger_at>" + System.currentTimeMillis()));
             o.put("journal", scalar("SELECT COUNT(*) FROM journal_entries"));
@@ -1570,6 +2376,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("attachments", scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND attachment_path<>''"));
             o.put("journal", scalar("SELECT COUNT(*) FROM journal_entries"));
             o.put("medications", scalar("SELECT COUNT(*) FROM medications"));
+            o.put("people", scalar("SELECT COUNT(*) FROM people WHERE archived_at=0"));
+            o.put("eventPeopleLinks", scalar("SELECT COUNT(*) FROM item_people"));
+            o.put("inboxCaptures", scalar("SELECT COUNT(*) FROM inbox_captures WHERE status IN ('new','reviewing')"));
         } catch(Exception ignored){}
         return o;
     }
@@ -1592,6 +2401,344 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 }
             }
         } catch(Exception ignored){}
+        try (Cursor c=sql.rawQuery("SELECT id,attachment_path,attachment_name FROM inbox_captures WHERE attachment_path<>''",null)) {
+            while(c.moveToNext()) {
+                long id=c.getLong(0); String old=c.getString(1), name=c.getString(2);
+                String base="";
+                if(old!=null&&!old.isBlank()) base=new java.io.File(old).getName();
+                if(base.isBlank()&&name!=null) base=name;
+                if(base.isBlank()) continue;
+                java.io.File candidate=new java.io.File(attachmentsDir,base);
+                if(candidate.exists()) {
+                    ContentValues v=new ContentValues();v.put("attachment_path",candidate.getAbsolutePath());
+                    sql.update("inbox_captures",v,"id=?",new String[]{String.valueOf(id)});
+                }
+            }
+        } catch(Exception ignored){}
+    }
+
+    /** Guarda primero el contenido recibido para que no dependa de completar el formulario en la misma sesión. */
+    public long insertInboxCapture(JSONObject in, JSONObject classification) {
+        if (in == null) return 0;
+        long now = System.currentTimeMillis();
+        JSONObject detected = classification == null ? new JSONObject() : classification;
+        ContentValues v = new ContentValues();
+        v.put("source", nonBlank(in.optString("source"), "android-share"));
+        v.put("mime", in.optString("mime", ""));
+        v.put("subject", in.optString("subject", ""));
+        String raw = in.optString("text", "");
+        if (raw.isBlank()) raw = in.optString("attachmentName", "");
+        v.put("raw_text", raw);
+        v.put("attachment_path", in.optString("attachmentPath", ""));
+        v.put("attachment_name", in.optString("attachmentName", ""));
+        v.put("attachment_mime", in.optString("attachmentMime", ""));
+        v.put("detected_type", detected.optString("type", ""));
+        v.put("detected_title", detected.optString("title", ""));
+        v.put("classification_json", detected.toString());
+        v.put("status", "new");
+        v.put("converted_entity", "");
+        v.put("converted_id", 0);
+        v.put("created_at", now);
+        v.put("updated_at", now);
+        v.put("source_package", in.optString("sourcePackage", ""));
+        v.put("sender", in.optString("sender", ""));
+        v.put("source_key", in.optString("sourceKey", ""));
+        return getWritableDatabase().insert("inbox_captures", null, v);
+    }
+
+    public boolean replaceInboxCapture(long id, JSONObject in, JSONObject classification) {
+        if (id <= 0 || in == null) return false;
+        JSONObject detected = classification == null ? new JSONObject() : classification;
+        ContentValues v = new ContentValues();
+        v.put("source", nonBlank(in.optString("source"), "calendar"));
+        v.put("mime", in.optString("mime", ""));
+        v.put("subject", in.optString("subject", ""));
+        v.put("raw_text", in.optString("text", ""));
+        v.put("detected_type", detected.optString("type", ""));
+        v.put("detected_title", detected.optString("title", ""));
+        v.put("classification_json", detected.toString());
+        v.put("source_package", in.optString("sourcePackage", ""));
+        v.put("sender", in.optString("sender", ""));
+        v.put("source_key", in.optString("sourceKey", ""));
+        v.put("status", "new");
+        v.put("updated_at", System.currentTimeMillis());
+        return getWritableDatabase().update(
+                "inbox_captures",
+                v,
+                "id=? AND status IN ('new','reviewing')",
+                new String[]{String.valueOf(id)}
+        ) > 0;
+    }
+
+    public boolean isInboxCapturePending(long id) {
+        if (id <= 0) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM inbox_captures WHERE id=? AND status IN ('new','reviewing') LIMIT 1",
+                new String[]{String.valueOf(id)})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public JSONObject getCalendarWatchState(long eventId) {
+        JSONObject out = new JSONObject();
+        if (eventId <= 0) return out;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT event_id,fingerprint,capture_id,linked_item_id,last_seen_at FROM calendar_watch_events WHERE event_id=? LIMIT 1",
+                new String[]{String.valueOf(eventId)})) {
+            if (c.moveToFirst()) {
+                out.put("eventId", c.getLong(0));
+                out.put("fingerprint", c.getString(1));
+                out.put("captureId", c.getLong(2));
+                out.put("linkedItemId", c.getLong(3));
+                out.put("lastSeenAt", c.getLong(4));
+            }
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public void rememberCalendarEvent(long eventId, String fingerprint, long captureId, long linkedItemId) {
+        if (eventId <= 0) return;
+        SQLiteDatabase db = getWritableDatabase();
+        JSONObject existing = getCalendarWatchState(eventId);
+        long keepLinked = linkedItemId >= 0 ? linkedItemId : existing.optLong("linkedItemId", 0L);
+        long keepCapture = captureId >= 0 ? captureId : existing.optLong("captureId", 0L);
+        ContentValues v = new ContentValues();
+        v.put("event_id", eventId);
+        v.put("fingerprint", fingerprint == null ? "" : fingerprint);
+        v.put("capture_id", keepCapture);
+        v.put("linked_item_id", keepLinked);
+        v.put("last_seen_at", System.currentTimeMillis());
+        db.insertWithOnConflict("calendar_watch_events", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public void touchCalendarEvent(long eventId) {
+        if (eventId <= 0) return;
+        ContentValues v = new ContentValues();
+        v.put("last_seen_at", System.currentTimeMillis());
+        getWritableDatabase().update("calendar_watch_events", v, "event_id=?", new String[]{String.valueOf(eventId)});
+    }
+
+    private void linkCalendarCaptureToItem(long captureId, long itemId) {
+        if (captureId <= 0 || itemId <= 0) return;
+        ContentValues v = new ContentValues();
+        v.put("linked_item_id", itemId);
+        v.put("capture_id", captureId);
+        v.put("last_seen_at", System.currentTimeMillis());
+        getWritableDatabase().update("calendar_watch_events", v, "capture_id=?", new String[]{String.valueOf(captureId)});
+    }
+
+    public boolean hasExternalInput(String source, String externalId) {
+        if (source == null || source.isBlank() || externalId == null || externalId.isBlank()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM external_watch_items WHERE source=? AND external_id=? LIMIT 1",
+                new String[]{source, externalId})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public JSONObject getExternalInputState(String source, String externalId) {
+        JSONObject out = new JSONObject();
+        if (source == null || source.isBlank() || externalId == null || externalId.isBlank()) return out;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT source,external_id,fingerprint,capture_id,last_seen_at FROM external_watch_items WHERE source=? AND external_id=? LIMIT 1",
+                new String[]{source, externalId})) {
+            if (c.moveToFirst()) {
+                out.put("source", c.getString(0));
+                out.put("externalId", c.getString(1));
+                out.put("fingerprint", c.getString(2));
+                out.put("captureId", c.getLong(3));
+                out.put("lastSeenAt", c.getLong(4));
+            }
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public void rememberExternalInput(String source, String externalId, String fingerprint, long captureId) {
+        if (source == null || source.isBlank() || externalId == null || externalId.isBlank()) return;
+        JSONObject existing = getExternalInputState(source, externalId);
+        ContentValues v = new ContentValues();
+        v.put("source", source);
+        v.put("external_id", externalId);
+        v.put("fingerprint", fingerprint == null ? "" : fingerprint);
+        v.put("capture_id", captureId >= 0 ? captureId : existing.optLong("captureId", 0L));
+        v.put("last_seen_at", System.currentTimeMillis());
+        getWritableDatabase().insertWithOnConflict(
+                "external_watch_items", null, v, SQLiteDatabase.CONFLICT_REPLACE
+        );
+    }
+
+    public JSONObject getExternalWatchDiagnostics() {
+        JSONObject out = new JSONObject();
+        try {
+            out.put("smsSeen", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms'"));
+            out.put("smsCaptured", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms' AND capture_id>0"));
+            out.put("smsRejected", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms' AND fingerprint LIKE 'sms-filter-v6:rejected:%'"));
+            out.put("smsErrors", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='sms' AND fingerprint LIKE 'sms-error:%'"));
+            out.put("gmailSeen", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail'"));
+            out.put("gmailCaptured", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail' AND capture_id>0"));
+            out.put("gmailRejected", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail' AND fingerprint LIKE 'gmail-filter-v6:rejected:%'"));
+            out.put("gmailErrors", scalar("SELECT COUNT(*) FROM external_watch_items WHERE source='gmail' AND fingerprint LIKE 'gmail-error:%'"));
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    /**
+     * Evita duplicar una misma comunicación cuando llega primero por notificación
+     * y después por el proveedor directo (o al revés).
+     */
+    public long findRecentEquivalentInboxCapture(String sourceFamily, String sender, String text, long windowMs) {
+        String target = normalizeInboxText(text);
+        if (target.isBlank()) return 0L;
+        String targetSender = normalizeInboxText(sender);
+        long cutoff = System.currentTimeMillis() - Math.max(60_000L, windowMs);
+        String sql = "SELECT id,source,source_package,sender,raw_text FROM inbox_captures " +
+                "WHERE created_at>=? AND status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 120";
+        try (Cursor c = getReadableDatabase().rawQuery(sql, new String[]{String.valueOf(cutoff)})) {
+            while (c.moveToNext()) {
+                String source = c.isNull(1) ? "" : c.getString(1);
+                String pkg = c.isNull(2) ? "" : c.getString(2);
+                if (!sameInboxSourceFamily(sourceFamily, source, pkg)) continue;
+
+                String candidateSender = normalizeInboxText(c.isNull(3) ? "" : c.getString(3));
+                String candidate = normalizeInboxText(c.isNull(4) ? "" : c.getString(4));
+                if (candidate.isBlank()) continue;
+
+                boolean textMatch = candidate.equals(target);
+                int shorter = Math.min(candidate.length(), target.length());
+                if (!textMatch && shorter >= 20) {
+                    textMatch = candidate.contains(target) || target.contains(candidate);
+                }
+                if (!textMatch) continue;
+
+                // Texto exactamente igual es suficiente: la notificación puede mostrar
+                // el nombre del contacto mientras el proveedor SMS entrega el teléfono.
+                if (candidate.equals(target)) return c.getLong(0);
+
+                boolean senderMatch = targetSender.isBlank() || candidateSender.isBlank() ||
+                        candidateSender.equals(targetSender) ||
+                        candidateSender.contains(targetSender) || targetSender.contains(candidateSender);
+                if (senderMatch) return c.getLong(0);
+            }
+        } catch (Exception ignored) {}
+        return 0L;
+    }
+
+    private static boolean sameInboxSourceFamily(String wanted, String source, String pkg) {
+        String family = wanted == null ? "" : wanted.trim().toLowerCase(Locale.ROOT);
+        if (family.isBlank()) return true;
+        String s = source == null ? "" : source.toLowerCase(Locale.ROOT);
+        String p = pkg == null ? "" : pkg.toLowerCase(Locale.ROOT);
+        if ("gmail".equals(family)) {
+            return "gmail-api".equals(s) || "com.google.android.gm".equals(p);
+        }
+        if ("sms".equals(family)) {
+            return "sms-provider".equals(s) || p.contains("messaging") || p.contains("mms") ||
+                    p.contains("message") || "android.sms".equals(p);
+        }
+        return true;
+    }
+
+    private static String normalizeInboxText(String value) {
+        return java.text.Normalizer.normalize(value == null ? "" : value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    public boolean inboxCaptureExists(String sourceKey) {
+        if (sourceKey == null || sourceKey.isBlank()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM inbox_captures WHERE source_key=? LIMIT 1",
+                new String[]{sourceKey})) {
+            return c.moveToFirst();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public long getPendingInboxCaptureCount() {
+        return scalar("SELECT COUNT(*) FROM inbox_captures WHERE status IN ('new','reviewing')");
+    }
+
+    public JSONArray getInboxCaptures() {
+        JSONArray out = new JSONArray();
+        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at,source_package,sender,source_key FROM inbox_captures WHERE status IN ('new','reviewing') ORDER BY created_at DESC LIMIT 200";
+        try (Cursor c = getReadableDatabase().rawQuery(sql, null)) {
+            while (c.moveToNext()) out.put(inboxCaptureJson(c));
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    public JSONObject getInboxCapture(long id) {
+        String sql = "SELECT id,source,mime,subject,raw_text,attachment_path,attachment_name,attachment_mime,detected_type,detected_title,classification_json,status,converted_entity,converted_id,created_at,updated_at,source_package,sender,source_key FROM inbox_captures WHERE id=? LIMIT 1";
+        try (Cursor c = getReadableDatabase().rawQuery(sql, new String[]{String.valueOf(id)})) {
+            if (c.moveToFirst()) return inboxCaptureJson(c);
+        } catch (Exception ignored) {}
+        return new JSONObject();
+    }
+
+    public boolean updateInboxCaptureClassification(long id, JSONObject classification) {
+        if (id <= 0 || classification == null) return false;
+        ContentValues v = new ContentValues();
+        v.put("detected_type", classification.optString("type", ""));
+        v.put("detected_title", classification.optString("title", ""));
+        v.put("classification_json", classification.toString());
+        v.put("status", "reviewing");
+        v.put("updated_at", System.currentTimeMillis());
+        return getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+    }
+
+    public boolean markInboxCaptureConverted(long id, String entity, long convertedId) {
+        if (id <= 0 || convertedId <= 0) return false;
+        ContentValues v = new ContentValues();
+        v.put("status", "converted");
+        v.put("converted_entity", nonBlank(entity, "item"));
+        v.put("converted_id", convertedId);
+        v.put("updated_at", System.currentTimeMillis());
+        boolean ok = getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+        if (ok) linkCalendarCaptureToItem(id, convertedId);
+        return ok;
+    }
+
+    public boolean discardInboxCapture(long id) {
+        if (id <= 0) return false;
+        ContentValues v = new ContentValues();
+        v.put("status", "discarded");
+        v.put("updated_at", System.currentTimeMillis());
+        return getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
+    }
+
+    private static JSONObject inboxCaptureJson(Cursor c) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("id", c.getLong(0));
+            o.put("source", c.getString(1));
+            o.put("mime", c.getString(2));
+            o.put("subject", c.getString(3));
+            o.put("rawText", c.getString(4));
+            o.put("attachmentPath", c.getString(5));
+            o.put("attachmentName", c.getString(6));
+            o.put("attachmentMime", c.getString(7));
+            o.put("detectedType", c.getString(8));
+            o.put("detectedTitle", c.getString(9));
+            String rawClassification = c.getString(10);
+            try { o.put("classification", new JSONObject(rawClassification == null ? "{}" : rawClassification)); }
+            catch (Exception ignored) { o.put("classification", new JSONObject()); }
+            o.put("status", c.getString(11));
+            o.put("convertedEntity", c.getString(12));
+            o.put("convertedId", c.getLong(13));
+            o.put("createdAt", c.getLong(14));
+            o.put("updatedAt", c.getLong(15));
+            o.put("sourcePackage", c.getString(16));
+            o.put("sender", c.getString(17));
+            o.put("sourceKey", c.getString(18));
+        } catch (Exception ignored) {}
+        return o;
     }
 
     public JSONArray getInbox() { return queryItems("needs_review=1", null, "created_at DESC", 200); }
@@ -1913,7 +3060,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         JSONArray a = new JSONArray();
         String sql = "SELECT * FROM items WHERE deleted_at=0 AND (" + where + ") ORDER BY " + order + " LIMIT " + limit;
         try (Cursor c = getReadableDatabase().rawQuery(sql, args)) {
-            while (c.moveToNext()) a.put(itemJson(c));
+            while (c.moveToNext()) a.put(normalizeNexoFamiliaStatusForRead(itemJson(c)));
         } catch (Exception ignored) {}
         return a;
     }
@@ -1941,7 +3088,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("subcategory",c.getString(c.getColumnIndexOrThrow("subcategory")));
             o.put("tags",c.getString(c.getColumnIndexOrThrow("tags")));
             o.put("dueAt",c.getLong(c.getColumnIndexOrThrow("due_at")));
+            int endIndex=c.getColumnIndex("end_at");o.put("endAt",endIndex>=0?c.getLong(endIndex):0L);
             o.put("hasTime",c.getInt(c.getColumnIndexOrThrow("has_time"))==1);
+            int allDayIndex=c.getColumnIndex("all_day");o.put("allDay",allDayIndex>=0&&c.getInt(allDayIndex)==1);
+            int tzIndex=c.getColumnIndex("time_zone");o.put("timeZone",tzIndex>=0?c.getString(tzIndex):"Europe/Madrid");
+            int mapsIndex=c.getColumnIndex("maps_url");o.put("mapsUrl",mapsIndex>=0?c.getString(mapsIndex):"");
+            int ruleIndex=c.getColumnIndex("recurrence_rule");o.put("recurrenceRule",ruleIndex>=0?c.getString(ruleIndex):"");
+            int participantsIndex=c.getColumnIndex("participants_text");o.put("participantsText",participantsIndex>=0?c.getString(participantsIndex):"");
             o.put("deletedAt",c.getLong(c.getColumnIndexOrThrow("deleted_at")));
             int li=c.getColumnIndexOrThrow("lat"),lo=c.getColumnIndexOrThrow("lon");
             if (!c.isNull(li)) o.put("lat",c.getDouble(li)); else o.put("lat",JSONObject.NULL);
@@ -1954,6 +3107,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("attachmentName",c.getString(c.getColumnIndexOrThrow("attachment_name")));
             o.put("attachmentMime",c.getString(c.getColumnIndexOrThrow("attachment_mime")));
             o.put("status",c.getString(c.getColumnIndexOrThrow("status")));
+            int statusManualIndex=c.getColumnIndex("status_manual");
+            o.put("statusManual",statusManualIndex>=0 && c.getInt(statusManualIndex)==1);
             o.put("needsReview",c.getInt(c.getColumnIndexOrThrow("needs_review"))==1);
             o.put("recurrence",c.getString(c.getColumnIndexOrThrow("recurrence")));
             o.put("recurrenceUntil",c.getLong(c.getColumnIndexOrThrow("recurrence_until")));
@@ -1964,8 +3119,37 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("noteTitleManual",noteTitleManualIndex>=0 && c.getInt(noteTitleManualIndex)==1);
             o.put("createdAt",c.getLong(c.getColumnIndexOrThrow("created_at")));
             o.put("updatedAt",c.getLong(c.getColumnIndexOrThrow("updated_at")));
+            attachItemPeople(o);
         } catch (Exception ignored) {}
         return o;
+    }
+
+    /**
+     * Normaliza el estado de los eventos procedentes de Nexo Familia justo antes
+     * de entregarlos a la UI. Esto hace la lectura tolerante a estados heredados
+     * incorrectos de versiones anteriores (por ejemplo, futuros guardados como done).
+     */
+    private JSONObject normalizeNexoFamiliaStatusForRead(JSONObject item) {
+        if (item == null || item.length() == 0) return item;
+        if (!"nexo-familia".equals(item.optString("source", ""))) return item;
+        try {
+            String current=item.optString("status","pending");
+            if (item.optBoolean("statusManual", false) || "cancelled".equals(current)) return item;
+
+            String recurrence=RecurrenceEngine.normalize(item.optString("recurrence",RecurrenceEngine.NONE));
+            if (RecurrenceEngine.isRecurring(recurrence)) {
+                item.put("status","pending");
+            } else if ("done".equals(current) || "postponed".equals(current)) {
+                // Un cambio manual de estado se conserva aunque la fecha sea hoy o futura.
+                return item;
+            } else {
+                long due=item.optLong("dueAt",0L);
+                long end=item.optLong("endAt",0L);
+                long effectiveEnd=end>0L?end:due;
+                item.put("status", effectiveEnd>0L && isBeforeToday(effectiveEnd) ? "done" : "pending");
+            }
+        } catch (Exception ignored) {}
+        return item;
     }
 
     private JSONObject withResultKind(JSONObject o,String kind){ try{o.put("resultKind",kind);}catch(Exception ignored){} return o; }
@@ -1980,5 +3164,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     private static int clamp(int v,int min,int max){return Math.max(min,Math.min(max,v));}
+    private static String cleanJsonString(JSONObject source,String key){
+        if(source==null||key==null||!source.has(key)||source.isNull(key))return "";
+        Object value=source.opt(key);
+        if(value==null||value==JSONObject.NULL)return "";
+        String text=String.valueOf(value).trim();
+        return "null".equalsIgnoreCase(text)?"":text;
+    }
     private static String nonBlank(String s,String fallback){return s==null||s.trim().isEmpty()?fallback:s.trim();}
 }

@@ -4,29 +4,156 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
   <title>Nexo</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <svg xmlns="http://www.w3.org/2000/svg" class="icon-symbols" aria-hidden="true"><symbol id="nx-icon-grid" viewbox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"></rect><rect x="14" y="3" width="7" height="7" rx="2"></rect><rect x="3" y="14" width="7" height="7" rx="2"></rect><rect x="14" y="14" width="7" height="7" rx="2"></rect></symbol><symbol id="nx-icon-calendar" viewbox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2m-8 3h2"></path></symbol><symbol id="nx-icon-tasks" viewbox="0 0 24 24"><path d="m3 6 2 2 4-4m-6 9 2 2 4-4m-6 9 2 2 4-4M12 6h9m-9 7h9m-9 7h9"></path></symbol><symbol id="nx-icon-pill" viewbox="0 0 24 24"><path d="m9 5 10 10M5 19a6 6 0 0 1 0-8l6-6a6 6 0 0 1 8 8l-6 6a6 6 0 0 1-8 0Z"></path></symbol><symbol id="nx-icon-list" viewbox="0 0 24 24"><path d="M8 5h13M8 12h13M8 19h13M3 5h.1M3 12h.1M3 19h.1"></path></symbol><symbol id="nx-icon-note" viewbox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path></symbol><symbol id="nx-icon-audio" viewbox="0 0 24 24"><path d="M4 9v6m4-10v14m4-16v18m4-14v10m4-8v6"></path></symbol><symbol id="nx-icon-bell" viewbox="0 0 24 24"><path d="M5 16h14l-2-3V9a5 5 0 0 0-10 0v4Zm5 4h4M12 2v2"></path></symbol><symbol id="nx-icon-car" viewbox="0 0 24 24"><path d="m4 10 2-6h12l2 6M3 10h18v9H3Zm3 9v2m12-2v2M6 14h2m8 0h2"></path></symbol><symbol id="nx-icon-book" viewbox="0 0 24 24"><path d="M12 5v16M3 3c4 0 6 0 9 2 3-2 5-2 9-2v16c-4 0-6 0-9 2-3-2-5-2-9-2Z"></path></symbol><symbol id="nx-icon-star" viewbox="0 0 24 24"><path d="m12 3 3 6 6 1-4.5 4.5 1 6.5-5.5-3-5.5 3 1-6.5L3 10l6-1Z"></path></symbol><symbol id="nx-icon-file" viewbox="0 0 24 24"><path d="M14 3H5v18h14V8Zm0 0v5h5M8 12h8m-8 4h6"></path></symbol><symbol id="nx-icon-pin" viewbox="0 0 24 24"><path d="M19 9c0 6-7 12-7 12S5 15 5 9a7 7 0 1 1 14 0Z"></path><circle cx="12" cy="9" r="2"></circle></symbol><symbol id="nx-icon-settings" viewbox="0 0 24 24"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-2 3 1 2-3-1-3 2-2-2-3-3-1-1-3Z"></path><circle cx="12" cy="11" r="3"></circle></symbol><symbol id="nx-icon-plus" viewbox="0 0 24 24"><path d="M12 4v16M4 12h16"></path></symbol><symbol id="nx-icon-mic" viewbox="0 0 24 24"><rect x="8" y="2" width="8" height="13" rx="4"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"></path></symbol><symbol id="nx-icon-search" viewbox="0 0 24 24"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></symbol><symbol id="nx-icon-left" viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></symbol><symbol id="nx-icon-right" viewbox="0 0 24 24"><path d="m9 5 7 7-7 7"></path></symbol><symbol id="nx-icon-more" viewbox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></symbol><symbol id="nx-icon-share" viewbox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M5 13v8h14v-8"></path></symbol><symbol id="nx-icon-download" viewbox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"></path></symbol><symbol id="nx-icon-edit" viewbox="0 0 24 24"><path d="m4 15 11-11 5 5L9 20H4Zm9-9 5 5"></path></symbol><symbol id="nx-icon-close" viewbox="0 0 24 24"><path d="m5 5 14 14M5 19 19 5"></path></symbol><symbol id="nx-icon-check" viewbox="0 0 24 24"><path d="m4 12 5 5L20 6"></path></symbol><symbol id="nx-icon-play" viewbox="0 0 24 24"><path d="m8 4 12 8-12 8Z"></path></symbol><symbol id="nx-icon-inbox" viewbox="0 0 24 24"><path d="M5 4h14l3 12v5H2v-5ZM2 16h6l2 3h4l2-3h6"></path></symbol><symbol id="nx-icon-history" viewbox="0 0 24 24"><path d="M4 8a9 9 0 1 1-1 8M3 3v6h6m3-3v6l4 2"></path></symbol><symbol id="nx-icon-speaker" viewbox="0 0 24 24"><path d="m3 9 5 0 5-5v16l-5-5H3Zm13-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"></path></symbol><symbol id="nx-icon-basket" viewbox="0 0 24 24"><path d="m5 9 4-6m10 6-4-6M2 9h20l-3 12H5Zm7 4v4m6-4v4"></path></symbol></svg><div id="app">
+<body class="startup-loading">
+  <div id="startupSplash" class="startup-splash" role="status" aria-live="polite" aria-label="Nexo está iniciando">
+    <div class="startup-splash__brand">
+      <img class="startup-splash__logo" src="nexo-toolbar-logo.png" alt="Nexo">
+      <div class="startup-splash__wordmark" aria-hidden="true">Nexo</div>
+      <div class="startup-splash__tagline">Tu información. Tu día. Tu Nexo.</div>
+    </div>
+    <div class="startup-splash__progress" aria-label="Buscando en Inbox y preparando la agenda">
+      <div class="startup-splash__dots" aria-hidden="true">
+        <span class="startup-splash__dot startup-splash__dot--blue"></span>
+        <span class="startup-splash__dot startup-splash__dot--cyan"></span>
+        <span class="startup-splash__dot startup-splash__dot--mint"></span>
+      </div>
+      <div id="startupSplashStatus" class="startup-splash__status">Buscando en Inbox…</div>
+    </div>
+    <div class="startup-splash__credit">Desarrollado por Carlos Javier Ruiz Bermúdez</div>
+  </div>
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-symbols" aria-hidden="true"><symbol id="nx-icon-home" viewbox="0 0 24 24"><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3Z"></path></symbol><symbol id="nx-icon-grid" viewbox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"></rect><rect x="14" y="3" width="7" height="7" rx="2"></rect><rect x="3" y="14" width="7" height="7" rx="2"></rect><rect x="14" y="14" width="7" height="7" rx="2"></rect></symbol><symbol id="nx-icon-calendar" viewbox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2m-8 3h2"></path></symbol><symbol id="nx-icon-tasks" viewbox="0 0 24 24"><path d="m3 6 2 2 4-4m-6 9 2 2 4-4m-6 9 2 2 4-4M12 6h9m-9 7h9m-9 7h9"></path></symbol><symbol id="nx-icon-pill" viewbox="0 0 24 24"><path d="m9 5 10 10M5 19a6 6 0 0 1 0-8l6-6a6 6 0 0 1 8 8l-6 6a6 6 0 0 1-8 0Z"></path></symbol><symbol id="nx-icon-list" viewbox="0 0 24 24"><path d="M8 5h13M8 12h13M8 19h13M3 5h.1M3 12h.1M3 19h.1"></path></symbol><symbol id="nx-icon-note" viewbox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path></symbol><symbol id="nx-icon-audio" viewbox="0 0 24 24"><path d="M4 9v6m4-10v14m4-16v18m4-14v10m4-8v6"></path></symbol><symbol id="nx-icon-bell" viewbox="0 0 24 24"><path d="M5 16h14l-2-3V9a5 5 0 0 0-10 0v4Zm5 4h4M12 2v2"></path></symbol><symbol id="nx-icon-car" viewbox="0 0 24 24"><path d="m4 10 2-6h12l2 6M3 10h18v9H3Zm3 9v2m12-2v2M6 14h2m8 0h2"></path></symbol><symbol id="nx-icon-book" viewbox="0 0 24 24"><path d="M12 5v16M3 3c4 0 6 0 9 2 3-2 5-2 9-2v16c-4 0-6 0-9 2-3-2-5-2-9-2Z"></path></symbol><symbol id="nx-icon-quote" viewbox="0 0 24 24"><path d="M5 7h6v6H7c0 2 1 3 3 4m3-10h6v6h-4c0 2 1 3 3 4"></path></symbol><symbol id="nx-icon-star" viewbox="0 0 24 24"><path d="m12 3 3 6 6 1-4.5 4.5 1 6.5-5.5-3-5.5 3 1-6.5L3 10l6-1Z"></path></symbol><symbol id="nx-icon-file" viewbox="0 0 24 24"><path d="M14 3H5v18h14V8Zm0 0v5h5M8 12h8m-8 4h6"></path></symbol><symbol id="nx-icon-pin" viewbox="0 0 24 24"><path d="M19 9c0 6-7 12-7 12S5 15 5 9a7 7 0 1 1 14 0Z"></path><circle cx="12" cy="9" r="2"></circle></symbol><symbol id="nx-icon-settings" viewbox="0 0 24 24"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-2 3 1 2-3-1-3 2-2-2-3-3-1-1-3Z"></path><circle cx="12" cy="11" r="3"></circle></symbol><symbol id="nx-icon-plus" viewbox="0 0 24 24"><path d="M12 4v16M4 12h16"></path></symbol><symbol id="nx-icon-mic" viewbox="0 0 24 24"><rect x="8" y="2" width="8" height="13" rx="4"></rect><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"></path></symbol><symbol id="nx-icon-search" viewbox="0 0 24 24"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></symbol><symbol id="nx-icon-eye" viewbox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></symbol><symbol id="nx-icon-left" viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></symbol><symbol id="nx-icon-right" viewbox="0 0 24 24"><path d="m9 5 7 7-7 7"></path></symbol><symbol id="nx-icon-more" viewbox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></symbol><symbol id="nx-icon-share" viewbox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M5 13v8h14v-8"></path></symbol><symbol id="nx-icon-download" viewbox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"></path></symbol><symbol id="nx-icon-edit" viewbox="0 0 24 24"><path d="m4 15 11-11 5 5L9 20H4Zm9-9 5 5"></path></symbol><symbol id="nx-icon-trash" viewbox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6m4-6v6"></path></symbol><symbol id="nx-icon-close" viewbox="0 0 24 24"><path d="m5 5 14 14M5 19 19 5"></path></symbol><symbol id="nx-icon-check" viewbox="0 0 24 24"><path d="m4 12 5 5L20 6"></path></symbol><symbol id="nx-icon-play" viewbox="0 0 24 24"><path d="m8 4 12 8-12 8Z"></path></symbol><symbol id="nx-icon-inbox" viewbox="0 0 24 24"><path d="M5 4h14l3 12v5H2v-5ZM2 16h6l2 3h4l2-3h6"></path></symbol><symbol id="nx-icon-history" viewbox="0 0 24 24"><path d="M4 8a9 9 0 1 1-1 8M3 3v6h6m3-3v6l4 2"></path></symbol><symbol id="nx-icon-speaker" viewbox="0 0 24 24"><path d="m3 9 5 0 5-5v16l-5-5H3Zm13-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"></path></symbol><symbol id="nx-icon-basket" viewbox="0 0 24 24"><path d="m5 9 4-6m10 6-4-6M2 9h20l-3 12H5Zm7 4v4m6-4v4"></path></symbol><symbol id="nx-icon-clock" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></symbol><symbol id="nx-icon-heart-pulse" viewbox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6"></path><path d="M20.8 5.7A5.5 5.5 0 0 0 12 7a5.5 5.5 0 0 0-8.8-1.3C1 8 1.4 11.6 4 14.2L12 22l8-7.8c2.6-2.6 3-6.2.8-8.5Z"></path></symbol><symbol id="nx-icon-cake" viewbox="0 0 24 24"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"></path><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"></path><path d="M2 21h20"></path><path d="M7 8v3"></path><path d="M12 8v3"></path><path d="M17 8v3"></path><path d="M7 4h.01"></path><path d="M12 4h.01"></path><path d="M17 4h.01"></path></symbol><symbol id="nx-icon-plane" viewbox="0 0 24 24"><path d="m3 11 18-7-7 18-3-7-8-4Zm8 4 3-3"></path></symbol><symbol id="nx-icon-briefcase" viewbox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V4h8v3m-13 6h18M10 13v2h4v-2"></path></symbol><symbol id="nx-icon-graduation" viewbox="0 0 24 24"><path d="m2 9 10-5 10 5-10 5L2 9Zm4 2v6c4 3 8 3 12 0v-6m4-2v6"></path></symbol><symbol id="nx-icon-shield" viewbox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3 8 8 10 5-2 8-5 8-10V6Z"></path><path d="m8 12 3 3 5-6"></path></symbol><symbol id="nx-icon-clipboard" viewbox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V2h6v2M8 9h8m-8 4h8m-8 4h5"></path></symbol><symbol id="nx-icon-cart" viewbox="0 0 24 24"><path d="M3 4h2l2 11h10l3-8H6m3 12h.1m8 0h.1"></path></symbol><symbol id="nx-icon-party" viewbox="0 0 24 24"><path d="m4 20 5-14 9 9L4 20Z"></path><path d="M14 4h.1M19 5l1-2M18 10l3-1M10 3 9 4"></path></symbol><symbol id="nx-icon-dumbbell" viewbox="0 0 24 24"><path d="M6 7v10M3 9v6m15-8v10m3-8v6M6 12h12"></path></symbol><symbol id="nx-icon-users" viewbox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><circle cx="17" cy="9" r="2"></circle><path d="M3 20c0-4 2-6 6-6s6 2 6 6M15 15c4 0 6 2 6 5"></path></symbol></svg><div id="app">
     <header class="topbar"><div class="brand-row">
-<img class="brand-logo" src="nexo-icon.png" alt=""><span class="brand">Nexo</span><span class="header-version" data-app-version aria-label="Versión 3.3.2">v3.3.2</span>
+<img class="brand-logo" src="nexo-toolbar-logo.png" alt=""><span class="brand-copy"><span class="brand">Nexo</span><small id="headerVersion" class="brand-version"></small></span>
 </div>
 <button id="settingsBtn" class="icon-button" aria-label="Ajustes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg></button></header><main>
-      <section class="screen active" data-screen="today" aria-labelledby="homeTitle"><h1 id="homeTitle" class="sr-only">Inicio</h1>
-<div class="home-create-row">
-<button id="homeCreateBtn" class="primary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-plus"></use></svg> Crear cita</button><button id="homeTalkBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Hablar</button>
-</div>
-<div class="module-grid">
-<button class="module-tile" data-panel="calendar"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><span><strong>Calendario</strong></span></button><button class="module-tile" data-panel="appointments"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-tasks"></use></svg><span><strong>Citas</strong></span></button><button class="module-tile" data-panel="medications"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pill"></use></svg><span><strong>Medicación</strong></span></button><button class="module-tile" data-panel="lists"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-list"></use></svg><span><strong>Listas</strong></span></button><button class="module-tile" data-panel="notes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-note"></use></svg><span><strong>Notas</strong></span></button><button class="module-tile" data-panel="recordings"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-audio"></use></svg><span><strong>Grabaciones</strong></span></button><button class="module-tile" data-panel="parking"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-car"></use></svg><span><strong>Aparcamiento</strong></span></button><button class="module-tile" data-panel="journal"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-book"></use></svg><span><strong>Cuaderno</strong></span></button><button class="module-tile" data-panel="documents"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg><span><strong>Documentos</strong></span></button><button class="module-tile" data-panel="places"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span><strong>Lugares</strong></span></button>
-</div>
-<div class="home-shortcuts">
-<button id="homeShoppingBtn" class="text-button">Mi compra</button><button class="text-button" data-panel="inbox">Por organizar<span id="inboxCount" class="count-badge hidden"></span></button><button class="text-button" data-panel="history">Historial</button>
-</div></section><section class="screen" data-screen="save">
+      <section class="screen active family-home" data-screen="today" aria-labelledby="homeNowTitle">
+  <section class="family-home-search" aria-label="Búsqueda en Nexo">
+    <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg>
+    <input id="homeSearchInput" type="search" placeholder="Buscar persona, tarea, evento, lugar..." aria-label="Buscar en Nexo">
+  </section>
+
+  <section id="homeSearchResultsSection" class="family-home-search-results hidden" aria-live="polite">
+    <div class="section-heading family-section-heading">
+      <h2>Resultados</h2>
+      <span id="homeSearchCount">0</span>
+    </div>
+    <div id="homeSearchResults" class="family-result-list"></div>
+  </section>
+
+  <div id="homeDashboardContent">
+    <section class="home-section family-home-section home-section--pulse" aria-labelledby="homeNowTitle">
+      <div class="section-heading family-section-heading">
+        <div>
+          <h2 id="homeNowTitle">Lo importante ahora</h2>
+        </div>
+      </div>
+      <div class="home-pulse-grid">
+        <button id="homeTodayCard" class="home-pulse-card" type="button">
+          <span class="home-pulse-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></span>
+          <span class="home-pulse-card__body"><small>Hoy</small><strong id="homeTodayCount">0</strong><span id="homeTodayHint">Sin eventos previstos</span></span>
+          <svg class="ui-icon home-pulse-card__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+        </button>
+        <button id="homeWeekCard" class="home-pulse-card" type="button">
+          <span class="home-pulse-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-clock"></use></svg></span>
+          <span class="home-pulse-card__body"><small>7 días</small><strong id="homeWeekCount">0</strong><span id="homeWeekHint">Semana tranquila</span></span>
+          <svg class="ui-icon home-pulse-card__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+        </button>
+        <button id="homeInboxPulseCard" class="home-pulse-card" type="button">
+          <span class="home-pulse-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-inbox"></use></svg></span>
+          <span class="home-pulse-card__body"><small>Inbox</small><strong id="homeInboxCount">0</strong><span id="homeInboxHint">Todo organizado</span></span>
+          <svg class="ui-icon home-pulse-card__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+        </button>
+        <button id="homeCalendarCard" class="home-pulse-card" type="button">
+          <span class="home-pulse-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg></span>
+          <span class="home-pulse-card__body"><small>Agenda</small><strong id="homeCalendarMonth">Completa</strong><span id="homeCalendarHint">Ver todos</span></span>
+          <svg class="ui-icon home-pulse-card__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="home-section family-home-section home-section--quick-access" aria-labelledby="homeFamilyInfoTitle">
+      <div class="section-heading family-section-heading">
+        <div>
+          <h2 id="homeFamilyInfoTitle">Accesos directos</h2>
+        </div>
+      </div>
+      <div class="module-grid module-grid--family-info">
+        <button class="module-card" type="button" data-panel="notes"><span class="module-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-note"></use></svg></span><span>Notas</span></button>
+        <button class="module-card" type="button" data-panel="medications"><span class="module-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pill"></use></svg></span><span>Medicación</span></button>
+        <button class="module-card" type="button" data-panel="lists"><span class="module-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-list"></use></svg></span><span>Listas</span></button>
+        <button class="module-card" type="button" data-panel="documents"><span class="module-card__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg></span><span>Documentos</span></button>
+      </div>
+    </section>
+
+    <section class="home-section family-home-section" aria-labelledby="homeUpcomingTitle">
+      <div class="section-heading family-section-heading">
+        <div>
+          <h2 id="homeUpcomingTitle">Próximamente</h2>
+        </div>
+      </div>
+      <div id="homeUpcomingList" class="upcoming-list">
+        <div class="empty-card">Cargando agenda…</div>
+      </div>
+    </section>
+  </div>
+</section><section class="screen" data-screen="tools" aria-labelledby="toolsTitle">
+    <div class="screen-heading nf-tools-heading">
+      <div>
+        <p class="eyebrow">Nexo</p>
+        <h1 id="toolsTitle">Herramientas</h1>
+        <p class="muted">Todo lo demás, organizado según para qué lo necesitas.</p>
+      </div>
+    </div>
+
+    <section class="tool-group">
+      <div class="section-heading"><div><h2>Para no olvidar</h2></div></div>
+      <div class="module-grid tools-grid">
+        <button class="module-tile" data-panel="notes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-note"></use></svg><span><strong>Notas</strong><small>Anotaciones rápidas</small></span></button>
+        <button class="module-tile" data-panel="recordings"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-audio"></use></svg><span><strong>Grabaciones</strong><small>Audio y transcripciones</small></span></button>
+        <button class="module-tile" data-panel="lists"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-list"></use></svg><span><strong>Listas</strong><small>Compras y listas reutilizables</small></span></button>
+        <button class="module-tile" data-panel="documents"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg><span><strong>Documentos</strong><small>Archivos y referencias</small></span></button>
+      </div>
+    </section>
+
+    <section class="tool-group">
+      <div class="section-heading"><div><h2>Ideas y escritos</h2></div></div>
+      <div class="module-grid tools-grid">
+        <button class="module-tile" data-panel="journal"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-book"></use></svg><span><strong>Cuaderno</strong><small>Pensamientos y reflexiones</small></span></button>
+        <button class="module-tile" data-panel="quotes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-quote"></use></svg><span><strong>Frases</strong><small>Citas y referencias</small></span></button>
+      </div>
+    </section>
+
+    <section class="tool-group">
+      <div class="section-heading"><div><h2>Mi salud</h2></div></div>
+      <div class="module-grid tools-grid">
+        <button class="module-tile" data-panel="medications"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pill"></use></svg><span><strong>Medicación</strong><small>Tratamientos y tomas</small></span></button>
+      </div>
+    </section>
+
+    <section class="tool-group">
+      <div class="section-heading"><div><h2>Mis lugares</h2></div></div>
+      <div class="module-grid tools-grid">
+        <button class="module-tile" data-panel="places"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span><strong>Lugares</strong><small>Sitios guardados</small></span></button>
+        <button class="module-tile" data-panel="parking"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-car"></use></svg><span><strong>Aparcamiento</strong><small>Ubicación del coche</small></span></button>
+      </div>
+    </section>
+
+    <section class="tool-group">
+      <div class="section-heading"><div><h2>Datos y seguridad</h2></div></div>
+      <div class="module-grid tools-grid tools-grid--system">
+        <button class="module-tile" data-panel="history"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-clock"></use></svg><span><strong>Historial</strong><small>Actividad reciente de Nexo</small></span></button>
+        <button class="module-tile" data-panel="backup"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg><span><strong>Copia de seguridad</strong><small>Exportar o restaurar Nexo</small></span></button>
+      </div>
+    </section>
+  </section><section class="screen" data-screen="save">
         <div class="screen-heading">
 <div>
 <h1 id="captureHeading">Nueva cita</h1>
-<p class="muted">Escribe, dicta o rellena los campos. La fecha y el lugar son opcionales.</p>
+<p id="captureSubtitle" class="muted">Describe lo que quieres guardar y revisa la propuesta antes de confirmar.</p>
 </div>
 <button id="captureBackBtn" class="secondary-button">Volver</button>
 </div>
@@ -34,9 +161,8 @@
         <div class="capture-card">
           <div class="capture-mode-row">
             <div>
-<strong>Captura rápida</strong><div class="small muted">No necesitas rellenar un formulario.</div>
+<strong>Captura rápida</strong><div class="small muted">Escribe aquí o usa «Habla con Nexo» desde el micrófono de las pantallas principales.</div>
 </div>
-            <button id="voiceCaptureBtn" class="voice-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg> Hablar</button>
           </div>
 
           <textarea id="captureText" rows="3" placeholder="Ej. Llamar al seguro el viernes a las 18 h y avisarme una hora antes" aria-label="Describe lo que quieres guardar" class="capture-text"></textarea>
@@ -66,33 +192,37 @@
             <button id="acceptReminderSuggestion" class="secondary-button">Añadir</button>
           </div>
 
-          <div id="captureDateContext" class="capture-context hidden" role="status"></div>
-<div class="form-grid capture-basics">
-<label>Título<input id="captureTitle" type="text"></label>
-              <label class="form-span-2">Descripción <span class="optional">(solo detalles relevantes)</span><textarea id="captureDescription" rows="3" placeholder="Detalle completo de lo que necesitas hacer. Puedes editarlo o ampliarlo."></textarea></label>
-              <label>Fecha<div class="date-wrap"><input id="captureDate" type="date"></div></label>
-              <label>Hora <span class="optional">(vacío = todo el día)</span><div class="date-wrap"><input id="captureTime" type="time"></div></label>
-              <label class="form-span-2">Ubicación <span class="optional">(opcional)</span><input id="captureLocation" type="text" placeholder="Ej.: Clínica, Valencia"></label>
-              <label>Hora fin <span class="optional">(opcional · al compartir: 1 h si queda vacía)</span><div class="date-wrap"><input id="captureEndTime" type="time"></div></label>
+          <div id="captureRouteHint" class="capture-context hidden" role="status"></div>
+          <div class="form-grid capture-basics">
+            <label class="form-span-2">Título<input id="captureTitle" type="text"></label>
+            <label class="form-span-2">Descripción <span class="optional">(solo detalles relevantes)</span><textarea id="captureDescription" rows="3" placeholder="Detalle completo de lo que necesitas guardar. Puedes editarlo o ampliarlo."></textarea></label>
+            <label class="form-span-2">Categoría<select id="captureCategory"></select></label>
+          </div>
+          <input id="captureType" type="hidden" value="event">
+          <input id="captureMapsUrl" type="hidden">
+
+          <div id="captureEventFields">
+            <div id="captureDateContext" class="capture-context hidden" role="status"></div>
+            <div class="form-grid event-form-grid">
+              <div class="form-span-2 event-range-grid">
+                <label>Fecha inicio<div class="date-wrap"><input id="captureDate" type="date"></div></label>
+                <label>Fecha fin<div class="date-wrap"><input id="captureEndDate" type="date"></div></label>
               </div>
-<div id="captureAlertsSection" class="alert-editor hidden">
-              <div class="alert-editor-head">
-<div>
-<strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-bell"></use></svg> Avisos</strong><div class="small muted">Puedes añadir varios avisos a la misma cita.</div>
-</div>
-<button id="addCaptureAlert" type="button" class="mini-button primary">+ Añadir aviso</button>
-</div>
-              <div id="captureAlertList" class="alert-list"></div>
+              <div class="form-span-2 event-range-grid">
+                <label id="captureStartTimeLabel">Hora inicio<div class="date-wrap"><input id="captureTime" type="time"></div></label>
+                <label id="captureEndTimeLabel">Hora fin<div class="date-wrap"><input id="captureEndTime" type="time"></div></label>
+              </div>
+              <label class="switch-row form-span-2 event-all-day-row"><input id="captureAllDay" type="checkbox"><span><strong>Evento de día completo</strong><small>Márcalo para ocultar las horas de inicio y fin.</small></span></label>
+              <label class="form-span-2">Zona horaria <span class="optional">(normalmente no hace falta cambiarla)</span><input id="captureTimeZone" type="text" value="Europe/Madrid"></label>
+              <div class="form-span-2 location-field"><label for="captureLocation">Ubicación <span class="optional">(opcional)</span></label><div class="location-input-row"><input id="captureLocation" type="text" placeholder="Dirección o enlace de Google Maps"><button id="captureMapPreview" type="button" class="secondary-button location-map-button" aria-label="Abrir ubicación en Google Maps"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg><span>Maps</span></button></div></div>
             </div>
-            <label id="captureVoiceRow" class="switch-row voice-reminder-row hidden"><input id="captureVoiceEnabled" type="checkbox"><span><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg> Aviso por voz</strong><small>Nexo leerá en voz alta cada aviso configurado. Desactivado por defecto.</small></span></label>
-          <details id="captureDetails" class="details-box">
-            <summary>Más opciones</summary>
-            <div class="form-grid">
-              <label>Categoría (color)<select id="captureCategory"></select></label>
-              <input id="captureType" type="hidden" value="event"><label>Prioridad<select id="capturePriority"><option value="1">Normal</option>
-<option value="2">Importante</option>
-<option value="3">Alta</option></select></label>
-              <label>Periodicidad<select id="captureRecurrence"><option value="none">No se repite</option>
+            <fieldset id="capturePeopleAssignment" class="member-assignment event-people-assignment">
+              <legend>Personas incluidas</legend>
+              <div id="capturePeopleChips" class="member-chips"></div>
+              <p class="form-helper">Selecciona una, varias o todas las personas que también están involucradas en el evento.</p>
+            </fieldset>
+            <div class="form-grid event-settings-grid">
+              <label class="form-span-2">Repetición<select id="captureRecurrence"><option value="none">No se repite</option>
 <option value="daily">Diaria</option>
 <option value="weekly">Semanal</option>
 <option value="monthly">Mensual</option>
@@ -100,9 +230,25 @@
 <option value="quarterly">Trimestral</option>
 <option value="semiannual">Semestral</option>
 <option value="annual">Anual</option></select></label>
-              <label id="captureRecurrenceUntilLabel" class="hidden">Repetir hasta<div class="date-wrap"><input id="captureRecurrenceUntil" type="date"></div></label>
+              <label id="captureRecurrenceUntilLabel" class="hidden form-span-2">Repetir hasta <span class="optional">(opcional)</span><div class="date-wrap"><input id="captureRecurrenceUntil" type="date"></div></label>
             </div>
+            <div id="captureAlertsSection" class="alert-editor hidden">
+              <div class="alert-editor-head">
+                <div><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-bell"></use></svg> Avisos</strong><div class="small muted">Puedes añadir varios avisos a la misma cita.</div></div>
+                <button id="addCaptureAlert" type="button" class="mini-button primary">+ Añadir aviso</button>
+              </div>
+              <div id="captureAlertList" class="alert-list"></div>
+            </div>
+            <label id="captureVoiceRow" class="switch-row voice-reminder-row hidden"><input id="captureVoiceEnabled" type="checkbox"><span><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-speaker"></use></svg> Aviso por voz</strong><small>Nexo leerá en voz alta cada aviso configurado. Desactivado por defecto.</small></span></label>
+            <details id="captureDetails" class="details-box">
+              <summary>Más opciones de la cita</summary>
+              <div class="form-grid">
+                <label class="form-span-2">Prioridad<select id="capturePriority"><option value="1">Normal</option>
+<option value="2">Importante</option>
+<option value="3">Alta</option></select></label>
+              </div>
             </details>
+          </div>
 
           <button id="saveCaptureBtn" class="primary-button large">Guardar en Nexo</button>
           <div class="secondary-actions">
@@ -119,26 +265,20 @@
 <h1>Buscar</h1>
 <p class="muted">Busca en todo lo que has guardado.</p>
 </div></div>
-        <div class="search-box">
-          <input id="searchInput" type="search" placeholder="ITV, seguro, restaurante italiano…" aria-label="Buscar en Nexo">
-          <button id="searchBtn" class="primary-button">Buscar</button>
-        </div>
-        <div class="query-chips">
-          <button>¿Dónde aparqué?</button>
-          <button>¿Qué tengo pendiente?</button>
-          <button>Seguro del coche</button>
-          <button>Productos que quería comprar</button>
-          <button>Cumpleaños este mes</button>
+        <div class="search-box search-box--single">
+          <input id="searchInput" type="search" placeholder="Buscar persona, tarea, evento, lugar..." aria-label="Buscar en Nexo" autocomplete="off">
         </div>
         <label class="search-filter-label">Mostrar<select id="searchFilter"><option value="all">Todo Nexo</option>
 <option value="note">Notas</option>
-<option value="appointments">Citas</option>
+<option value="appointments">Agenda</option>
 <option value="medications">Medicación</option>
 <option value="recordings">Grabaciones</option>
 <option value="document">Documentos</option>
 <option value="places">Lugares</option>
 <option value="lists">Listas</option>
-<option value="journal">Cuaderno</option></select></label><div id="searchStatus" class="small muted" aria-live="polite"></div>
+<option value="journal">Cuaderno / Frases</option></select></label>
+        <label class="search-history-toggle"><input id="searchHistorical" type="checkbox"><span><strong>Incluir eventos pasados</strong><small>Por defecto Nexo prioriza lo actual y futuro, igual que Nexo Familia.</small></span></label>
+        <div id="searchStatus" class="small muted" aria-live="polite"></div>
         <div id="searchResults" class="stack"></div>
       </section>
 
@@ -151,79 +291,120 @@
 <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
 </div>
 <div class="calendar-viewport"><div id="calendarGrid" class="calendar-grid" role="group" aria-label="Días del mes"></div></div>
+<p id="holidayCalendarNote" class="holiday-calendar-note hidden" aria-live="polite"></p>
 <div class="calendar-legend" aria-label="Colores por categoría">
 <span><i class="calendar-dot general" aria-hidden="true"></i>General</span><span><i class="calendar-dot health" aria-hidden="true"></i>Salud</span><span><i class="calendar-dot errand" aria-hidden="true"></i>Gestiones</span><span><i class="calendar-dot home" aria-hidden="true"></i>Casa / compra</span><span><i class="calendar-dot leisure" aria-hidden="true"></i>Ocio / viajes</span><span><i class="calendar-dot birthday" aria-hidden="true"></i>Cumpleaños</span></div>
 </div>
 <div class="section-title calendar-day-title"><div>
 <h2 id="calendarSelectedTitle" aria-live="polite"></h2>
 <p id="calendarSelectedMeta" class="small muted"></p>
-</div><button id="calendarAddBtn" class="primary-button calendar-add"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-plus"></use></svg> Añadir en este día</button></div>
-<div id="calendarDayItems" class="stack"></div>
-<details class="calendar-context"><summary>También hoy</summary><div id="todayDate" class="small muted"></div>
-<div class="hero-card today-summary-card">
-          <div class="eyebrow">Para tener en cuenta hoy</div>
-          <div id="todaySummary" class="summary-list">
-<div class="skeleton-line"></div>
-<div class="skeleton-line short"></div>
-</div>
-          <button id="todaySummaryMore" class="summary-more hidden" type="button">Ver todo</button>
-        </div>
-
-        <div id="medicationToday" class="medication-today hidden"></div>
-
-        <div id="parkingHomeCard" class="parking-home-card hidden" aria-live="polite">
-          <div class="parking-home-header">
-            <div>
-              <div class="parking-home-kicker"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-car"></use></svg> COCHE APARCADO</div>
-              <div id="parkingHomeMeta" class="parking-home-meta"></div>
-            </div>
-          </div>
-          <div id="parkingHomeNote" class="parking-home-note hidden"></div>
-          <div class="parking-home-actions">
-            <button id="parkingHomeOpen" class="parking-home-action primary" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> Ver ubicación</button>
-            <button id="parkingHomeDelete" class="parking-home-action danger" type="button">Eliminar</button>
-          </div>
-        </div>
-
-        <div id="journalPrompt" class="journal-prompt hidden">
-          <div class="journal-prompt-header">
-            <span class="journal-prompt-kicker">PARA RECORDAR</span>
-          </div>
-          <button id="journalPromptOpen" class="journal-prompt-main" type="button" aria-label="Abrir esta entrada del Cuaderno">
-            <span id="journalPromptText" class="journal-prompt-text"></span>
-            <span id="journalPromptSource" class="journal-prompt-source hidden"></span>
-          </button>
-          <div class="journal-prompt-actions">
-            <button id="journalPromptFavorite" class="journal-prompt-action journal-prompt-favorite" type="button" aria-pressed="false" aria-label="Marcar como favorita">
-              <span id="journalPromptFavoriteIcon" aria-hidden="true">♡</span><span>Favorita</span>
-            </button>
-            <button id="journalPromptNext" class="journal-prompt-action journal-prompt-next" type="button" aria-label="Mostrar otra entrada del Cuaderno">↻ Otra</button>
-          </div>
-        </div>
-
-        </details></section><section class="screen" data-screen="more"><div class="screen-heading"><div>
-<h1>Ajustes</h1>
-<p class="muted">Adapta Nexo a tu forma de usarlo.</p>
 </div></div>
-<div class="settings-card">
-<label>Al abrir Nexo<select id="startScreen"><option value="today">Mostrar todas las herramientas</option>
-<option value="calendar">Abrir el calendario</option></select></label><label>Mi lista de compra<select id="preferredShoppingList"><option value="0">Elegir al pulsar Mi compra</option></select></label>
+<div id="calendarDayHolidays" class="selected-day-holidays"></div>
+<div id="calendarDayItems" class="stack"></div>
+</section><section class="screen" data-screen="more"><div class="screen-heading"><div>
+<h1>Ajustes</h1>
+<p class="muted">Todo ordenado por categorías. Abre solo lo que quieras cambiar.</p>
+</div></div>
+<div class="settings-accordion-list">
+  <section class="settings-accordion settings-accordion--open" data-settings-accordion="general">
+    <button class="settings-accordion__summary" type="button" data-settings-section="general" aria-expanded="true">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-settings"></use></svg></span>
+      <span class="settings-accordion__label"><strong>General</strong><small>Inicio y accesos personales</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body">
+      <div class="settings-card settings-card--embedded"><label>Al abrir Nexo<select id="startScreen"><option value="today">Mostrar Inicio</option><option value="calendar">Abrir el calendario</option></select></label><label>Mi lista de compra<select id="preferredShoppingList"><option value="0">Elegir al pulsar Mi compra</option></select></label></div>
+    </div>
+  </section>
+
+  <section class="settings-accordion" data-settings-accordion="people">
+    <button class="settings-accordion__summary" type="button" data-settings-section="people" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-users"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Personas</strong><small>Personas relacionadas con tus eventos</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded people-settings">
+        <div class="people-settings__head">
+          <div>
+            <h2>Personas</h2>
+            <p class="muted">Crea aquí las personas que quieras poder asociar después a tus eventos. Cada una tendrá su propio color.</p>
+          </div>
+          <button id="peopleAddBtn" class="primary-button" type="button"><svg class="ui-icon"><use href="#nx-icon-plus"></use></svg> Añadir persona</button>
+        </div>
+        <div id="peopleSettingsList" class="people-settings-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="settings-accordion" data-settings-accordion="display">
+    <button class="settings-accordion__summary" type="button" data-settings-section="display" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-eye"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Pantalla</strong><small>Tamaño y comodidad visual</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded"><h2>Tamaño de visualización</h2><p class="muted">El texto y los controles se adaptan juntos.</p><div class="display-mode-row" role="group" aria-label="Tamaño de visualización"><button data-display-mode="normal">Normal</button><button data-display-mode="comfortable">Cómoda</button><button data-display-mode="large">Muy grande</button></div></div>
+    </div>
+  </section>
+
+  <section class="settings-accordion" data-settings-accordion="input">
+    <button class="settings-accordion__summary" type="button" data-settings-section="input" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-inbox"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Capturas e Inbox</strong><small>Fuentes que alimentan tu bandeja de entrada</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded communication-capture-settings">
+        <label class="toggle-row input-hub-mode"><span><strong>Escaneo automático</strong><small>Si lo desactivas, Nexo no consulta las fuentes directas en segundo plano ni al volver a la app. Para revisar manualmente, usa Inbox → Escanear ahora.</small></span><input id="inputHubAutoScan" type="checkbox"></label>
+        <div id="inputHubAutoScanStatus" class="small muted"></div>
+
+        <div class="calendar-capture-section">
+          <div class="search-section-label">Fuentes directas</div>
+          <label class="toggle-row"><span><strong>SMS recibidos</strong><small>Lee directamente la bandeja SMS de Android.</small></span><input id="smsDirectEnabled" type="checkbox"></label><div id="smsDirectStatus" class="small muted"></div>
+          <div class="gmail-connect-card">
+            <div class="gmail-connect-head">
+              <div><strong>Gmail</strong><small>Nexo puede revisar tu correo desde Inbox → Escanear ahora. El escaneo automático sigue siendo opcional.</small></div>
+              <span id="gmailConnectionBadge" class="gmail-status-badge">No conectado</span>
+            </div>
+            <div id="gmailAccount" class="gmail-account hidden"></div>
+            <div id="gmailDirectStatus" class="small muted"></div>
+            <div class="gmail-actions">
+              <button id="gmailConnectBtn" class="primary-button" type="button">Conectar Gmail</button>
+              <button id="gmailDisconnectBtn" class="ghost-button hidden" type="button">Desconectar</button>
+            </div>
+            <details id="gmailDiagnostic" class="gmail-diagnostic hidden">
+              <summary>Ver diagnóstico</summary>
+              <div id="gmailDiagnosticText" class="small muted"></div>
+              <p class="small muted">Este apartado es solo para resolver problemas. Un usuario normal no necesita configurar Google Cloud ni conocer OAuth.</p>
+            </details>
+          </div>
+          <label class="toggle-row"><span><strong>Calendar Android</strong><small>Detecta eventos nuevos y cambios escritos por otras aplicaciones.</small></span><input id="calendarCaptureEnabled" type="checkbox"></label><div id="calendarAccessStatus" class="small muted"></div>
+          <p class="small muted">En modo manual estas fuentes solo se consultan desde Inbox → Escanear ahora.</p>
+        </div>
+
+        <div class="calendar-capture-section">
+          <div class="search-section-label">Fuentes por notificación</div>
+          <div id="notificationAccessStatus" class="notification-access-status"></div>
+          <div class="modal-actions"><button id="notificationAccessBtn" class="secondary-button" type="button">Configurar acceso a notificaciones</button></div>
+          <label class="toggle-row"><span><strong>Escucha de notificaciones</strong><small>Vía independiente para WhatsApp y Telegram; puede permanecer activa aunque el escaneo directo sea manual.</small></span><input id="communicationCaptureEnabled" type="checkbox"></label>
+          <div id="communicationApps" class="communication-apps"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="settings-accordion" data-settings-accordion="medication">
+    <button class="settings-accordion__summary" type="button" data-settings-section="medication" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-pill"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Medicación</strong><small>Textos de avisos y voz</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden"><div class="settings-card settings-card--embedded medication-message-settings"><p class="muted">Personaliza los seis avisos. Usa <code>{medicacion}</code> para nombre y dosis y <code>{hora}</code> para la hora prevista.</p><div id="medicationMessageFields"></div><div class="modal-actions"><button id="resetMedicationMessages" class="secondary-button" type="button">Restaurar frases por defecto</button></div></div></div>
+  </section>
+
 </div>
-<div class="settings-card">
-<h2>Tamaño de visualización</h2>
-<p class="muted">El texto y los controles se adaptan juntos.</p>
-<div class="display-mode-row" role="group" aria-label="Tamaño de visualización">
-<button data-display-mode="normal">Normal</button><button data-display-mode="comfortable">Cómoda</button><button data-display-mode="large">Muy grande</button>
-</div>
-</div>
-<div class="settings-card medication-message-settings">
-<h2>Mensajes de medicación</h2>
-<p class="muted">Personaliza los seis avisos. Usa <code>{medicacion}</code> para nombre y dosis y <code>{hora}</code> para la hora prevista.</p>
-<div id="medicationMessageFields"></div>
-<div class="modal-actions"><button id="resetMedicationMessages" class="secondary-button" type="button">Restaurar frases por defecto</button></div>
-</div>
-<button class="menu-row" data-panel="backup"><span><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg><span><strong>Copia de seguridad</strong><small>Datos y adjuntos. Audios por separado.</small></span></span><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg></button><div id="backupHint" class="backup-hint hidden"></div>
-<p class="version-info">Nexo <span data-app-version>v3.4.9</span></p></section><section class="screen" data-screen="panel">
+<p class="version-info">Nexo <span data-app-version>v3.7.0</span></p></section><section class="screen" data-screen="panel">
         <div class="panel-header">
 <button id="panelBack" class="back-button" aria-label="Volver a la pantalla anterior"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button><div>
 <h1 id="panelTitle">Panel</h1>
@@ -235,7 +416,15 @@
       </section>
     </main>
 
-    <nav class="bottom-nav" aria-label="Navegación principal"><button class="nav-item" data-nav="today"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-grid"></use></svg><small>Inicio</small></button><button class="nav-item" data-nav="calendar"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><small>Calendario</small></button><button class="nav-item" data-nav="search"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg><small>Buscar</small></button></nav>
+    <div id="floatingActions" class="floating-actions" aria-label="Acciones rápidas">
+<button id="globalVoiceFab" class="fab fab-voice hidden" type="button" aria-label="Hablar con Nexo" title="Hablar con Nexo"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button>
+<button id="calendarAddFab" class="fab fab-add hidden" type="button" aria-label="Añadir evento" title="Añadir evento"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-plus"></use></svg></button>
+</div><nav class="bottom-nav" aria-label="Navegación principal">
+<button class="nav-item" data-nav="today"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-home"></use></svg><small>Inicio</small></button>
+<button class="nav-item" data-nav="calendar"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><small>Calendario</small></button>
+<button class="nav-item" data-nav="search"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg><small>Buscar</small></button>
+<button class="nav-item" data-nav="tools"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-grid"></use></svg><small>Herramientas</small></button>
+</nav>
 </div>
 
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">

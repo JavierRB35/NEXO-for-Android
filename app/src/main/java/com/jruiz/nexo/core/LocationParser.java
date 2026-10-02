@@ -41,6 +41,7 @@ public final class LocationParser {
             "hoy\\b|ma[ñn]ana\\b|pasado\\s+ma[ñn]ana\\b|dentro\\s+de\\b|" +
             "av[ií]same\\b|avisa\\s+me\\b|recu[eé]rdame\\b|recordar\\b|" +
             "durante\\b|con\\s+aviso\\b|con\\s+voz\\b|por\\s+voz\\b|" +
+            "con\\s+(?:el\\s+|la\\s+)?(?:doctor(?:a)?|dr\\.?|dra\\.?|dentista|especialista)\\b|" +
             "tengo\\s+que\\b|hay\\s+que\\b|debo\\b|necesito\\b)";
 
     public static String extract(String text) {
@@ -58,6 +59,7 @@ public final class LocationParser {
         String knownStop =
                 "(?=\\s+(?:a\\s+(?:hacer|realizar|recoger|comprar|ver|las?\\s+(?:\\d|" + TIME_WORD + "))|para\\s+|porque\\s+|" +
                 "hay\\s+que|tengo\\s+que|debo\\s+|necesito\\s+|anal[ií]tica|an[aá]lisis|revisi[oó]n|" +
+                "con\\s+(?:el\\s+|la\\s+)?(?:doctor(?:a)?|dr\\.?|dra\\.?|dentista|especialista)\\b|" +
                 "cita\\b|consulta\\b|el\\s+" + WEEKDAY + "\\b|este\\s+" + WEEKDAY + "\\b|" +
                 "hoy\\b|ma[ñn]ana\\b|pasado\\s+ma[ñn]ana\\b)|$|[.;])";
         Matcher known = Pattern.compile(
@@ -159,6 +161,8 @@ public final class LocationParser {
     private static String cleanLocation(String raw) {
         if (raw == null) return "";
         String x = raw.trim().replaceAll("[,:;\\-]+$", "").trim();
+        // Un profesional es una entidad distinta del lugar.
+        x = x.replaceFirst("(?iu)\\s+con\\s+(?:el\\s+|la\\s+)?(?:doctor(?:a)?|dr\\.?|dra\\.?|dentista|especialista)\\b.*$", "").trim();
         if (x.length() > 120) x = x.substring(0, 120).trim();
         if (x.isBlank()) return "";
         return Character.toUpperCase(x.charAt(0)) + x.substring(1);

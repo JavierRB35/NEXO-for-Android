@@ -14,6 +14,11 @@ checks={
  'diagnostics':'JAVA_ERROR' in service and 'getTranscriptionDiagnostic' in main,
  'export txt':'exportTranscription' in main,
  'model download ui':'downloadTranscriptionModel' in js,
+ 'visible transcribe button':'recording-transcribe-button' in js and 'data-transcription-start=' in js,
+ 'visible before model':'data-transcription-needs-model=' in js and 'Preparar transcripción' in js,
+ 'recording options restored':'data-recording-menu=' in js and '⋯ Opciones' in js,
+ 'direct start does not blindly close modal':"fromModal=!!b.closest('#modalBody')" in js and 'if(fromModal)closeModal()' in js,
+ 'card gets model once':"rows.map(r=>recordingCard(r,model))" in js,
  'build prepares runtime':'prepare-transcription-runtime.sh' in build,
  'runtime sha pinned':'c4ef49e309f24fcee5c106b8a279481aaecaabb078cd37b2cd6e9a62cc8a73c8' in prep,
 }

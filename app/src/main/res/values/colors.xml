@@ -1,5 +1,18 @@
 <resources>
-    <color name="nexo_navy">#172033</color>
-    <color name="nexo_blue">#225FC5</color>
+    <color name="nexo_primary">#176B50</color>
+    <color name="nexo_primary_dark">#10543E</color>
+    <color name="nexo_primary_soft">#E9F5EF</color>
+    <color name="nexo_yellow">#D79A00</color>
+    <color name="nexo_red">#B42318</color>
+    <color name="nexo_text">#1C211E</color>
+    <color name="nexo_background">#F7F8F6</color>
+    <color name="nexo_navy">#18362C</color>
+    <color name="nexo_icon_background">#000000</color>
+    <color name="nexo_blue">#176B50</color>
     <color name="white">#FFFFFF</color>
+    <color name="nexo_launcher_background">#F4FBFF</color>
+    <color name="nexo_brand_blue">#159CF4</color>
+    <color name="nexo_brand_teal">#18C7B3</color>
+    <color name="nexo_brand_green">#59D647</color>
+    <color name="nexo_text_dark">#17364A</color>
 </resources>

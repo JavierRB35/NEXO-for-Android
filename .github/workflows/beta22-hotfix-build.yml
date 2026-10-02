@@ -1,0 +1,149 @@
+name: Build Nexo beta22.4 signed APK
+
+on:
+  push:
+    branches:
+      - work/nexo-3.7.0-beta22-runtime-hotfix
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta22-4-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout beta22.4
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Install official Gradle 8.9
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_ZIP="${RUNNER_TEMP}/gradle-8.9-bin.zip"
+          GRADLE_DIR="${RUNNER_TEMP}/gradle-8.9"
+          EXPECTED_SHA256="d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab"
+          curl -L --fail --retry 3 -o "${GRADLE_ZIP}" "https://services.gradle.org/distributions/gradle-8.9-bin.zip"
+          ACTUAL_SHA256="$(sha256sum "${GRADLE_ZIP}" | awk '{print $1}')"
+          [ "${ACTUAL_SHA256}" = "${EXPECTED_SHA256}" ] || { echo "ERROR: SHA-256 incorrecto para Gradle 8.9."; exit 1; }
+          unzip -q "${GRADLE_ZIP}" -d "${RUNNER_TEMP}"
+          echo "GRADLE_89=${GRADLE_DIR}/bin/gradle" >> "${GITHUB_ENV}"
+
+      - name: Ensure Android SDK 34
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "${SDKMANAGER}" ]; then SDKMANAGER="$(command -v sdkmanager || true)"; fi
+          [ -n "${SDKMANAGER}" ] && [ -x "${SDKMANAGER}" ]
+          yes | "${SDKMANAGER}" --licenses >/dev/null || true
+          "${SDKMANAGER}" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Restore permanent Release signing key
+        shell: bash
+        env:
+          NEXO_KEYSTORE_BASE64: ${{ secrets.NEXO_KEYSTORE_BASE64 }}
+          NEXO_STORE_PASSWORD: ${{ secrets.NEXO_STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [ -n "${NEXO_KEYSTORE_BASE64:-}" ] || { echo "ERROR: falta NEXO_KEYSTORE_BASE64"; exit 1; }
+          [ -n "${NEXO_STORE_PASSWORD:-}" ] || { echo "ERROR: falta NEXO_STORE_PASSWORD"; exit 1; }
+          KEYSTORE="${RUNNER_TEMP}/nexo-release.p12"
+          printf '%s' "${NEXO_KEYSTORE_BASE64}" | base64 --decode > "${KEYSTORE}"
+          chmod 600 "${KEYSTORE}"
+          EXPECTED_CERT_SHA256="595799E351233418F05BC5053E42B3AFF439D677FFBB0F59A1D92E29D15FEC48"
+          ACTUAL_CERT_SHA256="$(keytool -exportcert -keystore "${KEYSTORE}" -storetype PKCS12 -storepass "${NEXO_STORE_PASSWORD}" -alias nexo-release -rfc | openssl x509 -noout -fingerprint -sha256 | sed 's/.*=//' | tr -d ':\r\n' | tr '[:lower:]' '[:upper:]')"
+          [ "${ACTUAL_CERT_SHA256}" = "${EXPECTED_CERT_SHA256}" ] || { echo "ERROR: identidad de firma incorrecta."; exit 1; }
+
+      - name: Prepare transcription runtime
+        run: sh prepare-transcription-runtime.sh
+
+      - name: Install runtime validation dependency
+        run: npm install --no-save --ignore-scripts jsdom@26.1.0
+
+      - name: Validate beta22.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app/src/main/assets/app.js
+          sh -n build-on-phone.sh
+          node validation/test-beta22-runtime.mjs
+          python3 validation/test-home-runtime-performance.py
+          python3 validation/test-home-section-headings.py
+          python3 validation/test-startup-splash.py
+          python3 validation/test-version-identity.py
+          python3 validation/test-beta22-final-context-audit.py
+          python3 validation/test-contextual-navigation.py
+          python3 validation/test-contextual-tools.py
+          python3 validation/test-contextual-fabs-notes.py
+          python3 validation/test-notes-card-scroll.py
+          python3 validation/test-contextual-medication.py
+          python3 validation/test-cuaderno-context.py
+          python3 validation/test-nexo-familia-migration.py
+          python3 validation/test-nexo-familia-cloud-sync.py
+          python3 validation/test-home-familia-parity.py
+          python3 validation/test-beta13-interactions.py
+          python3 validation/test-beta14-gmail.py
+          python3 validation/test-beta15-voice-holidays.py
+          python3 validation/test-beta16-time-voice.py
+          python3 validation/test-beta17-event-edit-home.py
+          python3 validation/test-temporal-status.py
+          python3 validation/test-people-settings.py
+          python3 validation/test-event-people-assignment.py
+          python3 validation/test-form-familia-ui.py
+          python3 validation/test-branding-resources.py
+          python3 validation/test-transcription-integration.py
+          python3 validation/test-ui-structure.py
+          sh validation/regression/run-benchmark.sh validation/regression/data/beta16_time_cases.tsv
+
+      - name: Build signed Release APK
+        shell: bash
+        env:
+          NEXO_RELEASE_KEYSTORE: ${{ runner.temp }}/nexo-release.p12
+          NEXO_STORE_PASSWORD: ${{ secrets.NEXO_STORE_PASSWORD }}
+          NEXO_KEY_PASSWORD: ${{ secrets.NEXO_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export JAVA_OPTS="-Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8"
+          "${GRADLE_89}" assembleRelease --no-daemon --max-workers=1
+
+      - name: Verify and name APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_APK="app/build/outputs/apk/release/app-release.apk"
+          [ -f "${SOURCE_APK}" ] || { echo "ERROR: APK no encontrado."; exit 1; }
+          mkdir -p dist
+          FINAL_APK="dist/Nexo-v3.7.0-beta22.4-release.apk"
+          cp "${SOURCE_APK}" "${FINAL_APK}"
+          APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner 2>/dev/null | sort -V | tail -n 1)"
+          [ -n "${APKSIGNER}" ] || { echo "ERROR: apksigner no disponible."; exit 1; }
+          "${APKSIGNER}" verify --verbose --print-certs "${FINAL_APK}"
+          sha256sum "${FINAL_APK}" | tee dist/Nexo-v3.7.0-beta22.4-release.apk.sha256
+
+      - name: Upload signed beta22.4 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexo-v3.7.0-beta22.4-release
+          path: |
+            dist/Nexo-v3.7.0-beta22.4-release.apk
+            dist/Nexo-v3.7.0-beta22.4-release.apk.sha256
+          if-no-files-found: error
+          retention-days: 90

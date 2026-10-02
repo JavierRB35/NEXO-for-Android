@@ -70,7 +70,7 @@ public class MedicationAlarmReceiver extends BroadcastReceiver {
         String label=dose.isBlank()?name:name+" "+dose;
         int offset=MedicationMessageConfig.nearestOffset(scheduledAt,System.currentTimeMillis());
         String body=MedicationMessageConfig.render(context,offset,label,scheduledAt);
-        b.setSmallIcon(R.drawable.ic_notification).setContentTitle("Nexo · Medicación").setContentText(body).setStyle(new Notification.BigTextStyle().bigText(body)).setCategory(Notification.CATEGORY_ALARM).setVisibility(Notification.VISIBILITY_PRIVATE).setAutoCancel(false).setOngoing(false).setContentIntent(content)
+        b.setSmallIcon(R.drawable.ic_notification_nexo).setContentTitle("Nexo · Medicación").setContentText(body).setStyle(new Notification.BigTextStyle().bigText(body)).setCategory(Notification.CATEGORY_ALARM).setVisibility(Notification.VISIBILITY_PRIVATE).setAutoCancel(false).setOngoing(false).setContentIntent(content)
                 .addAction(new Notification.Action.Builder(0,"✓ TOMADO",taken).build());
         b.addAction(new Notification.Action.Builder(0,"OMITIR",skip).build());
         try { nm.notify(notificationId(medId,scheduledAt),b.build()); } catch (Exception ignored) { }

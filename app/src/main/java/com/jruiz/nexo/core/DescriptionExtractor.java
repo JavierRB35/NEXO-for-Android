@@ -13,9 +13,10 @@ public final class DescriptionExtractor {
     public static String extract(String raw, String locationText) {
         if (raw == null || raw.isBlank()) return "";
         String s = raw.replace('\n', ' ').replaceAll("\\s+", " ").trim();
+        String preservedDetails = EventSemanticParser.preservedDetails(s);
 
         String structuredAppointment = extractStructuredAppointmentDetails(s);
-        if (!structuredAppointment.isBlank()) return structuredAppointment;
+        if (!structuredAppointment.isBlank()) return mergeDetails(structuredAppointment, preservedDetails);
 
         // Ubicación ya extraída a su propio campo.
         if (locationText != null && !locationText.isBlank()) {
@@ -89,12 +90,29 @@ public final class DescriptionExtractor {
         s = s.replaceAll("\\s{2,}", " ").trim();
 
         if (s.length() > 420) s = s.substring(0, 417).trim() + "…";
-        if (s.length() < 3) return "";
+        if (s.length() < 3) return preservedDetails;
         int words = s.split("\\s+").length;
         String n = TemporalParser.norm(s);
         boolean detailMarker = n.matches(".*\\b(?:ayunas|llevar|comparar|precio|nota|importante|documentacion|tarjeta|sin|con|preguntar|recordar)\\b.*");
-        if (words <= 4 && !detailMarker) return "";
-        return capitalize(s);
+        if (words <= 4 && !detailMarker) return preservedDetails;
+        return mergeDetails(capitalize(s), preservedDetails);
+    }
+
+    private static String mergeDetails(String base, String preserved) {
+        String result = base == null ? "" : base.trim();
+        if (preserved == null || preserved.isBlank()) return result;
+        for (String part : preserved.split("\\.\\s+")) {
+            String detail = part.trim();
+            if (detail.isBlank()) continue;
+            String nr = TemporalParser.norm(result);
+            String nd = TemporalParser.norm(detail);
+            if (!nr.contains(nd)) {
+                if (!result.isBlank() && !result.endsWith(".")) result += ".";
+                if (!result.isBlank()) result += " ";
+                result += detail;
+            }
+        }
+        return result.trim();
     }
 
     /**

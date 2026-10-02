@@ -183,11 +183,11 @@ public class NexoService {
             // Si el usuario cambia manualmente a "No se repite", se respeta su corrección.
             String recurrence = RecurrenceEngine.normalize(in.has("recurrence") ? in.optString("recurrence", RecurrenceEngine.NONE) : auto.recurrence);
             in.put("recurrence", recurrence);
+            if (!in.has("recurrenceRule")) in.put("recurrenceRule", recurrenceRuleFor(recurrence));
             if (RecurrenceEngine.isRecurring(recurrence)) {
                 if (in.optLong("dueAt",0) <= 0) return out.put("ok",false).put("error","Una periodicidad necesita una fecha de inicio");
                 long until = Math.max(0, in.optLong("recurrenceUntil",0));
-                if (until <= 0) until = defaultRecurrenceUntil(in.optLong("dueAt",0));
-                if (until < in.optLong("dueAt",0)) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
+                if (until > 0 && until < in.optLong("dueAt",0)) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
                 in.put("recurrenceUntil", until);
             } else in.put("recurrenceUntil", 0);
 
@@ -218,12 +218,12 @@ public class NexoService {
             JSONObject existing = db.getItem(id);
             if (existing.length() == 0) return out.put("ok", false).put("error", "Elemento no encontrado");
             String recurrence = RecurrenceEngine.normalize(in.has("recurrence") ? in.optString("recurrence") : existing.optString("recurrence", RecurrenceEngine.NONE));
+            if (in.has("recurrence") && !in.has("recurrenceRule")) in.put("recurrenceRule", recurrenceRuleFor(recurrence));
             long due = in.has("dueAt") ? in.optLong("dueAt", 0) : existing.optLong("dueAt", 0);
             long until = in.has("recurrenceUntil") ? in.optLong("recurrenceUntil", 0) : existing.optLong("recurrenceUntil", 0);
             if (RecurrenceEngine.isRecurring(recurrence)) {
                 if (due <= 0) return out.put("ok", false).put("error", "Una periodicidad necesita una fecha de inicio");
-                if (until <= 0) until = defaultRecurrenceUntil(due);
-                if (until < due) return out.put("ok", false).put("error", "La fecha final debe ser posterior al inicio");
+                if (until > 0 && until < due) return out.put("ok", false).put("error", "La fecha final debe ser posterior al inicio");
                 in.put("recurrenceUntil", until);
             } else if (in.has("recurrence")) in.put("recurrenceUntil", 0);
             boolean ok = db.updateItem(in);
@@ -259,8 +259,7 @@ public class NexoService {
                 long nextUntil=in.has("recurrenceUntil")?in.optLong("recurrenceUntil",base.optLong("recurrenceUntil",0)):base.optLong("recurrenceUntil",0);
                 if(RecurrenceEngine.isRecurring(nextRecurrence)){
                     if(nextDue<=0) return out.put("ok",false).put("error","La serie necesita fecha de inicio");
-                    if(nextUntil<=0) nextUntil=defaultRecurrenceUntil(nextDue);
-                    if(nextUntil<nextDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
+                    if(nextUntil>0 && nextUntil<nextDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
                 } else nextUntil=0;
                 JSONArray reminders=db.getActiveRemindersForItem(seriesId);
                 long oldUntil=base.optLong("recurrenceUntil",0);
@@ -270,7 +269,7 @@ public class NexoService {
 
                 JSONObject next=new JSONObject(base.toString());
                 JSONObject ov=occurrenceOverride(in);
-                for (String key:new String[]{"title","body","category","type","dueAt","hasTime","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) next.put(key,ov.get(key));
+                for (String key:new String[]{"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) next.put(key,ov.get(key));
                 if("task".equals(next.optString("type"))) next.put("status","pending");
                 next.put("recurrence",nextRecurrence);
                 next.put("recurrenceUntil",nextUntil);
@@ -292,19 +291,27 @@ public class NexoService {
             JSONObject payload=new JSONObject();
             payload.put("id",seriesId);
             JSONObject ov=occurrenceOverride(in);
-            for (String key:new String[]{"title","body","category","type","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) payload.put(key,ov.get(key));
+            for (String key:new String[]{"title","body","category","type","endAt","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) payload.put(key,ov.get(key));
             if(in.optBoolean("dateChanged",false) && ov.has("dueAt")){
-                long shiftedBase = shiftWholeSeriesBase(base.optLong("dueAt",0), occurrenceAt, ov.optLong("dueAt",0));
+                long oldBaseDue=base.optLong("dueAt",0);
+                long shiftedBase = shiftWholeSeriesBase(oldBaseDue, occurrenceAt, ov.optLong("dueAt",0));
                 payload.put("dueAt", shiftedBase);
                 if(ov.has("hasTime")) payload.put("hasTime",ov.get("hasTime"));
+                if(ov.has("allDay")) payload.put("allDay",ov.get("allDay"));
+                long occurrenceEnd=ov.optLong("endAt",0);
+                long occurrenceDue=ov.optLong("dueAt",0);
+                if(occurrenceEnd>0 && occurrenceDue>0) payload.put("endAt", shiftedBase + Math.max(0L,occurrenceEnd-occurrenceDue));
+                else {
+                    long baseEnd=base.optLong("endAt",0);
+                    if(baseEnd>0&&oldBaseDue>0)payload.put("endAt",shiftedBase+Math.max(0L,baseEnd-oldBaseDue));
+                }
             }
             String allRecurrence=RecurrenceEngine.normalize(in.has("recurrence")?in.optString("recurrence"):base.optString("recurrence",RecurrenceEngine.NONE));
             long allDue=payload.has("dueAt")?payload.optLong("dueAt",0):base.optLong("dueAt",0);
             long allUntil=in.has("recurrenceUntil")?Math.max(0,in.optLong("recurrenceUntil")):base.optLong("recurrenceUntil",0);
             if(RecurrenceEngine.isRecurring(allRecurrence)){
                 if(allDue<=0) return out.put("ok",false).put("error","La serie necesita fecha de inicio");
-                if(allUntil<=0) allUntil=defaultRecurrenceUntil(allDue);
-                if(allUntil<allDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
+                if(allUntil>0 && allUntil<allDue) return out.put("ok",false).put("error","La fecha final debe ser posterior al inicio");
             } else allUntil=0;
             if(in.has("recurrence")) payload.put("recurrence",allRecurrence);
             if(in.has("recurrenceUntil")||in.has("recurrence")) payload.put("recurrenceUntil",allUntil);
@@ -328,9 +335,21 @@ public class NexoService {
         try{boolean ok=db.setOccurrenceStatus(seriesId,occurrenceAt,status);refreshReminders(seriesId);return out.put("ok",ok);}catch(Exception e){try{return out.put("ok",false);}catch(Exception ignored){return out;}}
     }
 
+    private static String recurrenceRuleFor(String recurrence) {
+        String r=RecurrenceEngine.normalize(recurrence);
+        if (RecurrenceEngine.DAILY.equals(r)) return "FREQ=DAILY";
+        if (RecurrenceEngine.WEEKLY.equals(r)) return "FREQ=WEEKLY";
+        if (RecurrenceEngine.MONTHLY.equals(r)) return "FREQ=MONTHLY";
+        if (RecurrenceEngine.BIMONTHLY.equals(r)) return "FREQ=MONTHLY;INTERVAL=2";
+        if (RecurrenceEngine.QUARTERLY.equals(r)) return "FREQ=MONTHLY;INTERVAL=3";
+        if (RecurrenceEngine.SEMIANNUAL.equals(r)) return "FREQ=MONTHLY;INTERVAL=6";
+        if (RecurrenceEngine.ANNUAL.equals(r)) return "FREQ=YEARLY";
+        return "";
+    }
+
     private JSONObject occurrenceOverride(JSONObject in) throws Exception {
         JSONObject o=new JSONObject();
-        for(String key:new String[]{"title","body","category","type","dueAt","hasTime","durationMinutes","locationText","priority","favorite","needsReview"}) if(in.has(key)) o.put(key,in.get(key));
+        for(String key:new String[]{"title","body","category","type","dueAt","endAt","hasTime","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(in.has(key)) o.put(key,in.get(key));
         return o;
     }
 

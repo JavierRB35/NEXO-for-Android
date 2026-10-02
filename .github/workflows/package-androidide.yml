@@ -1,0 +1,93 @@
+name: Validate and Package AndroidIDE ZIP
+
+on:
+  push:
+    branches:
+      - feature/nexo-input-hub-v0.3
+      - feature/nexo-input-hub-v0.4
+      - feature/nexo-input-hub-v0.5
+      - feature/nexo-input-hub-v0.6
+      - feature/nexo-input-hub-v0.7
+      - feature/nexo-input-hub-v0.8
+      - feature/nexo-home-familia-v0.9
+      - feature/nexo-home-familia-v0.10
+      - feature/nexo-polish-v0.11
+      - fix/input-hub-reliability-and-familia-migration
+
+jobs:
+  validate-package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+          validate-wrappers: false
+
+      - name: Prepare transcription runtime
+        shell: bash
+        run: sh ./prepare-transcription-runtime.sh
+
+      - name: Validate UI structure
+        shell: bash
+        run: |
+          python3 validation/test-ui-structure.py
+          python3 validation/test-version-identity.py
+          python3 validation/test-input-hub-reliability.py
+          python3 validation/test-nexo-familia-migration.py
+          python3 validation/test-calendar-nonrecurring-range.py
+          python3 validation/test-home-familia-parity.py
+          python3 validation/test-beta11-polish.py
+          node --check app/src/main/assets/app.js
+
+      - name: Compile debug APK
+        shell: bash
+        env:
+          JAVA_OPTS: -Xmx1536m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
+        run: gradle assembleDebug --no-daemon --max-workers=1
+
+      - name: Verify expected build output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Prepare clean AndroidIDE project
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/Nexo_3_7_0_beta11_AndroidIDE"
+          mkdir -p "$STAGE"
+          git archive --format=tar HEAD | tar -x -C "$STAGE"
+
+          test -f "$STAGE/settings.gradle"
+          test -f "$STAGE/build.gradle"
+          test -f "$STAGE/gradlew"
+          test -f "$STAGE/gradle/wrapper/gradle-wrapper.jar"
+          test -f "$STAGE/gradle/wrapper/gradle-wrapper.properties"
+          test -f "$STAGE/build-on-phone.sh"
+          test -d "$STAGE/app"
+
+          echo "Clean project prepared:"
+          find "$STAGE" -maxdepth 2 -type f | sort
+
+      - name: Upload clean project
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexo_3_7_0_beta11_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_3_7_0_beta11_AndroidIDE/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 6

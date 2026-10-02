@@ -1,0 +1,29 @@
+name: package-beta15-flat
+on:
+  push:
+    branches:
+      - release/nexo-3.7.0-beta15
+  workflow_dispatch:
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate beta15
+        run: |
+          node --check app/src/main/assets/app.js
+          sh -n build-on-phone.sh
+          python3 validation/test-version-identity.py
+          python3 validation/test-home-familia-parity.py
+          python3 validation/test-beta13-interactions.py
+          python3 validation/test-beta14-gmail.py
+          python3 validation/test-beta15-voice-holidays.py
+      - name: Create flat source ZIP
+        run: |
+          rm -f Nexo_3_7_0_beta15.zip
+          zip -r Nexo_3_7_0_beta15.zip . -x '.git/*' '.github/workflows/package-beta12-flat.yml' '.github/workflows/package-beta13-flat.yml' '.github/workflows/package-beta14-flat.yml' '.github/workflows/package-beta15-flat.yml' 'Nexo_3_7_0_beta15.zip' 'app/build/*' '.gradle/*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexo_3_7_0_beta15
+          path: Nexo_3_7_0_beta15.zip
+          if-no-files-found: error

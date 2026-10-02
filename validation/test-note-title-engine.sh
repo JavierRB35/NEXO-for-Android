@@ -6,6 +6,7 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 mkdir -p "$TMP"
 javac -encoding UTF-8 -d "$TMP" \
   app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
+  app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
   app/src/main/java/com/jruiz/nexo/core/LocalTitleEngine.java \
   app/src/main/java/com/jruiz/nexo/core/NoteTitleEngine.java \
   validation/NoteTitleEngineSelfTest.java

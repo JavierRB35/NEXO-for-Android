@@ -11,6 +11,7 @@ javac -encoding UTF-8 -d "$TMP" \
   validation/appointment-runtime/stubs/com/jruiz/nexo/data/DatabaseHelper.java \
   validation/appointment-runtime/stubs/com/jruiz/nexo/reminders/ReminderScheduler.java \
   app/src/main/java/com/jruiz/nexo/core/TemporalParser.java \
+  app/src/main/java/com/jruiz/nexo/core/EventSemanticParser.java \
   app/src/main/java/com/jruiz/nexo/core/LocationParser.java \
   app/src/main/java/com/jruiz/nexo/core/RecurrenceEngine.java \
   app/src/main/java/com/jruiz/nexo/core/MedicationParser.java \
