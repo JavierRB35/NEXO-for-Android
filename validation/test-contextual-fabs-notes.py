@@ -2,6 +2,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 app = (root / "app/src/main/assets/app.js").read_text(encoding="utf-8")
+css = (root / "app/src/main/assets/styles.css").read_text(encoding="utf-8")
 
 # Notas: + crea una nota y el micrófono dicta en el contexto de Notas.
 assert "panel==='notes'?'Dictar nota':" in app
@@ -18,6 +19,10 @@ assert "function startNoteEditorVoice()" in app
 assert 'id="noteVoiceBtn"' not in app
 assert 'id="notePanelVoice"' not in app
 assert 'id="notePanelAdd"' not in app
+assert "document.body.classList.add('note-editor-open')" in app
+assert 'requestAnimationFrame(updateFloatingActions);' in app
+assert '.note-editor-open .floating-actions{z-index:130}' in css
+assert '.note-editor-open .floating-actions .fab-add{display:none!important}' in css
 
 # Listas: + crea lista; micrófono añade elementos. La cabecera no duplica + Lista.
 assert "panel==='lists'?'Añadir elementos por voz':" in app
