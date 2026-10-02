@@ -3401,6 +3401,17 @@ function navigateBack(){
 }
 function updateCaptureContext(){
   const box=$('#captureDateContext');if(!box)return;
+  const a=state.classification||{},warnings=Array.isArray(a.warnings)?a.warnings:[];
+  const temporalWarning=a.invalidDate||a.invalidTime||a.ambiguousTime
+    ? (warnings[0]||a.reason||'Revisa la fecha y la hora antes de guardar.')
+    : '';
+  if(temporalWarning){
+    box.dataset.state='warning';
+    box.classList.remove('hidden');
+    box.textContent='Revisa fecha/hora: '+temporalWarning;
+    return;
+  }
+  box.dataset.state='';
   const date=$('#captureDate')?.value||'';
   box.classList.toggle('hidden',!date);
   if(date)box.textContent='Se guardará para '+new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(date+'T12:00:00'));
