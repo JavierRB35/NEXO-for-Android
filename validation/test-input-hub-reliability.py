@@ -16,7 +16,7 @@ assert 'RECOVERY_MS = 7L * 86400000L' in sms
 assert 'sms-error:' in sms
 assert 'findRecentEquivalentInboxCapture' in sms
 
-assert 'gmail-filter-v6:' in gmail
+assert 'gmail-filter-v7:' in gmail
 assert 'newer_than:30d -in:sent -in:drafts' in gmail
 assert 'in:inbox newer_than:30d' not in gmail
 assert '/attachments/' in gmail
@@ -24,9 +24,10 @@ assert 'gmail-error:' in gmail
 assert 'findRecentEquivalentInboxCapture' in gmail
 
 assert 'classification.optLong("dueAt", 0L)' in filter_java
-assert 'candidateReason' in filter_java
-assert 'OTP_PATTERN' in filter_java
-assert 'DATE_PATTERN' in filter_java and 'septiembre' in filter_java and 'dueDate' in filter_java
+assert 'candidateReason' in filter_java and 'candidateEvidence' in filter_java and 'filterRevision' in filter_java
+assert 'shouldCaptureGmail' in filter_java
+assert 'DATE_PATTERN' not in filter_java
+assert 'TemporalParser.parse(raw)' in filter_java
 
 for job in (sms_job,cal_job):
     assert 'scheduleContentWatcher(this);' in job
@@ -42,4 +43,4 @@ assert 'CommunicationCapturePrefs.setAppEnabled(this, "gmail", false);' not in m
 assert 'CommunicationCapturePrefs.setAppEnabled(this, "sms", true);' in main
 assert 'CommunicationCapturePrefs.setAppEnabled(this, "gmail", true);' in main
 
-print('Input Hub beta4: alta sensibilidad, reintentos, fallback y deduplicación OK')
+print('Input Hub: sensibilidad general + Gmail contextual v7, reintentos, fallback y deduplicación OK')
