@@ -2782,6 +2782,54 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return getWritableDatabase().update("inbox_captures", v, "id=?", new String[]{String.valueOf(id)}) > 0;
     }
 
+    private static final String TECHNICAL_GITHUB_GMAIL_WHERE =
+            "status IN ('new','reviewing') AND " +
+            "(source='gmail-api' OR source_package='com.google.android.gm') AND " +
+            "lower(sender) LIKE '%notifications@github.com%' AND " +
+            "(lower(subject) LIKE '%run failed%' OR lower(raw_text) LIKE '%workflow run%' OR " +
+            "lower(raw_text) LIKE '%all jobs have failed%' OR lower(raw_text) LIKE '%github actions%')";
+
+    public long getTechnicalGithubGmailPendingCaptureCount() {
+        return scalar("SELECT COUNT(*) FROM inbox_captures WHERE " + TECHNICAL_GITHUB_GMAIL_WHERE);
+    }
+
+    /**
+     * Limpia únicamente avisos técnicos de GitHub ya acumulados en Inbox. No toca
+     * external_watch_items: sus IDs siguen marcados como procesados y no reaparecen
+     * en el siguiente escaneo. Devuelve los IDs para permitir Deshacer.
+     */
+    public JSONArray discardTechnicalGithubGmailCaptures() {
+        JSONArray ids = new JSONArray();
+        SQLiteDatabase db = getWritableDatabase();
+        try (Cursor c = db.rawQuery(
+                "SELECT id FROM inbox_captures WHERE " + TECHNICAL_GITHUB_GMAIL_WHERE + " ORDER BY id", null)) {
+            while (c.moveToNext()) ids.put(c.getLong(0));
+        } catch (Exception ignored) {}
+        if (ids.length() == 0) return ids;
+
+        ContentValues v = new ContentValues();
+        v.put("status", "discarded");
+        v.put("updated_at", System.currentTimeMillis());
+        db.update("inbox_captures", v, TECHNICAL_GITHUB_GMAIL_WHERE, null);
+        return ids;
+    }
+
+    public int restoreInboxCaptures(JSONArray ids) {
+        if (ids == null || ids.length() == 0) return 0;
+        SQLiteDatabase db = getWritableDatabase();
+        int restored = 0;
+        ContentValues v = new ContentValues();
+        v.put("status", "new");
+        v.put("updated_at", System.currentTimeMillis());
+        for (int i = 0; i < ids.length(); i++) {
+            long id = ids.optLong(i, 0L);
+            if (id <= 0) continue;
+            restored += db.update("inbox_captures", v, "id=? AND status='discarded'",
+                    new String[]{String.valueOf(id)});
+        }
+        return restored;
+    }
+
     private static JSONObject inboxCaptureJson(Cursor c) {
         JSONObject o = new JSONObject();
         try {
