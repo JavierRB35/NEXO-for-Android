@@ -7,6 +7,7 @@ import android.provider.AlarmClock;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.*;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
@@ -2060,6 +2061,19 @@ public class MainActivity extends Activity {
         if (webView == null) return;
         runOnUiThread(() -> webView.evaluateJavascript("window.NexoUI && window.NexoUI."+fn+"("+JSONObject.quote(data.toString())+");",null));
     }
+    private void scheduleCommittedCaptureReminders(long itemId) {
+        if (itemId <= 0L) return;
+        JSONArray rules = db.getReminderRulesForItem(itemId);
+        for (int i = 0; i < rules.length(); i++) {
+            JSONObject rule = rules.optJSONObject(i);
+            if (rule == null || !rule.optBoolean("enabled", true)) continue;
+            long reminderId = rule.optLong("id", 0L);
+            long triggerAt = rule.optLong("triggerAt", 0L);
+            if (reminderId <= 0L || triggerAt <= System.currentTimeMillis()) continue;
+            ReminderScheduler.schedule(this, reminderId, rule.optString("title", "Recordatorio"), triggerAt);
+        }
+    }
+
     public final class Bridge {
         @JavascriptInterface public String classify(String text) { return service.classify(text).toString(); }
         @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
@@ -2192,19 +2206,41 @@ public class MainActivity extends Activity {
             try {
                 JSONObject input = new JSONObject(json);
                 long updateItemId = input.optLong("updateItemId", 0L);
-                JSONObject result;
-                if (updateItemId > 0L) {
-                    input.put("id", updateItemId);
-                    result = service.updateItem(input);
-                    if (result.optBoolean("ok", false)) result.put("id", updateItemId);
-                } else {
-                    result = service.saveCapture(input);
+                long captureId = input.optLong("inboxCaptureId", 0L);
+                boolean atomicInboxCreate = captureId > 0L && updateItemId <= 0L;
+                SQLiteDatabase sql = atomicInboxCreate ? db.getWritableDatabase() : null;
+                JSONObject result = new JSONObject();
+
+                if (atomicInboxCreate) sql.beginTransaction();
+                try {
+                    if (updateItemId > 0L) {
+                        input.put("id", updateItemId);
+                        result = service.updateItem(input);
+                        if (result.optBoolean("ok", false)) result.put("id", updateItemId);
+                    } else {
+                        result = service.saveCapture(input);
+                    }
+
+                    if (result.optBoolean("ok", false) && captureId > 0L) {
+                        long createdId = result.optLong("id", 0L);
+                        boolean linked = createdId > 0L && db.markInboxCaptureConverted(captureId, "item", createdId);
+                        if (!linked) {
+                            result.put("ok", false);
+                            result.put("error", "No se pudo completar la conversión de la captura. Puedes reintentarla.");
+                        }
+                    }
+
+                    if (atomicInboxCreate && result.optBoolean("ok", false)) {
+                        sql.setTransactionSuccessful();
+                    }
+                } finally {
+                    if (atomicInboxCreate) sql.endTransaction();
                 }
-                if (result.optBoolean("ok", false)) {
-                    long captureId = input.optLong("inboxCaptureId", 0);
-                    long createdId = result.optLong("id", 0);
-                    if (captureId > 0 && createdId > 0) db.markInboxCaptureConverted(captureId, "item", createdId);
+
+                if (atomicInboxCreate && result.optBoolean("ok", false)) {
+                    scheduleCommittedCaptureReminders(result.optLong("id", 0L));
                 }
+
                 if (result.has("reminderId") ||
                         (result.optJSONArray("reminderIds") != null && result.optJSONArray("reminderIds").length()>0) ||
                         (result.optJSONArray("rescheduled") != null && result.optJSONArray("rescheduled").length()>0)) {
