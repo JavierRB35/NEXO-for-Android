@@ -524,6 +524,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return reminderIds;
     }
 
+    public JSONArray getNexoFamiliaPendingReminderSchedules() {
+        JSONArray out = new JSONArray();
+        long now = System.currentTimeMillis();
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT r.id,r.title,r.trigger_at FROM reminders r " +
+                "JOIN nexo_familia_reminders nf ON nf.local_reminder_id=r.id " +
+                "WHERE r.enabled<>0 AND r.trigger_at>? ORDER BY r.trigger_at ASC",
+                new String[]{String.valueOf(now)})) {
+            while (c.moveToNext()) {
+                JSONObject row = new JSONObject();
+                row.put("id", c.getLong(0));
+                row.put("title", c.getString(1));
+                row.put("triggerAt", c.getLong(2));
+                out.put(row);
+            }
+        } catch (Exception ignored) {}
+        return out;
+    }
+
     public boolean hasNexoFamiliaReminderMapping(String sourceRuleId) {
         if (sourceRuleId == null || sourceRuleId.isBlank()) return false;
         try (Cursor c = getReadableDatabase().rawQuery(
