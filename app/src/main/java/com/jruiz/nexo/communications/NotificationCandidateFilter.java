@@ -41,7 +41,7 @@ public final class NotificationCandidateFilter {
             "tu reserva","su reserva","reserva confirmada","confirmacion de reserva","confirmación de reserva","reservado para",
             "tu vuelo","su vuelo","embarque","boarding","tren sale","salida del tren",
             "appointment","meeting","save the date","convocatoria","te esperamos",
-            "pedido listo","puedes recoger","puede recoger","recogida","entrega prevista","entrega programada",
+            "pedido listo","recoge tu pedido","recoge el pedido","puedes recoger","puede recoger","recogida","entrega prevista","entrega programada",
             "pago pendiente","debes pagar","debe pagar","pagar antes","recibo pendiente",
             "renovar antes","renovacion pendiente","renovación pendiente"
     };
