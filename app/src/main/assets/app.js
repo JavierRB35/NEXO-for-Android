@@ -1330,7 +1330,7 @@ function recordingCard(r,modelStatus=null){
   const player=playing?`<div class="recording-player" data-recording-player="${escAttr(r.id)}"><input class="recording-seek" data-recording-seek="${escAttr(r.id)}" type="range" min="0" max="${Math.max(1,Number(r.durationMs||1))}" value="0" step="250"><div class="recording-player-row"><span data-recording-time="${escAttr(r.id)}">00:00 / ${recordingDuration(r.durationMs||0)}</span><div class="recording-speed" role="group" aria-label="Velocidad"><button data-recording-speed="1" type="button">1×</button><button data-recording-speed="1.5" type="button">1,5×</button><button data-recording-speed="2" type="button">2×</button></div></div></div>`:'';
   const id=String(r.id),transcribed=NexoNative.hasTranscription(id),t=transcriptionStatus(id),stateName=String(t.state||'idle');
   const running=stateName==='running'||stateName==='starting';
-  const model=modelStatus||parseNative(NexoNative.getTranscriptionModelStatus(),{}),activeModel=selectedTranscriptionModel(model);
+  const model=modelStatus||transcriptionModelStatusSafe(),activeModel=selectedTranscriptionModel(model);
   const ready=!!model.installed&&activeModel.canRun!==false;
   const transcribeAction=!transcribed&&!running
     ?(ready
@@ -1368,7 +1368,7 @@ function bindRecordingButtons(root){
   root.querySelectorAll('[data-recording-speed]').forEach(b=>b.addEventListener('click',()=>{NexoNative.setRecordingPlaybackSpeed(Number(b.dataset.recordingSpeed||1));updateRecordingPlaybackUi();}));
   root.querySelectorAll('[data-transcription-view]').forEach(b=>b.addEventListener('click',()=>openTranscription(String(b.dataset.transcriptionView))));
   root.querySelectorAll('[data-transcription-start]').forEach(b=>b.addEventListener('click',()=>{const id=String(b.dataset.transcriptionStart),fromModal=!!b.closest('#modalBody');b.disabled=true;b.textContent='Iniciando…';NexoNative.transcribeRecording(id);if(fromModal)closeModal();startTranscriptionPolling();toast('Preparando el archivo para transcripción…');}));
-  root.querySelectorAll('[data-transcription-needs-model]').forEach(b=>b.addEventListener('click',()=>{const fromModal=!!b.closest('#modalBody'),status=parseNative(NexoNative.getTranscriptionModelStatus(),{}),model=selectedTranscriptionModel(status),label=String(model.label||status.qualityLabel||'Rápida'),size=transcriptionBytesLabel(model.downloadBytes||0);confirmGeneric('Preparar transcripción','Calidad seleccionada: '+label+'. El modelo se descargará una sola vez ('+size+' aprox.) y el audio seguirá procesándose en local.',()=>{if(fromModal)closeModal();NexoNative.downloadTranscriptionModelQuality(String(model.id||status.selected||'fast'));toast('Descargando modelo '+label+'…','',null,5000);},'Descargar');}));
+  root.querySelectorAll('[data-transcription-needs-model]').forEach(b=>b.addEventListener('click',()=>{const fromModal=!!b.closest('#modalBody'),status=transcriptionModelStatusSafe(),model=selectedTranscriptionModel(status),label=String(model.label||status.qualityLabel||'Rápida'),size=transcriptionBytesLabel(model.downloadBytes||0);confirmGeneric('Preparar transcripción','Calidad seleccionada: '+label+'. El modelo se descargará una sola vez ('+size+' aprox.) y el audio seguirá procesándose en local.',()=>{if(fromModal)closeModal();NexoNative.downloadTranscriptionModelQuality(String(model.id||status.selected||'fast'));toast('Descargando modelo '+label+'…','',null,5000);},'Descargar');}));
   root.querySelectorAll('[data-transcription-cancel]').forEach(b=>b.addEventListener('click',()=>NexoNative.cancelTranscription(String(b.dataset.transcriptionCancel))));
   root.querySelectorAll('[data-transcription-copy]').forEach(b=>b.addEventListener('click',()=>{NexoNative.copyTranscription(String(b.dataset.transcriptionCopy));toast('Transcripción copiada');}));
   root.querySelectorAll('[data-transcription-share]').forEach(b=>b.addEventListener('click',()=>NexoNative.shareTranscription(String(b.dataset.transcriptionShare))));
@@ -1386,7 +1386,7 @@ function renderRecordingsPanel(){
   $('#panelAction').innerHTML='';
   const live=status.active?`<div class="recording-live-card ${status.paused?'paused':''}"><div class="recording-live-head"><span class="recording-live-dot"></span><div><strong id="recordingLiveState">${status.paused?'EN PAUSA':'GRABANDO'}</strong><span>${esc(status.title||'Grabación')}</span></div><div id="recordingLiveTimer" class="recording-timer">${esc(recordingDuration(status.elapsedMs||0))}</div></div><div class="recording-live-actions"><button id="recordingPauseBtn" class="secondary-button" type="button">${status.paused?'▶ Continuar':'Ⅱ Pausar'}</button><button id="recordingStopBtn" class="danger-button solid" type="button">■ Terminar</button></div><div class="small muted">La grabación continúa con la pantalla apagada. Android mostrará el indicador de micrófono y una notificación silenciosa.</div></div>`:'';
   const empty=!rows.length&&!status.active?'<div class="empty-state">Todavía no tienes grabaciones. Usa el micrófono flotante para comenzar.</div>':'';
-  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{}),activeModel=selectedTranscriptionModel(model);
+  const model=transcriptionModelStatusSafe(),activeModel=selectedTranscriptionModel(model);
   const modelLabel=String(activeModel.label||model.qualityLabel||'Rápida'),modelSize=transcriptionBytesLabel(activeModel.downloadBytes||0);
   const modelCard=model.installed
     ?`<div class="recording-info-card transcription-model-ready"><strong>Transcripción local · ${esc(modelLabel)}</strong><span>${esc(activeModel.modelName||model.name||'Whisper multilingüe INT8')} · el audio no sale del teléfono.${activeModel.canRun===false?' '+esc(activeModel.resourceWarning||'Recursos insuficientes para cargar este modelo ahora.') : ''}</span></div>`
@@ -2030,10 +2030,28 @@ function openPersonEditor(id=0){
   setTimeout(()=>$('#personName')?.focus(),70);
 }
 
+const TRANSCRIPTION_PROFILE_FALLBACKS=[
+  {id:'fast',label:'Rápida',modelName:'Whisper Base multilingüe INT8',description:'Menor consumo y mayor velocidad. Recomendada para notas, conversaciones sencillas y cuando prima la rapidez.',downloadBytes:161000000,estimatedRamBytes:512*1024*1024},
+  {id:'high',label:'Alta precisión',modelName:'Whisper Small multilingüe INT8',description:'Mejor reconocimiento de reuniones, nombres y frases complejas. Recomendada para reuniones importantes.',downloadBytes:376000000,estimatedRamBytes:1150*1024*1024},
+  {id:'max',label:'Máxima precisión',modelName:'Whisper Medium multilingüe INT8',description:'Mayor calidad, con bastante más memoria, batería y tiempo de procesamiento. Solo para dispositivos con recursos suficientes.',downloadBytes:947000000,estimatedRamBytes:2400*1024*1024}
+];
 function transcriptionBytesLabel(bytes){
   const n=Math.max(0,Number(bytes||0));
   if(n>=1024*1024*1024)return (n/(1024*1024*1024)).toFixed(1)+' GB';
   return Math.max(1,Math.round(n/(1000*1000)))+' MB';
+}
+function transcriptionModelStatusSafe(){
+  let status={};
+  try{status=transcriptionModelStatusSafe();}catch(e){status={ok:false,error:String(e?.message||e||'')};}
+  if(!Array.isArray(status.models)||!status.models.length){
+    const selected=['fast','high','max'].includes(status.selected)?status.selected:'fast';
+    status={...status,ok:false,selected,qualityLabel:status.qualityLabel||'Rápida',device:status.device||{},models:TRANSCRIPTION_PROFILE_FALLBACKS.map((m,index)=>({
+      ...m,installed:false,installedBytes:0,canRun:index===0,canDownload:index===0,selected:m.id===selected,recommended:false,
+      resourceWarning:index===0?'No se pudo leer el estado completo de los modelos. Se mantiene disponible Rápida por seguridad.':'No se pudieron comprobar los recursos del dispositivo; este perfil queda deshabilitado por seguridad.',
+      storageWarning:''
+    }))};
+  }
+  return status;
 }
 function selectedTranscriptionModel(status){
   const rows=Array.isArray(status?.models)?status.models:[];
@@ -2041,7 +2059,7 @@ function selectedTranscriptionModel(status){
 }
 function renderTranscriptionQualitySettings(){
   const host=$('#transcriptionQualitySettings');if(!host)return;
-  const status=parseNative(NexoNative.getTranscriptionModelStatus(),{}),models=Array.isArray(status.models)?status.models:[],device=status.device||{};
+  const status=transcriptionModelStatusSafe(),models=Array.isArray(status.models)?status.models:[],device=status.device||{};
   const ram=transcriptionBytesLabel(device.totalRamBytes||0),avail=transcriptionBytesLabel(device.availableRamBytes||0),storage=transcriptionBytesLabel(device.storageAvailableBytes||0);
   const rows=models.map(m=>{
     const disabled=!m.canRun,selected=!!m.selected,recommended=!!m.recommended,installed=!!m.installed;
@@ -2054,7 +2072,8 @@ function renderTranscriptionQualitySettings(){
     else action='<span class="small muted">Selecciona este nivel para poder descargarlo.</span>';
     return '<article class="transcription-quality-card '+(selected?'is-selected ':'')+(disabled?'is-disabled':'')+'"><label class="transcription-quality-choice"><input type="radio" name="transcriptionQuality" data-transcription-quality="'+escAttr(m.id)+'" '+(selected?'checked ':'')+(disabled?'disabled':'')+'><span><strong>'+esc(m.label||m.id)+'</strong><small>'+esc(m.modelName||'Whisper multilingüe INT8')+'</small></span></label>'+badges+'<p>'+esc(m.description||'')+'</p><div class="transcription-quality-meta"><span>'+stateText+'</span><span>RAM estimada: '+transcriptionBytesLabel(m.estimatedRamBytes)+'</span></div>'+(warn?'<div class="transcription-quality-warning">'+esc(warn)+'</div>':'')+'<div class="transcription-quality-actions">'+action+'<span class="small muted" data-transcription-model-progress="'+escAttr(m.id)+'"></span></div></article>';
   }).join('');
-  host.innerHTML='<div class="transcription-device-summary"><strong>Recursos del dispositivo</strong><span>RAM total '+ram+' · disponible '+avail+' · almacenamiento libre '+storage+'</span></div>'+rows;
+  const diagnostic=status.ok===false?'<div class="transcription-quality-warning" role="status"><strong>No se pudo leer completamente el estado de transcripción.</strong><br>'+esc(status.error||'Nexo ha activado un modo seguro para que esta pantalla no quede vacía.')+'</div>':'';
+  host.innerHTML=diagnostic+'<div class="transcription-device-summary"><strong>Recursos del dispositivo</strong><span>RAM total '+ram+' · disponible '+avail+' · almacenamiento libre '+storage+'</span></div>'+rows;
   host.querySelectorAll('[data-transcription-quality]').forEach(input=>input.addEventListener('change',()=>{
     const id=String(input.dataset.transcriptionQuality||'fast'),model=models.find(m=>m.id===id)||{};
     if(!NexoNative.setTranscriptionQuality(id)){toast(model.resourceWarning||'Este nivel no es seguro con los recursos disponibles.','',null,6500);renderTranscriptionQualitySettings();return;}
@@ -3739,7 +3758,7 @@ function refreshNotesSurface(){if(state.screen==='panel'&&state.lastPanel==='not
 function refreshRecordingSurface(){if(state.screen==='search')runSearch();else if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();}
 function openRecordingActions(id){
   const r=parseNative(NexoNative.getRecordings(),[]).find(r=>String(r.id)===String(id));if(!r){toast('La grabación ya no existe');return;}
-  const model=parseNative(NexoNative.getTranscriptionModelStatus(),{}),activeModel=selectedTranscriptionModel(model),has=NexoNative.hasTranscription(String(id)),t=transcriptionStatus(id),running=t.state==='running'||t.state==='starting';
+  const model=transcriptionModelStatusSafe(),activeModel=selectedTranscriptionModel(model),has=NexoNative.hasTranscription(String(id)),t=transcriptionStatus(id),running=t.state==='running'||t.state==='starting';
   const ready=!!model.installed&&activeModel.canRun!==false;
   const label=String(activeModel.label||model.qualityLabel||'Rápida');
   const transcription=has
