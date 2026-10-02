@@ -1023,35 +1023,139 @@ function refreshAutoNoteTitle(){
   if(titleEl.value!==next)titleEl.value=next;
 }
 
-function flushNoteAutosave(){
+function noteSignature(title,body,titleManual=false){
+  return (titleManual?'1':'0')+'\n'+String(title||'').trim()+'\n'+String(body||'').trim();
+}
+
+function currentNoteSignature(){
+  const ed=state.noteEditor;
+  if(!ed)return '';
+  return noteSignature($('#noteTitle')?.value||'', $('#noteBody')?.value||'', !!ed.titleManual);
+}
+
+function noteHasUnsavedChanges(){
+  const ed=state.noteEditor;
+  return !!ed && currentNoteSignature()!==ed.lastSaved;
+}
+
+function noteDraftStorageKey(id=0){
+  return 'nexo-note-recovery-v1-'+(Number(id)>0?String(Number(id)):'new');
+}
+
+function clearNoteRecoveryDraft(keyOrId){
+  const key=typeof keyOrId==='string'?keyOrId:noteDraftStorageKey(Number(keyOrId)||0);
+  try{localStorage.removeItem(key);}catch(_){}
+}
+
+function persistNoteRecoveryDraft(){
   const ed=state.noteEditor,titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
-  if(!ed||!titleEl||!bodyEl)return ed?.id||0;
-  if(ed.timer){clearTimeout(ed.timer);ed.timer=null;}
+  if(!ed||!titleEl||!bodyEl)return;
+  if(!noteHasUnsavedChanges()){clearNoteRecoveryDraft(ed.draftKey);return;}
+  try{
+    localStorage.setItem(ed.draftKey,JSON.stringify({
+      id:Number(ed.id)||0,
+      title:titleEl.value,
+      body:bodyEl.value,
+      titleManual:!!ed.titleManual,
+      updatedAt:Date.now()
+    }));
+  }catch(_){}
+}
+
+function readNoteRecoveryDraft(id=0){
+  const key=noteDraftStorageKey(id);
+  try{
+    const raw=localStorage.getItem(key);
+    if(!raw)return null;
+    const draft=JSON.parse(raw);
+    return draft&&typeof draft==='object'?Object.assign({},draft,{key}):null;
+  }catch(_){return null;}
+}
+
+function markNoteDirty(){
+  if(!state.noteEditor)return;
+  setNoteSaveStatus('Sin guardar','dirty');
+  persistNoteRecoveryDraft();
+}
+
+function saveNoteEditor(){
+  const ed=state.noteEditor,titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
+  if(!ed||!titleEl||!bodyEl)return false;
   if(!ed.titleManual)refreshAutoNoteTitle();
   const body=bodyEl.value.trim(),title=titleEl.value.trim();
-  if(!body&&!title){setNoteSaveStatus('Empieza a escribir…','idle');return ed.id||0;}
-  const signature=`${ed.titleManual?'1':'0'}\n${title}\n${body}`;
-  if(signature===ed.lastSaved){setNoteSaveStatus('✓ Guardado','saved');return ed.id||0;}
+  if(!body&&!title){
+    setNoteSaveStatus('Nada que guardar','idle');
+    return false;
+  }
+  const signature=noteSignature(title,body,!!ed.titleManual);
+  if(signature===ed.lastSaved){
+    setNoteSaveStatus('✓ Guardado','saved');
+    clearNoteRecoveryDraft(ed.draftKey);
+    return true;
+  }
   setNoteSaveStatus('Guardando…','saving');
   try{
     if(ed.id>0){
       const ok=!!NexoNative.autosaveNote(JSON.stringify({id:ed.id,title,body,noteTitleManual:!!ed.titleManual}));
-      if(!ok){setNoteSaveStatus('No se pudo guardar','error');return ed.id;}
+      if(!ok){
+        setNoteSaveStatus('No se pudo guardar','error');
+        persistNoteRecoveryDraft();
+        return false;
+      }
     }else{
-      const newId=Number(NexoNative.saveNote(JSON.stringify({title:title||noteSuggestedTitle(body),body,category:'Notas',source:'notepad',noteTitleManual:!!ed.titleManual}))||0);
-      if(!newId){setNoteSaveStatus('No se pudo guardar','error');return 0;}
-      ed.id=newId;revealSavedNoteActions();$('#modalTitle').textContent='Editar nota';
+      const oldDraftKey=ed.draftKey;
+      const newId=Number(NexoNative.saveNote(JSON.stringify({
+        title:title||noteSuggestedTitle(body),
+        body,
+        category:'Notas',
+        source:'notepad',
+        noteTitleManual:!!ed.titleManual
+      }))||0);
+      if(!newId){
+        setNoteSaveStatus('No se pudo guardar','error');
+        persistNoteRecoveryDraft();
+        return false;
+      }
+      ed.id=newId;
+      ed.draftKey=noteDraftStorageKey(newId);
+      clearNoteRecoveryDraft(oldDraftKey);
+      revealSavedNoteActions();
+      $('#modalTitle').textContent='Editar nota';
     }
-    ed.lastSaved=signature;setNoteSaveStatus('✓ Guardado','saved');
-    return ed.id;
-  }catch(_){setNoteSaveStatus('No se pudo guardar','error');return ed.id||0;}
+    ed.lastSaved=signature;
+    clearNoteRecoveryDraft(ed.draftKey);
+    setNoteSaveStatus('✓ Guardado','saved');
+    refreshNotesSurface();
+    return true;
+  }catch(_){
+    setNoteSaveStatus('No se pudo guardar','error');
+    persistNoteRecoveryDraft();
+    return false;
+  }
 }
 
-function scheduleNoteAutosave(delay=850){
-  const ed=state.noteEditor;if(!ed)return;
-  if(ed.timer)clearTimeout(ed.timer);
-  setNoteSaveStatus('Sin guardar','dirty');
-  ed.timer=setTimeout(()=>{ed.timer=null;flushNoteAutosave();},delay);
+function showNoteUnsavedGuard(){
+  if($('#noteUnsavedGuard'))return;
+  persistNoteRecoveryDraft();
+  const overlay=document.createElement('div');
+  overlay.id='noteUnsavedGuard';
+  overlay.className='modal scope-overlay';
+  overlay.innerHTML='<div class="confirm-sheet scope-sheet"><h2>Cambios sin guardar</h2><p class="muted">Esta nota tiene cambios que todavía no has guardado.</p><div class="scope-buttons"><button class="primary-button" data-note-close-save>'+uiIcon('save')+' Guardar y salir</button><button class="secondary-button" data-note-close-discard>Salir sin guardar</button><button class="ghost-button" data-note-close-cancel>Cancelar</button></div></div>';
+  document.body.appendChild(overlay);
+  const finish=()=>overlay.remove();
+  overlay.querySelector('[data-note-close-save]').addEventListener('click',()=>{
+    if(!saveNoteEditor())return;
+    finish();
+    closeModal(true);
+  });
+  overlay.querySelector('[data-note-close-discard]').addEventListener('click',()=>{
+    const ed=state.noteEditor;
+    if(ed)clearNoteRecoveryDraft(ed.draftKey);
+    finish();
+    closeModal(true);
+  });
+  overlay.querySelector('[data-note-close-cancel]').addEventListener('click',finish);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)finish();});
 }
 
 function startNoteVoice(base='',id=0,title='',titleManual=false){
@@ -1062,40 +1166,96 @@ function startNoteVoice(base='',id=0,title='',titleManual=false){
 function startNoteEditorVoice(){
   const ed=state.noteEditor,titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
   if(!ed||!titleEl||!bodyEl)return;
-  const noteId=flushNoteAutosave(),currentBody=bodyEl.value.trim(),currentTitle=titleEl.value.trim(),manual=!!ed.titleManual;
-  state.noteEditor=null;closeModal();startNoteVoice(currentBody,noteId,currentTitle,manual);
+  persistNoteRecoveryDraft();
+  const noteId=Number(ed.id)||0,currentBody=bodyEl.value.trim(),currentTitle=titleEl.value.trim(),manual=!!ed.titleManual;
+  state.noteEditor=null;
+  closeModal(true);
+  startNoteVoice(currentBody,noteId,currentTitle,manual);
 }
 
 function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=false){
   const editing=Number(id)>0,existing=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
   if(editing&&(!existing.id||existing.type!=='note')){toast('La nota ya no existe.');refreshNotesSurface();return;}
-  const body=prefill!==''?String(prefill):String(existing.body||'');
-  const titleManual=editing?!!existing.noteTitleManual:!!titleManualPrefill;
-  let title=editing?String(existing.title||''):String(titlePrefill||'');
-  if(!titleManual)title=noteSuggestedTitle(body);
-  openModal(editing?'Editar nota':'Nueva nota',`<div class="note-compose modal-form"><div class="note-compose-top"><span id="noteSaveStatus" class="note-save-status" data-state="${editing?'saved':'idle'}">${editing?'✓ Guardado':'Empieza a escribir…'}</span></div><label>Título<input id="noteTitle" type="text" maxlength="120" value="${escAttr(title)}" placeholder="Se generará automáticamente al escribir"></label><div class="small muted note-title-help">Nexo propone el título a partir de la idea principal. Si lo cambias tú, dejará de modificarlo.</div><label>Anotación<textarea id="noteBody" rows="10" placeholder="Escribe o dicta lo que quieras conservar…">${esc(body)}</textarea></label><div class="small muted">Autoguardado local: no necesitas pulsar Guardar.</div></div><div id="noteSavedActions" class="modal-actions wrap-actions ${editing?'':'hidden'}"><button id="noteDelete" class="danger-button" type="button">Eliminar</button><button id="noteShare" class="secondary-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button></div>`);
-  state.noteEditor={id:editing?Number(id):0,titleManual,lastSaved:editing?`${titleManual?'1':'0'}\n${title.trim()}\n${String(existing.body||'').trim()}`:'',timer:null};
+
+  const savedBody=String(existing.body||''),savedTitle=String(existing.title||'');
+  const savedTitleManual=editing?!!existing.noteTitleManual:false;
+  let body=prefill!==''?String(prefill):savedBody;
+  let titleManual=editing?savedTitleManual:!!titleManualPrefill;
+  let title=editing?savedTitle:String(titlePrefill||'');
+  const savedSignature=editing?noteSignature(savedTitle,savedBody,savedTitleManual):noteSignature('','',false);
+
+  if(prefill===''){
+    const recovered=readNoteRecoveryDraft(Number(id)||0);
+    if(recovered){
+      const recoveredSignature=noteSignature(recovered.title,recovered.body,!!recovered.titleManual);
+      if(recoveredSignature!==savedSignature){
+        const useRecovered=window.confirm('Se encontró una edición de esta nota que no llegó a guardarse. ¿Quieres recuperarla?');
+        if(useRecovered){
+          body=String(recovered.body||'');
+          title=String(recovered.title||'');
+          titleManual=!!recovered.titleManual;
+        }else clearNoteRecoveryDraft(recovered.key);
+      }else clearNoteRecoveryDraft(recovered.key);
+    }
+  }
+
+  if(!titleManual&&!title)title=noteSuggestedTitle(body);
+  const currentSignature=noteSignature(title,body,titleManual);
+  const dirty=currentSignature!==savedSignature;
+  const statusText=dirty?'Sin guardar':(editing?'✓ Guardado':'Empieza a escribir…');
+  const statusState=dirty?'dirty':(editing?'saved':'idle');
+  const html='<div class="note-compose modal-form"><div class="note-compose-top"><span id="noteSaveStatus" class="note-save-status" data-state="'+statusState+'">'+statusText+'</span><button id="noteSave" class="icon-button primary" type="button" aria-label="Guardar nota" title="Guardar nota">'+uiIcon('save')+'</button></div><label>Título<input id="noteTitle" type="text" maxlength="120" value="'+escAttr(title)+'" placeholder="Se generará automáticamente al escribir"></label><div class="small muted note-title-help">Nexo propone el título a partir de la idea principal. Si lo cambias tú, dejará de modificarlo.</div><label>Anotación<textarea id="noteBody" rows="10" placeholder="Escribe o dicta lo que quieras conservar…">'+esc(body)+'</textarea></label><div class="small muted">La nota solo se guarda al pulsar el disquete. Nexo conserva un borrador temporal únicamente para recuperar una edición interrumpida.</div></div><div id="noteSavedActions" class="modal-actions wrap-actions '+(editing?'':'hidden')+'"><button id="noteDelete" class="danger-button" type="button">Eliminar</button><button id="noteShare" class="secondary-button" type="button">'+uiIcon('share')+' Compartir</button></div>';
+  openModal(editing?'Editar nota':'Nueva nota',html);
+
+  state.noteEditor={
+    id:editing?Number(id):0,
+    titleManual,
+    lastSaved:savedSignature,
+    draftKey:noteDraftStorageKey(Number(id)||0)
+  };
   const titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
-  bodyEl.addEventListener('input',()=>{if(!state.noteEditor?.titleManual)refreshAutoNoteTitle();scheduleNoteAutosave();});
+
+  if(dirty)persistNoteRecoveryDraft();
+
+  bodyEl.addEventListener('input',()=>{
+    if(!state.noteEditor?.titleManual)refreshAutoNoteTitle();
+    markNoteDirty();
+  });
   titleEl.addEventListener('input',()=>{
     const ed=state.noteEditor;if(!ed)return;
     if(titleEl.value.trim())ed.titleManual=true;
     else{ed.titleManual=false;refreshAutoNoteTitle();}
-    scheduleNoteAutosave();
+    markNoteDirty();
   });
-  const share=()=>{const ed=state.noteEditor;if(!ed)return;const noteId=flushNoteAutosave();if(noteId>0)NexoNative.shareNexoItem(noteId,0,false);};
+
+  $('#noteSave').addEventListener('click',()=>{
+    if(saveNoteEditor())toast('Nota guardada');
+    else if(noteHasUnsavedChanges())toast('No se pudo guardar la nota. El texto sigue en pantalla.');
+  });
+
+  const share=()=>{
+    const ed=state.noteEditor;if(!ed)return;
+    if(noteHasUnsavedChanges()){toast('Guarda los cambios antes de compartir la nota.');return;}
+    if(ed.id>0)NexoNative.shareNexoItem(ed.id,0,false);
+  };
   const del=()=>{
-    const ed=state.noteEditor;if(!ed)return;const noteId=flushNoteAutosave();if(!noteId)return;
-    const label=$('#noteTitle')?.value.trim()||'esta nota';
-    $('#confirmTitle').textContent='Eliminar nota';$('#confirmText').textContent=`¿Eliminar “${label}”? Podrás deshacerlo justo después.`;$('#confirmModal').classList.remove('hidden');
+    const ed=state.noteEditor;if(!ed||ed.id<=0)return;
+    const noteId=ed.id,label=$('#noteTitle')?.value.trim()||'esta nota';
+    $('#confirmTitle').textContent='Eliminar nota';
+    $('#confirmText').textContent='¿Eliminar “'+label+'”? Podrás deshacerlo justo después.';
+    $('#confirmModal').classList.remove('hidden');
     state.confirmAction=()=>{
-      const current=state.noteEditor;state.noteEditor=null;
-      const res=parseNative(NexoNative.deleteItem(noteId),{});$('#confirmModal').classList.add('hidden');closeModal();
+      const current=state.noteEditor;
+      const res=parseNative(NexoNative.deleteItem(noteId),{});
+      $('#confirmModal').classList.add('hidden');
       if(res.ok){
+        clearNoteRecoveryDraft(current?.draftKey||noteId);
+        state.noteEditor=null;
+        closeModal(true);
         const finalizeTimer=setTimeout(()=>NexoNative.finalizeDelete(res.undoToken),6500);
         toast('Nota eliminada','Deshacer',()=>{clearTimeout(finalizeTimer);const rr=parseNative(NexoNative.restoreItem(res.undoToken),{});toast(rr.ok?'Nota restaurada':'No se pudo restaurar');refreshNotesSurface();},6000);
         refreshNotesSurface();
-      }else{state.noteEditor=current;toast(res.error||'No se pudo eliminar la nota.');}
+      }else toast(res.error||'No se pudo eliminar la nota.');
     };
   };
   $('#noteShare')?.addEventListener('click',share);$('#noteDelete')?.addEventListener('click',del);
@@ -2500,7 +2660,7 @@ function openReminderModal(){prepareQuickNoteForType('event');}
 
 function openNewListModal(){
   openModal('Nueva lista',`<div class="modal-form"><label>Nombre<input id="listTitle" type="text" placeholder="Ej.: Compra semanal"></label><label>Tipo<select id="listKind"><option>Compra</option><option>Viaje</option><option>Cosas pendientes</option><option>Restaurantes</option><option>Lugares por visitar</option><option>Productos</option><option>Equipaje</option><option>Casa</option><option>General</option></select></label><label class="switch-row"><input id="listReusable" type="checkbox" checked><span>Lista reutilizable</span></label></div><div class="modal-actions"><button id="listSave" class="primary-button">Crear lista</button></div>`);
-  setTimeout(()=>$('#listTitle').focus(),70);$('#listSave').addEventListener('click',()=>{const title=$('#listTitle').value.trim();if(!title){toast('Escribe un nombre');return;}const id=NexoNative.createList(title,$('#listKind').value,$('#listReusable').checked);closeModal();openList(Number(id));});
+  setTimeout(()=>$('#listTitle').focus(),70);$('#listSave').addEventListener('click',()=>{const title=$('#listTitle').value.trim();if(!title){toast('Escribe un nombre');return;}const id=Number(NexoNative.createList(title,$('#listKind').value,$('#listReusable').checked))||0;if(!id){toast('No se pudo crear la lista. El formulario sigue abierto.');return;}closeModal();openList(id);});
 }
 function openParkingModal(prefill=''){
   openModal('Guardar aparcamiento',`<p class="muted" style="margin-top:0">Nexo buscará durante unos segundos la ubicación más precisa disponible. Añade una referencia solo si te ayuda.</p><div class="modal-form"><label>Nota opcional<input id="parkingNote" type="text" value="${escAttr(prefill||'')}" placeholder="Ej.: Planta -2, zona B"></label></div><div class="modal-actions"><button id="parkingSave" class="primary-button">Guardar ubicación actual</button></div>`);
@@ -2517,10 +2677,25 @@ function openModal(title,html){
 
 
 
-function closeModal(){
+function closeModal(force=false){
+  const noteWasOpen=!!state.noteEditor;
+  if(noteWasOpen&&!force&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
+
+  const journalWasOpen=!!state.journalEditor;
+  if(journalWasOpen&&!force){
+    flushJournalAutosave();
+    if(state.journalEditor?.saveFailed){
+      toast('No se pudo guardar la entrada. El texto sigue en pantalla.');
+      return false;
+    }
+  }
+
   discardDocumentDraft();
-  const noteWasOpen=!!state.noteEditor;if(noteWasOpen){flushNoteAutosave();state.noteEditor=null;}
-  const journalWasOpen=!!state.journalEditor;if(journalWasOpen){flushJournalAutosave();state.journalEditor=null;}
+  if(noteWasOpen){
+    if(!noteHasUnsavedChanges())clearNoteRecoveryDraft(state.noteEditor?.draftKey||0);
+    state.noteEditor=null;
+  }
+  if(journalWasOpen)state.journalEditor=null;
   const medicationWasOpen=!!state.medicationEditor;if(medicationWasOpen)state.medicationEditor=null;
   state.quoteEditor=null;state.placeEditor=null;
   $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
@@ -2528,6 +2703,7 @@ function closeModal(){
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
   if(state.modalReturnFocus?.isConnected)state.modalReturnFocus.focus({preventScroll:true});state.modalReturnFocus=null;
   updateFloatingActions();
+  return true;
 }
 function refreshCurrent(){
   if(state.screen==='today')renderToday();else if(state.screen==='search')runSearch();else if(state.screen==='more')renderMore();else if(state.screen==='calendar')renderCalendar();else if(state.screen==='panel'){if(state.currentList)openList(state.currentList);else if(state.lastPanel)openPanel(state.lastPanel);}updateFloatingActions();
@@ -3193,11 +3369,11 @@ function init(){
   $('#confirmDelete').addEventListener('click',()=>{const fn=state.confirmAction;state.confirmAction=null;if(fn)fn();});
   $('#confirmModal').addEventListener('click',e=>{if(e.target===$('#confirmModal')){$('#confirmModal').classList.add('hidden');state.confirmAction=null;}});
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='hidden'&&state.noteEditor)flushNoteAutosave();
+    if(document.visibilityState==='hidden'&&state.noteEditor)persistNoteRecoveryDraft();
     if(document.visibilityState==='visible')requestAnimationFrame(updateFloatingActions);
   });
   window.addEventListener('pageshow',()=>requestAnimationFrame(updateFloatingActions));
-  window.addEventListener('pagehide',()=>{if(state.noteEditor)flushNoteAutosave();});
+  window.addEventListener('pagehide',()=>{if(state.noteEditor)persistNoteRecoveryDraft();});
   document.addEventListener('keydown',handleDialogKeys);
   const startScreen=NexoNative.getStartScreen()==='calendar'?'calendar':'today';
   beginStartupSequence(startScreen);
