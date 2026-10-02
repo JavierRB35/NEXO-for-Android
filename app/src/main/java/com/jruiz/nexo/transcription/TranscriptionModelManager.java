@@ -131,6 +131,9 @@ public final class TranscriptionModelManager {
     private static File file(Context c,Spec s,String name){
         File preferred=new File(modelDir(c,s.id),name);
         if(preferred.isFile())return preferred;
+        // Solo Base necesita el fallback histórico de búsqueda. Los perfiles
+        // nuevos siempre se guardan en su directorio canónico.
+        if(!QUALITY_FAST.equals(s.id))return preferred;
         File found=findRecursive(c.getFilesDir(),name,0);
         return found!=null?found:preferred;
     }
