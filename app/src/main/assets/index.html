@@ -348,6 +348,21 @@
     </div>
   </section>
 
+  <section class="settings-accordion" data-settings-accordion="transcription">
+    <button class="settings-accordion__summary" type="button" data-settings-section="transcription" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-mic"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Grabadora / Transcripción</strong><small>Calidad, modelos locales y recursos</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded">
+        <h2>Calidad de transcripción</h2>
+        <p class="muted">El audio se transcribe en este teléfono. Los modelos se descargan solo cuando los necesitas y no aumentan el tamaño del APK.</p>
+        <div id="transcriptionQualitySettings" class="transcription-quality-settings"></div>
+      </div>
+    </div>
+  </section>
+
   <section class="settings-accordion" data-settings-accordion="input">
     <button class="settings-accordion__summary" type="button" data-settings-section="input" aria-expanded="false">
       <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-inbox"></use></svg></span>
