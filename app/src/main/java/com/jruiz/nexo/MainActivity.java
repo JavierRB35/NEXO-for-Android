@@ -2235,6 +2235,26 @@ public class MainActivity extends Activity {
             if(ok && !path.isBlank()) service.discardUnusedAttachment(path);
             return ok;
         }
+        @JavascriptInterface public long getTechnicalGithubGmailPendingCaptureCount() {
+            return db.getTechnicalGithubGmailPendingCaptureCount();
+        }
+        @JavascriptInterface public String discardTechnicalGithubGmailCaptures() {
+            JSONArray ids=db.discardTechnicalGithubGmailCaptures();
+            try {
+                android.app.NotificationManager nm=(android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+                if(nm!=null) {
+                    for(int i=0;i<ids.length();i++) {
+                        long id=ids.optLong(i,0L);
+                        if(id>0) nm.cancel(com.jruiz.nexo.communications.InboxNotificationReceiver.notificationId(id));
+                    }
+                }
+            } catch(Exception ignored) {}
+            return ids.toString();
+        }
+        @JavascriptInterface public int restoreInboxCaptures(String json) {
+            try { return db.restoreInboxCaptures(new JSONArray(json)); }
+            catch(Exception e) { return 0; }
+        }
         @JavascriptInterface public String getFavorites() { return db.getFavorites().toString(); }
         @JavascriptInterface public String getHistory() { return db.getRecentHistory().toString(); }
         @JavascriptInterface public String getReminders() { return db.getFutureReminders().toString(); }

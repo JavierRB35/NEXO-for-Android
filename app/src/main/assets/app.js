@@ -2255,11 +2255,16 @@ function inboxCaptureCard(capture){
   const type=String(capture.detectedType||capture.classification?.type||'').trim();
   const preview=raw.length>220?`${raw.slice(0,217)}…`:raw;
   const attachment=capture.attachmentName?`<div class="item-location">${uiIcon('file')} ${esc(capture.attachmentName)}</div>`:'';
-  const source=inboxSourceLabel(capture);
+  const source=inboxSourceLabel(capture),classification=capture.classification||{};
+  const candidateReason=String(classification.candidateReason||'').trim();
+  const candidateEvidence=String(classification.candidateEvidence||'').trim();
+  const filterRevision=String(classification.filterRevision||'').trim();
+  const why=candidateReason?`<div class="inbox-candidate-reason"><strong>Por qué entró:</strong> ${esc(candidateReason)}${candidateEvidence?`<span>${esc(candidateEvidence)}</span>`:''}${filterRevision?`<small>Regla ${esc(filterRevision)}</small>`:''}</div>`:'';
   return `<div class="item-card inbox-capture-card">
     <div class="item-top"><div class="item-title">${esc(title)}</div></div>
     <div class="item-meta"><span class="pill">${esc(source)}</span>${type?`<span class="meta-tag">${esc(typeLabel(type))}</span>`:''}<span class="meta-tag">${esc(fmtDate(capture.createdAt,true))}</span></div>
     ${preview?`<div class="item-body">${esc(preview)}</div>`:''}
+    ${why}
     ${attachment}
     <div class="item-actions"><button class="mini-button primary" data-review-capture="${Number(capture.id)}">Revisar y organizar</button><button class="mini-button" data-discard-capture="${Number(capture.id)}">Descartar</button></div>
   </div>`;
@@ -2271,16 +2276,30 @@ function renderInboxPanel(){
   const sourceState=parseNative(NexoNative.getCommunicationCaptureSettings(),{});
   const smsReady=!!sourceState.smsDirectEnabled&&!!sourceState.smsPermission&&!!sourceState.smsBaselined;
   const gmailReady=!!sourceState.gmailDirectEnabled&&!!sourceState.gmailAuthorized&&!!sourceState.gmailBaselined;
+  const githubNoise=Math.max(0,Number(NexoNative.getTechnicalGithubGmailPendingCaptureCount()||0));
   let html=`<div class="inbox-source-health">
     <div><strong>Fuentes directas</strong><small><span class="${smsReady?'source-ok':'source-off'}">SMS ${smsReady?'activo':'no activo'}</span> · <span class="${gmailReady?'source-ok':'source-off'}">Gmail ${gmailReady?'activo':'no activo'}</span></small></div>
     <button id="inboxScanNowBtn" class="mini-button" type="button">Escanear ahora</button>
   </div>`;
+  if(githubNoise)html+=`<div class="inbox-cleanup-card"><div><strong>${githubNoise} aviso${githubNoise===1?'':'s'} técnico${githubNoise===1?'':'s'} de GitHub</strong><small>Son capturas de CI/Actions acumuladas por el filtro anterior. Los correos originales no se modificarán.</small></div><button id="cleanupGithubInboxBtn" class="mini-button" type="button">Descartar juntos</button></div>`;
   if(captures.length)html+=`<div class="search-section-label">Capturas recibidas</div><div class="stack">${captures.map(inboxCaptureCard).join('')}</div>`;
   if(legacy.length)html+=`<div class="search-section-label">Elementos pendientes de revisión</div><div class="stack">${legacy.map(itemCard).join('')}</div>`;
   if(!captures.length&&!legacy.length)html+='<div class="empty-state"><strong>Todo organizado</strong><div class="small muted">No hay contenido pendiente de revisar.</div></div>';
   $('#panelContent').innerHTML=html;
   const root=$('#panelContent');
   $('#inboxScanNowBtn')?.addEventListener('click',()=>{NexoNative.scanInputHubNow();toast('Buscando SMS, Gmail y Calendar…');setTimeout(renderInboxPanel,1200);});
+  $('#cleanupGithubInboxBtn')?.addEventListener('click',()=>{
+    confirmGeneric('Limpiar avisos técnicos de GitHub',`Se descartarán ${githubNoise} captura${githubNoise===1?'':'s'} de CI/Actions. No se borrará ningún correo de Gmail.`,()=>{
+      const ids=parseNative(NexoNative.discardTechnicalGithubGmailCaptures(),[]);
+      if(!ids.length){toast('No había capturas técnicas pendientes.');renderInboxPanel();return;}
+      renderInboxPanel();renderToday();
+      toast(`${ids.length} captura${ids.length===1?'':'s'} descartada${ids.length===1?'':'s'}.`,'Deshacer',()=>{
+        const restored=Number(NexoNative.restoreInboxCaptures(JSON.stringify(ids))||0);
+        toast(restored?`${restored} captura${restored===1?'':'s'} restaurada${restored===1?'':'s'}.`:'No se pudo restaurar la limpieza.');
+        renderInboxPanel();renderToday();
+      },10000);
+    },'Descartar');
+  });
   bindItemButtons(root);
   root.querySelectorAll('[data-review-capture]').forEach(b=>b.addEventListener('click',()=>reviewInboxCapture(Number(b.dataset.reviewCapture))));
   root.querySelectorAll('[data-discard-capture]').forEach(b=>b.addEventListener('click',()=>{
@@ -2329,6 +2348,12 @@ function openInboxCaptureEditor(capture,incoming=false){
   if(Object.keys(detected).length){
     detected={...detected,type:suggested};
     renderClassification(detected,true);
+    const inboxReason=String(detected.candidateReason||'').trim(),inboxEvidence=String(detected.candidateEvidence||'').trim(),inboxRule=String(detected.filterRevision||'').trim();
+    if(inboxReason){
+      const reasonEl=$('#previewReason');
+      const extra=`Inbox: ${inboxReason}${inboxEvidence?' · '+inboxEvidence:''}${inboxRule?' · '+inboxRule:''}`;
+      if(reasonEl)reasonEl.textContent=reasonEl.textContent?`${reasonEl.textContent} · ${extra}`:extra;
+    }
     if(id)NexoNative.updateInboxCaptureClassification(id,JSON.stringify(detected));
   }else{
     $('#captureType').value=suggested;

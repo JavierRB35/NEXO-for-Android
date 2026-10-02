@@ -1,5 +1,7 @@
 package com.jruiz.nexo.communications;
 
+import com.jruiz.nexo.core.TemporalParser;
+
 import org.json.JSONObject;
 
 import java.text.Normalizer;
@@ -7,27 +9,14 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Filtro de alta sensibilidad para Nexo Inbox.
+ * Filtros deterministas del Inbox.
  *
- * La decisión final pertenece al usuario: este filtro solo excluye ruido inequívoco
- * y credenciales/OTP. Si existe una señal temporal, de acción, recurrencia,
- * ubicación o una clasificación útil, el contenido debe llegar a Inbox.
+ * SMS/notificaciones conservan una sensibilidad alta. Gmail automático usa un
+ * criterio contextual más exigente: una fecha u hora aislada no basta para
+ * convertir un correo en una captura.
  */
 public final class NotificationCandidateFilter {
-    private static final Pattern DATE_PATTERN = Pattern.compile(
-            "\\b(?:[0-3]?\\d[./-][01]?\\d(?:[./-]\\d{2,4})?|"+
-            "[0-3]?\\d\\s+(?:de\\s+)?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\\s+(?:de\\s+)?\\d{4})?|"+
-            "(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)|"+
-            "(?:hoy|manana|pasado manana)|"+
-            "(?:proxim[oa]|siguiente)\\s+(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo|semana|mes)|"+
-            "(?:dentro\\s+de|en)\\s+\\w+(?:\\s+y\\s+\\w+)?\\s+(?:dia|dias|semana|semanas|mes|meses))\\b"
-    );
-    private static final Pattern TIME_PATTERN = Pattern.compile(
-            "(?:\\b(?:[01]?\\d|2[0-3])[:.]?[0-5]\\d\\s*h?\\b|"+
-            "\\b(?:[01]?\\d|2[0-3])\\s*h(?:\\s*[0-5]\\d)?\\b|"+
-            "\\ba\\s+las?\\s+(?:(?:[01]?\\d|2[0-3])(?:[:.]?[0-5]\\d)?|"+
-            "una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\\b)"
-    );
+    public static final String GMAIL_FILTER_RULE = "gmail-filter-v7";
     private static final Pattern OTP_PATTERN = Pattern.compile("\\b\\d{4,8}\\b");
 
     private static final String[] ACTION_TERMS = {
@@ -41,6 +30,26 @@ public final class NotificationCandidateFilter {
             "appointment","meeting","save the date","agenda","programado","programada","programación",
             "proxima cita","próxima cita","asistencia","convocatoria","sesion","sesión","clase","examen",
             "analitica","analítica","dentista","vacuna","tratamiento","taller","mantenimiento"
+    };
+
+    /**
+     * Señales que justifican por sí mismas revisar un correo. Deliberadamente no
+     * incluye palabras genéricas como "factura", "seguro", "fecha", "run" o
+     * "failed": necesitan contexto adicional para no llenar el Inbox.
+     */
+    private static final String[] GMAIL_STRONG_TERMS = {
+            "tu reserva","su reserva","reserva confirmada","confirmacion de reserva","confirmación de reserva","reservado para",
+            "tu vuelo","su vuelo","embarque","boarding","tren sale","salida del tren",
+            "appointment","meeting","save the date","convocatoria","te esperamos",
+            "pedido listo","recoge tu pedido","recoge el pedido","puedes recoger","puede recoger","recogida","entrega prevista","entrega programada",
+            "pago pendiente","debes pagar","debe pagar","pagar antes","recibo pendiente",
+            "renovar antes","renovacion pendiente","renovación pendiente"
+    };
+
+    private static final String[] TECHNICAL_MAIL_TERMS = {
+            "workflow run","all jobs have failed","job annotations","view workflow run",
+            "run failed","github actions","continuous integration","ci / validate","build failed",
+            "commit ","branch ","pull request","package-beta","gradle"
     };
 
     private static final String[] NOISE_TERMS = {
@@ -57,20 +66,12 @@ public final class NotificationCandidateFilter {
 
     private NotificationCandidateFilter() {}
 
+    /** Filtro general de alta sensibilidad para SMS y notificaciones. */
     public static boolean shouldCapture(String text, JSONObject classification) {
         String raw = text == null ? "" : text.trim();
-        if (raw.length() < 5) return false;
+        if (!basicSafety(raw)) return false;
         String n = norm(raw);
 
-        for (String noise : NOISE_TERMS) {
-            if (n.contains(norm(noise))) return false;
-        }
-        for (String sensitive : SENSITIVE_TERMS) {
-            if (n.contains(norm(sensitive)) && OTP_PATTERN.matcher(n).find()) return false;
-        }
-
-        // Primero usamos la interpretación completa de Nexo: es más potente que
-        // cualquier regex superficial y evita falsos negativos por formatos de fecha.
         if (classification != null) {
             long dueAt = classification.optLong("dueAt", 0L);
             boolean hasTime = classification.optBoolean("hasTime", false);
@@ -81,28 +82,128 @@ public final class NotificationCandidateFilter {
             String type = classification.optString("type", "");
             double confidence = classification.optDouble("confidence", 0.0);
 
-            if (dueAt > 0L || !dueDate.isBlank()) return accept(classification, "Señal temporal detectada");
-            if (hasTime) return accept(classification, "Hora detectada");
-            if (!recurrence.isBlank() && !"none".equals(recurrence)) return accept(classification, "Recurrencia detectada");
-            if (!location.isBlank()) return accept(classification, "Ubicación detectada");
-            if (reminderRequested) return accept(classification, "Petición de recordatorio");
+            if (dueAt > 0L || !dueDate.isBlank()) return accept(classification, "Señal temporal detectada", temporalEvidence(classification), "inbox-general-v6");
+            if (hasTime) return accept(classification, "Hora detectada", temporalEvidence(classification), "inbox-general-v6");
+            if (!recurrence.isBlank() && !"none".equals(recurrence)) return accept(classification, "Recurrencia detectada", recurrence, "inbox-general-v6");
+            if (!location.isBlank()) return accept(classification, "Ubicación detectada", location, "inbox-general-v6");
+            if (reminderRequested) return accept(classification, "Petición de recordatorio", evidence(raw, "record"), "inbox-general-v6");
             if (!type.isBlank() && !"note".equals(type) && confidence >= 0.45) {
-                return accept(classification, "Contenido accionable clasificado");
+                return accept(classification, "Contenido accionable clasificado", type, "inbox-general-v6");
             }
         }
 
         for (String term : ACTION_TERMS) {
-            if (n.contains(norm(term))) return accept(classification, "Término accionable");
+            if (n.contains(norm(term))) return accept(classification, "Término accionable", evidence(raw, term), "inbox-general-v6");
         }
-        if (DATE_PATTERN.matcher(n).find()) return accept(classification, "Fecha aparente");
-        if (TIME_PATTERN.matcher(n).find()) return accept(classification, "Hora aparente");
 
+        // Fallback temporal compartido con RuleClassifier: ya no existe una regex
+        // independiente capaz de interpretar v3.7.4 como una fecha.
+        TemporalParser.Result temporal = TemporalParser.parse(raw);
+        if (temporal.hasDate) return accept(classification, "Fecha detectada", temporal.dateIso(), "inbox-general-v6");
+        if (temporal.hasTime) return accept(classification, "Hora detectada", temporal.timeIso(), "inbox-general-v6");
         return false;
     }
 
-    private static boolean accept(JSONObject classification, String reason) {
+    /**
+     * Filtro Gmail v7. Una fecha/hora aislada solo describe el correo; no implica
+     * que el usuario tenga que hacer algo. Se exige contexto accionable.
+     */
+    public static boolean shouldCaptureGmail(String text, JSONObject classification) {
+        String raw = text == null ? "" : text.trim();
+        if (!basicSafety(raw)) return false;
+        String n = norm(raw);
+
+        String strongTerm = firstMatching(n, GMAIL_STRONG_TERMS);
+        boolean technical = containsAny(n, TECHNICAL_MAIL_TERMS);
+        String type = classification == null ? "" : classification.optString("type", "");
+        double confidence = classification == null ? 0.0 : classification.optDouble("confidence", 0.0);
+        boolean reminder = classification != null && classification.optBoolean("reminderRequested", false);
+        String recurrence = classification == null ? "" : classification.optString("recurrence", "");
+
+        if (technical && strongTerm.isBlank() &&
+                (type.isBlank() || "note".equals(type) || "document".equals(type))) {
+            return false;
+        }
+
         if (classification != null) {
-            try { classification.put("candidateReason", reason); } catch (Exception ignored) {}
+            if ("medication".equals(type)) {
+                return accept(classification, "Contenido médico accionable", evidence(raw, "medic"), GMAIL_FILTER_RULE);
+            }
+            if (reminder) {
+                return accept(classification, "Petición de recordatorio", evidence(raw, "record"), GMAIL_FILTER_RULE);
+            }
+            if (!recurrence.isBlank() && !"none".equals(recurrence) &&
+                    (!strongTerm.isBlank() || !"note".equals(type))) {
+                return accept(classification, "Evento recurrente relevante", recurrence, GMAIL_FILTER_RULE);
+            }
+            if (isActionableType(type) && confidence >= 0.45) {
+                String ev = !strongTerm.isBlank() ? evidence(raw, strongTerm) : type;
+                return accept(classification, "Contenido accionable para el usuario", ev, GMAIL_FILTER_RULE);
+            }
+        }
+
+        if (!strongTerm.isBlank()) {
+            return accept(classification, "Término accionable en Gmail", evidence(raw, strongTerm), GMAIL_FILTER_RULE);
+        }
+
+        // Una fecha/hora real sin contexto accionable no es suficiente en Gmail.
+        return false;
+    }
+
+    private static boolean basicSafety(String raw) {
+        if (raw == null || raw.trim().length() < 5) return false;
+        String n = norm(raw);
+        for (String noise : NOISE_TERMS) if (n.contains(norm(noise))) return false;
+        for (String sensitive : SENSITIVE_TERMS) {
+            if (n.contains(norm(sensitive)) && OTP_PATTERN.matcher(n).find()) return false;
+        }
+        return true;
+    }
+
+    private static boolean isActionableType(String type) {
+        return "event".equals(type) || "task".equals(type) || "reminder".equals(type) ||
+                "expiry".equals(type);
+    }
+
+    private static String firstMatching(String normalized, String[] terms) {
+        if (normalized == null || normalized.isBlank()) return "";
+        for (String term : terms) if (normalized.contains(norm(term))) return term;
+        return "";
+    }
+
+    private static boolean containsAny(String normalized, String[] terms) {
+        return !firstMatching(normalized, terms).isBlank();
+    }
+
+    private static String temporalEvidence(JSONObject classification) {
+        if (classification == null) return "";
+        String date = classification.optString("dueDate", "");
+        String time = classification.optString("dueTime", "");
+        if (!date.isBlank() && !time.isBlank()) return date + " " + time;
+        if (!date.isBlank()) return date;
+        return time;
+    }
+
+    private static String evidence(String raw, String needle) {
+        if (raw == null || raw.isBlank() || needle == null || needle.isBlank()) return "";
+        String lower = raw.toLowerCase(Locale.ROOT);
+        String wanted = needle.toLowerCase(Locale.ROOT);
+        int at = lower.indexOf(wanted);
+        if (at < 0) return needle;
+        int from = Math.max(0, at - 34), to = Math.min(raw.length(), at + wanted.length() + 58);
+        String out = raw.substring(from, to).replaceAll("\\s+", " ").trim();
+        if (from > 0) out = "…" + out;
+        if (to < raw.length()) out = out + "…";
+        return out;
+    }
+
+    private static boolean accept(JSONObject classification, String reason, String evidence, String rule) {
+        if (classification != null) {
+            try {
+                classification.put("candidateReason", reason);
+                classification.put("candidateEvidence", evidence == null ? "" : evidence);
+                classification.put("filterRevision", rule == null ? "" : rule);
+            } catch (Exception ignored) {}
         }
         return true;
     }

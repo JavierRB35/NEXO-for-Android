@@ -98,6 +98,7 @@ public final class TemporalParser {
         Matcher numeric = Pattern.compile("(?<!\\d)(\\d{1,2})\\s*[./-]\\s*(\\d{1,2})(?:\\s*[./-]\\s*(\\d{2,4}))?(?!\\d)").matcher(dateN);
         while (numeric.find() && !out.hasDate && !out.invalidDate) {
             String token = numeric.group(0);
+            if (isTechnicalNumericDate(dateN, numeric.start(), numeric.end(), token)) continue;
             String prefix = dateN.substring(Math.max(0, numeric.start()-14), numeric.start());
             if (token.contains(".") && numeric.group(3) == null &&
                     (prefix.matches(".*\\ba\\s+las?\\s*$") || prefix.matches(".*\\bhora\\s*$"))) continue;
@@ -166,6 +167,33 @@ public final class TemporalParser {
             }
             return true;
         }
+        return false;
+    }
+
+    /**
+     * Evita interpretar versiones/builds técnicos como fechas (v3.7.4,
+     * fix/3.7.4-transcription-settings, release 3.7.4, etc.). Una fecha real
+     * como 03.07.2027 sigue siendo válida porque no aparece en contexto técnico.
+     */
+    public static boolean isTechnicalNumericDate(String normalizedText, int start, int end, String token) {
+        if (normalizedText == null || normalizedText.isBlank() || token == null || token.isBlank()) return false;
+        int from = Math.max(0, start - 52), to = Math.min(normalizedText.length(), end + 52);
+        String before = normalizedText.substring(from, Math.max(from, start));
+        String after = normalizedText.substring(Math.min(end, normalizedText.length()), to);
+        String around = normalizedText.substring(from, to);
+
+        // El matcher de fecha puede quedarse en "3.7" dentro de "3.7.4"
+        // porque el tercer bloque de una fecha exige al menos dos cifras.
+        if (after.matches("^\\s*[.]\\s*\\d(?:\\D|$).*")) return true;
+
+        if (before.matches("(?s).*\\bv\\s*$")) return true;
+        if (before.matches("(?s).*(?:\\bversion|\\brelease|\\bhotfix|\\bfix|\\bbeta|\\brc|\\bbuild|\\btag|\\bbranch|\\bcommit|\\bpackage|\\bapk|\\bnexo)\\s*[-_/:]*\\s*$")) return true;
+        if (around.matches("(?s).*(?:github|workflow|actions|ci\\b|gradle|android|release|build|commit|branch|tag|package|hotfix|beta|rc)[^\\n]{0,80}.*")) {
+            boolean technicalShape = token.matches("\\d{1,2}\\s*[.]\\s*\\d{1,2}\\s*[.]\\s*\\d{1,4}");
+            if (technicalShape) return true;
+        }
+        if (after.matches("^\\s*[-_][a-z].*") &&
+                before.matches("(?s).*(?:fix|release|build|branch|package|nexo)[-_/:a-z0-9]*$")) return true;
         return false;
     }
 
