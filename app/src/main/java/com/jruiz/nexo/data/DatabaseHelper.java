@@ -54,7 +54,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "location_text TEXT NOT NULL DEFAULT ''," +
                 "priority INTEGER NOT NULL DEFAULT 1," +
                 "favorite INTEGER NOT NULL DEFAULT 0," +
-                "revisit INTEGER NOT NULL DEFAULT 0," +
                 "source TEXT NOT NULL DEFAULT 'manual'," +
                 "attachment_path TEXT NOT NULL DEFAULT ''," +
                 "attachment_name TEXT NOT NULL DEFAULT ''," +
@@ -934,7 +933,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("location_text", in.optString("locationText", ""));
         v.put("priority", clamp(in.optInt("priority", 1), 1, 3));
         v.put("favorite", in.optBoolean("favorite", false) ? 1 : 0);
-        v.put("revisit", in.optBoolean("revisit", false) ? 1 : 0);
         v.put("source", in.optString("source", "manual"));
         v.put("attachment_path", in.optString("attachmentPath", ""));
         v.put("attachment_name", in.optString("attachmentName", ""));
@@ -2496,6 +2494,31 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         } catch (Exception ignored) {}
         return out;
+    }
+
+    /**
+     * Busca una coincidencia inequívoca entre un evento de Calendar y un evento ya guardado.
+     * Solo enlaza cuando título, fecha/hora y tipo all-day coinciden; si hay más de una
+     * coincidencia devuelve 0 para evitar actualizar el elemento equivocado.
+     */
+    public long findMatchingCalendarItem(String rawTitle, long dueAt, boolean allDay) {
+        String title = rawTitle == null ? "" : rawTitle.trim();
+        if (title.isBlank() || dueAt <= 0L) return 0L;
+        long tolerance = allDay ? 0L : 90000L;
+        long from = Math.max(0L, dueAt - tolerance);
+        long to = dueAt + tolerance;
+        String sql = "SELECT id FROM items WHERE deleted_at=0 AND type='event' " +
+                "AND lower(trim(title))=lower(trim(?)) AND due_at>=? AND due_at<=? " +
+                "AND all_day=? ORDER BY updated_at DESC LIMIT 2";
+        try (Cursor cur = getReadableDatabase().rawQuery(
+                sql,
+                new String[]{title, String.valueOf(from), String.valueOf(to), allDay ? "1" : "0"})) {
+            if (!cur.moveToFirst()) return 0L;
+            long id = cur.getLong(0);
+            return cur.moveToNext() ? 0L : id;
+        } catch (Exception ignored) {
+            return 0L;
+        }
     }
 
     public void rememberCalendarEvent(long eventId, String fingerprint, long captureId, long linkedItemId) {
