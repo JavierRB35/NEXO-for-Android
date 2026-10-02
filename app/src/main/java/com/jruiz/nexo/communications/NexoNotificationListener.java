@@ -58,11 +58,18 @@ public class NexoNotificationListener extends NotificationListenerService {
         DatabaseHelper db = new DatabaseHelper(getApplicationContext());
         try {
             JSONObject classification = RuleClassifier.classify(payload.text).toJson();
-            if (!NotificationCandidateFilter.shouldCapture(payload.text, classification)) return;
+
+            // Gmail mantiene NotificationListener como salvavidas, pero debe respetar
+            // el mismo filtro contextual v7 que la API directa para no reintroducir
+            // falsos positivos por la vía de notificaciones.
+            String appKey = CommunicationCapturePrefs.keyForPackage(pkg);
+            boolean candidate = "gmail".equals(appKey)
+                    ? NotificationCandidateFilter.shouldCaptureGmail(payload.text, classification)
+                    : NotificationCandidateFilter.shouldCapture(payload.text, classification);
+            if (!candidate) return;
 
             // Gmail y SMS mantienen NotificationListener como vía de respaldo aunque
             // su proveedor directo esté activo. Evitamos duplicar la misma comunicación.
-            String appKey = CommunicationCapturePrefs.keyForPackage(pkg);
             String sourceFamily = "gmail".equals(appKey) ? "gmail" : ("sms".equals(appKey) ? "sms" : "");
             if (!sourceFamily.isBlank()) {
                 long equivalent = db.findRecentEquivalentInboxCapture(
