@@ -3402,7 +3402,7 @@ function navigateBack(){
 function updateCaptureContext(){
   const box=$('#captureDateContext');if(!box)return;
   const a=state.classification||{},warnings=Array.isArray(a.warnings)?a.warnings:[];
-  const temporalWarning=a.invalidDate||a.invalidTime||a.ambiguousTime
+  const temporalWarning=!captureFieldLocked('dateTime')&&(a.invalidDate||a.invalidTime||a.ambiguousTime)
     ? (warnings[0]||a.reason||'Revisa la fecha y la hora antes de guardar.')
     : '';
   if(temporalWarning){
