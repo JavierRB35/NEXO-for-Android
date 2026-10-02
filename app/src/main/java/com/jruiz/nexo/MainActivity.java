@@ -768,198 +768,6 @@ public class MainActivity extends Activity {
         },"nexo-document-export").start();
     }
 
-    private void applyBundledNexoFamiliaMigration() {
-        applyBundledNexoFamiliaMigration(false);
-    }
-
-    private void applyBundledNexoFamiliaMigration(boolean force) {
-        final String assetName = "nexo_familia_seed_v1.json";
-        try {
-            String raw;
-            try (InputStream in = getAssets().open(assetName);
-                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                byte[] buffer = new byte[16384];
-                int n;
-                while ((n = in.read(buffer)) != -1) if (n > 0) out.write(buffer, 0, n);
-                raw = out.toString(java.nio.charset.StandardCharsets.UTF_8);
-            }
-            JSONObject payload = new JSONObject(raw);
-            String snapshot = payload.optString("snapshotVersion", "v1");
-            SharedPreferences prefs = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
-            JSONObject beforeAudit = auditBundledNexoFamiliaPayload(payload);
-            boolean cleanRebuildDone = snapshot.equals(prefs.getString("cleanRebuildVersion", ""));
-            if (!force && cleanRebuildDone &&
-                    snapshot.equals(prefs.getString("snapshotVersion", "")) &&
-                    beforeAudit.optBoolean("complete", false)) {
-                // Aunque los 33 UUID ya estén presentes, una versión anterior pudo
-                // dejar estados temporales incorrectos. Se concilian antes de abrir UI.
-                db.reconcileTemporalStatuses();
-                return;
-            }
-
-            // Beta6: no intentamos reparar sobre una migración dudosa. Reconstruimos
-            // únicamente las copias procedentes de Nexo Familia y mantenemos intactos
-            // todos los datos manuales y de otras fuentes de Nexo Android.
-            JSONArray oldReminderIds = db.resetNexoFamiliaImportedData();
-            for (int i=0;i<oldReminderIds.length();i++) {
-                ReminderScheduler.cancel(getApplicationContext(), oldReminderIds.optLong(i));
-            }
-
-            JSONObject result = NexoFamiliaImporter.importPayload(getApplicationContext(), db, payload);
-            JSONObject afterAudit = auditBundledNexoFamiliaPayload(payload);
-            int expected = payload.optJSONArray("events") == null ? 0 : payload.optJSONArray("events").length();
-            JSONArray expectedRulesArray = payload.optJSONArray("reminderRules");
-            if (expectedRulesArray == null) expectedRulesArray = payload.optJSONArray("reminder_rules");
-            int expectedRules = expectedRulesArray == null ? 0 : expectedRulesArray.length();
-
-            int preserved = result.optInt("preserved", 0);
-            int verifiedEvents = result.optInt("verifiedEvents", 0);
-            int verifiedRules = result.optInt("verifiedReminderRules", 0);
-            int skipped = result.optInt("skipped", 0);
-            boolean complete = result.optBoolean("ok", false) &&
-                    expected > 0 &&
-                    preserved == expected &&
-                    verifiedEvents == expected &&
-                    verifiedRules == expectedRules &&
-                    skipped == 0 &&
-                    afterAudit.optBoolean("complete", false);
-
-            prefs.edit()
-                    .putInt("expectedEvents", expected)
-                    .putInt("expectedReminderRules", expectedRules)
-                    .putInt("lastPreserved", preserved)
-                    .putInt("lastVerifiedEvents", verifiedEvents)
-                    .putInt("lastVerifiedReminderRules", verifiedRules)
-                    .putInt("lastSkipped", skipped)
-                    .putBoolean("lastComplete", complete)
-                    .putLong("lastAttemptAt", System.currentTimeMillis())
-                    .apply();
-
-            if (complete) {
-                prefs.edit()
-                        .putString("snapshotVersion", snapshot)
-                        .putString("cleanRebuildVersion", snapshot)
-                        .putInt("events", verifiedEvents)
-                        .putInt("reminderRules", verifiedRules)
-                        .putLong("importedAt", System.currentTimeMillis())
-                        .apply();
-                db.reconcileTemporalStatuses();
-            } else {
-                prefs.edit()
-                        .remove("snapshotVersion")
-                        .remove("cleanRebuildVersion")
-                        .apply();
-            }
-        } catch (Exception ignored) {
-            // La app debe seguir abriendo aunque el snapshot opcional no pueda migrarse.
-            // Si falla no se marca como completado y se volverá a intentar en el siguiente arranque.
-        }
-    }
-
-    private JSONObject auditBundledNexoFamiliaPayload(JSONObject payload) {
-        JSONObject out = new JSONObject();
-        JSONArray missingEvents = new JSONArray();
-        JSONArray missingRules = new JSONArray();
-        try {
-            JSONArray events = payload == null ? null : payload.optJSONArray("events");
-            JSONArray rules = payload == null ? null : payload.optJSONArray("reminderRules");
-            if (rules == null && payload != null) rules = payload.optJSONArray("reminder_rules");
-            if (events == null) events = new JSONArray();
-            if (rules == null) rules = new JSONArray();
-
-            int verifiedEvents = 0;
-            int expectedFamily = 0, verifiedFamily = 0, familyPending = 0, familyDone = 0;
-            int expectedSelected = 0, verifiedSelected = 0, selectedPending = 0, selectedDone = 0;
-
-            for (int i=0;i<events.length();i++) {
-                JSONObject event = events.optJSONObject(i);
-                if (event == null) continue;
-                String sourceId = event.optString("id", "").trim();
-                String visibility = event.optString("visibility", "").trim();
-                if ("family".equals(visibility)) expectedFamily++;
-                if ("selected".equals(visibility)) expectedSelected++;
-
-                long localId = sourceId.isEmpty() ? 0L : db.getNexoFamiliaLocalItemId(sourceId);
-                JSONObject local = localId > 0L ? db.getItem(localId) : new JSONObject();
-                long expectedStart = NexoFamiliaImporter.sourceStartMillis(event);
-                boolean valid = local.length() > 0 &&
-                        "nexo-familia".equals(local.optString("source", "")) &&
-                        "event".equals(local.optString("type", "")) &&
-                        event.optString("title", "").equals(local.optString("title", "")) &&
-                        expectedStart > 0L &&
-                        Math.abs(local.optLong("dueAt", 0L) - expectedStart) < 1000L;
-
-                if (valid) {
-                    verifiedEvents++;
-                    String localStatus = local.optString("status", "");
-                    if ("family".equals(visibility)) {
-                        verifiedFamily++;
-                        if ("done".equals(localStatus)) familyDone++; else if ("pending".equals(localStatus) || "active".equals(localStatus) || "postponed".equals(localStatus)) familyPending++;
-                    }
-                    if ("selected".equals(visibility)) {
-                        verifiedSelected++;
-                        if ("done".equals(localStatus)) selectedDone++; else if ("pending".equals(localStatus) || "active".equals(localStatus) || "postponed".equals(localStatus)) selectedPending++;
-                    }
-                } else {
-                    JSONObject miss = new JSONObject();
-                    miss.put("id", sourceId);
-                    miss.put("title", event.optString("title", "Evento sin título"));
-                    miss.put("visibility", visibility);
-                    miss.put("expectedStart", expectedStart);
-                    miss.put("localItemId", localId);
-                    miss.put("localStart", local.optLong("dueAt", 0L));
-                    missingEvents.put(miss);
-                }
-            }
-
-            int verifiedRules = 0;
-            for (int i=0;i<rules.length();i++) {
-                JSONObject rule = rules.optJSONObject(i);
-                if (rule == null) continue;
-                String ruleId = rule.optString("id", "").trim();
-                if (!ruleId.isEmpty() && db.hasNexoFamiliaReminderMapping(ruleId)) verifiedRules++;
-                else missingRules.put(ruleId);
-            }
-
-            JSONObject stats = db.getNexoFamiliaImportStats();
-            boolean complete = events.length() > 0 &&
-                    verifiedEvents == events.length() &&
-                    verifiedFamily == expectedFamily &&
-                    verifiedSelected == expectedSelected &&
-                    verifiedRules == rules.length() &&
-                    stats.optLong("brokenMappings", 0L) == 0L;
-
-            out.put("expectedEvents", events.length());
-            out.put("verifiedEvents", verifiedEvents);
-            out.put("expectedFamily", expectedFamily);
-            out.put("verifiedFamily", verifiedFamily);
-            out.put("expectedSelected", expectedSelected);
-            out.put("verifiedSelected", verifiedSelected);
-            out.put("familyPending", familyPending);
-            out.put("familyDone", familyDone);
-            out.put("selectedPending", selectedPending);
-            out.put("selectedDone", selectedDone);
-            out.put("expectedReminderRules", rules.length());
-            out.put("verifiedReminderRules", verifiedRules);
-            out.put("missingEvents", missingEvents);
-            out.put("missingReminderRules", missingRules);
-            out.put("complete", complete);
-        } catch (Exception ignored) {}
-        return out;
-    }
-
-    private JSONObject readBundledNexoFamiliaPayload() {
-        try (InputStream in = getAssets().open("nexo_familia_seed_v1.json");
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[16384];
-            int n;
-            while ((n = in.read(buffer)) != -1) if (n > 0) out.write(buffer, 0, n);
-            return new JSONObject(out.toString(java.nio.charset.StandardCharsets.UTF_8));
-        } catch (Exception ignored) {
-            return new JSONObject();
-        }
-    }
-
     private void chooseNexoFamiliaImport() {
         runOnUiThread(() -> {
             try {
@@ -2327,39 +2135,8 @@ public class MainActivity extends Activity {
             jsCallbackJson("onNexoFamiliaDisconnected", familiaCloudSync == null ? new JSONObject() : familiaCloudSync.getStatus());
         }
         @JavascriptInterface public void chooseNexoFamiliaImport() { MainActivity.this.chooseNexoFamiliaImport(); }
-        @JavascriptInterface public void repairBundledNexoFamiliaMigration() {
-            new Thread(() -> {
-                MainActivity.this.applyBundledNexoFamiliaMigration(true);
-                JSONObject audit = MainActivity.this.auditBundledNexoFamiliaPayload(MainActivity.this.readBundledNexoFamiliaPayload());
-                jsCallbackJson("onNexoFamiliaRepairDone", audit);
-            }, "nexo-familia-repair").start();
-        }
         @JavascriptInterface public String getNexoFamiliaImportStats() {
-            JSONObject stats = db.getNexoFamiliaImportStats();
-            SharedPreferences p = getSharedPreferences("nexo-familia-migration", MODE_PRIVATE);
-            try {
-                JSONObject audit = MainActivity.this.auditBundledNexoFamiliaPayload(MainActivity.this.readBundledNexoFamiliaPayload());
-                stats.put("expectedEvents", audit.optInt("expectedEvents", p.getInt("expectedEvents", 0)));
-                stats.put("verifiedEvents", audit.optInt("verifiedEvents", 0));
-                stats.put("expectedFamily", audit.optInt("expectedFamily", 0));
-                stats.put("verifiedFamily", audit.optInt("verifiedFamily", 0));
-                stats.put("expectedSelected", audit.optInt("expectedSelected", 0));
-                stats.put("verifiedSelected", audit.optInt("verifiedSelected", 0));
-                stats.put("familyPending", audit.optInt("familyPending", 0));
-                stats.put("familyDone", audit.optInt("familyDone", 0));
-                stats.put("selectedPending", audit.optInt("selectedPending", 0));
-                stats.put("selectedDone", audit.optInt("selectedDone", 0));
-                stats.put("expectedReminderRules", audit.optInt("expectedReminderRules", p.getInt("expectedReminderRules", 0)));
-                stats.put("verifiedReminderRules", audit.optInt("verifiedReminderRules", 0));
-                stats.put("missingEvents", audit.optJSONArray("missingEvents"));
-                stats.put("missingReminderRules", audit.optJSONArray("missingReminderRules"));
-                stats.put("complete", audit.optBoolean("complete", false));
-                stats.put("lastPreserved", p.getInt("lastPreserved", 0));
-                stats.put("lastSkipped", p.getInt("lastSkipped", 0));
-                stats.put("lastAttemptAt", p.getLong("lastAttemptAt", 0L));
-                stats.put("snapshotVersion", p.getString("snapshotVersion", ""));
-            } catch (Exception ignored) {}
-            return stats.toString();
+            return db.getNexoFamiliaImportStats().toString();
         }
         @JavascriptInterface public String getFamilyStyleSearchIndex() {
             JSONObject out=db.getFamilyStyleSearchIndex();
@@ -2369,13 +2146,9 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String getNexoFamiliaMembers() {
             try {
-                if (familiaCloudSync != null) {
-                    JSONArray cloudMembers = familiaCloudSync.getCachedMembers();
-                    if (cloudMembers.length() > 0) return cloudMembers.toString();
-                }
-                JSONArray members=MainActivity.this.readBundledNexoFamiliaPayload().optJSONArray("members");
-                return members==null?"[]":members.toString();
-            } catch(Exception ignored) { return "[]"; }
+                if (familiaCloudSync != null) return familiaCloudSync.getCachedMembers().toString();
+            } catch(Exception ignored) {}
+            return "[]";
         }
         @JavascriptInterface public String search(String q) { return db.search(q).toString(); }
         @JavascriptInterface public String synthesizeJournal(String text) { return db.synthesizeJournal(text).toString(); }
