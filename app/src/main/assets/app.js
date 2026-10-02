@@ -2042,7 +2042,7 @@ function transcriptionBytesLabel(bytes){
 }
 function transcriptionModelStatusSafe(){
   let status={};
-  try{status=transcriptionModelStatusSafe();}catch(e){status={ok:false,error:String(e?.message||e||'')};}
+  try{status=parseNative(NexoNative.getTranscriptionModelStatus(),{});}catch(e){status={ok:false,error:String(e?.message||e||'')};}
   if(!Array.isArray(status.models)||!status.models.length){
     const selected=['fast','high','max'].includes(status.selected)?status.selected:'fast';
     status={...status,ok:false,selected,qualityLabel:status.qualityLabel||'Rápida',device:status.device||{},models:TRANSCRIPTION_PROFILE_FALLBACKS.map((m,index)=>({
