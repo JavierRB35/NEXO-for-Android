@@ -2021,13 +2021,61 @@ function openPersonEditor(id=0){
   setTimeout(()=>$('#personName')?.focus(),70);
 }
 
+function transcriptionBytesLabel(bytes){
+  const n=Math.max(0,Number(bytes||0));
+  if(n>=1024*1024*1024)return (n/(1024*1024*1024)).toFixed(1)+' GB';
+  return Math.max(1,Math.round(n/(1000*1000)))+' MB';
+}
+function selectedTranscriptionModel(status){
+  const rows=Array.isArray(status?.models)?status.models:[];
+  return rows.find(m=>m&&m.selected)||rows.find(m=>m&&m.id===status?.selected)||rows[0]||{};
+}
+function renderTranscriptionQualitySettings(){
+  const host=$('#transcriptionQualitySettings');if(!host)return;
+  const status=parseNative(NexoNative.getTranscriptionModelStatus(),{}),models=Array.isArray(status.models)?status.models:[],device=status.device||{};
+  const ram=transcriptionBytesLabel(device.totalRamBytes||0),avail=transcriptionBytesLabel(device.availableRamBytes||0),storage=transcriptionBytesLabel(device.storageAvailableBytes||0);
+  const rows=models.map(m=>{
+    const disabled=!m.canRun,selected=!!m.selected,recommended=!!m.recommended,installed=!!m.installed;
+    const warn=String(m.resourceWarning||m.storageWarning||'').trim();
+    const badges=(recommended?'<span class="transcription-quality-badge recommended">Recomendado para este dispositivo</span>':'')+(selected?'<span class="transcription-quality-badge selected">Seleccionada</span>':'');
+    const stateText=installed?'Modelo instalado · '+transcriptionBytesLabel(m.installedBytes):'Modelo no instalado · descarga aprox. '+transcriptionBytesLabel(m.downloadBytes);
+    let action='';
+    if(installed)action='<button type="button" class="ghost-button" data-transcription-model-delete="'+escAttr(m.id)+'">Eliminar modelo</button>';
+    else if(selected)action='<button type="button" class="secondary-button" data-transcription-model-download="'+escAttr(m.id)+'" '+(m.canDownload?'':'disabled')+'>Descargar</button>';
+    else action='<span class="small muted">Selecciona este nivel para poder descargarlo.</span>';
+    return '<article class="transcription-quality-card '+(selected?'is-selected ':'')+(disabled?'is-disabled':'')+'"><label class="transcription-quality-choice"><input type="radio" name="transcriptionQuality" data-transcription-quality="'+escAttr(m.id)+'" '+(selected?'checked ':'')+(disabled?'disabled':'')+'><span><strong>'+esc(m.label||m.id)+'</strong><small>'+esc(m.modelName||'Whisper multilingüe INT8')+'</small></span></label>'+badges+'<p>'+esc(m.description||'')+'</p><div class="transcription-quality-meta"><span>'+stateText+'</span><span>RAM estimada: '+transcriptionBytesLabel(m.estimatedRamBytes)+'</span></div>'+(warn?'<div class="transcription-quality-warning">'+esc(warn)+'</div>':'')+'<div class="transcription-quality-actions">'+action+'<span class="small muted" data-transcription-model-progress="'+escAttr(m.id)+'"></span></div></article>';
+  }).join('');
+  host.innerHTML='<div class="transcription-device-summary"><strong>Recursos del dispositivo</strong><span>RAM total '+ram+' · disponible '+avail+' · almacenamiento libre '+storage+'</span></div>'+rows;
+  host.querySelectorAll('[data-transcription-quality]').forEach(input=>input.addEventListener('change',()=>{
+    const id=String(input.dataset.transcriptionQuality||'fast'),model=models.find(m=>m.id===id)||{};
+    if(!NexoNative.setTranscriptionQuality(id)){toast(model.resourceWarning||'Este nivel no es seguro con los recursos disponibles.','',null,6500);renderTranscriptionQualitySettings();return;}
+    toast('Calidad de transcripción: '+String(model.label||id));renderTranscriptionQualitySettings();
+    if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+  }));
+  host.querySelectorAll('[data-transcription-model-download]').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=String(btn.dataset.transcriptionModelDownload||'fast'),model=models.find(m=>m.id===id)||{};
+    if(!NexoNative.setTranscriptionQuality(id)){toast(model.resourceWarning||'Este modelo no es compatible con el dispositivo.');return;}
+    btn.disabled=true;btn.textContent='Descargando…';NexoNative.downloadTranscriptionModelQuality(id);
+    const p=host.querySelector('[data-transcription-model-progress="'+CSS.escape(id)+'"]');if(p)p.textContent='Preparando descarga…';
+  }));
+  host.querySelectorAll('[data-transcription-model-delete]').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=String(btn.dataset.transcriptionModelDelete||'fast'),model=models.find(m=>m.id===id)||{};
+    confirmGeneric('Eliminar modelo', 'Se eliminará '+String(model.label||'este modelo')+' del teléfono. Las grabaciones y transcripciones existentes se conservan.', ()=>{
+      const ok=!!NexoNative.deleteTranscriptionModel(id);
+      toast(ok?'Modelo eliminado':'No se puede eliminar un modelo mientras hay una transcripción en curso.');
+      renderTranscriptionQualitySettings();if(state.screen==='panel'&&state.lastPanel==='recordings')renderRecordingsPanel();
+    }, 'Eliminar');
+  }));
+}
+
 function renderMore(){
   $('#startScreen').value=String(NexoNative.getStartScreen()||'today');
   const lists=parseNative(NexoNative.getLists(),[]),preferred=Number(NexoNative.getPreferredShoppingList())||0;
   $('#preferredShoppingList').innerHTML='<option value="0">Elegir al pulsar Mi compra</option>'+lists.map(l=>`<option value="${Number(l.id)}">${esc(l.title)}</option>`).join('');
   $('#preferredShoppingList').value=lists.some(l=>Number(l.id)===preferred)?String(preferred):'0';
-  $$('[data-display-mode]').forEach(b=>{const selected=b.dataset.displayMode===state.displayMode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
+  $('[data-display-mode]').forEach(b=>{const selected=b.dataset.displayMode===state.displayMode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
   renderPeopleSettings();
+  renderTranscriptionQualitySettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
 }
