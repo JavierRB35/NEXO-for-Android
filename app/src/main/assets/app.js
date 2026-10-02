@@ -1224,6 +1224,8 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
     lastSaved:savedSignature,
     draftKey:noteDraftStorageKey(Number(id)||0)
   };
+  document.body.classList.add('note-editor-open');
+  requestAnimationFrame(updateFloatingActions);
   const titleEl=$('#noteTitle'),bodyEl=$('#noteBody');
 
   if(dirty)persistNoteRecoveryDraft();
@@ -2689,11 +2691,14 @@ function openModal(title,html){
 
 
 function closeModal(force=false){
+  // Los listeners DOM pasan un Event como primer argumento. Solo el booleano
+  // literal true puede saltarse las protecciones de cierre.
+  const forced=force===true;
   const noteWasOpen=!!state.noteEditor;
-  if(noteWasOpen&&!force&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
+  if(noteWasOpen&&!forced&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
 
   const journalWasOpen=!!state.journalEditor;
-  if(journalWasOpen&&!force){
+  if(journalWasOpen&&!forced){
     flushJournalAutosave();
     if(state.journalEditor?.saveFailed){
       toast('No se pudo guardar la entrada. El texto sigue en pantalla.');
@@ -2709,7 +2714,7 @@ function closeModal(force=false){
   if(journalWasOpen)state.journalEditor=null;
   const medicationWasOpen=!!state.medicationEditor;if(medicationWasOpen)state.medicationEditor=null;
   state.quoteEditor=null;state.placeEditor=null;
-  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
+  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','note-editor-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
   if(noteWasOpen)refreshNotesSurface();
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
   if(state.modalReturnFocus?.isConnected)state.modalReturnFocus.focus({preventScroll:true});state.modalReturnFocus=null;
