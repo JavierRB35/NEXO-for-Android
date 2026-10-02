@@ -2578,3 +2578,36 @@ body.startup-loading #app{visibility:hidden}
   .startup-splash__dot--cyan{opacity:1;transform:scale(1.08)}
   .startup-splash{transition:none}
 }
+
+
+/* Nexo 3.7.3 · selector de calidad de transcripción */
+.transcription-quality-settings{display:grid;gap:10px;margin-top:12px}
+.transcription-device-summary{
+  display:grid;gap:3px;padding:11px 12px;border:1px solid var(--line);border-radius:14px;
+  background:#f7f9f8;color:var(--text);
+}
+.transcription-device-summary strong{font-size:.88rem}
+.transcription-device-summary span{color:var(--muted);font-size:.76rem;line-height:1.4}
+.transcription-quality-card{
+  display:grid;gap:8px;padding:13px;border:1px solid var(--line);border-radius:16px;background:#fff;
+}
+.transcription-quality-card.is-selected{border-color:rgba(22,133,91,.48);box-shadow:0 0 0 2px rgba(22,133,91,.08)}
+.transcription-quality-card.is-disabled{background:#f7f8f8;opacity:.78}
+.transcription-quality-choice{display:flex!important;align-items:flex-start;gap:10px;color:var(--text)!important}
+.transcription-quality-choice input{width:20px;height:20px;min-width:20px;margin-top:2px}
+.transcription-quality-choice>span{display:grid;gap:2px}
+.transcription-quality-choice strong{font-size:.96rem;color:var(--text)}
+.transcription-quality-choice small{font-size:.73rem;color:var(--muted);line-height:1.35}
+.transcription-quality-card>p{margin:0;color:var(--muted);font-size:.78rem;line-height:1.45}
+.transcription-quality-badge{
+  justify-self:start;padding:4px 8px;border-radius:999px;font-size:.66rem;font-weight:850;line-height:1.2;
+}
+.transcription-quality-badge.recommended{background:#edf8f1;color:#197047}
+.transcription-quality-badge.selected{background:#eef4fc;color:#315e9e}
+.transcription-quality-meta{display:flex;gap:7px 12px;flex-wrap:wrap;color:var(--muted);font-size:.7rem}
+.transcription-quality-warning{
+  margin:0!important;padding:8px 9px;border-radius:10px;background:#fff4e7;color:#8a5d13!important;
+  font-size:.73rem!important;line-height:1.4;
+}
+.transcription-quality-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.transcription-quality-actions button{min-height:40px}
