@@ -1409,26 +1409,59 @@ public class MainActivity extends Activity {
     }
 
     private void downloadTranscriptionModel() {
+        downloadTranscriptionModel(TranscriptionModelManager.selectedQuality(this));
+    }
+
+    private void downloadTranscriptionModel(String quality) {
+        final String modelQuality=TranscriptionModelManager.normalizeQuality(quality);
+        final TranscriptionModelManager.Spec model=TranscriptionModelManager.spec(modelQuality);
         if(transcriptionModelDownloadActive){jsCallback("onTranscriptionModelError","La descarga ya está en curso.");return;}
         transcriptionModelDownloadActive=true;
         new Thread(()->{
             try{
-                TranscriptionModelManager.download(getApplicationContext(),(pct,msg)->{
-                    JSONObject o=new JSONObject();try{o.put("progress",pct);o.put("message",msg);}catch(Exception ignored){}
+                TranscriptionModelManager.download(getApplicationContext(),modelQuality,(pct,msg)->{
+                    JSONObject o=new JSONObject();
+                    try{o.put("progress",pct);o.put("message",msg);o.put("modelId",modelQuality);o.put("qualityLabel",model.label);}catch(Exception ignored){}
                     jsCallbackJson("onTranscriptionModelProgress",o);
                 });
                 jsCallbackJson("onTranscriptionModelReady",TranscriptionModelManager.status(getApplicationContext()));
-            }catch(Exception e){jsCallback("onTranscriptionModelError",e.getMessage()==null?"No se pudo descargar el modelo.":e.getMessage());}
-            finally{transcriptionModelDownloadActive=false;}
+            }catch(Exception e){
+                jsCallback("onTranscriptionModelError",e.getMessage()==null?"No se pudo descargar el modelo.":e.getMessage());
+            }finally{transcriptionModelDownloadActive=false;}
         },"NexoModelDownload").start();
+    }
+
+    private boolean anyTranscriptionRunning(){
+        try{
+            JSONArray rows=RecordingStore.list(this);
+            for(int i=0;i<rows.length();i++){
+                JSONObject row=rows.optJSONObject(i);if(row==null)continue;
+                String id=row.optString("id","");
+                if(id.isBlank())continue;
+                String state=TranscriptionStore.status(this,id).optString("state","");
+                if("running".equals(state)||"starting".equals(state))return true;
+            }
+        }catch(Exception ignored){}
+        return false;
     }
 
     private void startTranscription(String id){
         try{
-            if(!TranscriptionModelManager.installed(this)){jsCallback("onTranscriptionError","Primero descarga el modelo de transcripción.");return;}
-            File audio=RecordingStore.audioFile(this,id);if(!audio.isFile()||audio.length()==0){jsCallback("onTranscriptionError","No se encuentra el audio.");return;}
-            TranscriptionStore.writeStatus(this,id,"starting",1,"Preparando el archivo para transcripción…","starting");
-            Intent i=new Intent(this,TranscriptionService.class).setAction(TranscriptionService.ACTION_START).putExtra(TranscriptionService.EXTRA_ID,id);
+            String quality=TranscriptionModelManager.selectedQuality(this);
+            TranscriptionModelManager.Spec model=TranscriptionModelManager.spec(quality);
+            if(!TranscriptionModelManager.installed(this,quality)){
+                jsCallback("onTranscriptionError","Primero descarga el modelo "+model.label+" desde Ajustes → Grabadora / Transcripción.");
+                return;
+            }
+            try{TranscriptionModelManager.ensureSafeToLoad(this,quality);}
+            catch(Exception e){jsCallback("onTranscriptionError",e.getMessage()==null?"El dispositivo no tiene recursos suficientes para esta calidad.":e.getMessage());return;}
+            File audio=RecordingStore.audioFile(this,id);
+            if(!audio.isFile()||audio.length()==0){jsCallback("onTranscriptionError","No se encuentra el audio.");return;}
+            TranscriptionStore.writeStatus(this,id,"starting",1,"Preparando el archivo para transcripción…","starting",quality,model.label);
+            Intent i=new Intent(this,TranscriptionService.class)
+                    .setAction(TranscriptionService.ACTION_START)
+                    .putExtra(TranscriptionService.EXTRA_ID,id)
+                    .putExtra(TranscriptionService.EXTRA_QUALITY,quality);
             if(Build.VERSION.SDK_INT>=26)startForegroundService(i);else startService(i);
             jsCallback("onTranscriptionStarted",id);
         }catch(Exception e){jsCallback("onTranscriptionError","No se pudo iniciar la transcripción: "+e.getMessage());}
@@ -2253,7 +2286,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void shareRecording(String id) { MainActivity.this.shareRecording(id); }
         @JavascriptInterface public void exportRecording(String id) { MainActivity.this.exportRecording(id); }
         @JavascriptInterface public String getTranscriptionModelStatus() { return TranscriptionModelManager.status(MainActivity.this).toString(); }
+        @JavascriptInterface public boolean setTranscriptionQuality(String quality) { return TranscriptionModelManager.setSelected(MainActivity.this,quality); }
         @JavascriptInterface public void downloadTranscriptionModel() { MainActivity.this.downloadTranscriptionModel(); }
+        @JavascriptInterface public void downloadTranscriptionModelQuality(String quality) { MainActivity.this.downloadTranscriptionModel(quality); }
+        @JavascriptInterface public boolean deleteTranscriptionModel(String quality) {
+            if(MainActivity.this.anyTranscriptionRunning())return false;
+            return TranscriptionModelManager.delete(MainActivity.this,quality);
+        }
         @JavascriptInterface public String getTranscriptionStatus(String id) { return TranscriptionStore.status(MainActivity.this,id).toString(); }
         @JavascriptInterface public void transcribeRecording(String id) { MainActivity.this.startTranscription(id); }
         @JavascriptInterface public void cancelTranscription(String id) { MainActivity.this.cancelTranscription(id); }
