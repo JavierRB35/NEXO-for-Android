@@ -32,8 +32,7 @@ public final class GmailWatchEngine {
     // No se limita a INBOX: un filtro/regla de Gmail puede archivar automáticamente
     // un correo relevante. Se excluyen enviados y borradores, no el correo recibido.
     private static final String QUERY = "newer_than:30d -in:sent -in:drafts";
-    private static final String RECOVERY_QUERY = "newer_than:7d -in:sent -in:drafts";
-    private static final String FILTER_REVISION = "gmail-filter-v6:";
+    private static final String FILTER_REVISION = "gmail-filter-v7:";
     private static final long DEDUPE_WINDOW_MS = 45L * 60L * 1000L;
     private static final int MAX_TEXT_ATTACHMENT_BYTES = 256 * 1024;
 
@@ -72,7 +71,6 @@ public final class GmailWatchEngine {
                     db.rememberExternalInput("gmail", id, "gmail-baseline:" + id, 0L);
                 }
             }
-            recoverRecentIgnored(token, db, context);
             InputHubPrefs.setGmailEmail(context, account.getEmail());
             InputHubPrefs.setGmailBaselined(context, true);
             InputHubPrefs.setGmailLastSync(context, System.currentTimeMillis());
@@ -114,8 +112,8 @@ public final class GmailWatchEngine {
                             fingerprint.startsWith(FILTER_REVISION)) {
                         continue;
                     }
-                    // Los errores de red/parsing se reintentan en toda la ventana
-                    // de consulta. Baselines y filtros antiguos se limitan al recovery.
+                    // Los errores de red/parsing se reintentan. Los baselines y filtros anteriores
+                    // nunca se reevalúan automáticamente: el histórico requiere una acción explícita.
                     if (fingerprint.startsWith("gmail-error:")) {
                         if (!processMessage(token, db, context, id)) hadProcessingError = true;
                         continue;
@@ -125,7 +123,6 @@ public final class GmailWatchEngine {
                 if (!processMessage(token, db, context, id)) hadProcessingError = true;
             }
 
-            if (!recoverRecentIgnored(token, db, context)) hadProcessingError = true;
             InputHubPrefs.setGmailEmail(context, account.getEmail());
             InputHubPrefs.setGmailLastSync(context, System.currentTimeMillis());
             if (!hadProcessingError) {
@@ -166,23 +163,6 @@ public final class GmailWatchEngine {
         return ids;
     }
 
-    private static boolean recoverRecentIgnored(String token, DatabaseHelper db, Context context) throws Exception {
-        boolean ok = true;
-        for (String id : listMessageIds(token, RECOVERY_QUERY)) {
-            JSONObject previous = db.getExternalInputState("gmail", id);
-            if (previous.length() > 0) {
-                long captureId = previous.optLong("captureId", 0L);
-                String fingerprint = previous.optString("fingerprint", "");
-                if (captureId > 0 || db.inboxCaptureExists("gmail:" + id) ||
-                        fingerprint.startsWith(FILTER_REVISION)) {
-                    continue;
-                }
-            }
-            if (!processMessage(token, db, context, id)) ok = false;
-        }
-        return ok;
-    }
-
     private static boolean processMessage(
             String token,
             DatabaseHelper db,
@@ -197,7 +177,7 @@ public final class GmailWatchEngine {
             if (message != null) {
                 String text = message.analysisText();
                 JSONObject classification = RuleClassifier.classify(text).toJson();
-                candidate = NotificationCandidateFilter.shouldCapture(text, classification);
+                candidate = NotificationCandidateFilter.shouldCaptureGmail(text, classification);
 
                 if (candidate) {
                     // Gmail puede haber llegado primero por NotificationListener.
