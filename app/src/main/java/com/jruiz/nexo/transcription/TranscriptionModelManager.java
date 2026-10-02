@@ -241,6 +241,9 @@ public final class TranscriptionModelManager {
                 out.write(buf,0,n);done+=n;
                 if(len>0){int local=(int)Math.min(100,done*100/len),pct=from+(to-from)*local/100;if(pct!=last){last=pct;p.onProgress(pct,label);}}
             }
+        }catch(Exception e){
+            if(tmp.exists())tmp.delete();
+            throw e;
         }finally{con.disconnect();}
         if(tmp.length()<=1024){tmp.delete();throw new IOException("Descarga incompleta: "+target.getName());}
         if(sha!=null&&!sha.equalsIgnoreCase(sha256(tmp))){tmp.delete();throw new IOException("Verificación SHA-256 fallida: "+target.getName());}
