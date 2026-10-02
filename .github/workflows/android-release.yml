@@ -165,7 +165,7 @@ jobs:
           retention-days: 90
 
       - name: Publish GitHub Release
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-release]'))
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -173,8 +173,13 @@ jobs:
           FINAL_APK: ${{ steps.apk.outputs.path }}
         run: |
           set -euo pipefail
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release upload "${GITHUB_REF_NAME}" "${FINAL_APK}" "${FINAL_APK}.sha256" --clobber
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
           else
-            gh release create "${GITHUB_REF_NAME}" "${FINAL_APK}" "${FINAL_APK}.sha256" --title "Nexo ${VERSION_NAME}" --generate-notes
+            RELEASE_TAG="v${VERSION_NAME}"
+          fi
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" "${FINAL_APK}" "${FINAL_APK}.sha256" --clobber
+          else
+            gh release create "${RELEASE_TAG}" "${FINAL_APK}" "${FINAL_APK}.sha256" --target "${GITHUB_SHA}" --title "Nexo ${VERSION_NAME}" --generate-notes
           fi
