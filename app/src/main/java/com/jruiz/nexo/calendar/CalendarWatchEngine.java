@@ -66,19 +66,31 @@ public final class CalendarWatchEngine {
                 if (event.deleted) continue;
                 JSONObject state = db.getCalendarWatchState(event.id);
                 if (state.length() == 0) {
-                    long captureId = createOrUpdateCapture(context, db, event, 0L, 0L, "new");
-                    db.rememberCalendarEvent(event.id, event.fingerprint, captureId, 0L);
+                    long linkedItem = db.findMatchingCalendarItem(event.title, normalizedDueAt(event), event.allDay);
+                    long captureId = createOrUpdateCapture(context, db, event, 0L, linkedItem, "new");
+                    db.rememberCalendarEvent(event.id, event.fingerprint, captureId, linkedItem);
                     continue;
                 }
 
                 String previous = state.optString("fingerprint", "");
                 if (event.fingerprint.equals(previous)) {
-                    db.touchCalendarEvent(event.id);
+                    long linkedItem = state.optLong("linkedItemId", 0L);
+                    if (linkedItem <= 0L) {
+                        linkedItem = db.findMatchingCalendarItem(event.title, normalizedDueAt(event), event.allDay);
+                    }
+                    if (linkedItem > 0L) {
+                        db.rememberCalendarEvent(event.id, event.fingerprint, state.optLong("captureId", 0L), linkedItem);
+                    } else {
+                        db.touchCalendarEvent(event.id);
+                    }
                     continue;
                 }
 
                 long pendingCapture = state.optLong("captureId", 0L);
                 long linkedItem = state.optLong("linkedItemId", 0L);
+                if (linkedItem <= 0L) {
+                    linkedItem = db.findMatchingCalendarItem(event.title, normalizedDueAt(event), event.allDay);
+                }
                 long captureId = createOrUpdateCapture(context, db, event, pendingCapture, linkedItem, "updated");
                 db.rememberCalendarEvent(event.id, event.fingerprint, captureId, linkedItem);
             }
@@ -121,6 +133,13 @@ public final class CalendarWatchEngine {
         }
     }
 
+    private static long normalizedDueAt(EventSnapshot event) {
+        if (event == null || event.start <= 0L) return 0L;
+        if (!event.allDay) return event.start;
+        LocalDate date = Instant.ofEpochMilli(event.start).atZone(ZoneOffset.UTC).toLocalDate();
+        return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+
     private static JSONObject classification(EventSnapshot event, long linkedItemId, String changeType) {
         RuleClassifier.Result auto = RuleClassifier.classify(event.rawText());
         JSONObject o = auto.toJson();
@@ -135,9 +154,7 @@ public final class CalendarWatchEngine {
                     Instant.ofEpochMilli(event.end).atZone(ZoneId.systemDefault()).toLocalTime()
                             .withSecond(0).withNano(0).toString() : "";
 
-            long dueAt = event.allDay
-                    ? date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    : event.start;
+            long dueAt = normalizedDueAt(event);
 
             o.put("type", "event");
             o.put("title", event.title.isBlank() ? "Evento de Calendar" : event.title);
