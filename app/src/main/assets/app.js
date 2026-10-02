@@ -2276,7 +2276,7 @@ function renderInboxPanel(){
   const sourceState=parseNative(NexoNative.getCommunicationCaptureSettings(),{});
   const smsReady=!!sourceState.smsDirectEnabled&&!!sourceState.smsPermission&&!!sourceState.smsBaselined;
   const gmailReady=!!sourceState.gmailDirectEnabled&&!!sourceState.gmailAuthorized&&!!sourceState.gmailBaselined;
-  const githubNoise=Math.max(0,Number(NexoNative.getTechnicalGithubGmailPendingCaptureCount?.()||0));
+  const githubNoise=Math.max(0,Number(NexoNative.getTechnicalGithubGmailPendingCaptureCount()||0));
   let html=`<div class="inbox-source-health">
     <div><strong>Fuentes directas</strong><small><span class="${smsReady?'source-ok':'source-off'}">SMS ${smsReady?'activo':'no activo'}</span> · <span class="${gmailReady?'source-ok':'source-off'}">Gmail ${gmailReady?'activo':'no activo'}</span></small></div>
     <button id="inboxScanNowBtn" class="mini-button" type="button">Escanear ahora</button>
