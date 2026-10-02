@@ -1310,10 +1310,12 @@ function startRecordingPolling(initial){
 }
 function transcriptionStatus(id){return parseNative(NexoNative.getTranscriptionStatus(String(id)),{});}
 function transcriptionSummary(id){
-  const t=transcriptionStatus(id),stateName=String(t.state||'idle');
-  if(NexoNative.hasTranscription(String(id))||stateName==='done')return `<div class="transcription-status done"><strong>TRANSCRIPCIÓN TERMINADA</strong><span>El texto está guardado localmente.</span><button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver texto</button></div>`;
-  if(stateName==='running'||stateName==='starting')return `<div class="transcription-status running"><strong>${esc(t.message||'Transcribiendo…')}</strong><span>${Math.max(0,Number(t.progress||0))}%</span><progress max="100" value="${Math.max(0,Number(t.progress||0))}"></progress><button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar</button></div>`;
-  if(stateName==='error')return `<div class="transcription-status error"><strong>ERROR DE TRANSCRIPCIÓN</strong><span>${esc(t.message||'El motor no pudo completar la transcripción.')}</span><button class="secondary-button" data-transcription-diagnostic="${escAttr(id)}">Copiar diagnóstico</button></div>`;
+  const t=transcriptionStatus(id),stateName=String(t.state||'idle'),quality=String(t.qualityLabel||'').trim();
+  const qualityText=quality?'Calidad: '+quality:'';
+  if(NexoNative.hasTranscription(String(id))||stateName==='done')return `<div class="transcription-status done"><strong>TRANSCRIPCIÓN TERMINADA</strong><span>${esc(qualityText?qualityText+' · El texto está guardado localmente.':'El texto está guardado localmente.')}</span><button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver texto</button></div>`;
+  if(stateName==='running'||stateName==='starting')return `<div class="transcription-status running"><strong>TRANSCRIBIENDO${quality?' · '+esc(quality):''}</strong><span>${esc(t.message||'Procesando audio…')} · ${Math.max(0,Number(t.progress||0))}%</span><progress max="100" value="${Math.max(0,Number(t.progress||0))}"></progress><button class="secondary-button" data-transcription-cancel="${escAttr(id)}">Cancelar</button></div>`;
+  if(stateName==='error')return `<div class="transcription-status error"><strong>ERROR DE TRANSCRIPCIÓN${quality?' · '+esc(quality):''}</strong><span>${esc(t.message||'El motor no pudo completar la transcripción.')}</span><button class="secondary-button" data-transcription-diagnostic="${escAttr(id)}">Copiar diagnóstico</button></div>`;
+  if(stateName==='cancelled')return `<div class="transcription-status"><strong>Transcripción cancelada</strong>${quality?`<span>Calidad: ${esc(quality)}</span>`:''}</div>`;
   return '';
 }
 function stopTranscriptionPolling(){if(state.transcriptionPoll){clearInterval(state.transcriptionPoll);state.transcriptionPoll=0;}}
