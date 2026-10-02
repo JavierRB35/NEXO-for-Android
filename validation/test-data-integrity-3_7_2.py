@@ -32,10 +32,12 @@ assert 'resetAllAppointmentsForNexoFamiliaMigration()' in cloud
 assert 'deferAlarmSideEffects' in importer
 assert 'scheduleCommittedFamiliaReminders()' in cloud
 
-# P1-07: no se borran las advertencias del parser al clasificar citas.
+# P1-07: una cita voluntariamente sin fecha es válida, pero errores temporales siguen en revisión.
 classification=service[service.index('public JSONObject classifyAppointment'):service.index('private void applyLearnedCategory')]
-assert 'r.needsReview = false' not in classification
+assert 'r.dueAt <= 0 && !r.invalidDate && !r.invalidTime && !r.ambiguousTime' in classification
+assert 'r.needsReview = false' in classification
 assert 'r.reason = ""' not in classification
+assert "Revisa fecha/hora:" in js and "a.invalidDate||a.invalidTime||a.ambiguousTime" in js
 
 # P1-08: texto idéntico no basta si ambos remitentes son diferentes.
 dedupe=db[db.index('public long findRecentEquivalentInboxCapture'):db.index('private static boolean sameInboxSourceFamily')]
