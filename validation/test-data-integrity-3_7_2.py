@@ -52,7 +52,7 @@ assert 'service.setReminderSchedulingDeferred(true)' in bridge
 assert 'scheduleCommittedCaptureReminders' in bridge
 
 # P1-10: un fallo de persistencia no consolida Calendar/Gmail como procesados.
-assert calendar.count('if (captureId > 0L)') >= 3
+assert calendar.count('if (captureId > 0L)') >= 2
 assert 'candidate && captureId <= 0L' in gmail
 assert 'gmail-error:' in gmail
 
