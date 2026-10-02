@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.7.4 · versionCode 97 · Hotfix selector de transcripción
+
+- Corrige el caso en que **Grabadora / Transcripción** se abría pero las opciones Rápida, Alta precisión y Máxima precisión no se mostraban.
+- El estado nativo de modelos ya no puede dejar la interfaz vacía: cada perfil conserva una estructura válida aunque falle una consulta concreta de RAM, almacenamiento o archivos.
+- La interfaz incorpora un fallback seguro y visible para seguir mostrando los tres perfiles cuando el estado nativo llegue incompleto.
+- En modo degradado, Nexo mantiene únicamente el perfil Rápida disponible por seguridad y deshabilita los perfiles pesados hasta poder comprobar recursos.
+- Se añade una regresión de runtime que simula una respuesta nativa incompleta y exige que aparezcan las tres tarjetas.
+- Sin cambios en el motor sherpa-onnx, los modelos, las grabaciones, las transcripciones existentes, la base de datos v25 ni el baseline AndroidIDE.
+
 ## 3.7.3 · versionCode 96 · Notas y calidad de transcripción
 
 - El micrófono vuelve a estar disponible al editar una nota existente y permite continuar dictando sobre esa misma nota.
