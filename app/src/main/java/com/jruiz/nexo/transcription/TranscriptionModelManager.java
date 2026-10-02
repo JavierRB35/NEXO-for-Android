@@ -59,7 +59,7 @@ public final class TranscriptionModelManager {
             "0b8fb1304b6109976038efff5ace81720e00386f3ff6b54ee8c75291ca0a1e11",
             "9759d217388a01b3a4c7c15533201067b48ae819c4daafc8624e64b9409dc02d",
             161_000_000L,512L*MIB,3L*GIB,800L*MIB,
-            "Menor consumo y mayor velocidad. Adecuada para notas y conversaciones sencillas.");
+            "Menor consumo y mayor velocidad. Recomendada para notas, conversaciones sencillas y cuando prima la rapidez.");
 
     private static final Spec HIGH=new Spec(
             QUALITY_HIGH,"Alta precisión","Whisper Small multilingüe INT8","sherpa-onnx-whisper-small",
@@ -68,7 +68,7 @@ public final class TranscriptionModelManager {
             "4cbe7b22fa9026b843b60a68640c747de05bafb1a11b57edc0e66c232d9f33a9",
             "acad50b5c782696e91b55914cc5ab4f756f1532f76e22aa6fc615f39fb69a8ee",
             376_000_000L,1150L*MIB,6L*GIB,2L*GIB,
-            "Mejor equilibrio para reuniones, nombres y frases complejas.");
+            "Mejor reconocimiento de reuniones, nombres y frases complejas. Recomendada para reuniones importantes.");
 
     private static final Spec MAX=new Spec(
             QUALITY_MAX,"Máxima precisión","Whisper Medium multilingüe INT8","sherpa-onnx-whisper-medium",
@@ -77,7 +77,7 @@ public final class TranscriptionModelManager {
             "3a357b9d1ece665fac58ef714dd7e00306bab7cdfb0b39146457e5a19ca71752",
             "9de5f1b0c420e6bb01a7bcc966f2c73dbc75383b4c6005b4c024d44f8cda7bb5",
             947_000_000L,2400L*MIB,10L*GIB,4L*GIB,
-            "Mayor calidad, con bastante más memoria, batería y tiempo de procesamiento.");
+            "Mayor calidad, con bastante más memoria, batería y tiempo de procesamiento. Solo para dispositivos con recursos suficientes.");
 
     private static final Spec[] SPECS={FAST,HIGH,MAX};
     private TranscriptionModelManager(){}
