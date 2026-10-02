@@ -1699,6 +1699,21 @@ main{max-width:720px}
 .inbox-source-health .source-ok{color:var(--primary);font-weight:700}
 .inbox-source-health .source-off{color:#8a6500;font-weight:700}
 .inbox-source-health .mini-button{flex:0 0 auto;min-height:40px}
+.inbox-cleanup-card{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:12px;
+  border:1px solid #ead7b0;border-radius:16px;background:#fff9ec;
+}
+.inbox-cleanup-card>div{display:grid;gap:3px;min-width:0}
+.inbox-cleanup-card strong{font-size:.84rem;color:#6d4d0f}
+.inbox-cleanup-card small{font-size:.73rem;line-height:1.4;color:#7b6a45}
+.inbox-cleanup-card .mini-button{flex:0 0 auto;min-height:40px}
+.inbox-candidate-reason{
+  display:grid;gap:3px;margin-top:9px;padding:9px 10px;border-radius:12px;background:#f7f9f8;
+  color:#536174;font-size:.74rem;line-height:1.4;
+}
+.inbox-candidate-reason strong{color:#334155;font-size:.72rem;text-transform:uppercase;letter-spacing:.025em}
+.inbox-candidate-reason span{color:#465568}
+.inbox-candidate-reason small{color:#7a8594;font-size:.67rem}
 
 
 /* Nexo 3.7.0-beta9 · Inicio replicado de Nexo Familia */
