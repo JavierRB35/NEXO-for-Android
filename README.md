@@ -1,19 +1,19 @@
-# Nexo 3.7.7
+# Nexo 3.7.8
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.7**, `versionCode 100`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
+Esta rama de estabilización corresponde a **Nexo 3.7.8**, `versionCode 101`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
 
 ## Base estable
 
-Nexo 3.7.7 mantiene la base funcional de 3.7.6 y corrige la edición de series recurrentes para que cambiar participantes u otros metadatos no pueda convertir una aparición futura en el final temporal del evento base.
+Nexo 3.7.8 mantiene la base funcional de 3.7.7 y hace visibles los avisos configurados directamente en las tarjetas de eventos mediante una campanilla.
 
 Entre los comportamientos ya integrados:
 
 - Inicio ligero con **Hoy**, **7 días**, **Inbox**, **Agenda**, accesos directos y **Próximamente**.
 - Splash de arranque con identidad Nexo, animación CSS de tres puntos, mínimo de 3,5 s y salida de seguridad a los 5 s.
 - Durante el splash: escaneo resiliente de Inbox y precarga del resumen de Inicio en paralelo.
-- Agenda y Calendario con edición de eventos, recurrencias, participantes, categorías, ubicaciones y festivos.
+- Agenda y Calendario con edición de eventos, recurrencias, participantes, categorías, ubicaciones, festivos e indicador de campanilla cuando existen avisos configurados.
 - Voz contextual según pantalla y captura universal **Habla con Nexo**.
 - Notas con guardado explícito, aviso al salir con cambios y dictado contextual para continuar una nota abierta.
 - Listas, Documentos, Cuaderno, Frases, Medicación, Grabaciones, Lugares y Aparcamiento.
@@ -49,7 +49,7 @@ El procedimiento se documenta en [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.
 Desde la raíz del proyecto en el teléfono:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_7"
+cd "/storage/emulated/0/Download/Nexo_3_7_8"
 sh build-on-phone.sh
 ```
 
@@ -58,7 +58,7 @@ No ejecutar `./gradlew` directamente desde `Download`.
 El script conserva la firma Release permanente, usa el baseline de AndroidIDE y copia el APK final a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_7.apk
+/storage/emulated/0/Download/Nexo_3_7_8.apk
 ```
 
 ## Validación
