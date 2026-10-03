@@ -3,6 +3,7 @@ from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 cloud=(root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaCloudSync.java').read_text(encoding='utf-8')
 importer=(root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.java').read_text(encoding='utf-8')
+db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf-8')
 js=(root/'app/src/main/assets/app.js').read_text(encoding='utf-8')
 bell=(root/'validation/test-reminder-bell.py').read_text(encoding='utf-8')
 
@@ -18,6 +19,16 @@ assert 'sourceChanged(event, previousSource)' in importer
 assert 'reminderRulesChanged(remoteRules, previousRules)' in importer
 assert 'updatedFromSource' in importer
 assert 'unchangedExisting' in importer
+
+# Un evento borrado en Android queda suprimido localmente y no se reimporta.
+assert 'isNexoFamiliaEventSuppressed' in db
+assert 'NEXO_FAMILIA_SUPPRESSED_KEY' in db
+assert 'setNexoFamiliaSuppressedForLocalItem(db, id, deleted);' in db
+assert 'setNexoFamiliaSuppressedForLocalItem(db, id, true);' in db
+assert 'if (db.isNexoFamiliaEventSuppressed(id))' in importer
+assert 'suppressedLocal++' in importer
+assert '.put("suppressedLocal", suppressedLocal)' in importer
+assert 'suppressedLocalMappings' in db
 
 # Mezcla de tres vías: remoto nuevo / remoto anterior / estado local.
 assert 'mergeRemoteChanges(remoteLocal,previousLocal,currentLocal)' in importer.replace(' ','')
@@ -45,4 +56,4 @@ home=js[js.index('function homeUpcomingCard'):js.index('function bindHomeUpcomin
 assert 'upcoming-title-row' not in home
 assert 'Campanilla de avisos' in bell
 
-print('Nexo Familia incremental + campanilla horaria: OK')
+print('Nexo Familia incremental + supresión local + campanilla horaria: OK')
