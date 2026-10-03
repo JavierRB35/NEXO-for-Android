@@ -240,8 +240,11 @@ public final class NexoFamiliaCloudSync {
     }
 
     private JSONObject fetchPayload(String accessToken) throws Exception {
-        JSONArray events = restArray("/rest/v1/events?select=*&order=created_at.asc", accessToken);
-        JSONArray rules = restArray("/rest/v1/event_reminder_rules?select=*&order=created_at.asc", accessToken);
+        // Nexo Android sincroniza la agenda familiar. Las reservas de vehículo
+        // comparten tabla en Nexo Familia desde 2026-10-03, pero no son eventos
+        // de agenda y no deben convertirse en citas Android.
+        JSONArray events = restArray("/rest/v1/events?select=*&event_kind=eq.event&order=created_at.asc", accessToken);
+        JSONArray allRules = restArray("/rest/v1/event_reminder_rules?select=*&order=created_at.asc", accessToken);
         JSONArray memberships = restArray("/rest/v1/family_members?select=family_id,user_id,role,status&status=eq.active", accessToken);
         JSONArray profiles = restArray("/rest/v1/profiles?select=id,full_name,color", accessToken);
 
@@ -268,6 +271,23 @@ public final class NexoFamiliaCloudSync {
             member.put("full_name", profile == null ? "Miembro" : profile.optString("full_name", "Miembro"));
             member.put("color", profile == null ? "#3158D4" : profile.optString("color", "#3158D4"));
             members.put(member);
+        }
+
+        // Conserva únicamente avisos cuyo evento forma parte de la agenda
+        // sincronizable. Esto protege futuras extensiones de la tabla events.
+        Set<String> eventIds = new HashSet<>();
+        for (int i = 0; i < events.length(); i++) {
+            JSONObject event = events.optJSONObject(i);
+            if (event != null) {
+                String id = event.optString("id", "").trim();
+                if (!id.isBlank()) eventIds.add(id);
+            }
+        }
+        JSONArray rules = new JSONArray();
+        for (int i = 0; i < allRules.length(); i++) {
+            JSONObject rule = allRules.optJSONObject(i);
+            if (rule == null) continue;
+            if (eventIds.contains(rule.optString("event_id", "").trim())) rules.put(rule);
         }
 
         JSONObject audit = new JSONObject();
