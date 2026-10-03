@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.7.14 · versionCode 107 · Respetar eventos eliminados localmente
+
+- Un evento procedente de Nexo Familia que se elimina en Nexo Android queda **suprimido solo en Android** y no vuelve a importarse al pulsar **Sincronizar eventos**.
+- La decisión se conserva por UUID en la metadata local de compatibilidad, sin escribir ni borrar nada en Nexo Familia.
+- Restaurar el evento desde la papelera de Nexo Android elimina la supresión y permite que vuelva a sincronizarse normalmente.
+- Vaciar la papelera conserva la supresión para que el evento tampoco reaparezca después de un borrado definitivo local.
+- Se mantiene compatibilidad con eventos eliminados en versiones anteriores: un mapping conocido con item local eliminado se interpreta como supresión intencional.
+- Las supresiones locales dejan de contarse como mappings rotos, evitando falsos errores de integridad durante sincronizaciones posteriores.
+- Se amplían las regresiones de sincronización incremental y el workflow de publicación las ejecuta antes de generar la Release.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.13 · versionCode 106 · Reparación automática de reservas de coche
 
 - Al arrancar, Nexo repara automáticamente las reservas de vehículo ya importadas que todavía no tenían el subtipo local `vehicle_reservation`.
