@@ -409,7 +409,8 @@ function updateFloatingActions(){
   }
 
   // Navigation/system/read-only contexts do not create content.
-  if(state.screen==='tools'||state.screen==='more'||state.screen==='about'){voiceVisible=false;addVisible=false;}
+  if(state.screen==='tools'||state.screen==='more'){voiceVisible=false;addVisible=false;}
+  if(state.screen==='about'){voiceVisible=false;addVisible=false;}
   if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}
   if(panel==='parking'){voiceVisible=false;}
   if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}

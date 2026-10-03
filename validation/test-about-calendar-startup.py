@@ -15,7 +15,8 @@ for token in [
     assert token in html, token
 assert "if(!['today','save','search','more','calendar','tools','panel','about'].includes(screen))return;" in js
 assert "else if(screen==='about')renderAbout();" in js
-assert "state.screen==='tools'||state.screen==='more'||state.screen==='about'" in js
+assert "if(state.screen==='tools'||state.screen==='more'){voiceVisible=false;addVisible=false;}" in js
+assert "if(state.screen==='about'){voiceVisible=false;addVisible=false;}" in js
 assert "function renderAbout()" in js
 assert "function copyAboutDiagnostics()" in js
 assert "NexoNative.getAboutInfo()" in js
