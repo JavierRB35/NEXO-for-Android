@@ -590,6 +590,44 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return out;
     }
 
+    /**
+     * Repara instalaciones que ya habían importado reservas de vehículo desde Nexo Familia
+     * antes de conservar el subtipo local. Usa únicamente metadata ya almacenada, no requiere
+     * red ni modifica fechas, títulos, participantes, avisos o estados.
+     */
+    public int repairNexoFamiliaVehicleReservationMarkers() {
+        SQLiteDatabase db = getWritableDatabase();
+        int repaired = 0;
+        boolean ownsTransaction = !db.inTransaction();
+        if (ownsTransaction) db.beginTransaction();
+        try (Cursor c = db.rawQuery(
+                "SELECT nf.local_item_id,nf.raw_json " +
+                "FROM nexo_familia_events nf JOIN items i ON i.id=nf.local_item_id " +
+                "WHERE i.deleted_at=0 AND i.subcategory<>'vehicle_reservation'", null)) {
+            while (c.moveToNext()) {
+                long localItemId = c.getLong(0);
+                String raw = c.getString(1);
+                if (localItemId <= 0L || raw == null || raw.isBlank()) continue;
+                try {
+                    JSONObject source = new JSONObject(raw);
+                    boolean reservation =
+                            "vehicle_reservation".equals(cleanJsonString(source, "event_kind")) ||
+                            !cleanJsonString(source, "vehicle_id").isBlank() ||
+                            !cleanJsonString(source, "reservation_user_id").isBlank();
+                    if (!reservation) continue;
+                    ContentValues values = new ContentValues();
+                    values.put("subcategory", "vehicle_reservation");
+                    repaired += db.update("items", values, "id=? AND deleted_at=0",
+                            new String[]{String.valueOf(localItemId)});
+                } catch (Exception ignored) {}
+            }
+            if (ownsTransaction) db.setTransactionSuccessful();
+        } finally {
+            if (ownsTransaction) db.endTransaction();
+        }
+        return repaired;
+    }
+
     public JSONObject getNexoFamiliaImportStats() {
         JSONObject out = new JSONObject();
         try {
