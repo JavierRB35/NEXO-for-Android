@@ -688,8 +688,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             out.put("mappings", scalar("SELECT COUNT(*) FROM nexo_familia_events"));
             out.put("reminders", scalar("SELECT COUNT(*) FROM nexo_familia_reminders"));
             out.put("metadataComplete", scalar("SELECT COUNT(*) FROM nexo_familia_events WHERE raw_json<>'' AND raw_json<>'{}'"));
-            out.put("brokenMappings", scalar("SELECT COUNT(*) FROM nexo_familia_events nf LEFT JOIN items i ON i.id=nf.local_item_id WHERE i.id IS NULL OR i.deleted_at<>0"));
             out.put("emptySourceIds", scalar("SELECT COUNT(*) FROM nexo_familia_events WHERE source_event_id=''"));
+
+            long suppressed = 0L, broken = 0L;
+            try (Cursor c = getReadableDatabase().rawQuery(
+                    "SELECT nf.raw_json,i.id,i.deleted_at " +
+                    "FROM nexo_familia_events nf LEFT JOIN items i ON i.id=nf.local_item_id", null)) {
+                while (c.moveToNext()) {
+                    String raw = c.getString(0);
+                    boolean hasItem = !c.isNull(1);
+                    boolean deleted = hasItem && c.getLong(2) > 0L;
+                    boolean marker = false;
+                    try {
+                        JSONObject source = new JSONObject(raw == null || raw.isBlank() ? "{}" : raw);
+                        marker = source.optBoolean(NEXO_FAMILIA_SUPPRESSED_KEY, false);
+                    } catch (Exception ignored) {}
+                    boolean metadataComplete = raw != null && !raw.isBlank() && !"{}".equals(raw.trim());
+                    boolean locallySuppressed = marker || deleted || (!hasItem && metadataComplete);
+                    if (locallySuppressed) suppressed++;
+                    else if (!hasItem) broken++;
+                }
+            }
+            out.put("suppressedLocalMappings", suppressed);
+            out.put("brokenMappings", broken);
         } catch (Exception ignored) {}
         return out;
     }
