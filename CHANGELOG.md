@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.7.11 · versionCode 104 · Acerca de Nexo y arranque del Calendario
+
+- El logo y la versión de la cabecera pasan a ser pulsables y abren una nueva pantalla **Acerca de Nexo**.
+- La pantalla muestra identidad, versión instalada, tipo Release, `versionCode`, información de privacidad y desarrollo.
+- Los detalles técnicos quedan plegados e incluyen `applicationId`, API mínima/objetivo, esquema de base de datos, arquitectura, dispositivo y API Android instalada.
+- Se añade **Copiar diagnóstico**, limitado a información técnica y sin contraseñas, tokens, claves ni contenido personal.
+- Corrige el primer arranque con Calendario como pantalla inicial: el estado se reinicia explícitamente a la fecha de hoy antes de navegar.
+- El Calendario pinta primero el mes y la cuadrícula base y después solicita eventos y festivos, evitando la pantalla vacía si una consulta nativa falla durante la inicialización.
+- La consulta de eventos y la carga de festivos son tolerantes a fallos; además se realiza un segundo render seguro en el siguiente frame cuando Calendario es la pantalla de apertura.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.10 · versionCode 103 · Sincronización incremental con Nexo Familia
 
 - Corrige el caso en que Nexo Android descargaba correctamente Nexo Familia pero ignoraba cualquier cambio en eventos cuyo UUID ya había sido importado.
