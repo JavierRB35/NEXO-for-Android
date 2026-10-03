@@ -358,6 +358,59 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         } catch (Exception ignored) { return 0L; }
     }
 
+    private static final String NEXO_FAMILIA_SUPPRESSED_KEY = "_nexo_android_suppressed";
+
+    /**
+     * Un evento importado y eliminado en Android queda suprimido solo localmente.
+     * La marca vive dentro de la metadata de compatibilidad para no cambiar el esquema.
+     */
+    public boolean isNexoFamiliaEventSuppressed(String sourceEventId) {
+        if (sourceEventId == null || sourceEventId.isBlank()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT local_item_id,raw_json FROM nexo_familia_events WHERE source_event_id=? LIMIT 1",
+                new String[]{sourceEventId})) {
+            if (!c.moveToFirst()) return false;
+            long localItemId = c.getLong(0);
+            String raw = c.getString(1);
+            try {
+                JSONObject source = new JSONObject(raw == null || raw.isBlank() ? "{}" : raw);
+                if (source.optBoolean(NEXO_FAMILIA_SUPPRESSED_KEY, false)) return true;
+            } catch (Exception ignored) {}
+
+            if (localItemId <= 0L) return false;
+            try (Cursor item = getReadableDatabase().rawQuery(
+                    "SELECT deleted_at FROM items WHERE id=? LIMIT 1",
+                    new String[]{String.valueOf(localItemId)})) {
+                if (item.moveToFirst()) return item.getLong(0) > 0L;
+            }
+
+            // Si existe una mapping completa pero el item fue purgado de la papelera,
+            // se conserva la decisión del usuario de no volver a importarlo.
+            return raw != null && !raw.isBlank() && !"{}".equals(raw.trim());
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void setNexoFamiliaSuppressedForLocalItem(SQLiteDatabase db, long localItemId, boolean suppressed) {
+        if (db == null || localItemId <= 0L) return;
+        try (Cursor c = db.rawQuery(
+                "SELECT raw_json FROM nexo_familia_events WHERE local_item_id=? LIMIT 1",
+                new String[]{String.valueOf(localItemId)})) {
+            if (!c.moveToFirst()) return;
+            String raw = c.getString(0);
+            JSONObject source = new JSONObject(raw == null || raw.isBlank() ? "{}" : raw);
+            if (suppressed) source.put(NEXO_FAMILIA_SUPPRESSED_KEY, true);
+            else source.remove(NEXO_FAMILIA_SUPPRESSED_KEY);
+
+            ContentValues values = new ContentValues();
+            values.put("raw_json", source.toString());
+            values.put("updated_at", System.currentTimeMillis());
+            db.update("nexo_familia_events", values, "local_item_id=?",
+                    new String[]{String.valueOf(localItemId)});
+        } catch (Exception ignored) {}
+    }
+
     public void rememberNexoFamiliaEvent(String sourceEventId, long localItemId, JSONObject source) {
         if (sourceEventId == null || sourceEventId.isBlank() || localItemId <= 0 || source == null) return;
         long now = System.currentTimeMillis();
@@ -1596,8 +1649,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues v = new ContentValues();
         v.put("deleted_at", deleted ? System.currentTimeMillis() : 0);
         v.put("updated_at", System.currentTimeMillis());
-        int rows = getWritableDatabase().update("items", v, "id=?", new String[]{String.valueOf(id)});
-        if (rows > 0) addHistory(deleted ? "eliminado" : "restaurado", old.optString("type","item"), id, old.optString("title","Elemento"));
+        SQLiteDatabase db = getWritableDatabase();
+        int rows = db.update("items", v, "id=?", new String[]{String.valueOf(id)});
+        if (rows > 0) {
+            // Para elementos procedentes de Nexo Familia, borrar significa ocultar
+            // localmente: la siguiente sincronización no debe resucitarlos.
+            setNexoFamiliaSuppressedForLocalItem(db, id, deleted);
+            addHistory(deleted ? "eliminado" : "restaurado", old.optString("type","item"), id, old.optString("title","Elemento"));
+        }
         return rows > 0;
     }
 
@@ -1619,6 +1678,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
         try {
+            // Conserva la supresión incluso si el usuario vacía la papelera.
+            setNexoFamiliaSuppressedForLocalItem(db, id, true);
             db.delete("reminders", "item_id=?", new String[]{String.valueOf(id)});
             db.delete("recurrence_exceptions", "series_id=?", new String[]{String.valueOf(id)});
             db.delete("item_people", "item_id=?", new String[]{String.valueOf(id)});
