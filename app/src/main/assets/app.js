@@ -169,7 +169,8 @@ function familyStyleSearch(query,includeHistorical=false){
 }
 function familySearchCard(item,index,home=false){
   const avatars=item.kind==='item'&&isAppointmentType(item.raw?.type)?eventParticipantAvatarsHtml(item.raw,'event-participant-avatars--search'):'';
-  return '<button type="button" class="family-result-card" data-family-search-result="'+index+'" data-family-search-home="'+(home?'1':'0')+'"><span class="family-result-main"><span class="pill">'+esc(item.type)+'</span><strong>'+esc(item.title)+'</strong>'+(item.detail?'<span>'+esc(item.detail)+'</span>':'')+avatars+'</span>'+uiIcon('right')+'</button>';
+  const reminder=item.kind==='item'&&isAppointmentType(item.raw?.type)?eventReminderBellHtml(item.raw,'event-reminder-indicator--search'):'';
+  return '<button type="button" class="family-result-card" data-family-search-result="'+index+'" data-family-search-home="'+(home?'1':'0')+'"><span class="family-result-main"><span class="pill">'+esc(item.type)+'</span><span class="family-result-title-row"><strong>'+esc(item.title)+'</strong>'+reminder+'</span>'+(item.detail?'<span>'+esc(item.detail)+'</span>':'')+avatars+'</span>'+uiIcon('right')+'</button>';
 }
 function openFamilySearchResult(item){
   if(!item)return;
@@ -646,6 +647,10 @@ function eventParticipantAvatarsHtml(item,extraClass=''){
   const more=participants.length>4?'<span class="event-participant-avatar event-participant-avatar--more">+'+(participants.length-4)+'</span>':'';
   return '<span class="event-participant-avatars '+escAttr(extraClass)+'" aria-label="Personas incluidas">'+avatars+more+'</span>';
 }
+function eventReminderBellHtml(item,extraClass=''){
+  if(!item?.hasReminder||!isAppointmentType(item.type))return '';
+  return '<span class="event-reminder-indicator '+escAttr(extraClass)+'" role="img" aria-label="Aviso configurado" title="Aviso configurado">'+uiIcon('bell')+'</span>';
+}
 function homeUpcomingCard(item){
   const d=new Date(Number(item.dueAt)),theme=familyCategoryTheme(item.category),icon=familyCategoryIcon(item.category),participants=homeParticipantData(item);
   const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase();
@@ -657,7 +662,7 @@ function homeUpcomingCard(item){
   const avatars=eventParticipantAvatarsHtml(item);
   return '<button type="button" class="upcoming-card upcoming-card--link" style="'+style+'" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
     '<span class="date-tile"><span class="date-tile__weekday">'+esc(weekday)+'</span><strong>'+String(d.getDate()).padStart(2,'0')+'</strong><small>'+esc(month)+'</small></span>'+
-    '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(item.title||'Evento')+'</strong>'+(item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+avatars+'</span>'+
+    '<span class="upcoming-card__body"><span class="upcoming-title-row"><strong class="upcoming-title">'+esc(item.title||'Evento')+'</strong>'+eventReminderBellHtml(item,'event-reminder-indicator--home')+'</span>'+(item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+avatars+'</span>'+
     '<span class="upcoming-card__aside"><span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span><span class="upcoming-card__time">'+uiIcon('clock')+(item.allDay===true||item.hasTime===false?'Todo el día':esc(fmtTime(item.dueAt)))+'</span></span></button>';
 }
 function bindHomeUpcoming(){
@@ -1524,7 +1529,7 @@ function agendaCard(i,showDate=false){
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`;
   const when=i.seriesEnded?'Serie sin próximas fechas':!i.dueAt?'Sin fecha':showDate?fmtDueItem(i):fmtAgendaTime(i);
   const description=String(i.body||'').trim(),title=String(i.title||'Cita');
-  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${eventParticipantAvatarsHtml(i,'event-participant-avatars--agenda')}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
+  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${eventReminderBellHtml(i,'event-reminder-indicator--agenda')}${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${eventParticipantAvatarsHtml(i,'event-participant-avatars--agenda')}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
 }
 
 function prepareHomeCapture(type='',text=''){
@@ -1541,7 +1546,7 @@ function itemCard(i) {
   const done=(i.status==='done'||i.occurrenceStatus==='done'),cancelled=i.status==='cancelled';
   return `<div class="item-card ${done?'item-done':''}" role="button" tabindex="0" data-item-card-open="${id}" data-item-card-occurrence="${occ}" data-item-card-recurring="${recurring?'1':'0'}">
     <div class="item-top"><div class="item-title">${esc(i.title)}</div><div class="record-card-actions">${recordIconAction('edit','Editar',open)}${recordIconAction('share','Compartir',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>
-    <div class="item-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag">${esc(due)}</span>`:''}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':cancelled?'<span class="meta-tag done-tag">Cancelada</span>':''}</div>
+    <div class="item-meta"><span class="pill">${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag">${esc(due)}</span>`:''}${eventReminderBellHtml(i,'event-reminder-indicator--item')}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':cancelled?'<span class="meta-tag done-tag">Cancelada</span>':''}</div>
     ${i.body&&i.body!==i.title?`<div class="item-body">${esc(i.body)}</div>`:''}
     ${i.locationText?`<div class="item-location"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> ${esc(i.locationText)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--item')}
