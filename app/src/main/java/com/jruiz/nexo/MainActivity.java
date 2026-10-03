@@ -135,6 +135,9 @@ public class MainActivity extends Activity {
         db = new DatabaseHelper(getApplicationContext());
         service = new NexoService(this, db);
         familiaCloudSync = new NexoFamiliaCloudSync(getApplicationContext(), db);
+        // Reparación local, segura e idempotente: las reservas antiguas recuperan
+        // su subtipo antes de que el Calendario se pinte. No necesita red.
+        try { db.repairNexoFamiliaVehicleReservationMarkers(); } catch (Exception ignored) {}
         // La antigua instantánea incluida queda solo como compatibilidad manual.
         // La agenda de Nexo Familia se sincroniza ahora directamente con Supabase.
         setupWebView();
