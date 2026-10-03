@@ -308,7 +308,7 @@ public class NexoService {
             JSONObject payload=new JSONObject();
             payload.put("id",seriesId);
             JSONObject ov=occurrenceOverride(in);
-            for (String key:new String[]{"title","body","category","type","endAt","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) payload.put(key,ov.get(key));
+            for (String key:new String[]{"title","body","category","type","allDay","timeZone","mapsUrl","recurrenceRule","participantsText","participantIds","durationMinutes","locationText","priority","favorite","needsReview"}) if(ov.has(key)) payload.put(key,ov.get(key));
             if(in.optBoolean("dateChanged",false) && ov.has("dueAt")){
                 long oldBaseDue=base.optLong("dueAt",0);
                 long shiftedBase = shiftWholeSeriesBase(oldBaseDue, occurrenceAt, ov.optLong("dueAt",0));
