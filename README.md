@@ -1,12 +1,12 @@
-# Nexo 3.7.8
+# Nexo 3.7.9
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.8**, `versionCode 101`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
+Esta rama de estabilización corresponde a **Nexo 3.7.9**, `versionCode 102`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
 
 ## Base estable
 
-Nexo 3.7.8 mantiene la base funcional de 3.7.7 y hace visibles los avisos configurados directamente en las tarjetas de eventos mediante una campanilla.
+Nexo 3.7.9 mantiene la base funcional de 3.7.8 y reordena la campanilla de avisos para que quede alineada con la hora del evento, nunca pegada al título.
 
 Entre los comportamientos ya integrados:
 
@@ -49,7 +49,7 @@ El procedimiento se documenta en [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.
 Desde la raíz del proyecto en el teléfono:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_8"
+cd "/storage/emulated/0/Download/Nexo_3_7_9"
 sh build-on-phone.sh
 ```
 
@@ -58,7 +58,7 @@ No ejecutar `./gradlew` directamente desde `Download`.
 El script conserva la firma Release permanente, usa el baseline de AndroidIDE y copia el APK final a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_8.apk
+/storage/emulated/0/Download/Nexo_3_7_9.apk
 ```
 
 ## Validación
