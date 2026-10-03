@@ -113,6 +113,8 @@ jobs:
           python3 validation/test-version-identity.py
           python3 validation/test-nexo-familia-migration.py
           python3 validation/test-nexo-familia-cloud-sync.py
+          python3 validation/test-nexo-familia-incremental-sync.py
+          python3 validation/test-vehicle-reservation-calendar.py
           python3 validation/test-home-familia-parity.py
           python3 validation/test-beta13-interactions.py
           python3 validation/test-beta14-gmail.py
