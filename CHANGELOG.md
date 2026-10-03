@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.7.9 · versionCode 102 · Campanilla alineada con la hora
+
+- En Inicio, la campanilla de aviso se mueve desde el título a la línea inferior, inmediatamente a la izquierda del icono del reloj.
+- En Agenda y Calendario, la campanilla acompaña al bloque horario del evento.
+- En tarjetas genéricas de eventos, la campanilla queda integrada en el metadato de fecha/hora.
+- Las búsquedas dejan de mostrar la campanilla pegada al título cuando no existe una zona horaria equivalente.
+- El icono se simplifica para funcionar como indicador, sin burbuja circular adicional.
+- Sin cambios en la lógica de avisos, base de datos v25, sincronización, permisos ni baseline AndroidIDE.
+
 ## 3.7.8 · versionCode 101 · Campanilla de avisos en eventos
 
 - Las tarjetas de eventos muestran una **campanilla** cuando el elemento tiene una o más reglas de aviso configuradas.
