@@ -1,5 +1,18 @@
 # Changelog de Nexo
 
+## 3.7.10 · versionCode 103 · Sincronización incremental con Nexo Familia
+
+- Corrige el caso en que Nexo Android descargaba correctamente Nexo Familia pero ignoraba cualquier cambio en eventos cuyo UUID ya había sido importado.
+- La sincronización incorpora ahora eventos nuevos y vuelve a procesar eventos existentes únicamente cuando cambian sus datos fuente o sus reglas de aviso.
+- Las actualizaciones usan una mezcla de tres vías: última versión remota conocida, estado local actual y nueva versión remota. Un campo modificado localmente se conserva en lugar de ser sobrescrito.
+- Los campos exclusivamente locales de Nexo Android, como favorito, prioridad o aviso por voz, no se pisan durante la sincronización.
+- Las reglas de aviso importadas se actualizan cuando cambian en Nexo Familia sin eliminar recordatorios creados manualmente en Nexo Android.
+- Las nuevas reservas de vehículo de Nexo Familia quedan fuera de la agenda Android y sus reglas no contaminan el lote de importación.
+- Se elimina una segunda escritura redundante del estado al actualizar un evento importado, evitando dos entradas de Historial para una sola sincronización.
+- La interfaz pasa de «Importar eventos nuevos» a **«Sincronizar eventos»** y distingue eventos nuevos, actualizados y sin cambios.
+- Se conserva la campanilla de avisos de 3.7.9 en la línea inferior de la tarjeta, inmediatamente a la izquierda del reloj.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.9 · versionCode 102 · Campanilla alineada con la hora
 
 - En Inicio, la campanilla de aviso se mueve desde el título a la línea inferior, inmediatamente a la izquierda del icono del reloj.
