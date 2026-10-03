@@ -69,13 +69,21 @@ public final class NexoFamiliaImporter {
 
             JSONArray changedEvents = new JSONArray();
             LinkedHashSet<String> changedIds = new LinkedHashSet<>();
-            int existing = 0, unchanged = 0, changedExisting = 0, newEvents = 0;
+            int existing = 0, unchanged = 0, changedExisting = 0, newEvents = 0, suppressedLocal = 0;
 
             for (int i = 0; i < sourceEvents.length(); i++) {
                 JSONObject event = sourceEvents.optJSONObject(i);
                 if (event == null) continue;
                 String id = cleanString(event, "id");
                 if (id.isBlank()) continue;
+
+                // Si el usuario eliminó este UUID en Android, su decisión local prevalece.
+                // No se borra en Nexo Familia y tampoco se vuelve a importar aquí.
+                if (db.isNexoFamiliaEventSuppressed(id)) {
+                    existing++;
+                    suppressedLocal++;
+                    continue;
+                }
 
                 long localId = db.getNexoFamiliaLocalItemId(id);
                 JSONObject currentLocal = localId > 0L ? db.getItem(localId) : new JSONObject();
@@ -115,6 +123,7 @@ public final class NexoFamiliaImporter {
                         .put("reminders", 0)
                         .put("skipped", 0)
                         .put("alreadyExisting", existing)
+                        .put("suppressedLocal", suppressedLocal)
                         .put("expectedEvents", 0)
                         .put("expectedReminderRules", 0)
                         .put("stats", db.getNexoFamiliaImportStats());
@@ -140,6 +149,7 @@ public final class NexoFamiliaImporter {
             result.put("unchangedExisting", unchanged);
             result.put("updatedFromSource", changedExisting);
             result.put("newFromSource", newEvents);
+            result.put("suppressedLocal", suppressedLocal);
             result.put("sourceEventCount", sourceEvents.length());
             return result;
         } catch (Exception e) {
