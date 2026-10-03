@@ -32,8 +32,11 @@ for key in ['endAt','allDay','timeZone','mapsUrl','recurrenceRule','participants
 for token in ['validatePayload(payload, events, rules)','verifiedEvents','verifiedReminderRules','brokenMappings','metadataComplete']:
     assert token in importer, f'Falta verificación de migración: {token}'
 assert 'deferAlarmSideEffects' in importer
-
+assert 'mergeRemoteChanges' in importer
+assert 'REMOTE_SYNC_FIELDS' in importer
+assert 'db.updateItem(new JSONObject().put("id",existing).put("status"' not in importer
 cloud=cloud_path.read_text(encoding='utf-8')
+assert 'event_kind=eq.event' in cloud
 assert 'sql.beginTransaction()' in cloud
 assert 'sql.setTransactionSuccessful()' in cloud
 assert 'sql.endTransaction()' in cloud

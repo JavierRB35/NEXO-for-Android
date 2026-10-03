@@ -40,8 +40,10 @@ public final class NexoFamiliaImporter {
     }
 
     /**
-     * Importación incremental: los UUID ya conocidos se consideran propiedad local
-     * y no se actualizan, aunque hayan cambiado en Nexo Familia.
+     * Sincronización incremental. Importa UUID nuevos y vuelve a procesar un UUID
+     * conocido solo cuando cambió el evento de Nexo Familia o sus reglas de aviso.
+     * La mezcla de campos en importPayload preserva cualquier edición local que se
+     * haya separado de la última versión remota conocida.
      */
     public static JSONObject importNewOnly(Context context, DatabaseHelper db, JSONObject payload) {
         JSONObject out = new JSONObject();
@@ -58,25 +60,53 @@ public final class NexoFamiliaImporter {
             if (sourceRules == null) sourceRules = payload.optJSONArray("reminder_rules");
             if (sourceRules == null) sourceRules = new JSONArray();
 
-            JSONArray newEvents = new JSONArray();
-            LinkedHashSet<String> newIds = new LinkedHashSet<>();
-            int existing = 0;
+            Map<String, List<JSONObject>> rulesByEvent = new HashMap<>();
+            for (int i = 0; i < sourceRules.length(); i++) {
+                JSONObject rule = sourceRules.optJSONObject(i);
+                if (rule == null) continue;
+                rulesByEvent.computeIfAbsent(cleanString(rule, "event_id"), k -> new ArrayList<>()).add(rule);
+            }
+
+            JSONArray changedEvents = new JSONArray();
+            LinkedHashSet<String> changedIds = new LinkedHashSet<>();
+            int existing = 0, unchanged = 0, changedExisting = 0, newEvents = 0;
+
             for (int i = 0; i < sourceEvents.length(); i++) {
                 JSONObject event = sourceEvents.optJSONObject(i);
                 if (event == null) continue;
                 String id = cleanString(event, "id");
-                if (!id.isBlank() && db.getNexoFamiliaLocalItemId(id) > 0L) {
-                    existing++;
+                if (id.isBlank()) continue;
+
+                long localId = db.getNexoFamiliaLocalItemId(id);
+                if (localId <= 0L || db.getItem(localId).length() == 0) {
+                    changedEvents.put(event);
+                    changedIds.add(id);
+                    newEvents++;
                     continue;
                 }
-                newEvents.put(event);
-                if (!id.isBlank()) newIds.add(id);
+
+                existing++;
+                JSONObject metadata = db.getNexoFamiliaMetadataForLocalItem(localId);
+                JSONObject previousSource = metadata.optJSONObject("source");
+                JSONArray previousRules = metadata.optJSONArray("reminderRules");
+                List<JSONObject> remoteRules = rulesByEvent.getOrDefault(id, Collections.emptyList());
+
+                if (sourceChanged(event, previousSource) || reminderRulesChanged(remoteRules, previousRules)) {
+                    changedEvents.put(event);
+                    changedIds.add(id);
+                    changedExisting++;
+                } else {
+                    unchanged++;
+                }
             }
 
-            if (newEvents.length() == 0) {
+            if (changedEvents.length() == 0) {
                 return out.put("ok", true)
                         .put("inserted", 0)
                         .put("updated", 0)
+                        .put("updatedFromSource", 0)
+                        .put("newFromSource", 0)
+                        .put("unchangedExisting", unchanged)
                         .put("preserved", 0)
                         .put("reminders", 0)
                         .put("skipped", 0)
@@ -86,29 +116,75 @@ public final class NexoFamiliaImporter {
                         .put("stats", db.getNexoFamiliaImportStats());
             }
 
-            JSONArray newRules = new JSONArray();
+            JSONArray changedRules = new JSONArray();
             for (int i = 0; i < sourceRules.length(); i++) {
                 JSONObject rule = sourceRules.optJSONObject(i);
                 if (rule == null) continue;
-                if (newIds.contains(cleanString(rule, "event_id"))) newRules.put(rule);
+                if (changedIds.contains(cleanString(rule, "event_id"))) changedRules.put(rule);
             }
 
             JSONObject filtered = new JSONObject(payload.toString());
-            filtered.put("events", newEvents);
-            filtered.put("reminderRules", newRules);
+            filtered.put("events", changedEvents);
+            filtered.put("reminderRules", changedRules);
             filtered.remove("reminder_rules");
             filtered.put("sourceAudit", new JSONObject()
-                    .put("familyEventCount", newEvents.length())
-                    .put("reminderRuleCount", newRules.length()));
+                    .put("familyEventCount", changedEvents.length())
+                    .put("reminderRuleCount", changedRules.length()));
 
             JSONObject result = importPayload(context, db, filtered);
             result.put("alreadyExisting", existing);
+            result.put("unchangedExisting", unchanged);
+            result.put("updatedFromSource", changedExisting);
+            result.put("newFromSource", newEvents);
             result.put("sourceEventCount", sourceEvents.length());
             return result;
         } catch (Exception e) {
             try { return out.put("ok", false).put("error", safeMessage(e)); }
             catch (Exception ignored) { return out; }
         }
+    }
+
+    private static boolean sourceChanged(JSONObject current, JSONObject previous) {
+        if (previous == null || previous.length() == 0) return true;
+        String[] keys = {
+                "title","description","start_at","end_at","all_day","start_date","end_date",
+                "location","category","status","visibility","shared_with","participant_ids",
+                "recurrence_rule","event_origin","social_type","venue_type","maps_url",
+                "guest_count","guest_details","external_uid","external_source","time_zone","updated_at"
+        };
+        for (String key : keys) {
+            if (!sourceValue(current, key).equals(sourceValue(previous, key))) return true;
+        }
+        return false;
+    }
+
+    private static String sourceValue(JSONObject source, String key) {
+        if (source == null || !source.has(key) || source.isNull(key)) return "";
+        Object value = source.opt(key);
+        return value == null || value == JSONObject.NULL ? "" : String.valueOf(value);
+    }
+
+    private static boolean reminderRulesChanged(List<JSONObject> current, JSONArray previous) {
+        ArrayList<String> a = new ArrayList<>(), b = new ArrayList<>();
+        if (current != null) {
+            for (JSONObject rule : current) if (rule != null) a.add(reminderSignature(rule));
+        }
+        if (previous != null) {
+            for (int i = 0; i < previous.length(); i++) {
+                JSONObject rule = previous.optJSONObject(i);
+                if (rule != null) b.add(reminderSignature(rule));
+            }
+        }
+        Collections.sort(a);
+        Collections.sort(b);
+        return !a.equals(b);
+    }
+
+    private static String reminderSignature(JSONObject rule) {
+        return cleanString(rule, "id") + "|" +
+                cleanString(rule, "event_id") + "|" +
+                Math.max(0, rule.optInt("minutes_before", 0)) + "|" +
+                cleanString(rule, "status");
     }
 
     public static JSONObject importPayload(Context context, DatabaseHelper db, JSONObject payload) {
@@ -158,18 +234,30 @@ public final class NexoFamiliaImporter {
                 String sourceId=event.optString("id","").trim();
                 if(sourceId.isEmpty()){errors.put("Evento sin id en la posición "+i);skipped++;continue;}
                 try {
-                    JSONObject local=toLocalEvent(event,memberNames);
+                    JSONObject remoteLocal=toLocalEvent(event,memberNames);
                     long existing=db.getNexoFamiliaLocalItemId(sourceId);
                     long localId;
+                    JSONObject effectiveLocal;
                     if(existing>0 && db.getItem(existing).length()>0) {
-                        local.put("id",existing);
-                        if(!db.updateItem(local))throw new IllegalStateException("No se pudo actualizar el evento local");
-                        if(local.has("status")) db.updateItem(new JSONObject().put("id",existing).put("status",local.optString("status")));
-                        localId=existing;updated++;
+                        JSONObject currentLocal=db.getItem(existing);
+                        JSONObject metadata=db.getNexoFamiliaMetadataForLocalItem(existing);
+                        JSONObject previousSource=metadata.optJSONObject("source");
+                        JSONObject previousLocal=(previousSource==null||previousSource.length()==0)
+                                ?new JSONObject()
+                                :toLocalEvent(previousSource,memberNames);
+                        JSONObject patch=mergeRemoteChanges(remoteLocal,previousLocal,currentLocal);
+                        if(patch.length()>0) {
+                            patch.put("id",existing);
+                            if(!db.updateItem(patch))throw new IllegalStateException("No se pudo actualizar el evento local");
+                            updated++;
+                        }
+                        localId=existing;
+                        effectiveLocal=db.getItem(existing);
                     } else {
-                        localId=db.insertItem(local);
+                        localId=db.insertItem(remoteLocal);
                         if(localId<=0)throw new IllegalStateException("No se pudo crear el evento local");
                         inserted++;
+                        effectiveLocal=db.getItem(localId);
                     }
                     db.rememberNexoFamiliaEvent(sourceId,localId,event);
                     preserved++;
@@ -185,13 +273,13 @@ public final class NexoFamiliaImporter {
                         String sourceStatus=rule.optString("status","pending");
                         long localReminderId=0;
                         if("pending".equals(sourceStatus)) {
-                            long occurrence=nextOccurrence(db,localId,local);
-                            long trigger=reminderTrigger(occurrence,minutes,local.optBoolean("hasTime",false));
+                            long occurrence=nextOccurrence(db,localId,effectiveLocal);
+                            long trigger=reminderTrigger(occurrence,minutes,effectiveLocal.optBoolean("hasTime",false));
                             if(trigger>System.currentTimeMillis()) {
-                                localReminderId=db.insertReminderMinutes(localId,local.optString("title","Recordatorio"),trigger,minutes,occurrence);
+                                localReminderId=db.insertReminderMinutes(localId,effectiveLocal.optString("title","Recordatorio"),trigger,minutes,occurrence);
                                 if(localReminderId>0) {
                                     if(!deferAlarmSideEffects) {
-                                        ReminderScheduler.schedule(context,localReminderId,local.optString("title","Recordatorio"),trigger);
+                                        ReminderScheduler.schedule(context,localReminderId,effectiveLocal.optString("title","Recordatorio"),trigger);
                                     }
                                     reminderCount++;
                                 }
@@ -359,6 +447,51 @@ public final class NexoFamiliaImporter {
         local.put("recurrenceUntil",recurrenceUntil);
         local.put("voiceEnabled",false);
         return local;
+    }
+
+    private static final String[] REMOTE_SYNC_FIELDS = {
+            "title","body","category","dueAt","endAt","hasTime","allDay","timeZone",
+            "durationMinutes","locationText","mapsUrl","recurrenceRule","participantsText",
+            "status","recurrence","recurrenceUntil"
+    };
+
+    /**
+     * Tres vías: remoto nuevo vs remoto anterior vs estado local actual.
+     * Solo aplica un campo remoto si ese campo no fue modificado localmente desde
+     * la última sincronización. Favorito, prioridad, voz y otros campos locales no
+     * forman parte de REMOTE_SYNC_FIELDS y nunca se pisan.
+     */
+    private static JSONObject mergeRemoteChanges(JSONObject remote, JSONObject previous, JSONObject current) {
+        JSONObject patch = new JSONObject();
+        try {
+            if (previous == null || previous.length() == 0) {
+                for (String key : REMOTE_SYNC_FIELDS) {
+                    if (remote.has(key)) patch.put(key, remote.opt(key));
+                }
+                if (patch.has("status")) patch.put("statusManual", true);
+                return patch;
+            }
+            for (String key : REMOTE_SYNC_FIELDS) {
+                if (!remote.has(key)) continue;
+                boolean remoteChanged = !jsonValueEquals(remote, previous, key);
+                boolean localUntouched = jsonValueEquals(current, previous, key);
+                if (remoteChanged && localUntouched) patch.put(key, remote.opt(key));
+            }
+            if (patch.has("status")) patch.put("statusManual", true);
+        } catch (Exception ignored) {}
+        return patch;
+    }
+
+    private static boolean jsonValueEquals(JSONObject a, JSONObject b, String key) {
+        Object av = a == null || !a.has(key) || a.isNull(key) ? null : a.opt(key);
+        Object bv = b == null || !b.has(key) || b.isNull(key) ? null : b.opt(key);
+        if (av == null || av == JSONObject.NULL) av = null;
+        if (bv == null || bv == JSONObject.NULL) bv = null;
+        if (av == null || bv == null) return av == bv;
+        if (av instanceof Number && bv instanceof Number) {
+            return Double.compare(((Number) av).doubleValue(), ((Number) bv).doubleValue()) == 0;
+        }
+        return String.valueOf(av).equals(String.valueOf(bv));
     }
 
     private static long nextOccurrence(DatabaseHelper db,long localId,JSONObject local) {

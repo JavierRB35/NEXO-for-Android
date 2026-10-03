@@ -2392,7 +2392,7 @@ function renderBackupPanel(){
           <div class="family-sync-heading"><strong>Nexo Familia</strong><span class="family-sync-badge family-sync-badge--ok">Conectado</span></div>
           <p class="family-sync-account">${esc(family.email||'Usuario vinculado')}</p>
           <p>${baseline
-            ? 'Importa únicamente los eventos cuyo UUID todavía no existe en este teléfono. Los eventos ya presentes en Nexo no se modifican.'
+            ? 'Sincroniza eventos nuevos y cambios realizados en Nexo Familia. Las ediciones locales que se hayan separado de la última versión remota se conservan.'
             : 'Primera importación: Nexo descargará y validará todos los eventos antes de sustituir únicamente la agenda local. Notas, listas, medicación, documentos y grabaciones no se modifican.'}</p>
           <div class="family-sync-stats">
             <span>${imported} importado${imported===1?'':'s'}</span>
@@ -2402,7 +2402,7 @@ function renderBackupPanel(){
           ${!baseline&&localAppointments?'<div class="family-sync-warning">La primera importación reemplazará '+localAppointments+' cita'+(localAppointments===1?'':'s')+' / evento'+(localAppointments===1?'':'s')+' de la agenda local.</div>':''}
         </div>
         <div class="stack-actions family-sync-actions">
-          <button id="nexoFamiliaSyncBtn" class="primary-button">${baseline?'Importar eventos nuevos':'Importar todos los eventos'}</button>
+          <button id="nexoFamiliaSyncBtn" class="primary-button">${baseline?'Sincronizar eventos':'Importar todos los eventos'}</button>
           <button id="nexoFamiliaDisconnectBtn" class="secondary-button">Desvincular</button>
         </div>
       </div>`
@@ -2432,7 +2432,7 @@ function renderBackupPanel(){
 
   if(connected){
     $('#nexoFamiliaSyncBtn').addEventListener('click',()=>{
-      const button=$('#nexoFamiliaSyncBtn');button.disabled=true;button.textContent=baseline?'Buscando eventos nuevos…':'Importando desde Nexo Familia…';
+      const button=$('#nexoFamiliaSyncBtn');button.disabled=true;button.textContent=baseline?'Sincronizando cambios…':'Importando desde Nexo Familia…';
       NexoNative.syncNexoFamiliaEvents();
     });
     $('#nexoFamiliaDisconnectBtn').addEventListener('click',()=>confirmGeneric(
@@ -3283,13 +3283,14 @@ window.NexoUI={
     if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();
   },
   onNexoFamiliaSyncDone(raw){
-    const r=parseNative(raw,{}),inserted=Number(r.inserted||0),existing=Number(r.alreadyExisting||0),first=!!r.firstBaseline,removed=Number(r.removedLocalAppointments||0);
+    const r=parseNative(raw,{}),inserted=Number(r.inserted||0),updated=Number(r.updatedFromSource||r.updated||0),unchanged=Number(r.unchangedExisting||0),first=!!r.firstBaseline,removed=Number(r.removedLocalAppointments||0);
     if(first){
       toast(`Migración inicial completada: ${inserted} evento${inserted===1?'':'s'} importado${inserted===1?'':'s'}${removed?` · agenda anterior sustituida (${removed})`:''}.`,'',null,7500);
-    }else if(inserted){
-      toast(`${inserted} evento${inserted===1?'':'s'} nuevo${inserted===1?'':'s'} importado${inserted===1?'':'s'}${existing?` · ${existing} ya existían`:''}.`,'',null,6500);
+    }else if(inserted||updated){
+      const parts=[];if(inserted)parts.push(`${inserted} nuevo${inserted===1?'':'s'}`);if(updated)parts.push(`${updated} actualizado${updated===1?'':'s'} desde Nexo Familia`);
+      toast(`Sincronización completada: ${parts.join(' · ')}${unchanged?` · ${unchanged} sin cambios`:''}.`,'',null,7000);
     }else{
-      toast('Nexo está actualizado. No hay eventos nuevos para importar.','',null,5000);
+      toast('Nexo está actualizado. No hay cambios nuevos en Nexo Familia.','',null,5000);
     }
     refreshCurrent();
     if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();
