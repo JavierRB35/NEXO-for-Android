@@ -572,7 +572,7 @@ function getAboutInfo(){
 }
 function renderAbout(){
   const info=getAboutInfo(),version=String(info.versionName||NexoNative.getAppVersion?.()||'').trim();
-  if(version)$('[data-app-version]').forEach(el=>{el.textContent='v'+version;el.setAttribute('aria-label','Versión '+version);});
+  if(version)document.querySelectorAll('[data-app-version]').forEach(el=>{el.textContent='v'+version;el.setAttribute('aria-label','Versión '+version);});
   const set=(id,value)=>{const el=$(id);if(el&&value!==undefined&&value!==null&&String(value).trim()!=='')el.textContent=String(value);};
   set('#aboutVersionCode',info.versionCode);
   set('#aboutApplicationId',info.applicationId||'com.jruiz.nexo');
