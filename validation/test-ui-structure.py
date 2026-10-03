@@ -41,7 +41,7 @@ parser = StrictStructureParser()
 parser.feed(html)
 parser.close_and_check()
 
-for screen in ["today","tools","save","search","calendar","more","panel"]:
+for screen in ["today","tools","save","search","calendar","more","about","panel"]:
     assert f'data-screen="{screen}"' in html, f"Falta pantalla: {screen}"
 
 home_start = html.index('data-screen="today"')
@@ -84,6 +84,9 @@ assert nav_positions == sorted(nav_positions), "El orden inferior debe ser Inici
 assert "if(b.dataset.nav==='notes')openPanel('notes',{root:true})" in app_js
 assert "route.panel==='notes'?'notes'" in app_js
 
+assert 'id="brandInfoBtn"' in html and 'data-screen="about"' in html, "Falta pantalla Acerca de Nexo"
+assert 'id="aboutCopyDiagnostics"' in html, "Falta copiar diagnóstico"
+assert "navigate('about')" in app_js and "function renderAbout()" in app_js
 assert 'id="globalVoiceFab"' in html, "Falta FAB de voz"
 assert 'id="calendarAddFab"' in html, "Falta FAB contextual de añadir"
 assert "function updateFloatingActions()" in app_js

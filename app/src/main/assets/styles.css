@@ -2638,3 +2638,51 @@ body.startup-loading #app{visibility:hidden}
 .upcoming-card__time .event-reminder-indicator{margin-right:0}
 .agenda-time{display:inline-flex;align-items:center;gap:5px}
 .event-time-meta{display:inline-flex;align-items:center;gap:5px}
+
+
+/* Nexo · Acerca de */
+.brand-info-button{
+  border:0;background:transparent;color:inherit;padding:0;margin:0;text-align:left;
+  border-radius:15px;min-width:0;
+}
+.brand-info-button:focus-visible{outline:3px solid rgba(21,150,107,.22);outline-offset:4px}
+.about-screen{padding-bottom:36px}
+.about-header{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;gap:12px;align-items:center}
+.about-header>div:nth-child(2){text-align:center}
+.about-header .eyebrow{margin:0 0 2px;color:var(--muted)}
+.about-header h1{font-size:1.45rem}
+.about-hero{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:25px 18px 22px;margin-bottom:14px;border:1px solid rgba(223,228,231,.96);
+  border-radius:24px;background:linear-gradient(145deg,#f7fcff 0%,#fff 46%,#f4fff9 100%);
+  box-shadow:0 9px 28px rgba(38,70,92,.07);
+}
+.about-logo{width:88px;height:88px;border-radius:25px;object-fit:cover;box-shadow:0 9px 24px rgba(34,89,124,.13)}
+.about-hero h2{margin:13px 0 2px;font-size:1.8rem;letter-spacing:-.04em}
+.about-tagline{margin:0;color:#526691;font-weight:700}
+.about-version-row{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:15px 0 0}
+.about-version-row>span{
+  padding:6px 9px;border:1px solid rgba(218,224,229,.98);border-radius:999px;
+  background:rgba(255,255,255,.86);color:#5e6878;font-size:.72rem;font-weight:750;
+}
+.about-intro{max-width:520px;margin:16px 0 0;color:var(--muted);font-size:.9rem;line-height:1.5}
+.about-card{
+  margin:0 0 12px;padding:16px;border:1px solid rgba(225,228,226,.98);border-radius:19px;
+  background:#fff;box-shadow:0 5px 16px rgba(56,63,72,.045);
+}
+.about-card h2{margin:0 0 11px;font-size:1.03rem}
+.about-card p{line-height:1.48}
+.about-points{display:grid;gap:11px}
+.about-points p{margin:0;color:#596474;font-size:.86rem}
+.about-points strong{color:var(--text)}
+.about-copyright{margin-bottom:0;color:var(--muted);font-size:.82rem}
+.about-technical>summary{cursor:pointer;font-weight:850;list-style-position:inside}
+.about-technical[open]>summary{margin-bottom:14px}
+.about-tech-list{display:grid;gap:0;margin:0}
+.about-tech-list>div{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:14px;
+  padding:10px 0;border-top:1px solid #edf0f2;
+}
+.about-tech-list dt{color:var(--muted);font-size:.78rem}
+.about-tech-list dd{margin:0;text-align:right;font-size:.78rem;font-weight:700;overflow-wrap:anywhere}
+.about-copy-button{width:100%;margin-top:13px}

@@ -1933,6 +1933,30 @@ public class MainActivity extends Activity {
             getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putString("display_mode", m).apply();
         }
         @JavascriptInterface public String getAppVersion() { return BuildConfig.VERSION_NAME; }
+        @JavascriptInterface public String getAboutInfo() {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("versionName", BuildConfig.VERSION_NAME);
+                o.put("versionCode", BuildConfig.VERSION_CODE);
+                o.put("applicationId", BuildConfig.APPLICATION_ID);
+                o.put("databaseVersion", DatabaseHelper.schemaVersion());
+                o.put("androidSdk", Build.VERSION.SDK_INT);
+                String maker = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.trim();
+                String model = Build.MODEL == null ? "" : Build.MODEL.trim();
+                o.put("device", (maker + " " + model).trim());
+                String abi = (Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0) ? Build.SUPPORTED_ABIS[0] : "";
+                o.put("abi", abi);
+            } catch (Exception ignored) {}
+            return o.toString();
+        }
+        @JavascriptInterface public void copyText(String label, String text) {
+            final String safeLabel = (label == null || label.isBlank()) ? "Nexo" : label;
+            final String safeText = text == null ? "" : text;
+            runOnUiThread(() -> {
+                ClipboardManager cm = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText(safeLabel, safeText));
+            });
+        }
         @JavascriptInterface public String getStartScreen() {
             return getSharedPreferences("nexo_settings", MODE_PRIVATE).getString("start_screen", "today");
         }

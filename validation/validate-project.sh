@@ -41,6 +41,7 @@ python validation/test-nexo-familia-cloud-sync.py
 python validation/test-nexo-familia-incremental-sync.py
 python validation/test-release-config.py
 python validation/test-calendar-swipe.py
+python validation/test-about-calendar-startup.py
 python validation/test-calendar-nonrecurring-range.py
 python validation/test-home-familia-parity.py
 python validation/test-beta11-polish.py

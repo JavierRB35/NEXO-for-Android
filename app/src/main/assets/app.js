@@ -409,7 +409,7 @@ function updateFloatingActions(){
   }
 
   // Navigation/system/read-only contexts do not create content.
-  if(state.screen==='tools'||state.screen==='more'){voiceVisible=false;addVisible=false;}
+  if(state.screen==='tools'||state.screen==='more'||state.screen==='about'){voiceVisible=false;addVisible=false;}
   if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}
   if(panel==='parking'){voiceVisible=false;}
   if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}
@@ -567,8 +567,37 @@ function runFloatingVoice(){
   }
   startManagedDictation('universal',{title:'Habla con Nexo',hint:'Dime qué quieres hacer o guardar. Nexo identificará el tipo, la fecha, la hora y el lugar para que lo revises.'});
 }
+function getAboutInfo(){
+  try{return parseNative(NexoNative.getAboutInfo(),{});}catch(_){return {};}
+}
+function renderAbout(){
+  const info=getAboutInfo(),version=String(info.versionName||NexoNative.getAppVersion?.()||'').trim();
+  if(version)$('[data-app-version]').forEach(el=>{el.textContent='v'+version;el.setAttribute('aria-label','Versión '+version);});
+  const set=(id,value)=>{const el=$(id);if(el&&value!==undefined&&value!==null&&String(value).trim()!=='')el.textContent=String(value);};
+  set('#aboutVersionCode',info.versionCode);
+  set('#aboutApplicationId',info.applicationId||'com.jruiz.nexo');
+  set('#aboutDatabaseVersion',info.databaseVersion);
+  set('#aboutAbi',info.abi||'ARM64');
+  set('#aboutDevice',info.device);
+  set('#aboutAndroidSdk',info.androidSdk);
+}
+function copyAboutDiagnostics(){
+  const info=getAboutInfo();
+  const text=[
+    'Nexo '+String(info.versionName||NexoNative.getAppVersion?.()||''),
+    'versionCode '+String(info.versionCode||''),
+    'Application ID: '+String(info.applicationId||'com.jruiz.nexo'),
+    'Base de datos: '+String(info.databaseVersion||''),
+    'Android API: '+String(info.androidSdk||''),
+    'Dispositivo: '+String(info.device||''),
+    'Arquitectura: '+String(info.abi||'')
+  ].join('\n');
+  try{NexoNative.copyText('Diagnóstico Nexo',text);toast('Diagnóstico copiado');}
+  catch(_){toast('No se pudo copiar el diagnóstico');}
+}
+
 function navigate(screen, options={}) {
-  if(!['today','save','search','more','calendar','tools','panel'].includes(screen))return;
+  if(!['today','save','search','more','calendar','tools','panel','about'].includes(screen))return;
   const route={screen};
   if(screen==='panel'){route.panel=options.panel||state.lastPanel;route.list=options.list??null;}
   if(screen==='save'&&state.screen!=='save')state.captureReturnRoute={...router.current,scrollY:window.scrollY};
@@ -588,6 +617,7 @@ function navigate(screen, options={}) {
   else if(screen==='more')renderMore();
   else if(screen==='save'){renderCapturePeopleAssignment();updateCaptureReviewMode();}
   else if(screen==='calendar')renderCalendar();
+  else if(screen==='about')renderAbout();
   else if(screen==='search')runSearch();
   updateFloatingActions();
   const target=router.key(route);
@@ -1433,7 +1463,7 @@ function calendarDotClass(i){
   return 'other';
 }
 
-function requestHolidayYears(years){[...new Set(years.map(Number).filter(y=>y>=2000&&y<=2100))].forEach(year=>{if(state.holidayYears[year]||state.holidayLoading.has(year))return;state.holidayLoading.add(year);NexoNative.requestHolidayCalendar(year);});}
+function requestHolidayYears(years){[...new Set(years.map(Number).filter(y=>y>=2000&&y<=2100))].forEach(year=>{if(state.holidayYears[year]||state.holidayLoading.has(year))return;state.holidayLoading.add(year);try{NexoNative.requestHolidayCalendar(year);}catch(_){state.holidayLoading.delete(year);}});}
 function holidayName(h){const n=h?.name;if(typeof n==='string'&&n.trim())return n.trim();if(n&&typeof n==='object')return n.es||n['ca-valencia']||n.ca||n.gl||n.eu||Object.values(n)[0]||'Festivo';return 'Festivo';}
 function holidayLevelLabel(level){return level==='national'?'Nacional':level==='regional'?'Autonómico':level==='provincial'?'Provincial':'Local';}
 function holidayEntriesForYears(years){return [...new Set(years.map(Number))].flatMap(y=>{const r=state.holidayYears[y];return r&&Array.isArray(r.holidays)?r.holidays:[];});}
@@ -1444,6 +1474,12 @@ function homeDayLabel(iso){
   const d=new Date(`${iso}T12:00:00`),today=iso===isoDateLocal(new Date());
   const full=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long'}).format(d).toLocaleUpperCase('es-ES');
   return today?`HOY · ${full}`:full;
+}
+
+function resetCalendarToToday(){
+  const now=new Date();
+  state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  state.calendarSelected=isoDateLocal(now);
 }
 
 function shiftCalendarMonthValue(value,delta){
@@ -1905,18 +1941,69 @@ function itemCoversIsoDate(item,iso){
 }
 
 function renderCalendar(direction=0){
+  const now=new Date();
+  if(!(state.calendarMonth instanceof Date)||Number.isNaN(state.calendarMonth.getTime()))state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(state.calendarSelected||'')))state.calendarSelected=isoDateLocal(now);
+
   const m=state.calendarMonth,first=new Date(m.getFullYear(),m.getMonth(),1);
   const leading=(first.getDay()+6)%7,days=new Date(m.getFullYear(),m.getMonth()+1,0).getDate(),cells=Math.ceil((leading+days)/7)*7;
   const start=new Date(first.getFullYear(),first.getMonth(),1-leading),end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cells);
-  const years=[...new Set(Array.from({length:cells},(_,c)=>new Date(start.getFullYear(),start.getMonth(),start.getDate()+c,12).getFullYear()))];requestHolidayYears(years);
-  const holidaysByDay={};holidayEntriesForYears(years).forEach(h=>{if(/^\d{4}-\d{2}-\d{2}$/.test(String(h.date||'')))(holidaysByDay[h.date]||(holidaysByDay[h.date]=[])).push(h);});
-  const items=parseNative(NexoNative.getCalendar(start.getTime(),end.getTime()-1),[]);state.calendarItems=items;
-  const monthName=new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric'}).format(first);$('#calendarMonthTitle').textContent=monthName.replace(/^./,c=>c.toUpperCase());$('#calendarMonthPickerBtn').setAttribute('aria-label',monthName+'. Elegir mes y año');
-  const today=isoDateLocal(new Date()),byDay={};items.forEach(i=>{if(!i.dueAt)return;const a=new Date(isoDateLocal(new Date(i.dueAt))+'T12:00:00'),z=new Date(isoDateLocal(new Date(itemEffectiveEndAt(i)))+'T12:00:00');for(let d=new Date(a),g=0;d<=z&&g<730;d.setDate(d.getDate()+1),g++){const k=isoDateLocal(d);(byDay[k]||(byDay[k]=[])).push(i);}});
-  let html='';for(let cell=0;cell<cells;cell++){const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],hs=holidaysByDay[iso]||[],selected=iso===state.calendarSelected;const base=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');const dots=list.slice(0,3).map(e=>calendarDotClass(e)==='birthday'?'<span class="calendar-event-birthday" title="Cumpleaños" aria-hidden="true">🎂</span>':`<span class="calendar-dot ${calendarDotClass(e)}"></span>`).join('');html+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;}
-  $('#calendarGrid').innerHTML=html;const partial=years.map(y=>state.holidayYears[y]).filter(Boolean).some(r=>r.status==='partial'||r.status==='unavailable');const note=$('#holidayCalendarNote');if(note){note.classList.toggle('hidden',!partial);note.textContent=partial?'Festivos parciales: se muestran los datos disponibles y Nexo volverá a actualizar cuando haya conexión.':'';}
-  $$('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>{const d=new Date(b.dataset.calendarDay+'T12:00:00');state.calendarSelected=b.dataset.calendarDay;if(d.getMonth()!==state.calendarMonth.getMonth()||d.getFullYear()!==state.calendarMonth.getFullYear()){state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();}else{renderCalendarDay();$$('[data-calendar-day]').forEach(x=>{const s=x.dataset.calendarDay===state.calendarSelected;x.classList.toggle('selected',s);x.setAttribute('aria-pressed',String(s));});}}));renderCalendarDay();
-  const grid=$('#calendarGrid');if(direction&&typeof grid.animate==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){grid.getAnimations?.().forEach(a=>a.cancel());grid.animate([{transform:`translateX(${direction*36}px)`,opacity:.45},{transform:'translateX(0)',opacity:1}],{duration:220,easing:'cubic-bezier(.2,0,0,1)'});}
+  const years=[...new Set(Array.from({length:cells},(_,c)=>new Date(start.getFullYear(),start.getMonth(),start.getDate()+c,12).getFullYear()))];
+
+  // La cabecera del mes se pinta antes de cualquier consulta nativa: el primer
+  // arranque nunca debe dejar el calendario visualmente vacío.
+  const monthName=new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric'}).format(first);
+  $('#calendarMonthTitle').textContent=monthName.replace(/^./,c=>c.toUpperCase());
+  $('#calendarMonthPickerBtn').setAttribute('aria-label',monthName+'. Elegir mes y año');
+
+  let items=[];
+  try{
+    items=parseNative(NexoNative.getCalendar(start.getTime(),end.getTime()-1),[]);
+    if(!Array.isArray(items))items=[];
+  }catch(_){
+    items=[];
+  }
+  state.calendarItems=items;
+
+  const holidaysByDay={};
+  holidayEntriesForYears(years).forEach(h=>{if(/^\d{4}-\d{2}-\d{2}$/.test(String(h.date||'')))(holidaysByDay[h.date]||(holidaysByDay[h.date]=[])).push(h);});
+  const today=isoDateLocal(now),byDay={};
+  items.forEach(i=>{if(!i.dueAt)return;const a=new Date(isoDateLocal(new Date(i.dueAt))+'T12:00:00'),z=new Date(isoDateLocal(new Date(itemEffectiveEndAt(i)))+'T12:00:00');for(let d=new Date(a),g=0;d<=z&&g<730;d.setDate(d.getDate()+1),g++){const k=isoDateLocal(d);(byDay[k]||(byDay[k]=[])).push(i);}});
+
+  let calendarHtml='';
+  for(let cell=0;cell<cells;cell++){
+    const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],hs=holidaysByDay[iso]||[],selected=iso===state.calendarSelected;
+    const base=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);
+    const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');
+    const dots=list.slice(0,3).map(e=>calendarDotClass(e)==='birthday'?'<span class="calendar-event-birthday" title="Cumpleaños" aria-hidden="true">🎂</span>':`<span class="calendar-dot ${calendarDotClass(e)}"></span>`).join('');
+    calendarHtml+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
+  }
+  $('#calendarGrid').innerHTML=calendarHtml;
+
+  const partial=years.map(y=>state.holidayYears[y]).filter(Boolean).some(r=>r.status==='partial'||r.status==='unavailable');
+  const note=$('#holidayCalendarNote');
+  if(note){note.classList.toggle('hidden',!partial);note.textContent=partial?'Festivos parciales: se muestran los datos disponibles y Nexo volverá a actualizar cuando haya conexión.':'';}
+
+  $$('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>{
+    const d=new Date(b.dataset.calendarDay+'T12:00:00');
+    state.calendarSelected=b.dataset.calendarDay;
+    if(d.getMonth()!==state.calendarMonth.getMonth()||d.getFullYear()!==state.calendarMonth.getFullYear()){
+      state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();
+    }else{
+      renderCalendarDay();
+      $$('[data-calendar-day]').forEach(x=>{const s=x.dataset.calendarDay===state.calendarSelected;x.classList.toggle('selected',s);x.setAttribute('aria-pressed',String(s));});
+    }
+  }));
+  renderCalendarDay();
+
+  // Festivos se solicitan después de tener ya un calendario utilizable.
+  requestHolidayYears(years);
+
+  const grid=$('#calendarGrid');
+  if(direction&&typeof grid.animate==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    grid.getAnimations?.().forEach(a=>a.cancel());
+    grid.animate([{transform:`translateX(${direction*36}px)`,opacity:.45},{transform:'translateX(0)',opacity:1}],{duration:220,easing:'cubic-bezier(.2,0,0,1)'});
+  }
 }
 
 function renderCalendarDay(){
@@ -3377,6 +3464,7 @@ function preloadStartupHomeDashboard(){
 }
 
 function beginStartupSequence(startScreen){
+  if(startScreen==='calendar')resetCalendarToToday();
   state.startupSplashActive=!!$('#startupSplash');
   state.startupInboxReady=false;
   state.startupHomeReady=false;
@@ -3404,6 +3492,7 @@ function beginStartupSequence(startScreen){
 
   preloadStartupHomeDashboard();
   navigate(startScreen,{root:true});
+  if(startScreen==='calendar')requestAnimationFrame(()=>{if(state.screen==='calendar')renderCalendar();});
   maybeFinishStartupSplash();
 }
 
@@ -3416,6 +3505,9 @@ function init(){
   setInterpretationStatus('idle','Interpretación local preparada');
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else navigate(b.dataset.nav,{root:true});}));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
+  $('#brandInfoBtn')?.addEventListener('click',()=>navigate('about'));
+  $('#aboutBackBtn')?.addEventListener('click',()=>navigateBack());
+  $('#aboutCopyDiagnostics')?.addEventListener('click',copyAboutDiagnostics);
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
@@ -3507,7 +3599,7 @@ function init(){
 
   $('#calendarPrev').addEventListener('click',()=>changeCalendarMonth(-1));
   $('#calendarNext').addEventListener('click',()=>changeCalendarMonth(1));
-  $('#calendarToday').addEventListener('click',()=>{const now=new Date();state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);state.calendarSelected=isoDateLocal(now);renderCalendar();});
+  $('#calendarToday').addEventListener('click',()=>{resetCalendarToToday();renderCalendar();});
   attachMonthSwipe(document.querySelector('.calendar-viewport'),()=>changeCalendarMonth(-1),()=>changeCalendarMonth(1));
   $('#captureRecurrence').addEventListener('change',()=>{const recurring=$('#captureRecurrence').value!=='none';$('#captureRecurrenceUntilLabel').classList.toggle('hidden',!recurring);});
   $$('.quick-action').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.action;if(a==='voice')startManagedDictation('universal',{title:'Habla con Nexo'});else if(a==='quick-task')prepareQuickNoteForType('task');else if(a==='shopping-list')ensureShoppingList();else if(a==='parking')openParkingModal();}));
