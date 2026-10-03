@@ -2628,17 +2628,13 @@ body.startup-loading #app{visibility:hidden}
 .transcription-quality-actions button{min-height:40px}
 
 
-/* Nexo 3.7.7 · indicador de avisos en eventos */
+/* Nexo 3.7.9 · avisos alineados con la hora del evento */
 .event-reminder-indicator{
   display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
-  width:22px;height:22px;border-radius:999px;color:var(--text);background:var(--surface-soft,#f3f5f4);
+  color:#526078;background:transparent;
 }
-.event-reminder-indicator .ui-icon{width:14px;height:14px}
-.upcoming-title-row,.family-result-title-row{display:flex;align-items:center;gap:7px;min-width:0}
-.upcoming-title-row .upcoming-title,.family-result-title-row strong{min-width:0}
-.event-reminder-indicator--home{width:24px;height:24px}
-.event-reminder-indicator--agenda{width:20px;height:20px}
-.event-reminder-indicator--agenda .ui-icon{width:13px;height:13px}
-.event-reminder-indicator--item{vertical-align:middle}
-.event-reminder-indicator--search{width:20px;height:20px}
-.event-reminder-indicator--search .ui-icon{width:12px;height:12px}
+.event-reminder-indicator .ui-icon{width:15px;height:15px}
+.event-reminder-indicator--time{margin-right:1px}
+.upcoming-card__time .event-reminder-indicator{margin-right:0}
+.agenda-time{display:inline-flex;align-items:center;gap:5px}
+.event-time-meta{display:inline-flex;align-items:center;gap:5px}
