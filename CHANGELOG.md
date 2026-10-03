@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.7.7 · versionCode 100 · Integridad al editar series recurrentes
+
+- Corrige un fallo al editar una aparición futura de una serie y aplicar los cambios a **Toda la serie**: el `endAt` de esa aparición ya no puede sobrescribir el fin de la fila base sin desplazar también su inicio.
+- Evita que un cumpleaños anual de una hora termine accidentalmente convertido en un evento de un año de duración al modificar participantes.
+- El editor detecta también cambios de hora final y de Todo el día antes de recalcular correctamente inicio/fin de la serie.
+- El ajuste de aviso por voz solo provoca una segunda escritura si realmente ha cambiado, evitando entradas duplicadas de “actualizado” en Historial al modificar participantes.
+- Se añade una regresión específica para duración base y doble actualización.
+- Base de datos continúa en esquema 25; sin cambios en Gmail, OAuth, transcripción ni baseline AndroidIDE.
+
 ## 3.7.6 · versionCode 99 · Reenvíos Gmail y mensajes a uno mismo
 
 - Corrige un caso real en el que Gmail etiqueta simultáneamente un mensaje como `INBOX` y `SENT`, habitual en reenvíos o mensajes enviados a uno mismo.
