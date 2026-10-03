@@ -36,7 +36,8 @@ import javax.net.ssl.HttpsURLConnection;
  *
  * La contraseña nunca se persiste. Se usa únicamente para obtener una sesión de
  * Supabase Auth. Access/refresh tokens se guardan cifrados con Android Keystore.
- * Tras la migración inicial, los UUID ya conocidos no se vuelven a tocar.
+ * Tras la migración inicial, sincroniza UUID nuevos y cambios remotos mediante
+ * mezcla segura, preservando campos modificados localmente.
  */
 public final class NexoFamiliaCloudSync {
     private static final String BASE_URL = "https://gimzsrreghmuuwmizojc.supabase.co";
