@@ -1,5 +1,17 @@
 # Changelog de Nexo
 
+## 3.7.12 · versionCode 105 · Reservas de coche en Calendario
+
+- Nexo Android deja de excluir las reservas de vehículo de la sincronización con Nexo Familia.
+- Se sincronizan `event_kind=event` y `event_kind=vehicle_reservation`, manteniendo el UUID y la metadata original de Nexo Familia.
+- Las reservas se marcan localmente con el subtipo `vehicle_reservation` sin modificar el esquema SQLite (`nexo.db v25`).
+- En la cuadrícula mensual del Calendario una reserva se representa con **🚗**, igual que en Nexo Familia.
+- Si un día tiene más de tres elementos, la reserva de coche tiene prioridad para que el icono siga siendo visible.
+- En el detalle diario del Calendario la categoría se identifica como **Reserva coche** con icono de coche.
+- La detección de cambios remotos incluye `event_kind`, `vehicle_id`, `reservation_user_id` y `reservation_reason`.
+- Se añaden regresiones específicas para proteger la sincronización y la representación visual de las reservas.
+- Sin cambio de base de datos. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.11 · versionCode 104 · Acerca de Nexo y arranque del Calendario
 
 - El logo y la versión de la cabecera pasan a ser pulsables y abren una nueva pantalla **Acerca de Nexo**.

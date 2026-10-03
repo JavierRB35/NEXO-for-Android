@@ -39,6 +39,7 @@ python validation/test-data-integrity-3_7_2.py
 python validation/test-nexo-familia-migration.py
 python validation/test-nexo-familia-cloud-sync.py
 python validation/test-nexo-familia-incremental-sync.py
+python validation/test-vehicle-reservation-calendar.py
 python validation/test-release-config.py
 python validation/test-calendar-swipe.py
 python validation/test-about-calendar-startup.py

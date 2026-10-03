@@ -6,10 +6,12 @@ importer=(root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.j
 js=(root/'app/src/main/assets/app.js').read_text(encoding='utf-8')
 bell=(root/'validation/test-reminder-bell.py').read_text(encoding='utf-8')
 
-# La agenda Android solo sincroniza eventos de agenda, no reservas de vehículo.
-assert 'event_kind=eq.event' in cloud
+# La agenda Android mantiene paridad con Nexo Familia: incluye eventos y reservas de vehículo.
+assert 'event_kind=in.(event,vehicle_reservation)' in cloud
 assert 'JSONArray allRules' in cloud
 assert 'eventIds.contains' in cloud
+assert 'local.put("subcategory",vehicleReservation?"vehicle_reservation":"");' in importer
+assert '"event_kind","vehicle_id","reservation_user_id","reservation_reason"' in importer
 
 # Un UUID existente puede volver a procesarse si cambió el remoto o sus avisos.
 assert 'sourceChanged(event, previousSource)' in importer
@@ -33,7 +35,11 @@ assert 'Sincronizando cambios…' in js
 assert 'updatedFromSource' in js
 assert 'No hay cambios nuevos en Nexo Familia.' in js
 
-# La campanilla sigue fijada a la izquierda del reloj en la línea horaria.
+# Las reservas tienen marcador de coche y conservan la campanilla horaria.
+assert "function isVehicleReservation(i)" in js
+assert "calendarMarkerItems(list).map(calendarMarkerHtml)" in js
+assert "calendar-event-vehicle" in js
+assert "🚗" in js
 assert "eventReminderBellHtml(item,'event-reminder-indicator--time')+uiIcon('clock')" in js
 home=js[js.index('function homeUpcomingCard'):js.index('function bindHomeUpcoming')]
 assert 'upcoming-title-row' not in home

@@ -1941,10 +1941,12 @@ main{max-width:720px}
 .agenda-row{grid-template-columns:minmax(0,1fr) auto}
 .list-row-shell>.record-card-actions{padding-right:7px;flex:0 0 auto}
 
-.calendar-event-birthday{
+.calendar-event-birthday,
+.calendar-event-vehicle{
   display:inline-grid;place-items:center;width:15px;height:15px;margin-top:-4px;
   font-size:13px;line-height:1;
 }
+.agenda-category .ui-icon{width:13px;height:13px;margin-right:4px;vertical-align:-2px}
 .fab-voice.is-recording{color:#fff;background:#c83246;box-shadow:0 8px 24px rgba(200,50,70,.34)}
 
 

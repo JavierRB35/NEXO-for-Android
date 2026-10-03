@@ -241,10 +241,9 @@ public final class NexoFamiliaCloudSync {
     }
 
     private JSONObject fetchPayload(String accessToken) throws Exception {
-        // Nexo Android sincroniza la agenda familiar. Las reservas de vehículo
-        // comparten tabla en Nexo Familia desde 2026-10-03, pero no son eventos
-        // de agenda y no deben convertirse en citas Android.
-        JSONArray events = restArray("/rest/v1/events?select=*&event_kind=eq.event&order=created_at.asc", accessToken);
+        // Nexo Android mantiene paridad visual con la Agenda de Nexo Familia:
+        // sincroniza tanto eventos normales como reservas de vehículo.
+        JSONArray events = restArray("/rest/v1/events?select=*&event_kind=in.(event,vehicle_reservation)&order=created_at.asc", accessToken);
         JSONArray allRules = restArray("/rest/v1/event_reminder_rules?select=*&order=created_at.asc", accessToken);
         JSONArray memberships = restArray("/rest/v1/family_members?select=family_id,user_id,role,status&status=eq.active", accessToken);
         JSONArray profiles = restArray("/rest/v1/profiles?select=id,full_name,color", accessToken);

@@ -1464,6 +1464,21 @@ function calendarDotClass(i){
   return 'other';
 }
 
+function isVehicleReservation(i){
+  return String(i?.subcategory||'').trim().toLocaleLowerCase('es-ES')==='vehicle_reservation';
+}
+function calendarMarkerItems(items){
+  const list=Array.isArray(items)?items:[];
+  const reservation=list.find(isVehicleReservation);
+  if(!reservation)return list.slice(0,3);
+  return [reservation,...list.filter(item=>item!==reservation)].slice(0,3);
+}
+function calendarMarkerHtml(item){
+  if(isVehicleReservation(item))return '<span class="calendar-event-vehicle" title="Reserva de coche" aria-label="Reserva de coche">🚗</span>';
+  if(calendarDotClass(item)==='birthday')return '<span class="calendar-event-birthday" title="Cumpleaños" aria-label="Cumpleaños">🎂</span>';
+  return `<span class="calendar-dot ${calendarDotClass(item)}"></span>`;
+}
+
 function requestHolidayYears(years){[...new Set(years.map(Number).filter(y=>y>=2000&&y<=2100))].forEach(year=>{if(state.holidayYears[year]||state.holidayLoading.has(year))return;state.holidayLoading.add(year);try{NexoNative.requestHolidayCalendar(year);}catch(_){state.holidayLoading.delete(year);}});}
 function holidayName(h){const n=h?.name;if(typeof n==='string'&&n.trim())return n.trim();if(n&&typeof n==='object')return n.es||n['ca-valencia']||n.ca||n.gl||n.eu||Object.values(n)[0]||'Festivo';return 'Festivo';}
 function holidayLevelLabel(level){return level==='national'?'Nacional':level==='regional'?'Autonómico':level==='provincial'?'Provincial':'Local';}
@@ -1565,7 +1580,7 @@ function agendaCard(i,showDate=false){
   const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`;
   const when=i.seriesEnded?'Serie sin próximas fechas':!i.dueAt?'Sin fecha':showDate?fmtDueItem(i):fmtAgendaTime(i);
   const description=String(i.body||'').trim(),title=String(i.title||'Cita');
-  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${eventReminderBellHtml(i,'event-reminder-indicator--time')}${esc(when)}</span><span class="agenda-category">${esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${eventParticipantAvatarsHtml(i,'event-participant-avatars--agenda')}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
+  return `<div class="agenda-row tone-${tone} ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${eventReminderBellHtml(i,'event-reminder-indicator--time')}${esc(when)}</span><span class="agenda-category">${isVehicleReservation(i)?uiIcon('car')+'Reserva coche':esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${eventParticipantAvatarsHtml(i,'event-participant-avatars--agenda')}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
 }
 
 function prepareHomeCapture(type='',text=''){
@@ -1976,7 +1991,7 @@ function renderCalendar(direction=0){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],hs=holidaysByDay[iso]||[],selected=iso===state.calendarSelected;
     const base=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);
     const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');
-    const dots=list.slice(0,3).map(e=>calendarDotClass(e)==='birthday'?'<span class="calendar-event-birthday" title="Cumpleaños" aria-hidden="true">🎂</span>':`<span class="calendar-dot ${calendarDotClass(e)}"></span>`).join('');
+    const dots=calendarMarkerItems(list).map(calendarMarkerHtml).join('');
     calendarHtml+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
   }
   $('#calendarGrid').innerHTML=calendarHtml;

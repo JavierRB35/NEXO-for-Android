@@ -150,7 +150,8 @@ public final class NexoFamiliaImporter {
                 "title","description","start_at","end_at","all_day","start_date","end_date",
                 "location","category","status","visibility","shared_with","participant_ids",
                 "recurrence_rule","event_origin","social_type","venue_type","maps_url",
-                "guest_count","guest_details","external_uid","external_source","time_zone","updated_at"
+                "guest_count","guest_details","external_uid","external_source","time_zone","updated_at",
+                "event_kind","vehicle_id","reservation_user_id","reservation_reason"
         };
         for (String key : keys) {
             if (!sourceValue(current, key).equals(sourceValue(previous, key))) return true;
@@ -420,6 +421,7 @@ public final class NexoFamiliaImporter {
         String recurrence=mapRecurrence(recurrenceRule);
         long recurrenceUntil=parseUntil(recurrenceRule,zone);
         String status=mapStatus(cleanString(event,"status"));
+        boolean vehicleReservation="vehicle_reservation".equals(cleanString(event,"event_kind"));
 
         JSONObject local=new JSONObject();
         local.put("type","event");
@@ -427,6 +429,7 @@ public final class NexoFamiliaImporter {
         local.put("body",cleanString(event,"description"));
         local.put("originalText","");
         local.put("category",canonicalCategory(cleanString(event,"category")));
+        local.put("subcategory",vehicleReservation?"vehicle_reservation":"");
         local.put("dueAt",start);
         local.put("endAt",end);
         local.put("hasTime",!allDay);
@@ -450,7 +453,7 @@ public final class NexoFamiliaImporter {
     }
 
     private static final String[] REMOTE_SYNC_FIELDS = {
-            "title","body","category","dueAt","endAt","hasTime","allDay","timeZone",
+            "title","body","category","subcategory","dueAt","endAt","hasTime","allDay","timeZone",
             "durationMinutes","locationText","mapsUrl","recurrenceRule","participantsText",
             "status","recurrence","recurrenceUntil"
     };
