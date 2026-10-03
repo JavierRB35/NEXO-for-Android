@@ -18,10 +18,28 @@ assert db.count("ITEM_SELECT_WITH_REMINDER +") >= 5
 assert "function eventReminderBellHtml(item,extraClass='')" in js
 assert "if(!item?.hasReminder||!isAppointmentType(item.type))return '';" in js
 assert 'aria-label="Aviso configurado"' in js
-assert "event-reminder-indicator--home" in js
-assert "event-reminder-indicator--agenda" in js
-assert "event-reminder-indicator--item" in js
-assert "event-reminder-indicator--search" in js
 assert ".event-reminder-indicator" in css
 
-print("Campanilla de avisos: Inicio, Agenda, Calendario, tarjetas y búsqueda OK")
+# Inicio: la campana va abajo, inmediatamente antes del reloj, nunca junto al título.
+home=js[js.index("function homeUpcomingCard"):js.index("function bindHomeUpcoming")]
+assert "eventReminderBellHtml(item,'event-reminder-indicator--time')+uiIcon('clock')" in home
+assert "upcoming-title-row" not in home
+
+# Agenda/Calendario: la campana acompaña al bloque horario.
+agenda=js[js.index("function agendaCard"):js.index("function prepareHomeCapture")]
+assert "eventReminderBellHtml(i,'event-reminder-indicator--time')" in agenda
+assert "event-reminder-indicator--agenda" not in agenda
+
+# Tarjeta genérica: la campana queda integrada en el metadato de fecha/hora.
+item=js[js.index("function itemCard"):js.index("function bindItemButtons")]
+assert 'class="meta-tag event-time-meta"' in item
+assert "eventReminderBellHtml(i,'event-reminder-indicator--time')" in item
+
+# Búsqueda: no se pega una campana al título cuando no existe bloque horario.
+search=js[js.index("function familySearchCard"):js.index("function openFamilySearchResult")]
+assert "eventReminderBellHtml" not in search
+
+assert ".event-reminder-indicator--time" in css
+assert ".event-time-meta" in css
+
+print("Campanilla de avisos: alineada con la hora en Inicio, Agenda/Calendario y tarjetas OK")
