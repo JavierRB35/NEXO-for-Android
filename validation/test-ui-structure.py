@@ -76,8 +76,13 @@ for panel in ["notes","recordings","lists","documents","journal","quotes","medic
 nav_start = html.index('<nav class="bottom-nav"')
 nav_end = html.index('</nav>', nav_start)
 nav = html[nav_start:nav_end]
-for dest in ["today","calendar","search","tools"]:
+for dest in ["today","calendar","notes","search","tools"]:
     assert f'data-nav="{dest}"' in nav, f"Falta navegación principal: {dest}"
+
+nav_positions = [nav.index(f'data-nav="{dest}"') for dest in ["today","calendar","notes","search","tools"]]
+assert nav_positions == sorted(nav_positions), "El orden inferior debe ser Inicio, Calendario, Notas, Buscar, Herramientas"
+assert "if(b.dataset.nav==='notes')openPanel('notes',{root:true})" in app_js
+assert "route.panel==='notes'?'notes'" in app_js
 
 assert 'id="globalVoiceFab"' in html, "Falta FAB de voz"
 assert 'id="calendarAddFab"' in html, "Falta FAB contextual de añadir"

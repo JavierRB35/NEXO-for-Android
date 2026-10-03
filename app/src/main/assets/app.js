@@ -578,9 +578,9 @@ function navigate(screen, options={}) {
   if(screen==='panel'){state.lastPanel=route.panel;state.currentList=route.list;}
   $$('.screen').forEach(el=>el.classList.toggle('active',el.dataset.screen===screen));
   const active=screen==='panel'
-    ? (route.panel==='inbox'?'today':'tools')
+    ? (route.panel==='notes'?'notes':route.panel==='inbox'?'today':'tools')
     : screen==='save'
-      ? (state.captureReturnRoute?.screen==='calendar'?'calendar':state.captureReturnRoute?.screen==='tools'?'tools':'today')
+      ? (state.captureReturnRoute?.screen==='calendar'?'calendar':state.captureReturnRoute?.screen==='panel'&&state.captureReturnRoute?.panel==='notes'?'notes':state.captureReturnRoute?.screen==='tools'?'tools':'today')
       : screen==='more'?'tools'
       : screen;
   $$('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
@@ -3413,7 +3413,7 @@ function init(){
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';
   setInterpretationStatus('idle','Interpretación local preparada');
-  $$('[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.nav,{root:true})));
+  $('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else navigate(b.dataset.nav,{root:true});}));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
