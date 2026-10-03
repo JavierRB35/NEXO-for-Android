@@ -17,7 +17,7 @@ assert 'putString("password"' not in cloud
 assert 'PREF_SESSION_BLOB' in cloud and 'PREF_SESSION_IV' in cloud
 
 # Lectura directa bajo RLS usando el access token del usuario.
-assert '/rest/v1/events?select=*&event_kind=eq.event' in cloud
+assert '/rest/v1/events?select=*&event_kind=in.(event,vehicle_reservation)' in cloud
 assert '/rest/v1/event_reminder_rules?select=*' in cloud
 assert '/rest/v1/family_members?select=' in cloud
 assert '/rest/v1/profiles?select=' in cloud
@@ -36,7 +36,7 @@ assert 'mergeRemoteChanges(remoteLocal,previousLocal,currentLocal)' in importer.
 assert 'updatedFromSource' in importer
 assert 'REMOTE_SYNC_FIELDS' in importer
 assert 'local.put("statusManual",true)' in importer
-assert 'event_kind=eq.event' in cloud
+assert 'event_kind=in.(event,vehicle_reservation)' in cloud
 assert 'allRules' in cloud and 'eventIds.contains' in cloud
 
 # La snapshot empaquetada deja de ejecutarse automáticamente al arrancar.
