@@ -234,18 +234,30 @@ public final class NexoFamiliaImporter {
                 String sourceId=event.optString("id","").trim();
                 if(sourceId.isEmpty()){errors.put("Evento sin id en la posición "+i);skipped++;continue;}
                 try {
-                    JSONObject local=toLocalEvent(event,memberNames);
+                    JSONObject remoteLocal=toLocalEvent(event,memberNames);
                     long existing=db.getNexoFamiliaLocalItemId(sourceId);
                     long localId;
+                    JSONObject effectiveLocal;
                     if(existing>0 && db.getItem(existing).length()>0) {
-                        local.put("id",existing);
-                        if(!db.updateItem(local))throw new IllegalStateException("No se pudo actualizar el evento local");
-                        if(local.has("status")) db.updateItem(new JSONObject().put("id",existing).put("status",local.optString("status")));
-                        localId=existing;updated++;
+                        JSONObject currentLocal=db.getItem(existing);
+                        JSONObject metadata=db.getNexoFamiliaMetadataForLocalItem(existing);
+                        JSONObject previousSource=metadata.optJSONObject("source");
+                        JSONObject previousLocal=(previousSource==null||previousSource.length()==0)
+                                ?new JSONObject()
+                                :toLocalEvent(previousSource,memberNames);
+                        JSONObject patch=mergeRemoteChanges(remoteLocal,previousLocal,currentLocal);
+                        if(patch.length()>0) {
+                            patch.put("id",existing);
+                            if(!db.updateItem(patch))throw new IllegalStateException("No se pudo actualizar el evento local");
+                            updated++;
+                        }
+                        localId=existing;
+                        effectiveLocal=db.getItem(existing);
                     } else {
-                        localId=db.insertItem(local);
+                        localId=db.insertItem(remoteLocal);
                         if(localId<=0)throw new IllegalStateException("No se pudo crear el evento local");
                         inserted++;
+                        effectiveLocal=db.getItem(localId);
                     }
                     db.rememberNexoFamiliaEvent(sourceId,localId,event);
                     preserved++;
@@ -261,13 +273,13 @@ public final class NexoFamiliaImporter {
                         String sourceStatus=rule.optString("status","pending");
                         long localReminderId=0;
                         if("pending".equals(sourceStatus)) {
-                            long occurrence=nextOccurrence(db,localId,local);
-                            long trigger=reminderTrigger(occurrence,minutes,local.optBoolean("hasTime",false));
+                            long occurrence=nextOccurrence(db,localId,effectiveLocal);
+                            long trigger=reminderTrigger(occurrence,minutes,effectiveLocal.optBoolean("hasTime",false));
                             if(trigger>System.currentTimeMillis()) {
-                                localReminderId=db.insertReminderMinutes(localId,local.optString("title","Recordatorio"),trigger,minutes,occurrence);
+                                localReminderId=db.insertReminderMinutes(localId,effectiveLocal.optString("title","Recordatorio"),trigger,minutes,occurrence);
                                 if(localReminderId>0) {
                                     if(!deferAlarmSideEffects) {
-                                        ReminderScheduler.schedule(context,localReminderId,local.optString("title","Recordatorio"),trigger);
+                                        ReminderScheduler.schedule(context,localReminderId,effectiveLocal.optString("title","Recordatorio"),trigger);
                                     }
                                     reminderCount++;
                                 }
@@ -435,6 +447,51 @@ public final class NexoFamiliaImporter {
         local.put("recurrenceUntil",recurrenceUntil);
         local.put("voiceEnabled",false);
         return local;
+    }
+
+    private static final String[] REMOTE_SYNC_FIELDS = {
+            "title","body","category","dueAt","endAt","hasTime","allDay","timeZone",
+            "durationMinutes","locationText","mapsUrl","recurrenceRule","participantsText",
+            "status","recurrence","recurrenceUntil"
+    };
+
+    /**
+     * Tres vías: remoto nuevo vs remoto anterior vs estado local actual.
+     * Solo aplica un campo remoto si ese campo no fue modificado localmente desde
+     * la última sincronización. Favorito, prioridad, voz y otros campos locales no
+     * forman parte de REMOTE_SYNC_FIELDS y nunca se pisan.
+     */
+    private static JSONObject mergeRemoteChanges(JSONObject remote, JSONObject previous, JSONObject current) {
+        JSONObject patch = new JSONObject();
+        try {
+            if (previous == null || previous.length() == 0) {
+                for (String key : REMOTE_SYNC_FIELDS) {
+                    if (remote.has(key)) patch.put(key, remote.opt(key));
+                }
+                if (patch.has("status")) patch.put("statusManual", true);
+                return patch;
+            }
+            for (String key : REMOTE_SYNC_FIELDS) {
+                if (!remote.has(key)) continue;
+                boolean remoteChanged = !jsonValueEquals(remote, previous, key);
+                boolean localUntouched = jsonValueEquals(current, previous, key);
+                if (remoteChanged && localUntouched) patch.put(key, remote.opt(key));
+            }
+            if (patch.has("status")) patch.put("statusManual", true);
+        } catch (Exception ignored) {}
+        return patch;
+    }
+
+    private static boolean jsonValueEquals(JSONObject a, JSONObject b, String key) {
+        Object av = a == null || !a.has(key) || a.isNull(key) ? null : a.opt(key);
+        Object bv = b == null || !b.has(key) || b.isNull(key) ? null : b.opt(key);
+        if (av == null || av == JSONObject.NULL) av = null;
+        if (bv == null || bv == JSONObject.NULL) bv = null;
+        if (av == null || bv == null) return av == bv;
+        if (av instanceof Number && bv instanceof Number) {
+            return Double.compare(((Number) av).doubleValue(), ((Number) bv).doubleValue()) == 0;
+        }
+        return String.valueOf(av).equals(String.valueOf(bv));
     }
 
     private static long nextOccurrence(DatabaseHelper db,long localId,JSONObject local) {
