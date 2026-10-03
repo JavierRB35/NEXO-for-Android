@@ -78,7 +78,8 @@ public final class NexoFamiliaImporter {
                 if (id.isBlank()) continue;
 
                 long localId = db.getNexoFamiliaLocalItemId(id);
-                if (localId <= 0L || db.getItem(localId).length() == 0) {
+                JSONObject currentLocal = localId > 0L ? db.getItem(localId) : new JSONObject();
+                if (localId <= 0L || currentLocal.length() == 0) {
                     changedEvents.put(event);
                     changedIds.add(id);
                     newEvents++;
@@ -90,8 +91,11 @@ public final class NexoFamiliaImporter {
                 JSONObject previousSource = metadata.optJSONObject("source");
                 JSONArray previousRules = metadata.optJSONArray("reminderRules");
                 List<JSONObject> remoteRules = rulesByEvent.getOrDefault(id, Collections.emptyList());
+                boolean reservationMarkerMissing =
+                        "vehicle_reservation".equals(cleanString(event,"event_kind"))
+                                && !"vehicle_reservation".equals(currentLocal.optString("subcategory",""));
 
-                if (sourceChanged(event, previousSource) || reminderRulesChanged(remoteRules, previousRules)) {
+                if (sourceChanged(event, previousSource) || reminderRulesChanged(remoteRules, previousRules) || reservationMarkerMissing) {
                     changedEvents.put(event);
                     changedIds.add(id);
                     changedExisting++;
@@ -247,6 +251,10 @@ public final class NexoFamiliaImporter {
                                 ?new JSONObject()
                                 :toLocalEvent(previousSource,memberNames);
                         JSONObject patch=mergeRemoteChanges(remoteLocal,previousLocal,currentLocal);
+                        if("vehicle_reservation".equals(remoteLocal.optString("subcategory"))
+                                && !"vehicle_reservation".equals(currentLocal.optString("subcategory"))) {
+                            patch.put("subcategory","vehicle_reservation");
+                        }
                         if(patch.length()>0) {
                             patch.put("id",existing);
                             if(!db.updateItem(patch))throw new IllegalStateException("No se pudo actualizar el evento local");
