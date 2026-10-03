@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.7.13 · versionCode 106 · Reparación automática de reservas de coche
+
+- Al arrancar, Nexo repara automáticamente las reservas de vehículo ya importadas que todavía no tenían el subtipo local `vehicle_reservation`.
+- La reparación se basa en la metadata original conservada de Nexo Familia (`event_kind`, `vehicle_id` o `reservation_user_id`) y no depende de una nueva sincronización.
+- Es idempotente: solo corrige el marcador local y no modifica fechas, títulos, participantes, estados, recurrencias ni avisos.
+- La reparación se ejecuta antes de inicializar la WebView, para que el Calendario pueda mostrar 🚗 desde el primer render tras actualizar.
+- Se amplía la regresión de reservas de coche para proteger este caso en futuras versiones.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.12 · versionCode 105 · Reservas de coche en Calendario
 
 - Nexo Android deja de excluir las reservas de vehículo de la sincronización con Nexo Familia.
