@@ -1,5 +1,14 @@
 # Changelog de Nexo
 
+## 3.7.8 · versionCode 101 · Campanilla de avisos en eventos
+
+- Las tarjetas de eventos muestran una **campanilla** cuando el elemento tiene una o más reglas de aviso configuradas.
+- El indicador aparece en **Inicio / Próximamente**, **Agenda**, el detalle diario del **Calendario**, tarjetas genéricas de eventos y resultados de búsqueda.
+- En series recurrentes, la campanilla representa los avisos configurados para la serie.
+- SQLite entrega el indicador junto con el evento mediante una consulta `EXISTS`, evitando consultas adicionales por cada tarjeta.
+- La campanilla es informativa, no un botón, e incluye etiqueta accesible **“Aviso configurado”**.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene el baseline AndroidIDE/JDK17/SDK34/Gradle8.9/AGP8.7.3.
+
 ## 3.7.7 · versionCode 100 · Integridad al editar series recurrentes
 
 - Corrige un fallo reproducido en cumpleaños anuales importados de Nexo Familia: al editar participantes desde una aparición futura y aplicar el cambio a **Toda la serie**, el `endAt` de esa aparición podía copiarse sobre el evento base sin desplazar su `dueAt`, creando duraciones de meses o un año.

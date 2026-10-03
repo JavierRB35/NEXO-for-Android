@@ -13,8 +13,10 @@ match = re.search(r'return queryItems\("([^"]+)", null,\s*"([^"]+)",\s*(-?\d+)\)
 assert match, 'Appointment query not found'
 where, order, limit = match.groups()
 builder = source.split('private JSONArray queryItems(', 1)[1].split('\n    }', 1)[0]
-assert '"SELECT * FROM items WHERE deleted_at=0 AND (" + where + ") ORDER BY " + order + " LIMIT " + limit' in builder
-query = f'SELECT * FROM items WHERE deleted_at=0 AND ({where}) ORDER BY {order} LIMIT {limit}'
+assert 'ITEM_SELECT_WITH_REMINDER + " WHERE items.deleted_at=0 AND (" + where + ") ORDER BY " + order + " LIMIT " + limit' in builder
+query = f'''SELECT items.*,
+EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder
+FROM items WHERE items.deleted_at=0 AND ({where}) ORDER BY {order} LIMIT {limit}'''
 db = sqlite3.connect(':memory:')
 db.executescript('''
 CREATE TABLE items(id INTEGER PRIMARY KEY, type TEXT, title TEXT, body TEXT, due_at INTEGER, status TEXT, created_at INTEGER, deleted_at INTEGER DEFAULT 0);
@@ -38,5 +40,7 @@ assert {r[0] for r in found} == set(range(1, 306)), 'Missing or duplicated legac
 assert {r[1] for r in found} == {'event', 'task', 'reminder', 'expiry'}
 assert any(r[4] == 0 for r in found) and any(r[5] == 'done' for r in found)
 assert found[-1][5] == 'done', 'Completed appointments should follow pending ones'
+flags={r[0]:r[8] for r in found}
+assert flags[1] == 1 and flags[2] == 0, 'Reminder presence flag is incorrect'
 assert before == '\n'.join(db.iterdump()), 'Reading Citas modified saved data or alert rules'
-print('Appointment SQL: 305 old/new records, undated/completed, alerts and exceptions preserved; no duplicates')
+print('Appointment SQL: 305 records, reminder flag, undated/completed, alerts and exceptions preserved; no duplicates')

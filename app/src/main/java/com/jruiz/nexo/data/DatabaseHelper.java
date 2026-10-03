@@ -22,6 +22,8 @@ import java.util.*;
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
     private static final int DB_VERSION = 25;
+    private static final String ITEM_SELECT_WITH_REMINDER =
+            "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -1071,7 +1073,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public JSONObject getItem(long id) {
-        try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM items WHERE id=? AND deleted_at=0", new String[]{String.valueOf(id)})) {
+        try (Cursor c = getReadableDatabase().rawQuery(ITEM_SELECT_WITH_REMINDER + " WHERE items.id=? AND items.deleted_at=0", new String[]{String.valueOf(id)})) {
             if (!c.moveToFirst()) return new JSONObject();
             JSONObject item = normalizeNexoFamiliaStatusForRead(itemJson(c));
             if ("nexo-familia".equals(item.optString("source", ""))) {
@@ -1599,7 +1601,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
 
         // Elementos no recurrentes.
-        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND due_at<=CAST(? AS INTEGER) AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=CAST(? AS INTEGER) AND recurrence='none' ORDER BY due_at ASC",
+        try (Cursor c = db.rawQuery(ITEM_SELECT_WITH_REMINDER + " WHERE items.deleted_at=0 AND items.type NOT IN ('place','restaurant','document') AND items.due_at>0 AND items.due_at<=CAST(? AS INTEGER) AND (CASE WHEN items.end_at>0 THEN items.end_at ELSE items.due_at END)>=CAST(? AS INTEGER) AND items.recurrence='none' ORDER BY items.due_at ASC",
                 new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
                 JSONObject o = normalizeNexoFamiliaStatusForRead(itemJson(c));
@@ -1609,7 +1611,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         } catch (Exception ignored) {}
 
         // Series recurrentes que pueden cruzar el rango.
-        try (Cursor c = db.rawQuery("SELECT * FROM items WHERE deleted_at=0 AND type NOT IN ('place','restaurant','document') AND due_at>0 AND recurrence<>'none' AND due_at<=? AND (recurrence_until=0 OR recurrence_until>=?)",
+        try (Cursor c = db.rawQuery(ITEM_SELECT_WITH_REMINDER + " WHERE items.deleted_at=0 AND items.type NOT IN ('place','restaurant','document') AND items.due_at>0 AND items.recurrence<>'none' AND items.due_at<=? AND (items.recurrence_until=0 OR items.recurrence_until>=?)",
                 new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
                 JSONObject base = normalizeNexoFamiliaStatusForRead(itemJson(c));
@@ -1910,7 +1912,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         ArrayList<ScoredResult> ranked = new ArrayList<>();
         try (Cursor c = getReadableDatabase().rawQuery(
-                "SELECT * FROM items WHERE deleted_at=0 ORDER BY favorite DESC,updated_at DESC LIMIT 3000", null)) {
+                ITEM_SELECT_WITH_REMINDER + " WHERE items.deleted_at=0 ORDER BY items.favorite DESC,items.updated_at DESC LIMIT 3000", null)) {
             while (c.moveToNext()) {
                 JSONObject item = itemJson(c);
                 if (!intent.accepts(item)) continue;
@@ -3175,7 +3177,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     private JSONArray queryItems(String where, String[] args, String order, int limit) {
         JSONArray a = new JSONArray();
-        String sql = "SELECT * FROM items WHERE deleted_at=0 AND (" + where + ") ORDER BY " + order + " LIMIT " + limit;
+        String sql = ITEM_SELECT_WITH_REMINDER + " WHERE items.deleted_at=0 AND (" + where + ") ORDER BY " + order + " LIMIT " + limit;
         try (Cursor c = getReadableDatabase().rawQuery(sql, args)) {
             while (c.moveToNext()) a.put(normalizeNexoFamiliaStatusForRead(itemJson(c)));
         } catch (Exception ignored) {}
@@ -3236,6 +3238,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("noteTitleManual",noteTitleManualIndex>=0 && c.getInt(noteTitleManualIndex)==1);
             o.put("createdAt",c.getLong(c.getColumnIndexOrThrow("created_at")));
             o.put("updatedAt",c.getLong(c.getColumnIndexOrThrow("updated_at")));
+            int reminderIndex=c.getColumnIndex("has_reminder");
+            o.put("hasReminder",reminderIndex>=0 && c.getInt(reminderIndex)==1);
             attachItemPeople(o);
         } catch (Exception ignored) {}
         return o;

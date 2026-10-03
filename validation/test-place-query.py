@@ -24,8 +24,10 @@ assert places
 where,order,limit=places.groups()
 assert [r[0] for r in db.execute(f'SELECT * FROM items WHERE deleted_at=0 AND ({where}) ORDER BY {order} LIMIT {limit}')]==[5,2,1]
 calendar=source.split('public JSONArray getCalendar(long start, long end)',1)[1].split('public JSONObject getOccurrence',1)[0]
-queries=re.findall(r'rawQuery\("([^"]+)"',calendar)
-assert len(queries)==2
+item_select=re.search(r'ITEM_SELECT_WITH_REMINDER\s*=\s*"([^"]+)"',source).group(1)
+suffixes=re.findall(r'rawQuery\(ITEM_SELECT_WITH_REMINDER \+ "([^"]+)"',calendar)
+assert len(suffixes)==2
+queries=[item_select+suffix for suffix in suffixes]
 assert [r[0] for r in db.execute(queries[0],(200,100))]==[3]
 assert [r[0] for r in db.execute(queries[1],(200,100))]==[4]
 reminders=source.split('private JSONArray queryReminders(',1)[1].split('private JSONObject itemJson',1)[0]

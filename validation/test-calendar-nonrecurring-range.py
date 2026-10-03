@@ -48,7 +48,7 @@ assert old_count==0, f'La reproducción del bug debía devolver 0, devolvió {ol
 assert new_count==18, f'La consulta corregida debía devolver 18, devolvió {new_count}'
 
 assert 'due_at<=CAST(? AS INTEGER)' in db_source
-assert '(CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=CAST(? AS INTEGER)' in db_source
+assert '(CASE WHEN items.end_at>0 THEN items.end_at ELSE items.due_at END)>=CAST(? AS INTEGER)' in db_source
 assert '(CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER)' in db_source
 
 print('Calendario no recurrente: 0 con comparación TEXT, 18 con CAST INTEGER — OK')
