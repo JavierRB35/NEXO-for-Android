@@ -682,18 +682,31 @@ function eventReminderBellHtml(item,extraClass=''){
   return '<span class="event-reminder-indicator '+escAttr(extraClass)+'" role="img" aria-label="Aviso configurado" title="Aviso configurado">'+uiIcon('bell')+'</span>';
 }
 function homeUpcomingCard(item){
-  const d=new Date(Number(item.dueAt)),theme=familyCategoryTheme(item.category),icon=familyCategoryIcon(item.category),participants=homeParticipantData(item);
+  const d=new Date(Number(item.dueAt)),theme=familyCategoryTheme(item.category),icon=familyCategoryIcon(item.category);
   const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase();
   const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(d).replace('.','').toLocaleLowerCase('es-ES');
   const month=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
   const recurring=!!item.recurring||(item.recurrence&&item.recurrence!=='none');
   const id=Number(item.seriesId||item.id),occ=Number(item.occurrenceAt||item.dueAt);
   const style='--event-category-color:'+theme[0]+';--event-category-bg:'+theme[1]+';--event-category-border:'+theme[2];
+  const title=String(item.title||'Evento'),description=String(item.body||'').trim();
   const avatars=eventParticipantAvatarsHtml(item);
+  const reminder=eventReminderBellHtml(item,'event-reminder-indicator--time');
+  const timed=!(item.allDay===true||item.hasTime===false);
+  const startTime=timed?fmtTime(item.dueAt):'';
+  const endAt=Number(item.endAt||0);
+  const endTime=timed&&endAt>Number(item.dueAt)?fmtTime(endAt):'';
+  const timeLabel=endTime?startTime+' – '+endTime:startTime;
+  const timeMeta=(reminder||timed)
+    ?'<span class="upcoming-card__time">'+reminder+(timed?uiIcon('clock')+esc(timeLabel):'')+'</span>'
+    :'';
   return '<button type="button" class="upcoming-card upcoming-card--link" style="'+style+'" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
     '<span class="date-tile"><span class="date-tile__weekday">'+esc(weekday)+'</span><strong>'+String(d.getDate()).padStart(2,'0')+'</strong><small>'+esc(month)+'</small></span>'+
-    '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(item.title||'Evento')+'</strong>'+(item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+avatars+'</span>'+
-    '<span class="upcoming-card__aside"><span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span><span class="upcoming-card__time">'+eventReminderBellHtml(item,'event-reminder-indicator--time')+uiIcon('clock')+(item.allDay===true||item.hasTime===false?'Todo el día':esc(fmtTime(item.dueAt)))+'</span></span></button>';
+    '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(title)+'</strong>'+
+      (item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+
+      (description&&description!==title?'<span class="upcoming-card__note" title="'+escAttr(description)+'">'+esc(description)+'</span>':'')+
+      '<span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span></span>'+
+    '<span class="upcoming-card__aside">'+avatars+timeMeta+'</span></button>';
 }
 function bindHomeUpcoming(){
   $$('[data-home-event]').forEach(b=>b.addEventListener('click',()=>{
