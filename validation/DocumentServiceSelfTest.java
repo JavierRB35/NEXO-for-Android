@@ -17,7 +17,7 @@ public final class DocumentServiceSelfTest {
     private static void test(String name,Case fn) throws Exception { ReminderScheduler.reset();fn.run();passed++;System.out.println("OK "+name); }
     private static Context context() { return new Context().withFilesDir(root); }
     private static File attachment(String name) throws Exception { return DocumentFiles.copy(new File(root,"attachments"),name,new ByteArrayInputStream(new byte[]{0,1,2,3,4,(byte)255})); }
-    private static JSONObject draft(File file) { return new JSONObject().put("description","Póliza del coche\nCobertura completa y condiciones.").put("label","Seguro").put("attachmentPath",file.getPath()).put("attachmentName","Póliza.pdf").put("attachmentMime","application/pdf"); }
+    private static JSONObject draft(File file) { return new JSONObject().put("title","Póliza del coche").put("description","Cobertura completa y condiciones.").put("label","Seguro").put("attachmentPath",file.getPath()).put("attachmentName","Póliza.pdf").put("attachmentMime","application/pdf"); }
     public static void main(String[] args) throws Exception {
         root=Files.createTempDirectory("nexo-document-tests-").toFile();
         try {
@@ -29,11 +29,20 @@ public final class DocumentServiceSelfTest {
             test("Full multiline descriptions and Unicode survive the internal title generation",()->{
                 DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(context(),db);String description="📄".repeat(130)+"\nPóliza y último detalle";
                 long id=service.saveDocument(draft(attachment("p.pdf")).put("description",description)).optLong("id");JSONObject i=db.getItem(id);
-                check(description.equals(i.optString("body"))&&description.equals(DocumentEntry.description(i)),"Description changed");check(i.optString("title").codePointCount(0,i.optString("title").length())==100,"Title truncates Unicode incorrectly");
+                check(description.equals(i.optString("body")),"Description changed");check("Póliza del coche".equals(i.optString("title")),"Explicit title changed");
             });
-            test("A description and an attachment are required, and validation never inserts a partial record",()->{
+            test("A title and an attachment are required while description stays optional",()->{
                 DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(context(),db);File f=attachment("p.pdf");
-                check(!service.saveDocument(draft(f).put("description"," ")).optBoolean("ok"),"Blank description accepted");check(!service.saveDocument(draft(f).put("attachmentPath","")).optBoolean("ok"),"Missing file accepted");check(!service.saveDocument(draft(f).put("attachmentPath",new File(root,"absent").getPath())).optBoolean("ok"),"Missing file accepted");check(db.items.isEmpty(),"Partial record created");
+                check(service.saveDocument(draft(f).put("description"," ")).optBoolean("ok"),"Optional description rejected");
+                check(!service.saveDocument(draft(f).put("title"," ").put("description"," ").put("attachmentName","")).optBoolean("ok"),"Blank title accepted");
+                check(!service.saveDocument(draft(f).put("attachmentPath","")).optBoolean("ok"),"Missing file accepted");
+                check(!service.saveDocument(draft(f).put("attachmentPath",new File(root,"absent").getPath())).optBoolean("ok"),"Missing file accepted");
+            });
+            test("Document expiry is stored without calendar or alarm semantics",()->{
+                DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(context(),db);File f=attachment("expiry.pdf");long expiry=1893456000000L;
+                long id=service.saveDocument(draft(f).put("expiryAt",expiry)).optLong("id");JSONObject item=db.getItem(id);
+                check(item.optLong("dueAt")==expiry&&"document".equals(item.optString("type")),"Expiry not stored");
+                check("none".equals(item.optString("recurrence"))&&!item.optBoolean("hasTime")&&!item.optBoolean("voiceEnabled"),"Calendar/alarm semantics leaked");
             });
             test("Blank and legacy labels can be saved and cleared",()->{
                 DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(context(),db);File f=attachment("p.pdf");
@@ -46,7 +55,7 @@ public final class DocumentServiceSelfTest {
             test("Updating metadata preserves identity, attachment bytes, original capture and other metadata",()->{
                 DatabaseHelper db=new DatabaseHelper();File f=attachment("p.pdf");long id=db.insertItem(new JSONObject().put("type","document").put("title","Original").put("body","Detalle").put("attachmentPath",f.getPath()).put("attachmentName","p.pdf").put("attachmentMime","application/pdf").put("tags","archivo").put("originalText","Texto capturado").put("createdAt",123).put("dueAt",456));
                 NexoService service=new NexoService(context(),db);JSONObject out=service.saveDocument(new JSONObject().put("id",id).put("description","Descripción completa actualizada"));JSONObject i=db.getItem(id);
-                check(out.optBoolean("ok")&&db.items.size()==1&&f.exists(),"Identity/file changed");check("Texto capturado".equals(i.optString("originalText"))&&i.optLong("createdAt")==123&&"archivo".equals(i.optString("tags")),"Old metadata lost");check(i.optLong("dueAt")==0,"Document still dated");
+                check(out.optBoolean("ok")&&db.items.size()==1&&f.exists(),"Identity/file changed");check("Texto capturado".equals(i.optString("originalText"))&&i.optLong("createdAt")==123&&"archivo".equals(i.optString("tags")),"Old metadata lost");check(i.optLong("dueAt")==456,"Existing document date/expiry was not preserved");
             });
             test("An attachment replacement updates all file metadata and then removes the unused former copy",()->{
                 DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(context(),db);File old=attachment("old.pdf"),next=attachment("new.jpg");long id=service.saveDocument(draft(old)).optLong("id");
