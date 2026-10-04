@@ -58,13 +58,16 @@ assert "return 'cake'" in js
 assert '<h2 id="homeFamilyInfoTitle">Accesos directos</h2>' in html
 assert '<h2 id="homeFamilyInfoTitle">Información familiar</h2>' not in html
 
-# 8. Acciones compactas editar/compartir/eliminar.
+# 8. Acciones compactas; Documentos replica editar/ver/descargar/eliminar de Nexo Familia.
 assert 'function recordIconAction' in js
-for token in ['data-note-share','data-note-delete','data-document-share','data-document-delete',
+for token in ['data-note-share','data-note-delete','data-document-delete',
               'data-place-share','data-place-delete','data-journal-share','data-journal-delete',
               'data-med-share','data-med-delete','data-list-share','data-list-delete',
               'data-recording-share','data-recording-delete']:
     assert token in js, f'Falta acción de ficha: {token}'
+for token in ['data-document-edit','data-document-open','data-document-download','data-document-delete']:
+    assert token in js, f'Falta acción de documento: {token}'
+assert 'data-document-share' not in js[js.index('function documentCard'):js.index('function openDocumentDetail')]
 assert '.icon-action' in css and '.icon-action--danger' in css
 assert '@JavascriptInterface public void sharePlainText' in main
 
