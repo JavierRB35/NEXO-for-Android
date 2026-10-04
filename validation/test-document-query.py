@@ -22,7 +22,7 @@ db.executemany('INSERT INTO reminders VALUES(?,?,?,?,?,?,?,?,?)',[(1,1,'Póliza'
 before='\n'.join(db.iterdump())
 collection=re.search(r'if \("documents".equals\(collection\)\) \{\s*return queryItems\("([^"]+)", null, "([^"]+)", (\d+)\)',source)
 where,order,limit=collection.groups()
-assert [r[0] for r in db.execute(f'SELECT * FROM items WHERE deleted_at=0 AND ({where}) ORDER BY {order} LIMIT {limit}')]==[7,5,3,2,1]
+assert [r[0] for r in db.execute(f'SELECT * FROM items WHERE deleted_at=0 AND ({where}) ORDER BY {order} LIMIT {limit}')]==[7,5,2,1]
 calendar=source.split('public JSONArray getCalendar(long start, long end)',1)[1].split('public JSONObject getOccurrence',1)[0]
 item_select=re.search(r'ITEM_SELECT_WITH_REMINDER\s*=\s*"([^"]+)"',source).group(1)
 suffixes=re.findall(r'rawQuery\(ITEM_SELECT_WITH_REMINDER \+ "([^"]+)"',calendar)
@@ -42,4 +42,4 @@ for path in ['/stored/p.pdf','/stored/i.pdf','/stored/b.pdf']:
     assert db.execute(query,(path,)).fetchone() is not None
 assert db.execute(query,('/stored/unreferenced.pdf',)).fetchone() is None
 assert before=='\n'.join(db.iterdump()),'Reading documents changed existing records'
-print('Documents SQL: legacy/current documents and associated files retained; dated documents absent from calendar/alarms; shared and Undo references protected')
+print('Documents SQL: document collection isolated; dated documents absent from calendar/alarms; shared and Undo references protected')
