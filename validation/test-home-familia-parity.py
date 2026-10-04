@@ -59,6 +59,18 @@ assert 'homeUpcomingCard' in js
 assert 'event-participant-avatar' in js
 assert '--event-category-border' in js
 
+# Las fichas de Inicio comparten la distribución visual de Nexo Familia:
+# categoría bajo el contenido y participantes en la misma línea inferior que avisos/horario.
+home_card=js[js.index('function homeUpcomingCard'):js.index('function bindHomeUpcoming',js.index('function homeUpcomingCard'))]
+assert home_card.index('upcoming-category-pill') < home_card.index('upcoming-card__aside')
+assert home_card.index('eventParticipantAvatarsHtml') < home_card.index('upcoming-card__time')
+assert "const timed=!(item.allDay===true||item.hasTime===false);" in home_card
+assert "const endAt=Number(item.endAt||0);" in home_card
+assert "const endTime=timed&&endAt>Number(item.dueAt)?fmtTime(endAt):'';" in home_card
+assert "const timeLabel=endTime?startTime+' – '+endTime:startTime;" in home_card
+assert 'upcoming-card__note' in home_card
+assert '.upcoming-card__aside .event-participant-avatars' in css
+
 # Eventos: pasado -> done, hoy/futuro -> pending, recurrente -> pending, cancelado se respeta.
 assert "WHEN status='cancelled' THEN 'cancelled'" in db
 assert "WHEN recurrence<>'none' THEN 'pending'" in db
