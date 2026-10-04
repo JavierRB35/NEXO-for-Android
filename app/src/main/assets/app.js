@@ -3728,7 +3728,7 @@ function documentDescription(item){
   const title=String(item?.title||"").trim(),body=String(item?.body||"").trim();
   if(!body)return "";
   if(title&&body===title)return "";
-  if(title&&body.startsWith(title+"\n\n"))return body.slice(title.length+2).trim();
+  if(title&&body.startsWith(title+"\n"))return body.slice(title.length).trim();
   return body;
 }
 function documentExpiryDate(item){
