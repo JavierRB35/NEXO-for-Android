@@ -32,7 +32,9 @@ assert "const noteEditorActive=!!state.noteEditor&&panel==='notes'" in app
 assert "function startNoteEditorVoice()" in app
 assert 'id="noteVoiceBtn"' not in app
 assert 'data-document-open="${id}">Abrir archivo' not in app
-assert 'class="document-open" data-document-open="${id}"' in app
+assert 'class="document-card__main" data-document-detail="${id}"' in app
+assert 'data-document-open="${id}"' in app
+assert 'data-document-download="${id}"' in app
 
 # Pantallas de consulta/sistema sin flotantes.
 assert "if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}" in app
