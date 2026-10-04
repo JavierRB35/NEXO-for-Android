@@ -3725,77 +3725,141 @@ function renderCollectionPanel(panel){
   renderDocumentsList();updateFloatingActions();
 }
 function documentDescription(item){
-  const title=String(item.title||'').trim(),body=String(item.body||'').trim();
-  return !body?title:!title||body.startsWith(title)?body:title+'\n\n'+body;
+  const title=String(item?.title||"").trim(),body=String(item?.body||"").trim();
+  if(!body)return "";
+  if(title&&body===title)return "";
+  if(title&&body.startsWith(title+"\n\n"))return body.slice(title.length+2).trim();
+  return body;
 }
-
+function documentExpiryDate(item){
+  const at=Number(item?.dueAt||0);
+  return at>0?isoDateLocal(new Date(at)):"";
+}
+function documentSizeBytes(id){
+  try{return Math.max(0,Number(NexoNative.getDocumentFileSize(Number(id)))||0);}catch(_){return 0;}
+}
+function documentSizeLabel(id){
+  const bytes=documentSizeBytes(id);
+  return bytes>0?Math.max(1,Math.round(bytes/1024))+" KB":"";
+}
 function documentCard(i){
-  const own=i.type==='document',id=Number(i.id),description=documentDescription(i)||i.attachmentName||'Documento',label=own?String(i.subcategory||'').trim():'';
-  return `<article class="document-card" data-document-card="${id}"><button type="button" class="document-open" data-document-open="${id}" aria-label="Abrir ${escAttr(i.attachmentName||'documento')}">${label?`<span class="document-label">${esc(label)}</span>`:''}<span class="document-description">${esc(description)}</span><span class="document-filename">${uiIcon('file')}${esc(i.attachmentName||'Sin archivo adjunto')}</span></button><div class="record-card-actions">${own?recordIconAction('edit','Editar documento',`data-document-edit="${id}"`):''}${i.attachmentPath?recordIconAction('share','Compartir documento',`data-document-share="${id}"`):''}${own?recordIconAction('trash','Eliminar documento',`data-document-delete="${id}"`,'icon-action--danger'):''}</div>${i.attachmentPath?`<div class="document-actions"><button type="button" class="secondary-button" data-document-download="${id}">${uiIcon('download')} Descargar</button></div>`:''}${!own?`<button type="button" class="document-source text-button" data-document-source="${id}">Ver ${esc(typeLabel(i.type).toLowerCase())} de origen</button>`:''}</article>`;
+  const id=Number(i.id),title=String(i.title||i.attachmentName||"Documento").trim()||"Documento";
+  const label=String(i.subcategory||"").trim()||"Documento",description=documentDescription(i);
+  const expiry=documentExpiryDate(i),size=documentSizeLabel(id);
+  return `<article class="document-card document-card--family" data-document-card="${id}">
+    <button type="button" class="document-card__main" data-document-detail="${id}" aria-label="Ver detalles de ${escAttr(title)}">
+      <span class="document-card__pill">${uiIcon("file")} ${esc(label)}</span>
+      <strong class="document-card__title">${esc(title)}</strong>
+      ${expiry?`<span class="document-card__meta">Caduca: ${esc(expiry)}</span>`:""}
+      ${size?`<span class="document-card__meta">${esc(size)}</span>`:""}
+      ${description?`<span class="document-card__description">${esc(description)}</span>`:""}
+    </button>
+    <div class="document-card__actions">
+      ${recordIconAction("edit","Editar documento",`data-document-edit="${id}"`)}
+      ${recordIconAction("eye","Abrir archivo",`data-document-open="${id}"`)}
+      ${recordIconAction("download","Descargar",`data-document-download="${id}"`)}
+      ${recordIconAction("trash","Eliminar documento",`data-document-delete="${id}"`,"icon-action--danger")}
+    </div>
+  </article>`;
+}
+function openDocumentDetail(id){
+  const i=parseNative(NexoNative.getItem(Number(id)),{});
+  if(!i.id||i.type!=="document"){toast("No se encuentra este documento.");return;}
+  const title=String(i.title||i.attachmentName||"Documento"),label=String(i.subcategory||"").trim()||"Documento";
+  const expiry=documentExpiryDate(i),size=documentSizeLabel(id),description=documentDescription(i);
+  openModal(title,`<div class="document-detail">
+    <span class="document-card__pill">${uiIcon("file")} ${esc(label)}</span>
+    <div class="detail-grid">
+      ${expiry?`<div class="detail-field detail-field--full"><span>Caducidad</span><strong>${esc(expiry)}</strong></div>`:""}
+      <div class="detail-field"><span>Tipo de archivo</span><strong>${esc(i.attachmentMime||"—")}</strong></div>
+      <div class="detail-field"><span>Tamaño</span><strong>${esc(size||"—")}</strong></div>
+      ${description?`<div class="detail-field detail-field--full"><span>Descripción</span><strong>${esc(description)}</strong></div>`:""}
+      <div class="detail-field detail-field--full"><span>Archivo</span><strong>${esc(i.attachmentName||"Sin nombre")}</strong></div>
+    </div>
+    <div class="document-detail__actions">
+      <button id="documentDetailEdit" type="button" class="secondary-button">${uiIcon("edit")} Editar</button>
+      <button id="documentDetailOpen" type="button" class="secondary-button">${uiIcon("eye")} Abrir archivo</button>
+      <button id="documentDetailDownload" type="button" class="secondary-button">${uiIcon("download")} Descargar archivo</button>
+    </div>
+  </div>`);
+  $("#documentDetailEdit").addEventListener("click",()=>{closeModal();openDocumentEditor(Number(id));});
+  $("#documentDetailOpen").addEventListener("click",()=>NexoNative.openDocumentFile(String(i.attachmentPath||""),String(i.attachmentName||""),String(i.attachmentMime||"")));
+  $("#documentDetailDownload").addEventListener("click",()=>NexoNative.downloadDocument(Number(id)));
 }
 function bindDocumentButtons(root){
-  root.querySelectorAll('[data-document-edit]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openDocumentEditor(Number(b.dataset.documentEdit));}));
-  root.querySelectorAll('[data-document-open]').forEach(b=>b.addEventListener('click',e=>{
+  root.querySelectorAll("[data-document-detail]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openDocumentDetail(Number(b.dataset.documentDetail));}));
+  root.querySelectorAll("[data-document-edit]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openDocumentEditor(Number(b.dataset.documentEdit));}));
+  root.querySelectorAll("[data-document-open]").forEach(b=>b.addEventListener("click",e=>{
     e.stopPropagation();const i=parseNative(NexoNative.getItem(Number(b.dataset.documentOpen)),{});
-    NexoNative.openDocumentFile(String(i.attachmentPath||''),String(i.attachmentName||''),String(i.attachmentMime||''));
+    NexoNative.openDocumentFile(String(i.attachmentPath||""),String(i.attachmentName||""),String(i.attachmentMime||""));
   }));
-  root.querySelectorAll('[data-document-download]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.downloadDocument(Number(b.dataset.documentDownload));}));
-  root.querySelectorAll('[data-document-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareDocument(Number(b.dataset.documentShare));}));
-  root.querySelectorAll('[data-document-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.documentDelete));}));
-  root.querySelectorAll('[data-document-source]').forEach(b=>b.addEventListener('click',()=>openItem(Number(b.dataset.documentSource))));
+  root.querySelectorAll("[data-document-download]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();NexoNative.downloadDocument(Number(b.dataset.documentDownload));}));
+  root.querySelectorAll("[data-document-delete]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.documentDelete));}));
 }
-
 function renderDocumentsList(){
-  const tokens=normVoiceText(state.documentSearch).split(' ').filter(Boolean);
-  const rows=state.documents.filter(i=>(state.documentFilter==='all'||(i.type==='document'?i.subcategory||'':'')===state.documentFilter)&&tokens.every(t=>normVoiceText([i.title,i.body,i.attachmentName,i.type==='document'?i.subcategory:''].join(' ')).includes(t)));
-  $('#documentCount').textContent=`${rows.length} documento${rows.length===1?'':'s'}`;
-  $('#documentList').innerHTML=rows.length?rows.map(documentCard).join(''):`<div class="empty-state">${state.documents.length?'No hay documentos con esta búsqueda y etiqueta.':'Guarda un archivo con una descripción para encontrarlo fácilmente.'}</div>`;
-  bindDocumentButtons($('#documentList'));
+  const tokens=normVoiceText(state.documentSearch).split(" ").filter(Boolean);
+  const rows=state.documents.filter(i=>(state.documentFilter==="all"||(i.subcategory||"")===state.documentFilter)&&tokens.every(t=>normVoiceText([i.title,i.body,i.attachmentName,i.subcategory].join(" ")).includes(t)));
+  $("#documentCount").textContent=`${rows.length} documento${rows.length===1?"":"s"}`;
+  $("#documentList").innerHTML=rows.length?rows.map(documentCard).join(""):`<div class="empty-state">${state.documents.length?"No hay documentos con esta búsqueda y categoría.":"No hay documentos guardados."}</div>`;
+  bindDocumentButtons($("#documentList"));
 }
 function discardDocumentDraft(){
   const editor=state.documentEditor;state.documentEditor=null;
   if(editor?.file?.path&&editor.file.path!==editor.originalPath)NexoNative.discardDocumentFile(editor.file.path);
 }
 function showDocumentError(message){
-  const error=$('#documentSaveError');if(error){error.textContent=message;error.classList.remove('hidden');}
+  const error=$("#documentSaveError");if(error){error.textContent=message;error.classList.remove("hidden");}
 }
 function renderDocumentFile(){
-  const editor=state.documentEditor;if(!editor||!$('#documentFileName'))return;
+  const editor=state.documentEditor;if(!editor||!$("#documentFileName"))return;
   const file=editor.file;
-  $('#documentFileName').textContent=editor.busy?'Cargando archivo…':file?.name||'Ningún archivo seleccionado';
-  $('#documentChoose').textContent=file?.path?'Cambiar archivo':'Seleccionar archivo';
-  $('#documentChoose').disabled=editor.busy;$('#documentSave').disabled=editor.busy;
-  $('#documentPreview').classList.toggle('hidden',!file?.path);$('#documentPreview').disabled=editor.busy;
+  $("#documentFileName").textContent=editor.busy?"Cargando archivo…":file?.name||"Ningún archivo seleccionado";
+  $("#documentChoose").textContent=file?.path?"Cambiar archivo":"Seleccionar archivo";
+  $("#documentChoose").disabled=editor.busy;$("#documentSave").disabled=editor.busy;
+  $("#documentPreview").classList.toggle("hidden",!file?.path);$("#documentPreview").disabled=editor.busy;
 }
 function openDocumentEditor(id=0,incoming=null){
   const editing=Number(id)>0,i=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
-  if(editing&&(!i.id||i.type!=='document')){toast('No se encuentra este documento.');return;}
-  const label=String(i.subcategory||''),labels=[...new Set([...DOCUMENT_LABELS,label].filter(Boolean))];
-  openModal(editing?'Editar documento':'Guardar documento',`<div class="modal-form document-form"><label>Descripción<textarea id="documentDescription" rows="4" placeholder="Ej. Seguro del coche o factura de la lavadora" required></textarea></label><label>Tipo de documento <span class="optional">(opcional)</span><select id="documentLabel"><option value="">Sin etiqueta</option>${labels.map(value=>`<option value="${escAttr(value)}" ${value===label?'selected':''}>${esc(value)}</option>`).join('')}</select></label><div class="document-file-field"><span class="document-field-label">Archivo</span><span id="documentFileName" class="document-file-name" aria-live="polite"></span><div class="document-file-buttons"><button id="documentChoose" type="button" class="secondary-button">Seleccionar archivo</button><button id="documentPreview" type="button" class="secondary-button hidden">Abrir archivo</button></div><p class="document-file-help">PDF, JPG, PNG, Word u otro formato.</p></div><p id="documentSaveError" class="document-error hidden" role="alert"></p></div><div class="modal-actions"><button id="documentCancel" type="button" class="secondary-button">Cancelar</button><button id="documentSave" type="button" class="primary-button">Guardar documento</button></div>${editing?'<button id="documentDelete" type="button" class="danger-link">Eliminar documento</button>':''}`);
-  $('#documentDescription').value=editing?documentDescription(i):incoming?.description||'';
-  state.documentEditor={id:Number(id)||0,originalPath:i.attachmentPath||'',file:incoming?.path?incoming:i.attachmentPath?{path:i.attachmentPath,name:i.attachmentName,mime:i.attachmentMime}:null,request:'',busy:false};
-  document.body.classList.add('document-editor-open');requestAnimationFrame(updateFloatingActions);
+  if(editing&&(!i.id||i.type!=="document")){toast("No se encuentra este documento.");return;}
+  const incomingName=String(incoming?.name||"").replace(/\.[^.]+$/,"");
+  const initialTitle=editing?String(i.title||""):String(incoming?.title||incomingName||"");
+  const initialCategory=editing?String(i.subcategory||""):String(incoming?.label||"");
+  const initialDescription=editing?documentDescription(i):String(incoming?.description||"");
+  const initialExpiry=editing?documentExpiryDate(i):"";
+  openModal(editing?"Editar documento":"Nuevo documento",`<div class="modal-form document-form">
+    <label>Título<input id="documentTitle" type="text" value="${escAttr(initialTitle)}" required></label>
+    <div class="document-form__pair">
+      <label>Categoría <span class="optional">(opcional)</span><input id="documentLabel" type="text" value="${escAttr(initialCategory)}" placeholder="Seguro, vivienda, garantía…"></label>
+      <label>Caducidad <span class="optional">(opcional)</span><input id="documentExpiry" type="date" value="${escAttr(initialExpiry)}"></label>
+    </div>
+    <label>Descripción <span class="optional">(opcional)</span><textarea id="documentDescription" rows="3" placeholder="Información útil sobre el documento">${esc(initialDescription)}</textarea></label>
+    <div class="document-file-field"><span class="document-field-label">Archivo</span><span id="documentFileName" class="document-file-name" aria-live="polite"></span><div class="document-file-buttons"><button id="documentChoose" type="button" class="secondary-button">Seleccionar archivo</button><button id="documentPreview" type="button" class="secondary-button hidden">${uiIcon("eye")} Abrir archivo</button></div><p class="document-file-help">PDF, JPG, PNG, Word u otro formato.</p></div>
+    <p id="documentSaveError" class="document-error hidden" role="alert"></p>
+  </div><div class="modal-actions"><button id="documentCancel" type="button" class="secondary-button">Cancelar</button><button id="documentSave" type="button" class="primary-button">Guardar documento</button></div>${editing?`<button id="documentDelete" type="button" class="danger-link">Eliminar documento</button>`:""}`);
+  state.documentEditor={id:Number(id)||0,originalPath:i.attachmentPath||"",file:incoming?.path?incoming:i.attachmentPath?{path:i.attachmentPath,name:i.attachmentName,mime:i.attachmentMime}:null,request:"",busy:false};
+  document.body.classList.add("document-editor-open");requestAnimationFrame(updateFloatingActions);
   renderDocumentFile();
-  $('#documentChoose').addEventListener('click',()=>{
+  $("#documentChoose").addEventListener("click",()=>{
     const editor=state.documentEditor;if(!editor||editor.busy)return;
-    editor.request='document-'+Date.now()+'-'+(++state.documentRequest);editor.busy=true;
-    $('#documentSaveError').classList.add('hidden');renderDocumentFile();NexoNative.chooseDocumentFile(editor.request);
+    editor.request="document-"+Date.now()+"-"+(++state.documentRequest);editor.busy=true;
+    $("#documentSaveError").classList.add("hidden");renderDocumentFile();NexoNative.chooseDocumentFile(editor.request);
   });
-  $('#documentPreview').addEventListener('click',()=>{const f=state.documentEditor?.file;if(f?.path)NexoNative.openDocumentFile(f.path,f.name||'',f.mime||'');});
-  $('#documentCancel').addEventListener('click',closeModal);
-  $('#documentSave').addEventListener('click',()=>{
+  $("#documentPreview").addEventListener("click",()=>{const f=state.documentEditor?.file;if(f?.path)NexoNative.openDocumentFile(f.path,f.name||"",f.mime||"");});
+  $("#documentCancel").addEventListener("click",closeModal);
+  $("#documentSave").addEventListener("click",()=>{
     const editor=state.documentEditor;if(!editor||editor.busy)return;
-    const description=$('#documentDescription').value.trim(),file=editor.file;$('#documentSaveError').classList.add('hidden');
-    if(!description){showDocumentError('Escribe una descripción del documento.');$('#documentDescription').focus();return;}
-    if(!file?.path){showDocumentError('Selecciona el archivo que quieres guardar.');$('#documentChoose').focus();return;}
-    const payload={id:editor.id,description,label:$('#documentLabel').value,attachmentPath:file.path,attachmentName:file.name||'',attachmentMime:file.mime||''};
+    const title=$("#documentTitle").value.trim(),description=$("#documentDescription").value.trim(),file=editor.file;
+    const expiry=$("#documentExpiry").value;$("#documentSaveError").classList.add("hidden");
+    if(!title){showDocumentError("Escribe un título para el documento.");$("#documentTitle").focus();return;}
+    if(!file?.path){showDocumentError("Selecciona el archivo que quieres guardar.");$("#documentChoose").focus();return;}
+    const expiryAt=expiry?new Date(expiry+"T12:00:00").getTime():0;
+    const payload={id:editor.id,title,description,label:$("#documentLabel").value.trim(),expiryAt,attachmentPath:file.path,attachmentName:file.name||"",attachmentMime:file.mime||""};
     const result=parseNative(NexoNative.saveDocument(JSON.stringify(payload)),{});
-    if(!result.ok){showDocumentError(result.error||'No se pudo guardar el documento.');return;}
-    editor.originalPath=file.path;closeModal();refreshCurrent();toast('Documento guardado');
+    if(!result.ok){showDocumentError(result.error||"No se pudo guardar el documento.");return;}
+    editor.originalPath=file.path;closeModal();refreshCurrent();toast("Documento guardado");
   });
-  $('#documentDelete')?.addEventListener('click',()=>confirmDeleteItem(i));
+  $("#documentDelete")?.addEventListener("click",()=>confirmDeleteItem(i));
 }
-
 
 function placeCard(i){
   const id=Number(i.id);
