@@ -1820,6 +1820,10 @@ main{max-width:720px}
 .upcoming-title{margin:0;font-size:1rem;font-weight:900;letter-spacing:-.025em}
 .upcoming-card__location{display:flex;align-items:center;gap:4px;min-width:0;color:#667085;font-size:.76rem}
 .upcoming-card__location .ui-icon{width:15px;height:15px;flex:0 0 auto}
+.upcoming-card__note{
+  display:-webkit-box;overflow:hidden;color:#667085;font-size:.78rem;line-height:1.38;
+  white-space:normal;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
+}
 .event-participant-avatars{display:flex;align-items:center;gap:5px;min-height:28px;margin-top:2px}
 .event-participant-avatar{
   width:28px;height:28px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;
@@ -1827,16 +1831,18 @@ main{max-width:720px}
 }
 .event-participant-avatar--more{color:#16855b!important;background:#e6f6ec!important}
 .upcoming-card__aside{
-  grid-column:2;grid-row:2;display:flex;min-width:0;align-items:center;justify-content:space-between;gap:8px;
+  grid-column:2;grid-row:2;display:flex;min-width:0;align-items:center;justify-content:space-between;gap:10px;
 }
 .upcoming-category-pill,.upcoming-card__time{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .upcoming-category-pill{
-  max-width:150px;padding:6px 9px;overflow:hidden;border:1px solid var(--event-category-border);
+  justify-self:start;max-width:150px;padding:6px 9px;overflow:hidden;border:1px solid var(--event-category-border);
   border-radius:999px;color:var(--event-category-color);background:var(--event-category-bg);
   font-size:.68rem;font-weight:850;text-overflow:ellipsis;
 }
 .upcoming-category-pill .ui-icon,.upcoming-card__time .ui-icon{width:16px;height:16px}
-.upcoming-card__time{color:#526078;font-size:.75rem;font-weight:750}
+.upcoming-card__time{flex:0 0 auto;color:#526078;font-size:.75rem;font-weight:750}
+.upcoming-card__aside .event-participant-avatars{flex:0 1 auto;min-width:0;margin-top:0}
+.upcoming-card__aside .event-participant-avatar{width:26px;height:26px}
 
 .family-home-search-results{margin-top:18px}
 .family-result-list{display:grid;gap:9px}
