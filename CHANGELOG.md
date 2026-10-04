@@ -1,5 +1,15 @@
 # Changelog de Nexo
 
+## 3.7.15 · versionCode 108 · Fichas de próximos eventos alineadas con Nexo Familia
+
+- Inicio / **Próximamente** adopta la misma distribución acordada para Nexo Familia.
+- La categoría se muestra bajo el contenido principal de la ficha.
+- Los participantes pasan a la línea inferior, a la izquierda del bloque de aviso y horario.
+- Los eventos con hora final muestran **hora de inicio – hora de fin**; si no existe una hora final explícita, se mantiene solo la hora de inicio.
+- Los eventos de día completo no muestran horas artificiales; la campanilla puede permanecer si tienen avisos.
+- Se añade la previsualización compacta de la nota/descripción para mantener la misma jerarquía visual.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.14 · versionCode 107 · Respetar eventos eliminados localmente
 
 - Un evento procedente de Nexo Familia que se elimina en Nexo Android queda **suprimido solo en Android** y no vuelve a importarse al pulsar **Sincronizar eventos**.

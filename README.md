@@ -1,12 +1,12 @@
-# Nexo 3.7.14
+# Nexo 3.7.15
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.14**, `versionCode 107`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
+Esta rama de estabilización corresponde a **Nexo 3.7.15**, `versionCode 108`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
 
 ## Base estable
 
-Nexo 3.7.14 mantiene la base funcional de 3.7.13 y cambia la sincronización con **Nexo Familia** para respetar eliminaciones locales: si un evento importado se elimina en Android, su UUID queda suprimido localmente y no vuelve a importarse en sincronizaciones posteriores. Restaurarlo desde la papelera elimina esa supresión.
+Nexo 3.7.15 mantiene la base funcional de 3.7.14 y unifica las fichas de **Próximamente** con Nexo Familia: la categoría se sitúa bajo el contenido, los participantes pasan al pie junto al aviso y al horario, y los eventos con hora final muestran el rango de inicio–fin. Se conserva la sincronización incremental y la supresión local de eventos introducidas en 3.7.14.
 
 Entre los comportamientos ya integrados:
 
@@ -49,7 +49,7 @@ El procedimiento se documenta en [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.
 Desde la raíz del proyecto en el teléfono:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_14"
+cd "/storage/emulated/0/Download/Nexo_3_7_15"
 sh build-on-phone.sh
 ```
 
@@ -58,7 +58,7 @@ No ejecutar `./gradlew` directamente desde `Download`.
 El script conserva la firma Release permanente, usa el baseline de AndroidIDE y copia el APK final a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_14.apk
+/storage/emulated/0/Download/Nexo_3_7_15.apk
 ```
 
 ## Validación
