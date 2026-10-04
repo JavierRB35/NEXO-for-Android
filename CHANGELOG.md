@@ -1,5 +1,15 @@
 # Changelog de Nexo
 
+## 3.7.16 · versionCode 109 · Documentos alineados con Nexo Familia
+
+- Documentos adopta la misma estructura de tarjetas que Nexo Familia: categoría, título, caducidad opcional, tamaño y descripción.
+- Cada tarjeta muestra una fila inferior de cuatro acciones equivalentes: **Editar**, **Abrir**, **Descargar** y **Eliminar**.
+- Pulsar el cuerpo de la tarjeta abre una ficha de detalle con metadatos del archivo y accesos a abrir y descargar.
+- El editor incorpora **Título**, **Categoría**, **Caducidad opcional**, **Descripción opcional** y archivo, conservando los documentos existentes.
+- La colección Documentos deja de mezclar adjuntos pertenecientes a otros tipos de registros.
+- El tamaño se obtiene del archivo local real sin añadir columnas ni migraciones de base de datos.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.15 · versionCode 108 · Fichas de próximos eventos alineadas con Nexo Familia
 
 - Inicio / **Próximamente** adopta la misma distribución acordada para Nexo Familia.
