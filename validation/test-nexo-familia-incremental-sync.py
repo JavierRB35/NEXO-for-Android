@@ -51,8 +51,9 @@ assert "function isVehicleReservation(i)" in js
 assert "calendarMarkerItems(list).map(calendarMarkerHtml)" in js
 assert "calendar-event-vehicle" in js
 assert "🚗" in js
-assert "eventReminderBellHtml(item,'event-reminder-indicator--time')+uiIcon('clock')" in js
 home=js[js.index('function homeUpcomingCard'):js.index('function bindHomeUpcoming')]
+assert "const reminder=eventReminderBellHtml(item,'event-reminder-indicator--time');" in home
+assert "reminder+(timed?uiIcon('clock')+esc(timeLabel):'')" in home
 assert 'upcoming-title-row' not in home
 assert 'Campanilla de avisos' in bell
 
