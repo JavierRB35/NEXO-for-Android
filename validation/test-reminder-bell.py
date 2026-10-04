@@ -20,9 +20,12 @@ assert "if(!item?.hasReminder||!isAppointmentType(item.type))return '';" in js
 assert 'aria-label="Aviso configurado"' in js
 assert ".event-reminder-indicator" in css
 
-# Inicio: la campana va abajo, inmediatamente antes del reloj, nunca junto al título.
+# Inicio: la campana va abajo, en el bloque horario; si hay hora aparece antes del reloj.
+# En eventos de día completo puede quedar sola, igual que en Nexo Familia.
 home=js[js.index("function homeUpcomingCard"):js.index("function bindHomeUpcoming")]
-assert "eventReminderBellHtml(item,'event-reminder-indicator--time')+uiIcon('clock')" in home
+assert "const reminder=eventReminderBellHtml(item,'event-reminder-indicator--time');" in home
+assert "const timeMeta=(reminder||timed)" in home
+assert "reminder+(timed?uiIcon('clock')+esc(timeLabel):'')" in home
 assert "upcoming-title-row" not in home
 
 # Agenda/Calendario: la campana acompaña al bloque horario.
