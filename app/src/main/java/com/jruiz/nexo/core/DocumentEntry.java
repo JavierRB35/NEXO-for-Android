@@ -16,19 +16,25 @@ public final class DocumentEntry {
     }
 
     public static JSONObject fields(JSONObject in, JSONObject existing) throws Exception {
-        String description=in.optString("description", "").trim();
-        if (description.isEmpty()) throw new IllegalArgumentException("Escribe una descripción del documento.");
+        String description=in.has("description")?in.optString("description", "").trim():existing.optString("body", "").trim();
         String path=in.optString("attachmentPath",existing.optString("attachmentPath", ""));
         if (path.isBlank()) throw new IllegalArgumentException("Selecciona el archivo que quieres guardar.");
-        String firstLine=description.split("\n",2)[0];
-        int end=firstLine.offsetByCodePoints(0,Math.min(100,firstLine.codePointCount(0,firstLine.length())));
+
+        String title=in.has("title")?in.optString("title", "").trim():existing.optString("title", "").trim();
+        if (title.isBlank() && !description.isBlank()) title=description.split("\\n",2)[0].trim();
+        if (title.isBlank()) title=in.optString("attachmentName",existing.optString("attachmentName", "")).replaceFirst("\\.[^.]+$","").trim();
+        if (title.isBlank()) throw new IllegalArgumentException("Escribe un título para el documento.");
+        int titleEnd=title.offsetByCodePoints(0,Math.min(100,title.codePointCount(0,title.length())));
+        title=title.substring(0,titleEnd);
+
+        long expiryAt=in.has("expiryAt")?Math.max(0L,in.optLong("expiryAt",0L)):Math.max(0L,existing.optLong("dueAt",0L));
         return new JSONObject().put("type","document").put("category","Documentos")
-                .put("title",firstLine.substring(0,end)).put("body",description)
+                .put("title",title).put("body",description)
                 .put("subcategory",in.optString("label",existing.optString("subcategory", "")).trim())
                 .put("attachmentPath",path)
                 .put("attachmentName",in.optString("attachmentName",existing.optString("attachmentName", "")))
                 .put("attachmentMime",in.optString("attachmentMime",existing.optString("attachmentMime", "")))
-                .put("dueAt",0).put("hasTime",false).put("durationMinutes",0)
+                .put("dueAt",expiryAt).put("endAt",0).put("hasTime",false).put("allDay",false).put("durationMinutes",0)
                 .put("recurrence","none").put("recurrenceUntil",0)
                 .put("voiceEnabled",false).put("needsReview",false).put("status","active");
     }
