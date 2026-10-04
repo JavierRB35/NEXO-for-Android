@@ -2057,6 +2057,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void chooseDocumentFile(String request) { runOnUiThread(()->MainActivity.this.chooseDocumentFile(request)); }
         @JavascriptInterface public void discardDocumentFile(String path) { service.discardUnusedAttachment(path); }
         @JavascriptInterface public void openDocumentFile(String path,String name,String mime) { MainActivity.this.openAttachment(path,name,mime,false); }
+        @JavascriptInterface public long getDocumentFileSize(long id) {
+            try {
+                JSONObject item=db.getItem(id);
+                File file=DocumentFiles.requireStored(new File(getFilesDir(),"attachments"),item.optString("attachmentPath",""));
+                return file.length();
+            } catch(Exception ignored) { return 0L; }
+        }
         @JavascriptInterface public void downloadDocument(long id) { MainActivity.this.exportDocument(id); }
         @JavascriptInterface public void shareDocument(long id) {
             JSONObject item=db.getItem(id);
