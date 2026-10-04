@@ -1945,7 +1945,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // Read-only collections use existing item fields. No schema migration.
     public JSONArray getCollection(String collection) {
         if ("documents".equals(collection)) {
-            return queryItems("(type='document' OR attachment_path<>'')", null, "updated_at DESC", 3000);
+            return queryItems("type='document'", null, "updated_at DESC", 3000);
         }
         if ("places".equals(collection)) {
             return queryItems("type IN ('place','restaurant')", null, "updated_at DESC", 3000);
