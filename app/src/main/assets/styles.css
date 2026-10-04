@@ -2694,3 +2694,46 @@ body.startup-loading #app{visibility:hidden}
 .about-tech-list dt{color:var(--muted);font-size:.78rem}
 .about-tech-list dd{margin:0;text-align:right;font-size:.78rem;font-weight:700;overflow-wrap:anywhere}
 .about-copy-button{width:100%;margin-top:13px}
+
+
+/* Nexo · Documentos con gestión visual equivalente a Nexo Familia */
+#documentList{display:grid;gap:12px}
+.document-card.document-card--family{
+  position:relative;display:flex;flex-direction:column;align-items:stretch;gap:10px;
+  padding:11px 12px;overflow:hidden;border:1px solid rgba(230,227,214,.96);border-radius:22px;
+  background:rgba(255,255,255,.97);box-shadow:0 8px 20px rgba(77,73,55,.07);
+}
+.document-card__main{
+  display:grid;width:100%;gap:3px;padding:0;border:0;background:transparent;color:var(--text);
+  font:inherit;text-align:left;
+}
+.document-card__pill{
+  display:inline-flex;align-items:center;justify-self:start;gap:5px;min-height:24px;padding:3px 8px;
+  border:1px solid #d8e8dc;border-radius:999px;color:#0f6f4a;background:#eef9f2;
+  font-size:.72rem;font-weight:850;line-height:1.2;
+}
+.document-card__pill .ui-icon{width:15px;height:15px}
+.document-card__title{margin:2px 0 1px;font-size:1rem;font-weight:900;letter-spacing:-.02em}
+.document-card__meta{color:#6f7b8c;font-size:.82rem;line-height:1.35}
+.document-card__description{
+  display:-webkit-box;margin-top:2px;overflow:hidden;color:#667085;font-size:.79rem;line-height:1.38;
+  white-space:normal;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
+}
+.document-card__actions{display:grid;width:100%;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.document-card__actions .icon-action{
+  width:100%;min-width:0;height:48px;border:1px solid #e5e0d6;border-radius:12px;
+  color:#16855b;background:#fffaf3;box-shadow:none;
+}
+.document-card__actions .icon-action .ui-icon{width:21px;height:21px}
+.document-card__actions .icon-action--danger{color:#b4233a}
+.document-form__pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.document-form__pair>label,.document-form__pair input{min-width:0}
+.document-detail{display:grid;gap:12px}
+.document-detail__actions{display:grid;gap:8px}
+.document-detail__actions button{width:100%;justify-content:center}
+@media(max-width:380px){
+  .document-card.document-card--family{padding:10px}
+  .document-card__actions{gap:5px}
+  .document-card__actions .icon-action{height:44px}
+  .document-form__pair{grid-template-columns:1fr}
+}
