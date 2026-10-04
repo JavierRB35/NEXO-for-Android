@@ -36,7 +36,9 @@ assert "collectionAdd" not in app
 assert "function startDocumentSearchVoice()" in app
 assert "function startDocumentEditorVoice()" in app
 assert "function applyDocumentEditorVoice(text)" in app
-assert 'class="document-open" data-document-open=' in app
+assert 'class="document-card__main" data-document-detail=' in app
+assert 'data-document-open=' in app
+assert 'data-document-download=' in app
 
 # Clasificación acordada.
 order = ["Para no olvidar", "Ideas y escritos", "Mi salud", "Mis lugares", "Datos y seguridad"]
