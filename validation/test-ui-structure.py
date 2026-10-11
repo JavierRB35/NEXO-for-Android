@@ -51,8 +51,8 @@ home = html[home_start:home_end]
 for required in [
     'id="homeSearchInput"',
     'id="homeTodayCard"',
+    'id="homeTomorrowCard"',
     'id="homeWeekCard"',
-    'id="homeInboxPulseCard"',
     'id="homeCalendarCard"',
     '<small>Agenda</small>',
     'data-panel="notes"',
@@ -62,6 +62,8 @@ for required in [
     'id="homeUpcomingList"',
 ]:
     assert required in home, f"Falta en Inicio: {required}"
+assert 'id="homeInboxPulseCard"' not in home
+assert '<strong id="homeCalendarMonth">Completa</strong>' not in home
 
 # Calendario vive en la barra inferior; Inicio no debe duplicarlo como tarjeta.
 assert 'data-nav="calendar"' not in home
@@ -76,13 +78,14 @@ for panel in ["notes","recordings","lists","documents","journal","quotes","medic
 nav_start = html.index('<nav class="bottom-nav"')
 nav_end = html.index('</nav>', nav_start)
 nav = html[nav_start:nav_end]
-for dest in ["today","calendar","notes","search","tools"]:
+for dest in ["today","calendar","notes","search","inbox","tools"]:
     assert f'data-nav="{dest}"' in nav, f"Falta navegación principal: {dest}"
 
-nav_positions = [nav.index(f'data-nav="{dest}"') for dest in ["today","calendar","notes","search","tools"]]
-assert nav_positions == sorted(nav_positions), "El orden inferior debe ser Inicio, Calendario, Notas, Buscar, Herramientas"
+nav_positions = [nav.index(f'data-nav="{dest}"') for dest in ["today","calendar","notes","search","inbox","tools"]]
+assert nav_positions == sorted(nav_positions), "El orden inferior debe ser Inicio, Calendario, Notas, Buscar, Inbox, Herramientas"
 assert "if(b.dataset.nav==='notes')openPanel('notes',{root:true})" in app_js
-assert "route.panel==='notes'?'notes'" in app_js
+assert "else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true})" in app_js
+assert "route.panel==='notes'?'notes':route.panel==='inbox'?'inbox'" in app_js
 
 assert 'id="brandInfoBtn"' in html and 'data-screen="about"' in html, "Falta pantalla Acerca de Nexo"
 assert 'id="aboutCopyDiagnostics"' in html, "Falta copiar diagnóstico"
