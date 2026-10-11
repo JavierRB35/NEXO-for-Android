@@ -1276,9 +1276,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             LocalDate today = LocalDate.now(zone);
             long start = today.atStartOfDay(zone).toInstant().toEpochMilli();
             long endToday = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1;
+            long startTomorrow = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
+            long endTomorrow = today.plusDays(2).atStartOfDay(zone).toInstant().toEpochMilli() - 1;
             long end7 = today.plusDays(7).atStartOfDay(zone).toInstant().toEpochMilli() - 1;
 
             LinkedHashMap<Long, JSONObject> firstBySeries = new LinkedHashMap<>();
+            LinkedHashSet<Long> tomorrowSeries = new LinkedHashSet<>();
             JSONArray near = getCalendar(start, end7);
             for (int i=0;i<near.length();i++) {
                 JSONObject item = near.optJSONObject(i);
@@ -1290,6 +1293,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long due = item.optLong("dueAt",0L);
                 if (due < start) continue;
                 long key = item.optLong("seriesId", item.optLong("id",0L));
+                if (key > 0 && due >= startTomorrow && due <= endTomorrow) tomorrowSeries.add(key);
                 if (key > 0 && !firstBySeries.containsKey(key)) firstBySeries.put(key,item);
             }
 
@@ -1344,6 +1348,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             out.put("upcoming",shown);
             out.put("todayCount",todayCount);
+            out.put("tomorrowCount",tomorrowSeries.size());
             out.put("weekCount",weekCount);
             out.put("inboxCount",
                     scalar("SELECT COUNT(*) FROM items WHERE deleted_at=0 AND needs_review=1") +
