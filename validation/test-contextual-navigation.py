@@ -6,17 +6,22 @@ html = (root / "app/src/main/assets/index.html").read_text(encoding="utf-8")
 
 # Inicio: Agenda tiene acceso propio; Calendario ya vive en la barra inferior.
 assert '<small>Agenda</small>' in html
-assert '<strong id="homeCalendarMonth">Completa</strong>' in html
+assert '<strong id="homeCalendarMonth">Completa</strong>' not in html
 assert "state.appointmentsFilter='pending';openPanel('appointments')" in app
 assert 'data-nav="calendar"' in html
 assert "function openHomeToday()" in app and "state.appointmentsWindow='today'" in app
+assert "function openHomeTomorrow()" in app and "state.appointmentsWindow='tomorrow'" in app
 assert "function openHomeWeek()" in app and "state.appointmentsWindow='week'" in app
+assert "if(state.appointmentsWindow==='tomorrow')" in app
+assert 'data-nav="inbox"' in html
 
 # Agenda: + y micrófono pertenecen a Agenda.
 assert "panel==='appointments'?'Añadir a Agenda por voz'" in app
 assert "panel==='appointments'?'Nueva cita'" in app
 assert "if(state.screen==='panel'&&state.lastPanel==='appointments'){startAgendaVoice();return;}" in app
-assert "prepareQuickNoteForType('event',state.appointmentsWindow==='today'?today:'')" in app
+assert "function appointmentsWindowDateIso()" in app
+assert "state.appointmentsWindow==='tomorrow'" in app
+assert "prepareQuickNoteForType('event',appointmentsWindowDateIso())" in app
 
 # Calendario: los dos flotantes crean citas para el día seleccionado.
 assert "state.screen==='calendar'?'Añadir cita por voz'" in app
