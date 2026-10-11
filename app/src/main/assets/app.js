@@ -453,6 +453,14 @@ function updateFloatingActions(){
   add.setAttribute('aria-label',addLabel);add.setAttribute('title',addLabel);
   voice.classList.toggle('hidden',!voiceVisible);add.classList.toggle('hidden',!addVisible);
 }
+function appointmentsWindowDateIso(){
+  if(!(state.screen==='panel'&&state.lastPanel==='appointments'))return '';
+  if(state.appointmentsWindow==='today')return isoDateLocal(new Date());
+  if(state.appointmentsWindow==='tomorrow'){
+    const d=new Date();d.setDate(d.getDate()+1);return isoDateLocal(d);
+  }
+  return '';
+}
 function startAgendaVoice(){
   startManagedDictation('agenda',{
     title:'AÑADIR A AGENDA',
@@ -461,9 +469,7 @@ function startAgendaVoice(){
 }
 function applyAgendaVoice(text){
   const value=String(text||'').trim();if(!value)return;
-  const today=isoDateLocal(new Date());
-  const date=state.screen==='panel'&&state.lastPanel==='appointments'&&state.appointmentsWindow==='today'?today:'';
-  prepareQuickNoteForType('event',date);
+  prepareQuickNoteForType('event',appointmentsWindowDateIso());
   $('#captureText').value=value;
   setInterpretationStatus('working','Voz transcrita · interpretando como cita…');
   analyzeCapture({immediate:true});
@@ -486,8 +492,7 @@ function runEventAddFab(){
     return;
   }
   if(state.screen==='panel'&&state.lastPanel==='appointments'){
-    const today=isoDateLocal(new Date());
-    prepareQuickNoteForType('event',state.appointmentsWindow==='today'?today:'');
+    prepareQuickNoteForType('event',appointmentsWindowDateIso());
     return;
   }
   const today=isoDateLocal(new Date());
@@ -608,7 +613,7 @@ function navigate(screen, options={}) {
   if(screen==='panel'){state.lastPanel=route.panel;state.currentList=route.list;}
   $$('.screen').forEach(el=>el.classList.toggle('active',el.dataset.screen===screen));
   const active=screen==='panel'
-    ? (route.panel==='notes'?'notes':route.panel==='inbox'?'today':'tools')
+    ? (route.panel==='notes'?'notes':route.panel==='inbox'?'inbox':'tools')
     : screen==='save'
       ? (state.captureReturnRoute?.screen==='calendar'?'calendar':state.captureReturnRoute?.screen==='panel'&&state.captureReturnRoute?.panel==='notes'?'notes':state.captureReturnRoute?.screen==='tools'?'tools':'today')
       : screen==='more'?'tools'
@@ -634,17 +639,17 @@ function renderToday(dashboardOverride=null) {
   state.homeUpcoming=Array.isArray(dashboard.upcoming)?dashboard.upcoming:[];
 
   const todayCount=Math.max(0,Number(dashboard.todayCount||0));
+  const tomorrowCount=Math.max(0,Number(dashboard.tomorrowCount||0));
   const weekCount=Math.max(0,Number(dashboard.weekCount||0));
-  const inboxCount=Math.max(0,Number(dashboard.inboxCount||0));
 
   $('#homeTodayCount').textContent=String(todayCount);
   $('#homeTodayHint').textContent=todayCount&&state.homeUpcoming.length?String(state.homeUpcoming[0].title||'Evento'):'Sin eventos previstos';
+  $('#homeTomorrowCount').textContent=String(tomorrowCount);
+  $('#homeTomorrowHint').textContent=tomorrowCount?tomorrowCount+' evento'+(tomorrowCount===1?'':'s'):'Sin eventos previstos';
   $('#homeWeekCount').textContent=String(weekCount);
-  $('#homeWeekHint').textContent=weekCount?'Eventos después de hoy':'Semana tranquila';
-  $('#homeInboxCount').textContent=String(inboxCount);
-  $('#homeInboxHint').textContent=inboxCount?inboxCount+' pendiente'+(inboxCount===1?'':'s')+' de organizar':'Todo organizado';
+  $('#homeWeekHint').textContent=weekCount?'Eventos en los próximos días':'Semana tranquila';
 
-  $('#homeCalendarMonth').textContent='Completa';$('#homeCalendarHint').textContent='Ver todos';
+  $('#homeCalendarHint').textContent='Ver todos';
   $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card">No hay próximos eventos. Añade el primero desde Agenda.</div>';
   bindHomeUpcoming();
 
@@ -726,6 +731,11 @@ function runHomeSearch(query){
 
 function openHomeToday(){
   state.appointmentsWindow='today';
+  state.appointmentsFilter='pending';
+  openPanel('appointments',{keepWindow:true});
+}
+function openHomeTomorrow(){
+  state.appointmentsWindow='tomorrow';
   state.appointmentsFilter='pending';
   openPanel('appointments',{keepWindow:true});
 }
@@ -2582,6 +2592,17 @@ function renderAppointmentsPanel(){
     $('#panelContent').innerHTML=rows.length?'<div class="stack">'+rows.map(i=>agendaCard(i,true)).join('')+'</div>':'<div class="empty-state">No hay eventos pendientes para hoy.</div>';
     bindItemButtons($('#panelContent'));updateFloatingActions();return;
   }
+  if(state.appointmentsWindow==='tomorrow'){
+    const start=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
+    const end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+2).getTime()-1;
+    const rows=parseNative(NexoNative.getCalendar(start.getTime(),end),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='done'&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted').sort((a,b)=>(a.dueAt||0)-(b.dueAt||0));
+    $('#panelTitle').textContent='Mañana';
+    $('#panelSubtitle').textContent=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long'}).format(start);
+    $('#panelAction').innerHTML='<button id="tomorrowShowAll" class="secondary-button" type="button">Agenda completa</button>';
+    $('#tomorrowShowAll').addEventListener('click',()=>{state.appointmentsWindow='';renderAppointmentsPanel();});
+    $('#panelContent').innerHTML=rows.length?'<div class="stack">'+rows.map(i=>agendaCard(i,true)).join('')+'</div>':'<div class="empty-state">No hay eventos pendientes para mañana.</div>';
+    bindItemButtons($('#panelContent'));updateFloatingActions();return;
+  }
   if(state.appointmentsWindow==='week'){
     const end=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7).getTime()-1;
     const rows=parseNative(NexoNative.getCalendar(today.getTime(),end),[]).filter(i=>isAppointmentType(i.type)&&i.status!=='done'&&i.status!=='cancelled'&&i.occurrenceStatus!=='deleted').sort((a,b)=>(a.dueAt||0)-(b.dueAt||0));
@@ -3532,7 +3553,7 @@ function init(){
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';
   setInterpretationStatus('idle','Interpretación local preparada');
-  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else navigate(b.dataset.nav,{root:true});}));
+  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else navigate(b.dataset.nav,{root:true});}));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   $('#brandInfoBtn')?.addEventListener('click',()=>navigate('about'));
   $('#aboutBackBtn')?.addEventListener('click',()=>navigateBack());
@@ -3543,8 +3564,8 @@ function init(){
   $('#peopleAddBtn')?.addEventListener('click',()=>openPersonEditor());
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
+  $('#homeTomorrowCard')?.addEventListener('click',openHomeTomorrow);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
-  $('#homeInboxPulseCard')?.addEventListener('click',()=>openPanel('inbox'));
   $('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';state.appointmentsFilter='pending';openPanel('appointments');});
   $('#searchHistorical')?.addEventListener('change',e=>{state.searchHistorical=!!e.target.checked;if($('#searchInput').value.trim())runSearch();});
   $('#globalVoiceFab').addEventListener('click',runFloatingVoice);
