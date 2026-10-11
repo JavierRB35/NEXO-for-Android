@@ -1,5 +1,16 @@
 # Changelog de Nexo
 
+## 3.7.17 · versionCode 110 · Inicio con Mañana e Inbox inferior
+
+- «Lo importante ahora» pasa a mostrar exactamente **Hoy, Mañana, 7 días y Agenda**.
+- Se añade un contador real de eventos pendientes para mañana, calculado desde el resumen ligero de Inicio y protegido frente a series recurrentes.
+- La tarjeta **Mañana** abre una vista de Agenda limitada al día siguiente; los botones de añadir y dictar respetan esa fecha contextual.
+- La tarjeta **Agenda** deja de mostrar el texto «Completa».
+- **Inbox** desaparece de «Lo importante ahora» y pasa a la barra de navegación inferior, colocado entre **Buscar** y **Herramientas**.
+- La navegación inferior pasa de cinco a seis destinos y mantiene el estado activo correcto al entrar en Inbox.
+- Se actualizan las regresiones de estructura, navegación contextual y paridad visual de Inicio.
+- Sin cambio de base de datos: `nexo.db v25`. Se mantiene AndroidIDE-Rv2, JDK 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
 ## 3.7.16 · versionCode 109 · Documentos alineados con Nexo Familia
 
 - Documentos adopta la misma estructura de tarjetas que Nexo Familia: categoría, título, caducidad opcional, tamaño y descripción.
