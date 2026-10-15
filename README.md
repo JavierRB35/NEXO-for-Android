@@ -1,14 +1,14 @@
-# Nexo 3.7.18
+# Nexo 3.7.19
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.18**, `versionCode 111`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
+Esta rama de estabilización corresponde a **Nexo 3.7.19**, `versionCode 112`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
 
 ## Base estable
 
-Nexo 3.7.18 mantiene la base funcional de 3.7.16 y reorganiza el acceso rápido de Inicio: **Hoy, Mañana, 7 días y Agenda**. Inbox deja de ocupar una tarjeta de «Lo importante ahora» y pasa a la navegación inferior, entre **Buscar** y **Herramientas**. La tarjeta Agenda deja de mostrar el texto «Completa».
+Nexo 3.7.19 mantiene la base funcional de 3.7.16 y reorganiza el acceso rápido de Inicio: **Hoy, Mañana, 7 días y Agenda**. Inbox deja de ocupar una tarjeta de «Lo importante ahora» y pasa a la navegación inferior, entre **Buscar** y **Herramientas**. La tarjeta Agenda deja de mostrar el texto «Completa».
 
-La versión 3.7.18 representa las 19 categorías con iconos vectoriales únicos y etiquetas, en vez de codificarlas por color. La agenda, el calendario, las fichas y los formularios conservan la identidad de las categorías sin tocar los datos.
+La versión 3.7.19 conserva los 19 iconos vectoriales de categoría y añade colores fijos en el calendario mensual, su leyenda y las tarjetas de eventos. La cuadrícula utiliza fondo gris azulado con días más claros. Calendario y Agenda reutilizan las tarjetas pulsables de Inicio: las acciones se muestran solo al abrir el detalle. Los eventos pasados son más discretos y los días con varios eventos muestran un indicador +N sin alterar los datos ni los avisos.
 
 Entre los comportamientos ya integrados:
 
