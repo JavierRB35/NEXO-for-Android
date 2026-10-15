@@ -13,8 +13,10 @@ upcoming=html.index('id="homeUpcomingTitle"')
 assert important < quick < upcoming, 'Orden de secciones de Inicio incorrecto'
 
 # El resumen ligero de Inicio conserva sus cuatro tarjetas.
-for control in ['homeTodayCard','homeWeekCard','homeInboxPulseCard','homeCalendarCard']:
+for control in ['homeTodayCard','homeTomorrowCard','homeWeekCard','homeCalendarCard']:
     assert f'id="{control}"' in html, f'Falta tarjeta de Inicio: {control}'
+
+assert 'id="homeInboxPulseCard"' not in html, 'Inbox ahora debe estar en la navegación inferior'
 
 # Accesos directos de Inicio: exactamente los cuatro módulos de uso frecuente.
 home=html[html.index('data-screen="today"'):html.index('data-screen="tools"')]
