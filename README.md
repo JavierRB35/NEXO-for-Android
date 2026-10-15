@@ -1,14 +1,14 @@
-# Nexo 3.7.20
+# Nexo 3.7.21
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.20**, `versionCode 113`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
+Esta rama de estabilización corresponde a **Nexo 3.7.21**, `versionCode 114`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
 
 ## Base estable
 
-Nexo 3.7.20 mantiene la base funcional de 3.7.16 y reorganiza el acceso rápido de Inicio: **Hoy, Mañana, 7 días y Agenda**. Inbox deja de ocupar una tarjeta de «Lo importante ahora» y pasa a la navegación inferior, entre **Buscar** y **Herramientas**. La tarjeta Agenda deja de mostrar el texto «Completa».
+Nexo 3.7.21 mantiene la base funcional de 3.7.16 y reorganiza el acceso rápido de Inicio: **Hoy, Mañana, 7 días y Agenda**. Inbox deja de ocupar una tarjeta de «Lo importante ahora» y pasa a la navegación inferior, entre **Buscar** y **Herramientas**. La tarjeta Agenda deja de mostrar el texto «Completa».
 
-La versión 3.7.20 incorpora **Analítica** entre Salud / Médico y Farmacia, con jeringuilla y gota de sangre roja, y conserva 20 iconos vectoriales de categoría y añade colores fijos en el calendario mensual, su leyenda y las tarjetas de eventos. La cuadrícula utiliza fondo gris azulado con días más claros. Calendario y Agenda reutilizan las tarjetas pulsables de Inicio: las acciones se muestran solo al abrir el detalle. Los eventos pasados son más discretos y los días con varios eventos muestran un indicador +N sin alterar los datos ni los avisos.
+La versión 3.7.21 conserva las **20 categorías**, incluida Analítica entre Salud / Médico y Farmacia, y sustituye su icono por una jeringuilla diagonal inequívoca con cuerpo, émbolo, aguja y sangre roja. El resto de los iconos, los colores de categoría, el calendario y las tarjetas permanecen igual. La cuadrícula utiliza fondo gris azulado con días más claros. Calendario y Agenda reutilizan las tarjetas pulsables de Inicio: las acciones se muestran solo al abrir el detalle. Los eventos pasados son más discretos y los días con varios eventos muestran un indicador +N sin alterar los datos ni los avisos.
 
 Entre los comportamientos ya integrados:
 
@@ -51,7 +51,7 @@ El procedimiento se documenta en [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.
 Desde la raíz del proyecto en el teléfono:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_18"
+cd "/storage/emulated/0/Download/Nexo_3_7_21"
 sh build-on-phone.sh
 ```
 
@@ -60,7 +60,7 @@ No ejecutar `./gradlew` directamente desde `Download`.
 El script conserva la firma Release permanente, usa el baseline de AndroidIDE y copia el APK final a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_18.apk
+/storage/emulated/0/Download/Nexo_3_7_21.apk
 ```
 
 ## Validación
