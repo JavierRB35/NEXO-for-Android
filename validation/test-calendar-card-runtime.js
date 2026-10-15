@@ -18,6 +18,7 @@ const ctx={
   Date, Intl, Number, String,
   categoryLabel:()=> 'Cumpleaños',
   familyCategoryIcon:()=> 'cake',
+  isVehicleReservation:i=>String(i?.subcategory||'')==='vehicle_reservation',
   familyCategoryColor:()=> '#D81B60',
   fmtTime:()=> '10:00',
   itemEffectiveEndAt:i=>i.endAt||i.dueAt,
