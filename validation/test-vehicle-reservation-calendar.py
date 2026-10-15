@@ -33,7 +33,7 @@ assert "const reservation=list.find(isVehicleReservation);" in js
 assert "return [reservation,...list.filter(item=>item!==reservation)].slice(0,3);" in js
 assert "function calendarMarkerHtml(item)" in js
 assert "calendar-event-vehicle" in js
-assert "🚗" in js
+assert "calendar-category-marker calendar-event-vehicle" in js
 assert "calendarMarkerItems(list).map(calendarMarkerHtml).join('')" in js
 
 # En el detalle diario también queda identificado como Reserva coche.
