@@ -1,6 +1,6 @@
 'use strict';
 
-const CATEGORIES = ['Familia','Cumpleaños','Santo / Onomástica','Salud / Médico','Colegio / Estudios','Trabajo','Viaje','Vacaciones','Casa','Vehículos / ITV','Seguros','Trámites','Tarea / Recado','Compras','Ocio / Social','Deporte','Recordatorio','Otro'];
+const CATEGORIES = ['Familia','Cumpleaños','Santo / Onomástica','Salud / Médico','Farmacia','Colegio / Estudios','Trabajo','Viaje','Vacaciones','Casa','Vehículos / ITV','Seguros','Trámites','Tarea / Recado','Compras','Ocio / Social','Deporte','Recordatorio','Otro'];
 const LEGACY_CATEGORY_MAP = {
   Personal:'Familia',
   Coche:'Vehículos / ITV',
@@ -69,6 +69,7 @@ const CATEGORY_ICONS=Object.freeze({
   'cumpleanos':'cake',
   'santo / onomastica':'calendar-heart',
   'salud / medico':'heart-pulse',
+  'farmacia':'pill',
   'colegio / estudios':'graduation',
   'trabajo':'briefcase',
   'viaje':'plane',

@@ -77,11 +77,13 @@ public final class RuleClassifier {
             r.category = "Viaje"; r.confidence = .87; r.reason = "Detectado viaje o reserva";
         } else if (containsAny(n, "factura", "manual", "contrato", "garantia", "pdf", "documento")) {
             r.category = "Trámites"; r.type = "document"; r.confidence = .87; r.reason = "Detectado documento";
+        } else if (containsAny(n, "farmacia", "parafarmacia")) {
+            r.category = "Farmacia"; r.confidence = .96; r.reason = "Detectada gestión de farmacia";
         } else if (containsAny(n, "comprar", "compra", "supermercado", "mercadona", "carrefour")) {
             r.category = "Compras"; r.confidence = .90; r.reason = "Detectada compra";
         } else if (containsAny(n, "cumpleanos", "cumple de ", "birthday")) {
             r.category = "Cumpleaños"; r.type = "event"; r.recurrence = RecurrenceEngine.ANNUAL; r.confidence = .93; r.reason = "Detectado cumpleaños · periodicidad anual";
-        } else if (containsAny(n, "medico", "hospital", "salud", "farmacia", "medicacion", "dentista", "cardiologo", "cardiologia", "traumatologo", "oftalmologo", "analitica", "centro de salud", "ambulatorio", "pet-tac", "pet tac", "medicina nuclear", "radiodiagnostico", "tarjeta aseguradora")) {
+        } else if (containsAny(n, "medico", "hospital", "salud", "medicacion", "dentista", "cardiologo", "cardiologia", "traumatologo", "oftalmologo", "analitica", "centro de salud", "ambulatorio", "pet-tac", "pet tac", "medicina nuclear", "radiodiagnostico", "tarjeta aseguradora")) {
             r.category = "Salud / Médico"; r.confidence = .96; r.reason = "Detectado contenido de salud";
         } else if (containsAny(n, "hipoteca", "banco", "pago", "pagar", "recibo", "finanza", "ingreso", "impuesto")) {
             r.category = "Trámites"; r.confidence = .80; r.reason = "Detectado contenido financiero";

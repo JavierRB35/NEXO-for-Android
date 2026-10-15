@@ -20,9 +20,9 @@ assert 'Buscar persona, tarea, evento, lugar...' in html
 assert 'Próximamente' in html and 'homeUpcomingList' in html
 assert 'homeAgendaLink' not in html
 
-# 18 iconos de categoría exclusivos, sin paleta cromática.
-icons={'familia':'users','cumpleanos':'cake','santo / onomastica':'calendar-heart','salud / medico':'heart-pulse','colegio / estudios':'graduation','trabajo':'briefcase','viaje':'plane','vacaciones':'sun','casa':'home','vehiculos / itv':'car','seguros':'shield','tramites':'file-check','tarea / recado':'list-todo','compras':'cart','ocio / social':'party','deporte':'dumbbell','recordatorio':'bell','otro':'shapes'}
-assert len(icons)==18 and len(set(icons.values()))==18
+# 19 iconos de categoría exclusivos, sin paleta cromática.
+icons={'familia':'users','cumpleanos':'cake','santo / onomastica':'calendar-heart','salud / medico':'heart-pulse','farmacia':'pill','colegio / estudios':'graduation','trabajo':'briefcase','viaje':'plane','vacaciones':'sun','casa':'home','vehiculos / itv':'car','seguros':'shield','tramites':'file-check','tarea / recado':'list-todo','compras':'cart','ocio / social':'party','deporte':'dumbbell','recordatorio':'bell','otro':'shapes'}
+assert len(icons)==19 and len(set(icons.values()))==19
 for name,icon in icons.items():
     assert f"'{name}':'{icon}'" in js, name
 assert 'FAMILY_CATEGORY_THEMES' not in js

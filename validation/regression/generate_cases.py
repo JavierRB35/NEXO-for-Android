@@ -109,7 +109,7 @@ class_dev=[
 ('Reserva de hotel en Madrid','note|Viajes'),('Vuelo a Roma el viernes','note|Viajes'),('Comer en Restaurante Navarro','restaurant|Restaurantes'),('Cena en bar Ricardo','restaurant|Restaurantes'),
 ('Factura de electricidad','document|Documentos'),('Contrato de alquiler','document|Documentos'),('Pago del impuesto de circulación','note|Finanzas'),('Ingreso de la pensión','note|Finanzas'),
 ('Revisión de la caldera','note|Casa'),('Cambiar filtro del aire acondicionado','note|Casa'),('Idea para reorganizar el salón','note|Ideas'),('Se me ocurre hacer un viaje','note|Viajes'),
-('ITV del coche el martes','note|Coche'),('Cambio de aceite del coche','note|Coche'),('Farmacia comprar medicación','task|Compras'),
+('ITV del coche el martes','note|Coche'),('Cambio de aceite del coche','note|Coche'),('Farmacia comprar medicación','task|Farmacia'),
 ('Tomar Losartán 50 mg a las 8','medication|Medicamentos'),('Medicamento Eliquis 5 mg a las 20','medication|Medicamentos'),
 ('Reunión de trabajo mañana a las 9','event|Otros'),('Consulta en el hospital mañana','event|Salud'),('Evento en el auditorio','event|Otros'),
 ('Comprar billetes para el viaje','task|Viajes'),('Pedir cita al médico','event|Salud'),('Solicitar presupuesto de seguro','task|Coche'),

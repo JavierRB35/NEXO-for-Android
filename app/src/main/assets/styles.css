@@ -2703,9 +2703,9 @@ body.startup-loading #app{visibility:hidden}
 }
 
 /* Nexo 3.7.18: 18 categorías diferenciadas exclusivamente por iconos. */
-.calendar-category-marker{display:inline-flex;align-items:center;justify-content:center;flex:0 0 14px;width:14px;height:15px;color:#34443d}
-.calendar-category-marker .ui-icon{display:block;width:14px;height:14px;flex:none;stroke-width:1.9}
-.day-dots>.calendar-category-marker{flex:0 0 14px}
+.calendar-category-marker{display:inline-flex;align-items:center;justify-content:center;flex:0 1 14px;min-width:0;height:15px;color:#34443d}
+.calendar-category-marker .ui-icon{display:block;width:100%;max-width:14px;height:14px;flex:none;stroke-width:1.9}
+.day-dots>.calendar-category-marker{flex:0 1 14px}
 .calendar-day.selected .calendar-category-marker{color:#34443d}
 .calendar-icon-guide{border-top:1px solid var(--line);background:#fff}
 .calendar-icon-guide>summary{min-height:38px;padding:10px 12px;color:#50625a;cursor:pointer;font-size:.76rem;font-weight:700}
