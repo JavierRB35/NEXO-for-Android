@@ -1,3 +1,11 @@
+# Nexo 3.7.21 · Jeringuilla reconocible para Analítica
+
+- Rediseño exclusivo del icono de **Analítica**: jeringuilla en diagonal con aguja, cuerpo, émbolo, sangre en el cilindro y una gota roja, legible incluso en casillas pequeñas.
+- Conserva categoría, color granate `#7F1D1D`, eventos existentes, avisos, Android ID y base de datos local.
+- `versionCode 114`, `versionName 3.7.21`; misma firma Release.
+
+---
+
 # Nexo 3.7.20 · Categoría Analítica
 
 - Nueva categoría **Analítica** entre Salud / Médico y Farmacia, con icono vectorial personalizado de jeringuilla gris y gota de sangre roja.
