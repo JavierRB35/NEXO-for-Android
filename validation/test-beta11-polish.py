@@ -49,10 +49,10 @@ for section in ['general','people','display','input','medication']:
 assert 'settings-accordion-list' in html and '.settings-accordion__summary' in css
 assert 'toggleSettingsAccordion' in js
 
-# 5. Cumpleaños como Nexo Familia.
-assert 'calendar-event-birthday' in js and '>🎂<' in js
-assert '.calendar-event-birthday' in css
-assert "return 'cake'" in js
+# 5. Cumpleaños con icono de tarta, igual que el resto de categorías.
+assert 'calendar-category-marker' in js and 'uiIcon(familyCategoryIcon(item.category))' in js
+assert '.calendar-category-marker .ui-icon' in css
+assert "'cumpleanos':'cake'" in js
 
 # 6. Título correcto.
 assert '<h2 id="homeFamilyInfoTitle">Accesos directos</h2>' in html
