@@ -54,7 +54,7 @@ Superficies transversales:
 - Verde como color primario para acciones y estados activos.
 - Amarillo para atención moderada, referencias y contenido destacado.
 - Rojo solo para error, destrucción o alertas reales.
-- Colores de categorías de calendario se conservan por utilidad funcional y diferenciación.
+- Las 18 categorías se identifican mediante iconos distintos y etiquetas, nunca exclusivamente por color.
 - Una sola acción primaria visualmente dominante por contexto.
 - Acciones secundarias outlined o text.
 - Controles táctiles de al menos 48 px equivalentes en la WebView.
@@ -166,7 +166,7 @@ Toast oscuro neutro sobre contenido, con acción amarilla si existe.
 
 ### Calendario
 
-- Mantiene colores de categoría diferenciados.
+- Muestra iconos de categoría diferenciados y una leyenda desplegable accesible.
 - Selección y estado activo de navegación usan verde Nexo.
 - Evitar rellenos de color grandes.
 
