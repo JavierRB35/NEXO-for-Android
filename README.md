@@ -51,7 +51,7 @@ El procedimiento se documenta en [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.
 Desde la raíz del proyecto en el teléfono:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_18"
+cd "/storage/emulated/0/Download/Nexo_3_7_21"
 sh build-on-phone.sh
 ```
 
@@ -60,7 +60,7 @@ No ejecutar `./gradlew` directamente desde `Download`.
 El script conserva la firma Release permanente, usa el baseline de AndroidIDE y copia el APK final a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_18.apk
+/storage/emulated/0/Download/Nexo_3_7_21.apk
 ```
 
 ## Validación
