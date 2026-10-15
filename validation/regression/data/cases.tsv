@@ -246,7 +246,7 @@ dev	CLASS	Idea para reorganizar el salón	note|Otro	clasificación
 dev	CLASS	Se me ocurre hacer un viaje	note|Viaje	clasificación
 dev	CLASS	ITV del coche el martes	note|Vehículos / ITV	clasificación
 dev	CLASS	Cambio de aceite del coche	note|Vehículos / ITV	clasificación
-dev	CLASS	Farmacia comprar medicación	task|Compras	clasificación
+dev	CLASS	Farmacia comprar medicación	task|Farmacia	clasificación
 dev	CLASS	Tomar Losartán 50 mg a las 8	medication|Salud / Médico	clasificación
 dev	CLASS	Medicamento Eliquis 5 mg a las 20	medication|Salud / Médico	clasificación
 dev	CLASS	Reunión de trabajo mañana a las 9	event|Otro	clasificación
