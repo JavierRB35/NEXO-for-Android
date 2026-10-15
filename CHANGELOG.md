@@ -1,3 +1,12 @@
+# Nexo 3.7.20 · Categoría Analítica
+
+- Nueva categoría **Analítica** entre Salud / Médico y Farmacia, con icono vectorial personalizado de jeringuilla gris y gota de sangre roja.
+- Color exclusivo granate `#7F1D1D` en tarjetas, calendario, leyenda y selectores, conservando intactas las 19 categorías anteriores.
+- Detección de «analítica», «análisis de sangre» y «extracción de sangre» en la clasificación de nuevas capturas, sin migrar ni recategorizar los eventos existentes.
+- `versionCode 113`, `versionName 3.7.20`; firma Release y base de datos sin cambios.
+
+---
+
 # Nexo 3.7.19 · Calendario y tarjetas de eventos
 
 - Iconos de las 19 categorías con colores fijos en los días del calendario, su leyenda y las tarjetas de eventos.

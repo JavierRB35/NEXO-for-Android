@@ -8,9 +8,11 @@ html=(root/'app/src/main/assets/index.html').read_text(encoding='utf-8')
 
 palette=js.split('const CATEGORY_COLORS=Object.freeze({',1)[1].split('});',1)[0]
 tones=dict(re.findall(r"'([^']+)':'(#[0-9A-Fa-f]{6})'",palette))
-assert len(tones)==19, f'Faltan colores para las 19 categorías: {len(tones)}'
-assert len(set(tones.values()))==19, 'Cada categoría debe tener un color propio'
+assert len(tones)==20, f'Faltan colores para las 20 categorías: {len(tones)}'
+assert len(set(tones.values()))==20, 'Cada categoría debe tener un color propio'
 assert tones['familia']!=tones['salud / medico']
+assert tones['analitica']=='#7F1D1D'
+assert tones['analitica']!=tones['salud / medico']
 assert tones['casa']!=tones['cumpleanos']
 
 home=js.split('function homeUpcomingCard(item){',1)[1].split('function bindHomeUpcoming',1)[0]
@@ -40,5 +42,5 @@ assert '.calendar-category-marker,.calendar-day.selected .calendar-category-mark
 assert '.calendar-icon-legend__item .ui-icon' in css
 assert '.upcoming-card--past' in css
 assert 'attachMonthSwipe(document.querySelector' in js
-assert 'aria-label="Iconos de las 19 categorías"' in html
-print('Calendario 3.7.19: 19 colores, tarjetas homogéneas, sin acciones y +N: OK')
+assert 'aria-label="Iconos de las 20 categorías"' in html
+print('Calendario 3.7.20: 20 colores, tarjetas homogéneas, sin acciones y +N: OK')
