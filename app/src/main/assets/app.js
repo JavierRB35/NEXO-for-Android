@@ -1,6 +1,6 @@
 'use strict';
 
-const CATEGORIES = ['Familia','Cumpleaños','Santo / Onomástica','Salud / Médico','Farmacia','Colegio / Estudios','Trabajo','Viaje','Vacaciones','Casa','Vehículos / ITV','Seguros','Trámites','Tarea / Recado','Compras','Ocio / Social','Deporte','Recordatorio','Otro'];
+const CATEGORIES = ['Familia','Cumpleaños','Santo / Onomástica','Salud / Médico','Analítica','Farmacia','Colegio / Estudios','Trabajo','Viaje','Vacaciones','Casa','Vehículos / ITV','Seguros','Trámites','Tarea / Recado','Compras','Ocio / Social','Deporte','Recordatorio','Otro'];
 const LEGACY_CATEGORY_MAP = {
   Personal:'Familia',
   Coche:'Vehículos / ITV',
@@ -69,6 +69,7 @@ const CATEGORY_ICONS=Object.freeze({
   'cumpleanos':'cake',
   'santo / onomastica':'calendar-heart',
   'salud / medico':'heart-pulse',
+  'analitica':'syringe-blood',
   'farmacia':'pill',
   'colegio / estudios':'graduation',
   'trabajo':'briefcase',
@@ -90,6 +91,7 @@ const CATEGORY_COLORS=Object.freeze({
   'cumpleanos':'#D81B60',
   'santo / onomastica':'#A16207',
   'salud / medico':'#DC2626',
+  'analitica':'#7F1D1D',
   'farmacia':'#0F766E',
   'colegio / estudios':'#2563EB',
   'trabajo':'#334155',

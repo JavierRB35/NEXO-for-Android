@@ -83,6 +83,8 @@ public final class RuleClassifier {
             r.category = "Compras"; r.confidence = .90; r.reason = "Detectada compra";
         } else if (containsAny(n, "cumpleanos", "cumple de ", "birthday")) {
             r.category = "Cumpleaños"; r.type = "event"; r.recurrence = RecurrenceEngine.ANNUAL; r.confidence = .93; r.reason = "Detectado cumpleaños · periodicidad anual";
+        } else if (containsAny(n, "analitica", "analisis de sangre", "extraccion de sangre", "extraccion sanguinea")) {
+            r.category = "Analítica"; r.confidence = .96; r.reason = "Detectada analítica de sangre";
         } else if (containsAny(n, "medico", "hospital", "salud", "medicacion", "dentista", "cardiologo", "cardiologia", "traumatologo", "oftalmologo", "analitica", "centro de salud", "ambulatorio", "pet-tac", "pet tac", "medicina nuclear", "radiodiagnostico", "tarjeta aseguradora")) {
             r.category = "Salud / Médico"; r.confidence = .96; r.reason = "Detectado contenido de salud";
         } else if (containsAny(n, "hipoteca", "banco", "pago", "pagar", "recibo", "finanza", "ingreso", "impuesto")) {
