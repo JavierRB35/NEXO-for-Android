@@ -13,7 +13,7 @@ for fixed in [
     "document.querySelectorAll('[data-settings-section]').forEach",
     "$('[data-settings-accordion]').forEach",
     "$('[data-display-mode]').forEach",
-    "$$('[data-home-event]').forEach",
+    "root.querySelectorAll('[data-home-event]').forEach",
 ]:
     assert fixed in js, fixed
 
@@ -25,7 +25,7 @@ for token in [
     "event.target?.closest?.('[data-panel]')",
     "bindPanelNavigation();",
     "$('#modalClose').addEventListener('click',closeModal)",
-    "function bindHomeUpcoming()",
+    "function bindHomeUpcoming(root=document)",
     "openEventInAgenda(id,occ,rec)",
 ]:
     assert token in js, token
