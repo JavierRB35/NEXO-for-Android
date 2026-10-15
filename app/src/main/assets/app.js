@@ -154,7 +154,7 @@ function familyStyleSearch(query,includeHistorical=false){
 }
 function familySearchCard(item,index,home=false){
   const avatars=item.kind==='item'&&isAppointmentType(item.raw?.type)?eventParticipantAvatarsHtml(item.raw,'event-participant-avatars--search'):'';
-  return '<button type="button" class="family-result-card" data-family-search-result="'+index+'" data-family-search-home="'+(home?'1':'0')+'"><span class="family-result-main"><span class="pill">'+esc(item.type)+'</span><strong>'+esc(item.title)+'</strong>'+(item.detail?'<span>'+esc(item.detail)+'</span>':'')+avatars+'</span>'+uiIcon('right')+'</button>';
+  return '<button type="button" class="family-result-card" data-family-search-result="'+index+'" data-family-search-home="'+(home?'1':'0')+'"><span class="family-result-main"><span class="pill">'+(item.kind==='item'?uiIcon(familyCategoryIcon(item.raw?.category)):'')+esc(item.type)+'</span><strong>'+esc(item.title)+'</strong>'+(item.detail?'<span>'+esc(item.detail)+'</span>':'')+avatars+'</span>'+uiIcon('right')+'</button>';
 }
 function openFamilySearchResult(item){
   if(!item)return;
