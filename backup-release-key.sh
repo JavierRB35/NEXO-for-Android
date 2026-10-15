@@ -4,7 +4,7 @@ set -eu
 KEY_DIR="${NEXO_KEY_DIR:-$HOME/.nexo-release}"
 SRC_KEY="$KEY_DIR/nexo-release.p12"
 SRC_PASSWORD="$KEY_DIR/nexo-release.password"
-DEST_DIR="${NEXO_SIGNING_BACKUP_DIR:-/storage/emulated/0/Download/Nexo_Signing_Backup}"
+DEST_DIR="${NEXO_SIGNING_BACKUP_DIR:-$HOME/.nexo-release/backup}"
 DEST_KEY="$DEST_DIR/nexo-release.p12"
 DEST_PASSWORD="$DEST_DIR/nexo-release.password.txt"
 DEST_README="$DEST_DIR/LEEME_NEXO_SIGNING.txt"
