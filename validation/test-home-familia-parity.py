@@ -20,23 +20,13 @@ assert 'Buscar persona, tarea, evento, lugar...' in html
 assert 'Próximamente' in html and 'homeUpcomingList' in html
 assert 'homeAgendaLink' not in html
 
-# Paleta canónica de Nexo Familia: texto, fondo y borde.
-themes=[
-('#7B1FA2','#F6E8FA','#D9A7E5'),('#F57C00','#FFF0D8','#F7BE73'),
-('#C51162','#FFE5F0','#F18AB9'),('#D32F2F','#FFE7E7','#F49A9A'),
-('#1976D2','#E5F1FF','#8FC2F5'),('#263238','#ECEFF1','#A9B4B9'),
-('#00695C','#DDF5F0','#76C8BA'),('#00838F','#DFF7FA','#75D1D9'),
-('#6D4C41','#F4E8E3','#C9A89D'),('#283593','#E7E9FA','#9BA3E1'),
-('#1B5E20','#E5F4E6','#91C494'),('#827717','#F4F1D8','#C9C071'),
-('#A66A00','#FFF0C9','#E4BE62'),('#E64A19','#FFE8DF','#F3A083'),
-('#689F38','#EDF6DF','#AFD17D'),('#008856','#DFF5EA','#72C69F'),
-('#546E7A','#E8EEF1','#A5B6BE'),('#64748B','#F1F5F9','#CBD5E1')]
-for trio in themes:
-    for value in trio:
-        assert value in js, f'Falta color canónico {value}'
-
-for icon in ['heart-pulse','cake','plane','briefcase','graduation','home','car','shield','clipboard','cart','party','dumbbell','bell','users']:
-    assert f"return '{icon}'" in js, f'Falta icono de categoría {icon}'
+# 18 iconos de categoría exclusivos, sin paleta cromática.
+icons={'familia':'users','cumpleanos':'cake','santo / onomastica':'calendar-heart','salud / medico':'heart-pulse','colegio / estudios':'graduation','trabajo':'briefcase','viaje':'plane','vacaciones':'sun','casa':'home','vehiculos / itv':'car','seguros':'shield','tramites':'file-check','tarea / recado':'list-todo','compras':'cart','ocio / social':'party','deporte':'dumbbell','recordatorio':'bell','otro':'shapes'}
+assert len(icons)==18 and len(set(icons.values()))==18
+for name,icon in icons.items():
+    assert f"'{name}':'{icon}'" in js, name
+assert 'FAMILY_CATEGORY_THEMES' not in js
+assert 'calendar-category-marker' in js and 'calendarIconLegend' in js
 
 # Búsqueda: mismos stopwords, pesos y filtro histórico que Familia.
 for word in ["'a'","'al'","'de'","'del'","'el'","'la'","'los'","'las'","'para'","'por'","'un'","'una'"]:
@@ -62,7 +52,7 @@ assert 'i<upcoming.size() && i<10' in db
 assert 'NexoNative.getCalendar(start,horizon)' not in js
 assert 'homeUpcomingCard' in js
 assert 'event-participant-avatar' in js
-assert '--event-category-border' in js
+assert '--event-category-border' not in js
 
 # Las fichas de Inicio comparten la distribución visual de Nexo Familia:
 # categoría bajo el contenido y participantes en la misma línea inferior que avisos/horario.
