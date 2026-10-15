@@ -1,3 +1,13 @@
+# Nexo 3.7.19 · Calendario y tarjetas de eventos
+
+- Iconos de las 19 categorías con colores fijos en los días del calendario, su leyenda y las tarjetas de eventos.
+- Fondo de calendario gris azulado y casillas de días claras, con estados hoy/seleccionado diferenciados.
+- Tarjetas sin botones en Agenda, vistas de 7 días y calendario, reutilizando el formato y la apertura de Inicio.
+- Eventos pasados más discretos, tarjetas sin fecha correctas, indicador +N cuando hay demasiados eventos en un día.
+- Se conservan acciones completas en el detalle del evento, avisos, recurrencias y gestión de datos.
+
+---
+
 # Changelog de Nexo
 
 ## 3.7.17 · versionCode 110 · Inicio con Mañana e Inbox inferior
