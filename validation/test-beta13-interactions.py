@@ -13,7 +13,7 @@ for fixed in [
     "document.querySelectorAll('[data-settings-section]').forEach",
     "$('[data-settings-accordion]').forEach",
     "$('[data-display-mode]').forEach",
-    "$$('[data-home-event]').forEach",
+    "root.querySelectorAll('[data-home-event]').forEach",
 ]:
     assert fixed in js, fixed
 
@@ -25,7 +25,7 @@ for token in [
     "event.target?.closest?.('[data-panel]')",
     "bindPanelNavigation();",
     "$('#modalClose').addEventListener('click',closeModal)",
-    "function bindHomeUpcoming()",
+    "function bindHomeUpcoming(root=document)",
     "openEventInAgenda(id,occ,rec)",
 ]:
     assert token in js, token
@@ -43,5 +43,5 @@ assert 'display:flex' in block
 assert 'flex-direction:row' in block
 assert '.note-editor-open .floating-actions{z-index:130}' in css
 
-assert 'v3.7.18' in html
+assert 'v3.7.19' in html
 print('Beta17 conserva las correcciones beta13 de interacción: OK')

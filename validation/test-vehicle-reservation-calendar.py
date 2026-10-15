@@ -34,10 +34,11 @@ assert "return [reservation,...list.filter(item=>item!==reservation)].slice(0,3)
 assert "function calendarMarkerHtml(item)" in js
 assert "calendar-event-vehicle" in js
 assert "calendar-category-marker calendar-event-vehicle" in js
-assert "calendarMarkerItems(list).map(calendarMarkerHtml).join('')" in js
+assert "shownMarkers.slice(0,markerLimit).map(calendarMarkerHtml).join('')" in js
 
 # En el detalle diario también queda identificado como Reserva coche.
-assert "isVehicleReservation(i)?uiIcon('car')+'Reserva coche'" in js
+assert "isVehicleReservation(item)?'car':familyCategoryIcon(item.category)" in js
+assert "isVehicleReservation(item)?'Reserva coche':categoryLabel(item.category)" in js
 assert '.calendar-event-vehicle{' in css or '.calendar-event-vehicle{' in css.replace('\n','')
 
 print('Reservas de coche: sincronización, reparación automática y marcador de calendario OK')

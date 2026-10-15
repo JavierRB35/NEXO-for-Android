@@ -48,12 +48,12 @@ assert 'No hay cambios nuevos en Nexo Familia.' in js
 
 # Las reservas tienen marcador de coche y conservan la campanilla horaria.
 assert "function isVehicleReservation(i)" in js
-assert "calendarMarkerItems(list).map(calendarMarkerHtml)" in js
+assert "shownMarkers.slice(0,markerLimit).map(calendarMarkerHtml" in js
 assert "calendar-event-vehicle" in js
 assert "calendar-category-marker calendar-event-vehicle" in js
 home=js[js.index('function homeUpcomingCard'):js.index('function bindHomeUpcoming')]
 assert "const reminder=eventReminderBellHtml(item,'event-reminder-indicator--time');" in home
-assert "reminder+(timed?uiIcon('clock')+esc(timeLabel):'')" in home
+assert "reminder+(timed&&hasDate?uiIcon('clock')+esc(timeLabel):'')" in home
 assert 'upcoming-title-row' not in home
 assert 'Campanilla de avisos' in bell
 

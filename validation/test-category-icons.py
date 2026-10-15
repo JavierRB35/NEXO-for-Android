@@ -15,12 +15,12 @@ for category,icon in icons.items():
     assert f"'{category}':'{icon}'" in js, category
     assert f'id="nx-icon-{icon}"' in html, icon
 assert 'FAMILY_CATEGORY_THEMES' not in js
-assert 'calendarMarkerItems(list).map(calendarMarkerHtml)' in js
+assert 'shownMarkers.slice(0,markerLimit).map(calendarMarkerHtml)' in js
 assert 'uiIcon(familyCategoryIcon(item.category))' in js
 assert 'aria-label="Iconos de las 19 categorías"' in html
 assert 'bindCategorySelectIcon' in js
 assert '.calendar-category-marker .ui-icon' in css
-assert '--event-category-color' not in js
+assert '--event-category-color' in js
 assert '--event-category-bg' not in js
 assert '--event-category-border' not in js
 print('19 categorias con iconos unicos: OK')

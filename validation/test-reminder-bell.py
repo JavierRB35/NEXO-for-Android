@@ -24,17 +24,19 @@ assert ".event-reminder-indicator" in css
 # En eventos de día completo puede quedar sola, igual que en Nexo Familia.
 home=js[js.index("function homeUpcomingCard"):js.index("function bindHomeUpcoming")]
 assert "const reminder=eventReminderBellHtml(item,'event-reminder-indicator--time');" in home
-assert "const timeMeta=(reminder||timed)" in home
-assert "reminder+(timed?uiIcon('clock')+esc(timeLabel):'')" in home
+assert "const timeMeta=(reminder||(timed&&hasDate))" in home
+assert "reminder+(timed&&hasDate?uiIcon('clock')+esc(timeLabel):'')" in home
 assert "upcoming-title-row" not in home
 
 # Agenda/Calendario: la campana acompaña al bloque horario.
 agenda=js[js.index("function agendaCard"):js.index("function prepareHomeCapture")]
-assert "eventReminderBellHtml(i,'event-reminder-indicator--time')" in agenda
+assert "return homeUpcomingCard(i);" in agenda
+assert "eventReminderBellHtml(item,'event-reminder-indicator--time')" in home
 assert "event-reminder-indicator--agenda" not in agenda
 
 # Tarjeta genérica: la campana queda integrada en el metadato de fecha/hora.
 item=js[js.index("function itemCard"):js.index("function bindItemButtons")]
+assert "if(isAppointmentType(i.type))return homeUpcomingCard(i);" in item
 assert 'class="meta-tag event-time-meta"' in item
 assert "eventReminderBellHtml(i,'event-reminder-indicator--time')" in item
 

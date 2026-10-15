@@ -52,6 +52,8 @@ python validation/test-beta14-gmail.py
 python validation/test-beta15-voice-holidays.py
 python validation/test-beta16-time-voice.py
 python validation/test-beta17-event-edit-home.py
+python validation/test-calendar-visual-parity.py
+node validation/test-calendar-card-runtime.js
 node validation/test-calendar-swipe-runtime.js
 if [ -n "${NEXO_QA_MODULES:-}" ]; then
     node validation/test-ui-runtime.cjs
