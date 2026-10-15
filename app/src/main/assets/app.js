@@ -695,7 +695,7 @@ function eventReminderBellHtml(item,extraClass=''){
   return '<span class="event-reminder-indicator '+escAttr(extraClass)+'" role="img" aria-label="Aviso configurado" title="Aviso configurado">'+uiIcon('bell')+'</span>';
 }
 function homeUpcomingCard(item){
-  const hasDate=Number(item.dueAt)>0,d=hasDate?new Date(Number(item.dueAt)):null,icon=familyCategoryIcon(item.category);
+  const hasDate=Number(item.dueAt)>0,d=hasDate?new Date(Number(item.dueAt)):null,icon=isVehicleReservation(item)?'car':familyCategoryIcon(item.category);
   const weekday=hasDate?new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase():'SIN';
   const monthRaw=hasDate?new Intl.DateTimeFormat('es-ES',{month:'short'}).format(d).replace('.','').toLocaleLowerCase('es-ES'):'fecha';
   const month=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
@@ -715,12 +715,12 @@ function homeUpcomingCard(item){
   const timeMeta=(reminder||(timed&&hasDate))
     ?'<span class="upcoming-card__time">'+reminder+(timed&&hasDate?uiIcon('clock')+esc(timeLabel):'')+'</span>'
     :'';
-  return '<button type="button" class="upcoming-card upcoming-card--link '+(past?'upcoming-card--past ':'')+(done?'upcoming-card--completed':'')+'" style="--event-category-color:'+familyCategoryColor(item.category)+'" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
+  return '<button type="button" class="upcoming-card upcoming-card--link '+(past?'upcoming-card--past ':'')+(done?'upcoming-card--completed':'')+'" style="--event-category-color:'+familyCategoryColor(isVehicleReservation(item)?'Vehículos / ITV':item.category)+'" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
     '<span class="date-tile '+(hasDate?'':'date-tile--undated')+'"><span class="date-tile__weekday">'+esc(weekday)+'</span><strong>'+(hasDate?String(d.getDate()).padStart(2,'0'):'—')+'</strong><small>'+esc(month)+'</small></span>'+
     '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(title)+'</strong>'+ (statusText?'<span class="event-status-label">'+esc(statusText)+'</span>':'')+
       (item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+
       (description&&description!==title?'<span class="upcoming-card__note" title="'+escAttr(description)+'">'+esc(description)+'</span>':'')+
-      '<span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span></span>'+
+      '<span class="upcoming-category-pill">'+uiIcon(icon)+esc(isVehicleReservation(item)?'Reserva coche':categoryLabel(item.category))+'</span></span>'+
     '<span class="upcoming-card__aside">'+avatars+timeMeta+'</span></button>';
 }
 function bindHomeUpcoming(root=document){
