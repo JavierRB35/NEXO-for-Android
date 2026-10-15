@@ -85,6 +85,28 @@ const CATEGORY_ICONS=Object.freeze({
   'recordatorio':'bell',
   'otro':'shapes'
 });
+const CATEGORY_COLORS=Object.freeze({
+  'familia':'#7C3AED',
+  'cumpleanos':'#D81B60',
+  'santo / onomastica':'#A16207',
+  'salud / medico':'#DC2626',
+  'farmacia':'#0F766E',
+  'colegio / estudios':'#2563EB',
+  'trabajo':'#334155',
+  'viaje':'#0284C7',
+  'vacaciones':'#C28B00',
+  'casa':'#007C91',
+  'vehiculos / itv':'#EA580C',
+  'seguros':'#4338CA',
+  'tramites':'#64748B',
+  'tarea / recado':'#15803D',
+  'compras':'#92400E',
+  'ocio / social':'#C026D3',
+  'deporte':'#65A30D',
+  'recordatorio':'#BE123C',
+  'otro':'#6B7280'
+});
+function familyCategoryColor(category){return CATEGORY_COLORS[familyNorm(categoryLabel(category))]||'#475569';}
 function familyNorm(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();}
 function familyCategoryIcon(category){return CATEGORY_ICONS[familyNorm(categoryLabel(category))]||'shapes';}
 function categoryIconLabel(category){return '<span class="category-icon-label">'+uiIcon(familyCategoryIcon(category))+'<span>'+esc(categoryLabel(category))+'</span></span>';}
@@ -673,37 +695,45 @@ function eventReminderBellHtml(item,extraClass=''){
   return '<span class="event-reminder-indicator '+escAttr(extraClass)+'" role="img" aria-label="Aviso configurado" title="Aviso configurado">'+uiIcon('bell')+'</span>';
 }
 function homeUpcomingCard(item){
-  const d=new Date(Number(item.dueAt)),icon=familyCategoryIcon(item.category);
-  const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase();
-  const monthRaw=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(d).replace('.','').toLocaleLowerCase('es-ES');
+  const hasDate=Number(item.dueAt)>0,d=hasDate?new Date(Number(item.dueAt)):null,icon=familyCategoryIcon(item.category);
+  const weekday=hasDate?new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','').toUpperCase():'SIN';
+  const monthRaw=hasDate?new Intl.DateTimeFormat('es-ES',{month:'short'}).format(d).replace('.','').toLocaleLowerCase('es-ES'):'fecha';
   const month=monthRaw.replace(/^./,c=>c.toLocaleUpperCase('es-ES'));
   const recurring=!!item.recurring||(item.recurrence&&item.recurrence!=='none');
   const id=Number(item.seriesId||item.id),occ=Number(item.occurrenceAt||item.dueAt);
   const title=String(item.title||'Evento'),description=String(item.body||'').trim();
+  const done=item.status==='done'||item.occurrenceStatus==='done',cancelled=item.status==='cancelled';
+  const statusText=cancelled?'Cancelada':done?'Completada':item.seriesEnded?'Sin próximas fechas':'';
+  const past=hasDate&&Number(itemEffectiveEndAt(item)||item.dueAt)<new Date().setHours(0,0,0,0);
   const avatars=eventParticipantAvatarsHtml(item);
   const reminder=eventReminderBellHtml(item,'event-reminder-indicator--time');
   const timed=!(item.allDay===true||item.hasTime===false);
-  const startTime=timed?fmtTime(item.dueAt):'';
+  const startTime=timed&&hasDate?fmtTime(item.dueAt):'';
   const endAt=Number(item.endAt||0);
   const endTime=timed&&endAt>Number(item.dueAt)?fmtTime(endAt):'';
   const timeLabel=endTime?startTime+' – '+endTime:startTime;
-  const timeMeta=(reminder||timed)
-    ?'<span class="upcoming-card__time">'+reminder+(timed?uiIcon('clock')+esc(timeLabel):'')+'</span>'
+  const timeMeta=(reminder||(timed&&hasDate))
+    ?'<span class="upcoming-card__time">'+reminder+(timed&&hasDate?uiIcon('clock')+esc(timeLabel):'')+'</span>'
     :'';
-  return '<button type="button" class="upcoming-card upcoming-card--link" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
-    '<span class="date-tile"><span class="date-tile__weekday">'+esc(weekday)+'</span><strong>'+String(d.getDate()).padStart(2,'0')+'</strong><small>'+esc(month)+'</small></span>'+
-    '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(title)+'</strong>'+
+  return '<button type="button" class="upcoming-card upcoming-card--link '+(past?'upcoming-card--past ':'')+(done?'upcoming-card--completed':'')+'" style="--event-category-color:'+familyCategoryColor(item.category)+'" data-home-event="'+id+'" data-home-occurrence="'+occ+'" data-home-recurring="'+(recurring?'1':'0')+'">'+
+    '<span class="date-tile '+(hasDate?'':'date-tile--undated')+'"><span class="date-tile__weekday">'+esc(weekday)+'</span><strong>'+(hasDate?String(d.getDate()).padStart(2,'0'):'—')+'</strong><small>'+esc(month)+'</small></span>'+
+    '<span class="upcoming-card__body"><strong class="upcoming-title">'+esc(title)+'</strong>'+ (statusText?'<span class="event-status-label">'+esc(statusText)+'</span>':'')+
       (item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+
       (description&&description!==title?'<span class="upcoming-card__note" title="'+escAttr(description)+'">'+esc(description)+'</span>':'')+
       '<span class="upcoming-category-pill">'+uiIcon(icon)+esc(categoryLabel(item.category))+'</span></span>'+
     '<span class="upcoming-card__aside">'+avatars+timeMeta+'</span></button>';
 }
-function bindHomeUpcoming(){
-  $$('[data-home-event]').forEach(b=>b.addEventListener('click',()=>{
-    const id=Number(b.dataset.homeEvent),occ=Number(b.dataset.homeOccurrence),rec=b.dataset.homeRecurring==='1';
-    openEventInAgenda(id,occ,rec);
-  }));
+function bindHomeUpcoming(root=document){
+  root.querySelectorAll('[data-home-event]').forEach(b=>{
+    if(b.dataset.homeEventBound==='1')return;
+    b.dataset.homeEventBound='1';
+    b.addEventListener('click',()=>{
+      const id=Number(b.dataset.homeEvent),occ=Number(b.dataset.homeOccurrence),rec=b.dataset.homeRecurring==='1';
+      openEventInAgenda(id,occ,rec);
+    });
+  });
 }
+
 function runHomeSearch(query){
   const q=String(query||'').trim(),section=$('#homeSearchResultsSection'),dash=$('#homeDashboardContent');
   if(!q){section.classList.add('hidden');dash.classList.remove('hidden');$('#homeSearchResults').innerHTML='';return;}
@@ -1460,8 +1490,8 @@ function calendarMarkerItems(items){
   return [reservation,...list.filter(item=>item!==reservation)].slice(0,3);
 }
 function calendarMarkerHtml(item){
-  if(isVehicleReservation(item))return '<span class="calendar-category-marker calendar-event-vehicle" title="Reserva de coche" aria-hidden="true">'+uiIcon('car')+'</span>';
-  return '<span class="calendar-category-marker" title="'+escAttr(categoryLabel(item.category))+'" aria-hidden="true">'+uiIcon(familyCategoryIcon(item.category))+'</span>';
+  if(isVehicleReservation(item))return '<span class="calendar-category-marker calendar-event-vehicle" style="--event-category-color:'+familyCategoryColor('Vehículos / ITV')+'" title="Reserva de coche" aria-hidden="true">'+uiIcon('car')+'</span>';
+  return '<span class="calendar-category-marker" style="--event-category-color:'+familyCategoryColor(item.category)+'" title="'+escAttr(categoryLabel(item.category))+'" aria-hidden="true">'+uiIcon(familyCategoryIcon(item.category))+'</span>';
 }
 
 function requestHolidayYears(years){[...new Set(years.map(Number).filter(y=>y>=2000&&y<=2100))].forEach(year=>{if(state.holidayYears[year]||state.holidayLoading.has(year))return;state.holidayLoading.add(year);try{NexoNative.requestHolidayCalendar(year);}catch(_){state.holidayLoading.delete(year);}});}
@@ -1560,12 +1590,8 @@ function shareMedicationCard(id){
 }
 
 function agendaCard(i,showDate=false){
-  const recurring=!!i.recurring||(i.recurrence&&i.recurrence!=='none'),done=i.status==='done'||i.occurrenceStatus==='done',cancelled=i.status==='cancelled';
-  const id=Number(i.seriesId||i.id),occ=Number(i.occurrenceAt||i.dueAt||0);
-  const open=recurring?`data-open-occurrence="${id}" data-occurrence-at="${occ}"`:`data-open-item="${id}"`;
-  const when=i.seriesEnded?'Serie sin próximas fechas':!i.dueAt?'Sin fecha':showDate?fmtDueItem(i):fmtAgendaTime(i);
-  const description=String(i.body||'').trim(),title=String(i.title||'Cita');
-  return `<div class="agenda-row ${done?'item-done':''}" data-appointment-row="${id}"><button type="button" class="agenda-open" ${open}><span class="agenda-meta"><span class="agenda-time">${eventReminderBellHtml(i,'event-reminder-indicator--time')}${esc(when)}</span><span class="agenda-category">${isVehicleReservation(i)?uiIcon('car')+'Reserva coche':uiIcon(familyCategoryIcon(i.category))+esc(categoryLabel(i.category))}</span>${done?'<span class="agenda-status">Completada</span>':cancelled?'<span class="agenda-status">Cancelada</span>':''}</span><strong class="agenda-title">${esc(title)}</strong>${description&&description!==title?`<span class="agenda-description">${esc(description)}</span>`:''}${i.locationText?`<span class="agenda-location">${uiIcon('pin')}${esc(i.locationText)}</span>`:''}${eventParticipantAvatarsHtml(i,'event-participant-avatars--agenda')}${recurring?`<span class="agenda-repeat">${esc(recurrenceLabel(i.recurrence))}</span>`:''}</button><div class="record-card-actions agenda-record-actions">${recordIconAction('share','Compartir evento',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar evento',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>`;
+  // La misma tarjeta sin botones de Inicio se reutiliza en Agenda, 7 días y Calendario.
+  return homeUpcomingCard(i);
 }
 
 function prepareHomeCapture(type='',text=''){
@@ -1574,6 +1600,7 @@ function prepareHomeCapture(type='',text=''){
 }
 
 function itemCard(i) {
+  if(isAppointmentType(i.type))return homeUpcomingCard(i);
   if(i.type==='document')return documentCard(i);
   if(isPlaceType(i.type))return placeCard(i);
   const due=fmtDueItem(i), recurring=!!i.recurring || (i.recurrence&&i.recurrence!=='none');
@@ -1590,6 +1617,7 @@ function itemCard(i) {
   </div>`;
 }
 function bindItemButtons(root=document){
+  bindHomeUpcoming(root);
   bindPlaceButtons(root);
   bindDocumentButtons(root);
   root.querySelectorAll('[data-item-card-open]').forEach(card=>{
@@ -1956,7 +1984,7 @@ function renderCalendar(direction=0){
   const monthName=new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric'}).format(first);
   $('#calendarMonthTitle').textContent=monthName.replace(/^./,c=>c.toUpperCase());
   $('#calendarMonthPickerBtn').setAttribute('aria-label',monthName+'. Elegir mes y año');
-  const legend=$('#calendarIconLegend');if(legend&&!legend.childElementCount)legend.innerHTML=CATEGORIES.map(c=>'<span class="calendar-icon-legend__item">'+uiIcon(familyCategoryIcon(c))+'<span>'+esc(c)+'</span></span>').join('');
+  const legend=$('#calendarIconLegend');if(legend&&!legend.childElementCount)legend.innerHTML=CATEGORIES.map(c=>'<span class="calendar-icon-legend__item" style="--event-category-color:'+familyCategoryColor(c)+'">'+uiIcon(familyCategoryIcon(c))+'<span>'+esc(c)+'</span></span>').join('');
 
   let items=[];
   try{
@@ -1977,8 +2005,9 @@ function renderCalendar(direction=0){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],hs=holidaysByDay[iso]||[],selected=iso===state.calendarSelected;
     const base=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);
     const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(list.length?' · Categorías: '+[...new Set(list.map(i=>categoryLabel(i.category)))].join(', '):'')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');
-    const dots=calendarMarkerItems(list).map(calendarMarkerHtml).join('');
-    calendarHtml+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
+    const shownMarkers=calendarMarkerItems(list),markerLimit=list.length>3?2:3;
+    const dots=shownMarkers.slice(0,markerLimit).map(calendarMarkerHtml).join('')+(list.length>3?'<span class="calendar-marker-more" title="'+(list.length-markerLimit)+' eventos adicionales">+'+(list.length-markerLimit)+'</span>':'');
+    calendarHtml+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1&&list.length<=3?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
   }
   $('#calendarGrid').innerHTML=calendarHtml;
 
