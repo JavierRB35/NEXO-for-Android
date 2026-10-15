@@ -30,6 +30,7 @@ python validation/test-transcription-integration.py
 python validation/test-transcription-quality.py
 python validation/test-temporal-status.py
 python validation/test-version-identity.py
+python validation/test-category-icons.py
 python validation/test-reminder-bell.py
 python validation/test-input-hub-reliability.py
 python validation/test-gmail-filter-v7.py
