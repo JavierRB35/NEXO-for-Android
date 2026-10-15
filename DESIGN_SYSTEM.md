@@ -54,7 +54,7 @@ Superficies transversales:
 - Verde como color primario para acciones y estados activos.
 - Amarillo para atención moderada, referencias y contenido destacado.
 - Rojo solo para error, destrucción o alertas reales.
-- Las 18 categorías se identifican mediante iconos distintos y etiquetas, nunca exclusivamente por color.
+- Las 19 categorías se identifican mediante iconos distintos y etiquetas, nunca exclusivamente por color.
 - Una sola acción primaria visualmente dominante por contexto.
 - Acciones secundarias outlined o text.
 - Controles táctiles de al menos 48 px equivalentes en la WebView.
