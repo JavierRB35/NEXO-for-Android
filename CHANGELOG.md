@@ -1,3 +1,12 @@
+## Nexo 3.7.25 — Ubicación del tiempo fiable y manual
+
+- Cabecera: símbolo del tiempo y temperatura algo más grandes, nombre de la localidad debajo, separación mayor respecto al engranaje y áreas táctiles diferenciadas.
+- Se corrige la preferencia anterior por NETWORK_PROVIDER y la reutilización de posiciones inexactas; el GPS preciso tiene prioridad, se descartan posiciones antiguas y se señala la ubicación aproximada.
+- Geocodificación inversa del municipio mediante Android Geocoder, sin inferir nombres a partir de coordenadas redondeadas en Google.
+- Ajustes → Tiempo y ubicación permite elegir «Ubicación actual del teléfono» o buscar y fijar una localidad con Open-Meteo Geocoding; se conserva la elección entre reinicios y se cambia sin desinstalar.
+- Pronóstico detallado por nombre de localidad identificado; sin redondeo a dos decimales y sin permisos de ubicación en modo manual.
+- versionCode 118, versionName 3.7.25; DB 27 sin migración, SDK 34/Gradle 8.9/AGP 8.7.3 y firma Release sin cambios.
+
 ## Nexo 3.7.24 — Biblioteca personal (esquema 27)
 
 - Nueva aplicación «Libros» en Herramientas → Ideas y escritos, con las pestañas «Leídos y empezados» y «Quiero leer».
