@@ -3409,6 +3409,8 @@ function renderMedicationsPanel(){
 }
 
 window.NexoUI={
+  onPlaceLocation(raw){onPlaceLocationResult(raw);},
+  onPlaceLocationError(message){onPlaceLocationError(message);},
   onHeaderWeather(raw){updateHeaderWeather(parseNative(raw,{}));},
   onHeaderWeatherPlaces(raw){renderWeatherPlaceResults(parseNative(raw,{}));},
   receiveImportPreview(raw){
@@ -4237,6 +4239,37 @@ function applyDocumentEditorVoice(text){
 }
 
 
+function onPlaceLocationResult(raw){
+  const data=parseNative(raw,{}),field=$('#placeLocation'),status=$('#placeLocationAccuracy');
+  if(!field||!status||!state.placeEditor)return;
+  const button=$('#placeHere');
+  if(button){button.disabled=false;button.innerHTML=uiIcon('pin')+' Aquí';}
+  const lat=Number(data.latitude),lon=Number(data.longitude),accuracy=Math.round(Number(data.accuracy)||0);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180){
+    status.textContent='No se ha recibido una ubicación válida. Prueba de nuevo.';
+    return;
+  }
+  const coordinates=lat.toFixed(6)+','+lon.toFixed(6);
+  if(data.approximate){
+    status.innerHTML='<b>Precisión baja (aprox. '+accuracy+' m).</b> No se han aplicado las coordenadas. '+
+      '<button id="placeAcceptApproximate" type="button" class="secondary-button">Usar igualmente</button>';
+    $('#placeAcceptApproximate').addEventListener('click',()=>{
+      if(!$('#placeLocation'))return;
+      $('#placeLocation').value=coordinates;
+      status.textContent='Coordenadas aplicadas con precisión aproximada de '+accuracy+' m.';
+    });
+  }else{
+    field.value=coordinates;
+    status.textContent='Ubicación capturada · precisión aproximada de '+accuracy+' m. Comprueba el punto en Maps si es necesario.';
+  }
+}
+function onPlaceLocationError(message){
+  const status=$('#placeLocationAccuracy'),button=$('#placeHere');
+  if(button){button.disabled=false;button.innerHTML=uiIcon('pin')+' Aquí';}
+  if(status){status.classList.remove('hidden');status.textContent=String(message||'No se ha podido localizar el teléfono.');}
+  else toast(message||'No se ha podido localizar el teléfono.');
+}
+
 function openPlaceEditor(id=0,prefill=null){
   const editing=Number(id)>0,i=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
   if(editing&&(!i.id||!isPlaceType(i.type))){toast('No se encuentra este lugar.');return;}
@@ -4257,8 +4290,11 @@ function openPlaceEditor(id=0,prefill=null){
     </select></label>
     <label>Tipo de lugar<select id="placeLabel">${types.map(t=>`<option value="${escAttr(t)}" ${type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
     <label>Dirección o enlace de Google Maps <span class="optional">(opcional)</span>
-      <input id="placeLocation" type="text" value="${escAttr(i.locationText||'')}" placeholder="Dirección exacta o enlace Compartir de Maps" maxlength="2048">
+      <span class="place-location-row"><input id="placeLocation" type="text" value="${escAttr(i.locationText||'')}" placeholder="Dirección o enlace de Maps" maxlength="2048">
+        <button id="placeHere" class="secondary-button place-here" type="button">${uiIcon('pin')} Aquí</button>
+      </span>
     </label>
+    <div id="placeLocationAccuracy" class="place-location-accuracy hidden" role="status" aria-live="polite"></div>
     <small class="place-map-help">Si añades una dirección o un enlace de Google Maps se usará para abrir este lugar. Sin ese dato, se buscará por su nombre.</small>
     <label id="placeVisitedRow" class="${status==='visited'?'':'hidden'}">Fecha de última visita <span class="optional">(opcional)</span>
       <input id="placeVisitedOn" type="date" value="${escAttr(placeDate(i))}">
@@ -4271,6 +4307,13 @@ function openPlaceEditor(id=0,prefill=null){
     <button id="placeSave" class="primary-button" type="button">Guardar lugar</button>
   </div>`);
   document.body.classList.add('place-editor-open');requestAnimationFrame(updateFloatingActions);
+  $('#placeHere').addEventListener('click',()=>{
+    const button=$('#placeHere');button.disabled=true;
+    button.textContent='Localizando…';
+    $('#placeLocationAccuracy').textContent='Obteniendo una posición GPS reciente…';
+    $('#placeLocationAccuracy').classList.remove('hidden');
+    NexoNative.requestPlaceHere();
+  });
   $('#placeVisitStatus').addEventListener('change',()=>{
     $('#placeVisitedRow').classList.toggle('hidden',$('#placeVisitStatus').value!=='visited');
   });
