@@ -1,8 +1,10 @@
-# Nexo 3.7.23
+# Nexo 3.7.24
 
-Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
+Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.23**, `versionCode 116`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **26**.
+Esta versión corresponde a **Nexo 3.7.24**, `versionCode 117`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **27**.
+
+**Nuevo en 3.7.24:** biblioteca personal en Herramientas → Ideas y escritos, con «Leídos y empezados» y «Quiero leer», progreso de lectura (0–100 %), fecha de finalización o abandono, y resumen dictado a texto editable. El buscador superior filtra mientras escribes por título o autor, sin distinguir acentos, y consulta ambas listas. Puedes empezar un libro pendiente, editarlo o eliminarlo.
 
 **Nuevo en 3.7.23:** el catálogo de Frases incluye 40 reflexiones originales inspiradas en Radical Face junto a las 40 frases previas. Se siembran en una instalación nueva y se incorporan de forma aditiva al actualizar al esquema 26, sin borrar ni duplicar las personales. «Frases» y «Frase del día» las seleccionan de la misma base de datos local. Cada reflexión identifica canción, álbum y artista y advierte que no es una cita literal.
 

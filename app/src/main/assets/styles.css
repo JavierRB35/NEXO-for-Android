@@ -2835,3 +2835,50 @@ body.startup-loading #app{visibility:hidden}
 .header-weather-attribution:focus-visible{outline:2px solid #2a7665;border-radius:5px}
 .calendar-icon-guide{border-radius:0}
 .calendar-quote-guide{border-radius:0 0 12px 12px;overflow:hidden}
+
+
+/* Biblioteca personal. Proporciones compactas y búsqueda siempre arriba. */
+.books-library{display:grid;gap:14px}
+.books-search{display:grid;gap:8px;background:#fff;border:1px solid var(--line);border-radius:19px;padding:15px;box-shadow:0 3px 12px rgba(20,35,60,.035)}
+.books-search-title{display:flex;align-items:center;gap:9px;font-weight:850;font-size:.9375rem;color:var(--navy)}
+.books-search-title .ui-icon{width:19px;height:19px;color:var(--blue)}
+.books-search input{width:100%;min-height:46px;border:1px solid #dce1e9;border-radius:13px;font-size:1rem}
+.books-search small{color:var(--muted);font-size:.8125rem}
+.books-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.books-tab{border:1px solid var(--line);border-radius:13px;background:#fff;padding:11px 7px;color:var(--muted);font-size:.8125rem;font-weight:800;cursor:pointer;min-height:44px}
+.books-tab.active{background:#edf4ff;border-color:#89b4f3;color:#164995}
+.books-stack{display:grid;gap:10px}
+.book-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 3px 12px rgba(20,35,60,.035)}
+.book-card-main{display:grid;gap:6px;width:100%;padding:14px 14px 9px;background:transparent;border:0;color:var(--text);text-align:left;cursor:pointer}
+.book-card-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px}
+.book-card-top strong{font-size:1rem;line-height:1.3;flex:1;min-width:140px;overflow-wrap:anywhere}
+.book-status{display:inline-flex;align-items:center;border-radius:99px;padding:4px 9px;background:#e9f1fe;color:#225fc5;font-size:.75rem;font-weight:850;white-space:nowrap}
+.book-status--want{background:#fef3db;color:#9a5a00}
+.book-status--finished{background:#e4f7ee;color:#08764f}
+.book-status--abandoned{background:#fce9e9;color:#b73535}
+.book-author{font-size:.875rem;color:#536276;overflow-wrap:anywhere}
+.book-progress-row{display:flex;align-items:center;gap:9px;margin-top:6px}
+.book-progress-row b{font-size:.8125rem;color:var(--navy);min-width:38px;text-align:right}
+.book-progress-track{height:8px;background:#e6ecf5;border-radius:99px;overflow:hidden;flex:1}
+.book-progress-track span{height:100%;display:block;background:#225fc5;border-radius:99px}
+.book-date{font-size:.8125rem;color:#586477}
+.book-excerpt{font-size:.8125rem;color:#5d687a;white-space:pre-wrap;overflow-wrap:anywhere;max-height:60px;overflow:hidden;line-height:1.45}
+.book-card-actions{display:flex;gap:7px;justify-content:flex-end;padding:6px 12px 12px;flex-wrap:wrap}
+.book-delete-button{color:#b73535;display:inline-flex;align-items:center;justify-content:center;width:38px;min-height:36px}
+.book-delete-button .ui-icon{width:18px;height:18px}
+.book-editor{gap:14px}
+.book-slider-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px}
+.book-slider-heading label{font-weight:800}
+.book-slider-heading strong{font-weight:900;color:var(--blue);font-size:1.1rem}
+.book-editor input[type=range]{width:100%;accent-color:#225fc5;min-height:30px}
+.book-slider-ends{display:flex;justify-content:space-between;gap:10px;margin-top:-9px;color:var(--muted)}
+.book-editor #bookFinishRow,.book-editor #bookAbandonedRow{margin-top:4px}
+.book-dictate{display:flex;gap:8px;align-items:center;justify-content:center;min-height:44px}
+.book-dictate .ui-icon{width:19px;height:19px}
+.book-form-error{color:#b73535;font-size:.875rem;font-weight:750;margin:0}
+@media(max-width:420px){
+  .books-library{gap:10px}
+  .books-search{padding:12px}
+  .book-card-main{padding:12px 12px 8px}
+  .book-card-actions{padding:4px 10px 10px}
+}

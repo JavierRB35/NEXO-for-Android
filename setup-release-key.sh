@@ -5,7 +5,7 @@ KEY_DIR="${NEXO_KEY_DIR:-$HOME/.nexo-release}"
 KEYSTORE="$KEY_DIR/nexo-release.p12"
 PASSWORD_FILE="$KEY_DIR/nexo-release.password"
 ALIAS="nexo-release"
-BACKUP_DIR="${NEXO_SIGNING_BACKUP_DIR:-$HOME/.nexo-release/backup}"
+BACKUP_DIR="${NEXO_SIGNING_BACKUP_DIR:-/storage/emulated/0/Download/Nexo_Signing_Backup}"
 BACKUP_KEYSTORE="$BACKUP_DIR/nexo-release.p12"
 BACKUP_PASSWORD="$BACKUP_DIR/nexo-release.password.txt"
 BACKUP_README="$BACKUP_DIR/LEEME_NEXO_SIGNING.txt"
@@ -40,6 +40,20 @@ verify_pair() {
       -storepass "$PASS" \
       -alias "$ALIAS" >/dev/null 2>&1
 }
+
+# Compatibilidad: las versiones anteriores guardaban la copia bajo HOME.
+# Solo se usa si aún no existe respaldo en Descargas y la pareja antigua es válida.
+LEGACY_BACKUP_DIR="$HOME/.nexo-release/backup"
+if [ "$BACKUP_DIR" != "$LEGACY_BACKUP_DIR" ] && \
+   [ ! -e "$BACKUP_KEYSTORE" ] && [ ! -e "$BACKUP_PASSWORD" ] && \
+   [ -f "$LEGACY_BACKUP_DIR/nexo-release.p12" ] && \
+   [ -f "$LEGACY_BACKUP_DIR/nexo-release.password.txt" ]; then
+    if verify_pair "$LEGACY_BACKUP_DIR/nexo-release.p12" "$LEGACY_BACKUP_DIR/nexo-release.password.txt"; then
+        mkdir -p "$BACKUP_DIR"
+        cp "$LEGACY_BACKUP_DIR/nexo-release.p12" "$BACKUP_KEYSTORE"
+        cp "$LEGACY_BACKUP_DIR/nexo-release.password.txt" "$BACKUP_PASSWORD"
+    fi
+fi
 
 mkdir -p "$KEY_DIR" "$BACKUP_DIR"
 chmod 700 "$KEY_DIR" 2>/dev/null || true
