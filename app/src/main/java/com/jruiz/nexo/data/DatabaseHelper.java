@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 28;
+    private static final int DB_VERSION = 29;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
@@ -41,6 +41,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "original_text TEXT NOT NULL DEFAULT ''," +
                 "category TEXT NOT NULL DEFAULT 'Otros'," +
                 "subcategory TEXT NOT NULL DEFAULT ''," +
+                "place_state TEXT NOT NULL DEFAULT ''," +
+                "place_rating INTEGER NOT NULL DEFAULT 0," +
+                "place_visited_on TEXT NOT NULL DEFAULT ''," +
                 "tags TEXT NOT NULL DEFAULT ''," +
                 "due_at INTEGER NOT NULL DEFAULT 0," +
                 "end_at INTEGER NOT NULL DEFAULT 0," +
@@ -253,6 +256,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (!columnExists(db, "books", "start_date")) db.execSQL("ALTER TABLE books ADD COLUMN start_date TEXT NOT NULL DEFAULT ''");
             if (!columnExists(db, "books", "favorite")) db.execSQL("ALTER TABLE books ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0");
             if (!columnExists(db, "books", "rating")) db.execSQL("ALTER TABLE books ADD COLUMN rating INTEGER NOT NULL DEFAULT 0");
+        }
+        if (oldVersion < 29) {
+            // Datos de lugares independientes del estado de citas. No inventar
+            // estados/fechas de lugares antiguos con etiquetas ambiguas.
+            if (!columnExists(db, "items", "place_state")) db.execSQL("ALTER TABLE items ADD COLUMN place_state TEXT NOT NULL DEFAULT ''");
+            if (!columnExists(db, "items", "place_rating")) db.execSQL("ALTER TABLE items ADD COLUMN place_rating INTEGER NOT NULL DEFAULT 0");
+            if (!columnExists(db, "items", "place_visited_on")) db.execSQL("ALTER TABLE items ADD COLUMN place_visited_on TEXT NOT NULL DEFAULT ''");
+            // Solo dos etiquetas antiguas representan estados inequívocos.
+            db.execSQL("UPDATE items SET place_state='want',subcategory='Otros' WHERE type IN ('place','restaurant') AND subcategory='Quiero ir'");
+            db.execSQL("UPDATE items SET place_state='visited',subcategory='Otros' WHERE type IN ('place','restaurant') AND subcategory='He estado'");
         }
     }
 
@@ -1091,6 +1104,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         v.put("original_text", in.optString("originalText", ""));
         v.put("category", nonBlank(in.optString("category"), "Otros"));
         v.put("subcategory", in.optString("subcategory", ""));
+        v.put("place_state", in.optString("placeState", ""));
+        v.put("place_rating", clamp(in.optInt("placeRating", 0), 0, 5));
+        v.put("place_visited_on", in.optString("placeVisitedOn", ""));
         v.put("tags", in.optString("tags", ""));
         long dueAt = Math.max(0, in.optLong("dueAt", 0));
         boolean hasTime = in.optBoolean("hasTime", false);
@@ -1144,6 +1160,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (in.has("originalText")) v.put("original_text", in.optString("originalText", ""));
         if (in.has("category")) v.put("category", nonBlank(in.optString("category"), "Otros"));
         if (in.has("subcategory")) v.put("subcategory", in.optString("subcategory", ""));
+        if (in.has("placeState")) v.put("place_state", in.optString("placeState", ""));
+        if (in.has("placeRating")) v.put("place_rating", clamp(in.optInt("placeRating", 0), 0, 5));
+        if (in.has("placeVisitedOn")) v.put("place_visited_on", in.optString("placeVisitedOn", ""));
         if (in.has("attachmentPath")) v.put("attachment_path", in.optString("attachmentPath", ""));
         if (in.has("attachmentName")) v.put("attachment_name", in.optString("attachmentName", ""));
         if (in.has("attachmentMime")) v.put("attachment_mime", in.optString("attachmentMime", ""));
@@ -3364,6 +3383,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("originalText",c.getString(c.getColumnIndexOrThrow("original_text")));
             o.put("category",c.getString(c.getColumnIndexOrThrow("category")));
             o.put("subcategory",c.getString(c.getColumnIndexOrThrow("subcategory")));
+            int placeStateIdx=c.getColumnIndex("place_state"),placeRatingIdx=c.getColumnIndex("place_rating"),placeVisitIdx=c.getColumnIndex("place_visited_on");
+            o.put("placeState",placeStateIdx>=0?c.getString(placeStateIdx):"");
+            o.put("placeRating",placeRatingIdx>=0?c.getInt(placeRatingIdx):0);
+            o.put("placeVisitedOn",placeVisitIdx>=0?c.getString(placeVisitIdx):"");
             o.put("tags",c.getString(c.getColumnIndexOrThrow("tags")));
             o.put("dueAt",c.getLong(c.getColumnIndexOrThrow("due_at")));
             int endIndex=c.getColumnIndex("end_at");o.put("endAt",endIndex>=0?c.getLong(endIndex):0L);
