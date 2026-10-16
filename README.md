@@ -1,8 +1,10 @@
-# Nexo 3.7.28
+# Nexo 3.7.29
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.28**, `versionCode 121`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **28**.
+Esta versión corresponde a **Nexo 3.7.29**, `versionCode 122`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **29**.
+
+**Nuevo en 3.7.29:** Lugares dispone de filtros con contadores (Todos, Quiero ir, He estado, Favoritos), búsqueda por nombre/tipo/dirección, fichas compactas, botón Maps con dirección o enlace preciso, corazón y cinco estrellas independientes en la ficha completa, fecha de visita, botón GPS «Aquí» con control de precisión. Al guardar en Libros o Lugares se vuelve al listado conservando filtros y posición. Migración 28→29 sin borrar lugares antiguos.
 
 **Nuevo en 3.7.28:** el formulario Nuevo libro / Editar libro muestra solo los datos de lectura, sin casillas ni estrellas. Al guardar se abre la ficha completa. Allí, un único corazón junto al título se toca para añadir o quitar de favoritos, y las cinco estrellas permiten valorar al momento. Cada toque se guarda automáticamente y favorito y valoración siguen siendo independientes. Los favoritos conservan su corazón en el listado.
 

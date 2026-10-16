@@ -1,3 +1,13 @@
+## Nexo 3.7.29 — Lugares y GPS «Aquí»; volver al listado desde Libros
+
+- Lugares tiene tarjetas compactas, búsqueda instantánea, tipos separados de Quiero ir / He estado y filtros rápidos con contadores y favoritos.
+- En cada tarjeta, Maps utiliza la ubicación guardada (dirección/enlace/coordenadas) o busca por nombre si no existe.
+- Ficha completa con corazón favorito independiente de valoración de 1 a 5 estrellas, fecha opcional de visita, compartir, editar y eliminar.
+- Nuevo botón «Aquí» junto a la ubicación del editor: captura coordenadas GPS frescas, indica precisión y pide aceptación explícita si resulta impreciso.
+- Guardar Libro o Lugar regresa al listado original conservando filtro, búsqueda y scroll. Editor de Lugares previene descartar cambios por error.
+- Base de datos 28→29 migración aditiva y preservación de lugares existentes; etiquetas inequívocas Quiero ir / He estado pasan a estado, otras antiguas quedan sin clasificar hasta revisión.
+- Nexo 3.7.29 (versionCode 122); misma firma Release y entorno AndroidIDE.
+
 ## Nexo 3.7.28 — Corazón y valoración únicamente en la ficha del libro
 
 - Desaparecen el checkbox de Favoritos y su texto largo del formulario Nuevo libro / Editar libro, así como las estrellas dentro del editor.
