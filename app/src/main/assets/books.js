@@ -2,28 +2,26 @@
 
 /* Biblioteca: dos listas, búsqueda incremental global y dictado a texto. */
 window.NexoBooks = (() => {
-  let tab = 'read', search = '', books = [], editor = null;
+  let filter = 'all', search = '', books = [], editor = null;
   const labels = {want:'Quiero leer',reading:'En lectura',finished:'Terminado',abandoned:'Abandonado'};
+  const icons = {want:'book-want',reading:'book-reading',finished:'book-finished',abandoned:'book-abandoned'};
   const normal = v => String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-ES').trim();
   const today = () => {const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
   const showDate = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v||''))?String(v).split('-').reverse().join('/'):''; 
 
   function card(b) {
     const id=Number(b.id), percent=Math.max(0,Math.min(100,Number(b.progress)||0));
-    const date=b.status==='finished'?showDate(b.finishDate):b.status==='abandoned'?showDate(b.abandonedDate):'';
+    const status=Object.hasOwn(labels,b.status)?b.status:'want';
+    const name=labels[status];
     return `<article class="book-card">
-      <button class="book-card-main" type="button" data-book-edit="${id}">
-        <span class="book-card-top"><strong>${esc(b.title)}</strong><span class="book-status book-status--${escAttr(b.status)}">${esc(labels[b.status]||labels.want)}</span></span>
-        <span class="book-author">${esc(b.author)}</span>
-        ${b.status!=='want'?`<span class="book-progress-row"><span class="book-progress-track"><span style="width:${percent}%"></span></span><b>${percent}%</b></span>`:''}
-        ${date?`<span class="book-date">${b.status==='finished'?'Finalizado':'Abandonado'}: ${date}</span>`:''}
-        ${b.summary&&b.status!=='want'?`<span class="book-excerpt">${esc(b.summary)}</span>`:''}
+      <button class="book-card-main" type="button" data-book-open="${id}" aria-label="Ver ficha de ${escAttr(b.title)}, ${escAttr(b.author)}. ${escAttr(name)}">
+        <span class="book-card-symbol book-card-symbol--${status}" aria-hidden="true">${uiIcon(icons[status])}</span>
+        <span class="book-card-copy">
+          <strong class="book-card-title">${esc(b.title)}</strong>
+          <span class="book-card-subline"><span class="book-author">${esc(b.author)}</span>${status!=='want'?`<span class="book-card-percent">${percent}%</span>`:''}</span>
+        </span>
+        <span class="book-card-chevron" aria-hidden="true">${uiIcon('right')}</span>
       </button>
-      <div class="book-card-actions">
-        ${b.status==='want'?`<button type="button" class="mini-button primary" data-book-start="${id}">Empezar lectura</button>`:''}
-        <button type="button" class="mini-button" data-book-edit="${id}">Editar</button>
-        <button type="button" class="mini-button book-delete-button" data-book-delete="${id}" aria-label="Eliminar libro">${uiIcon('trash')}</button>
-      </div>
     </article>`;
   }
 
@@ -31,16 +29,14 @@ window.NexoBooks = (() => {
     const list=document.querySelector('#booksResults'), counter=document.querySelector('#booksSearchCount');
     if(!list)return;
     const q=normal(search);
-    const rows=q?books.filter(b=>normal(b.title).includes(q)||normal(b.author).includes(q))
-      :books.filter(b=>tab==='want'?b.status==='want':b.status!=='want');
+    const rows=books.filter(b=>(filter==='all'||b.status===filter)&&
+      (!q||normal(b.title).includes(q)||normal(b.author).includes(q)));
     if(counter)counter.textContent=q
-      ?`${rows.length} resultado${rows.length===1?'':'s'} · buscando en ambas listas`
+      ?`${rows.length} resultado${rows.length===1?'':'s'} · ${filter==='all'?'todos los estados':labels[filter]}`
       :`${rows.length} libro${rows.length===1?'':'s'}`;
     list.innerHTML=rows.length?`<div class="books-stack">${rows.map(card).join('')}</div>`
-      :`<div class="empty-state">${q?'No hay libros que contengan ese texto en el título o el autor.':tab==='want'?'No hay libros pendientes. Añade el primero.':'Todavía no tienes libros leídos o empezados.'}</div>`;
-    list.querySelectorAll('[data-book-edit]').forEach(b=>b.addEventListener('click',()=>openEditor(Number(b.dataset.bookEdit))));
-    list.querySelectorAll('[data-book-start]').forEach(b=>b.addEventListener('click',()=>startBook(Number(b.dataset.bookStart))));
-    list.querySelectorAll('[data-book-delete]').forEach(b=>b.addEventListener('click',()=>removeBook(Number(b.dataset.bookDelete))));
+      :`<div class="empty-state">${q?'No hay libros con ese título o autor en el filtro seleccionado.':'No hay libros en este estado. Puedes añadir uno con el botón +.'}</div>`;
+    list.querySelectorAll('[data-book-open]').forEach(b=>b.addEventListener('click',()=>openDetails(Number(b.dataset.bookOpen))));
   }
 
   function render() {
@@ -52,22 +48,56 @@ window.NexoBooks = (() => {
         <input id="booksSearchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Título o autor · búsqueda instantánea" value="${escAttr(search)}">
         <small id="booksSearchCount" aria-live="polite"></small>
       </label>
-      <div class="books-tabs" role="group" aria-label="Listas de libros">
-        <button class="books-tab ${tab==='read'?'active':''}" type="button" data-books-tab="read" aria-pressed="${tab==='read'}">Leídos y empezados</button>
-        <button class="books-tab ${tab==='want'?'active':''}" type="button" data-books-tab="want" aria-pressed="${tab==='want'}">Quiero leer</button>
+      <div class="books-status-filters" role="group" aria-label="Filtrar libros por estado">
+        ${[['all','Todos'],...Object.entries(labels)].map(([key,text])=>`<button class="books-status-filter ${filter===key?'active':''}" type="button" data-books-filter="${key}" aria-pressed="${filter===key}">${key==='all'?'':uiIcon(icons[key])}${esc(text)}</button>`).join('')}
       </div>
       <div id="booksResults"></div>
     </div>`;
     host.querySelector('#booksSearchInput').addEventListener('input',e=>{search=e.target.value;refreshMatches();});
-    host.querySelectorAll('[data-books-tab]').forEach(b=>b.addEventListener('click',()=>{
-      tab=b.dataset.booksTab;
-      host.querySelectorAll('[data-books-tab]').forEach(button=>{
-        const active=button.dataset.booksTab===tab;
+    host.querySelectorAll('[data-books-filter]').forEach(b=>b.addEventListener('click',()=>{
+      filter=b.dataset.booksFilter;
+      host.querySelectorAll('[data-books-filter]').forEach(button=>{
+        const active=button.dataset.booksFilter===filter;
         button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
       });
       refreshMatches();
     }));
     refreshMatches();
+  }
+
+  function openDetails(id){
+    const b=Number(id)?parseNative(NexoNative.getBook(Number(id)),{}):{};
+    if(!b.id){toast('Libro no encontrado.');render();return;}
+    const status=Object.hasOwn(labels,b.status)?b.status:'want';
+    const progress=Math.max(0,Math.min(100,Number(b.progress)||0));
+    const finished=status==='finished'?showDate(b.finishDate):'';
+    const abandoned=status==='abandoned'?showDate(b.abandonedDate):'';
+    openModal('Ficha del libro',`<article class="book-detail">
+      <div class="book-detail-head">
+        <span class="book-card-symbol book-card-symbol--${status}" aria-hidden="true">${uiIcon(icons[status])}</span>
+        <div class="book-detail-heading">
+          <h3>${esc(b.title)}</h3>
+          <p>${esc(b.author)}</p>
+          <span class="book-status book-status--${status}">${esc(labels[status])}</span>
+        </div>
+      </div>
+      ${status!=='want'?`<section class="book-detail-section"><strong>Progreso de lectura</strong>
+        <div class="book-progress-row"><span class="book-progress-track"><span style="width:${progress}%"></span></span><b>${progress}%</b></div>
+      </section>`:''}
+      ${finished?`<p class="book-detail-date"><strong>Finalizado:</strong> ${finished}</p>`:''}
+      ${abandoned?`<p class="book-detail-date"><strong>Abandonado:</strong> ${abandoned}</p>`:''}
+      ${status!=='want'?`<section class="book-detail-section"><strong>Mi resumen personal</strong>
+        <div class="book-detail-summary">${b.summary?esc(b.summary):'<span class="muted">Todavía no has añadido un resumen.</span>'}</div>
+      </section>`:''}
+    </article>
+    <div class="modal-actions wrap-actions book-detail-actions">
+      <button type="button" id="bookDetailDelete" class="danger-button">${uiIcon('trash')} Eliminar</button>
+      ${status==='want'?`<button type="button" id="bookDetailStart" class="secondary-button">${uiIcon('book-reading')} Empezar lectura</button>`:''}
+      <button type="button" id="bookDetailEdit" class="primary-button">${uiIcon('edit')} Editar</button>
+    </div>`);
+    document.querySelector('#bookDetailEdit').addEventListener('click',()=>openEditor(Number(b.id)));
+    document.querySelector('#bookDetailDelete').addEventListener('click',()=>removeBook(Number(b.id)));
+    document.querySelector('#bookDetailStart')?.addEventListener('click',()=>startBook(Number(b.id)));
   }
 
   function readFields(){
