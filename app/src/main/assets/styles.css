@@ -3078,3 +3078,12 @@ body.startup-loading #app{visibility:hidden}
   .place-filter{font-size:.72rem;padding:6px 8px}
   .place-card-copy strong{font-size:.88rem}
 }
+
+/* Captura GPS de lugares: botón Aquí al lado del campo de Maps. */
+.place-location-row{display:grid;grid-template-columns:minmax(0,1fr) 85px;gap:8px;align-items:center}
+.place-location-row input{min-width:0;width:100%}
+.place-location-row .place-here{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:48px;min-width:0;padding:8px 5px;font-size:.82rem}
+.place-here .ui-icon{width:18px;height:18px}
+.place-location-accuracy{font-size:.79rem;line-height:1.45;color:#34654d;background:#f0f7f3;padding:9px;border-radius:10px}
+.place-location-accuracy.hidden{display:none}
+.place-location-accuracy button{display:inline-flex;min-height:36px;margin:6px 0 0;padding:6px 10px;font-size:.77rem}
