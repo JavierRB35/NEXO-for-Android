@@ -1,3 +1,13 @@
+## Nexo 3.7.24 — Biblioteca personal (esquema 27)
+
+- Nueva aplicación «Libros» en Herramientas → Ideas y escritos, con las pestañas «Leídos y empezados» y «Quiero leer».
+- Buscador incremental superior por título y autor, con coincidencias parciales, sin distinguir mayúsculas ni acentos; al escribir busca en ambas listas.
+- Progreso del 0 al 100 %, estados En lectura, Terminado y Abandonado, fechas editables de finalización o abandono.
+- Resumen personal dictado a texto mediante el reconocimiento de Android ya integrado, editable antes de guardar y sin archivos de audio adicionales.
+- Botón «Empezar lectura» para mover pendientes conservando título y autor; edición y eliminación con confirmación.
+- Tabla SQLite «books» añadida con migración aditiva 26→27. Las copias .nexo existentes incluyen la tabla al respaldar la base de datos.
+- versionCode 117, versionName 3.7.24; JDK 17, SDK 34, Gradle 8.9 y firma Release sin modificaciones.
+
 ## Nexo 3.7.23 — Frases Radical Face (esquema 26)
 
 - Biblioteca inicial ampliada con 40 reflexiones originales en castellano inspiradas en canciones de Radical Face, con canción, álbum y artista identificados.
