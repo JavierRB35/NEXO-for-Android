@@ -1,3 +1,12 @@
+## Nexo 3.7.27 — Biblioteca: fecha real, favoritos, estrellas y estadísticas
+
+- Libros ordenados por fecha significativa descendente (terminados por finalización, abandonados por abandono, en lectura por inicio). Los libros sin fecha quedan al final y usan la última actualización como desempate. Editar una ficha antigua no cambia su orden cronológico.
+- Fecha en las tarjetas compactas y contadores en Todos, Quiero leer, En lectura, Terminado, Abandonado y nuevo filtro Favoritos; los contadores responden también a la búsqueda.
+- Corazón como favorito, independiente de la valoración de 0 a 5 estrellas. Cinco estrellas pulsables dentro de la ficha completa; pulsar de nuevo la estrella seleccionada deja Sin valorar. Favoritos y valoración guardados localmente.
+- Fecha de inicio editable, con registro automático al comenzar desde Quiero leer. Resumen desplegable de estadísticas (terminados este año, total histórico, lectura, pendientes, abandonados y favoritos) sin aumentar las tarjetas.
+- Búsqueda, filtro y scroll conservados al volver de una ficha o editar. Prevención de duplicados por título y autor (insensible a acentos, espacios y mayúsculas). Confirmación antes de reiniciar progreso, fechas y resumen al devolver un libro a pendientes, conservando corazón y estrellas.
+- Migración incremental segura de base de datos 27→28: añade start_date, favorite y rating sin borrar libros. versionCode 120, versionName 3.7.27; firma Release, JDK17, SDK34, Gradle8.9 y AGP8.7.3 mantenidos.
+
 ## Nexo 3.7.26 — Libros: fichas compactas y filtros por estado
 
 - Tarjetas de biblioteca en formato compacto, sin botones de editar, empezar o eliminar en el listado. Icono de estado a la izquierda y solo título, autor y porcentaje si procede.
