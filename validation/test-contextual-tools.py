@@ -22,7 +22,8 @@ assert "if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVi
 assert 'id="placeLocation"' not in app
 assert "placePreviewMap" not in app
 assert "NexoNative.openPlaceMap(String(i.title))" in app
-assert 'class="secondary-button place-map-direct"' in app
+assert 'class="place-map-direct place-map-direct--compact"' in app
+assert 'id="placeDetailMaps"' in app
 assert "function startPlaceVoice()" in app
 assert "function startPlaceEditorVoice()" in app
 
