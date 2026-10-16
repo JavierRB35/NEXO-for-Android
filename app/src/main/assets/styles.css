@@ -2961,3 +2961,45 @@ body.startup-loading #app{visibility:hidden}
   .book-card-symbol .ui-icon{width:23px;height:23px}
   .books-status-filter{font-size:.72rem;padding:6px 8px;min-height:36px}
 }
+
+/* Biblioteca 3.7.27: fechas, contadores, corazón y estrellas interactivas. */
+.book-card-main{grid-template-columns:41px minmax(0,1fr) auto}
+.book-card-trailing{display:flex;align-items:center;gap:5px;color:#9aa9b9}
+.book-card-heart{color:#d8295c;line-height:0}
+.book-card-heart .ui-icon{width:17px;height:17px;fill:#e54072;stroke:#bc2250}
+.book-card-subline{gap:6px}
+.book-card-date{font-size:.73rem;white-space:nowrap;color:#536276;font-variant-numeric:tabular-nums}
+.books-filter-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;background:#edf1f6;color:#40576d;font-size:.69rem;font-weight:850;border-radius:9px}
+.books-status-filter.active .books-filter-count{background:#cce1fd;color:#134f93}
+.books-stats{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+.books-stats summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 11px;font-size:.79rem;font-weight:800;color:var(--navy);min-height:40px}
+.books-stats summary .ui-icon{width:17px;height:17px;color:#3574c0}
+.books-stats summary span{color:var(--muted);font-weight:500;margin-left:auto;font-size:.75rem}
+.books-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:3px 9px 10px}
+.books-stats-grid span{display:grid;align-content:center;gap:3px;border-radius:9px;background:#f1f5fa;padding:9px 5px;text-align:center}
+.books-stats-grid b{font-size:1.03rem;color:var(--navy)}
+.books-stats-grid small{font-size:.68rem;line-height:1.25;color:var(--muted)}
+.book-detail-preferences{display:grid;gap:12px;padding:12px;border-radius:13px;border:1px solid var(--line);background:#fafbfd}
+.book-favorite-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;justify-self:start;min-height:41px;padding:8px 13px;border-radius:11px;border:1px solid #e2b1c3;background:#fff;color:#b3355a;font-weight:800;font-size:.85rem;cursor:pointer}
+.book-favorite-toggle .ui-icon{height:20px;width:20px}
+.book-favorite-toggle.active{background:#fff0f4;border-color:#cf6687;color:#b51d53}
+.book-favorite-toggle.active .ui-icon{fill:#e23a6d}
+.book-rating-section{display:grid;gap:7px;padding:4px 0}
+.book-rating-section strong{font-size:.88rem}
+.book-rating-stars{display:flex;align-items:center;gap:5px}
+.book-rating-star{display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;min-height:43px;padding:6px;background:transparent;border:1px solid transparent;border-radius:9px;color:#afb6c2;cursor:pointer}
+.book-rating-star .ui-icon{width:26px;height:26px;stroke-width:1.75}
+.book-rating-star.is-set{color:#d59600}
+.book-rating-star.is-set .ui-icon{fill:#e8ac24;stroke:#c38b05}
+.book-rating-star:focus-visible,.book-favorite-toggle:focus-visible{outline:2px solid #1e6ec6;outline-offset:2px}
+.book-rating-section small{color:var(--muted);font-size:.75rem}
+.book-favorite-edit{display:flex;align-items:center;gap:8px;min-height:42px;font-size:.84rem}
+.book-favorite-edit .ui-icon{width:18px;height:18px;color:#d8295c}
+.book-favorite-edit input{accent-color:#ce2454}
+@media(max-width:420px){
+ .book-card-main{grid-template-columns:38px minmax(0,1fr) auto}
+ .book-card-date{font-size:.69rem}
+ .book-card-percent{font-size:.7rem}
+ .book-rating-star{width:40px;height:40px}
+ .books-stats-grid small{font-size:.63rem}
+}
