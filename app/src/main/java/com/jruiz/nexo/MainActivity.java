@@ -2368,6 +2368,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void chooseFile() { runOnUiThread(MainActivity.this::chooseFile); }
         @JavascriptInterface public void openWeather() { MainActivity.this.openWeather(); }
         @JavascriptInterface public void openHeaderWeather() { if (headerWeather != null) headerWeather.openDetails(); }
+        @JavascriptInterface public void refreshHeaderWeather() { if (headerWeather != null) headerWeather.refresh(false); }
         @JavascriptInterface public void openExternal(String url) { if (url != null && (url.startsWith("https://")||url.startsWith("http://"))) MainActivity.this.openExternal(url); }
     }
 }

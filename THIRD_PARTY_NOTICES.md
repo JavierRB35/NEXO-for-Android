@@ -19,3 +19,7 @@ Nexo 3.4.9 integra o descarga componentes de terceros según sus respectivas lic
 
 - `org.jetbrains.kotlin:kotlin-stdlib:1.9.24`.
 - Necesaria porque el AAR Android de sherpa-onnx 1.13.7 expone su API Kotlin/JVM.
+
+
+Open-Meteo weather data (https://open-meteo.com/)
+Used to display current weather and temperature. Data licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ . Values are displayed rounded in the interface and geographic coordinates are rounded before API queries. Open-Meteo free API is for non-commercial use.

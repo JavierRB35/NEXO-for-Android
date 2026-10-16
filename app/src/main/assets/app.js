@@ -3604,6 +3604,7 @@ function init(){
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else navigate(b.dataset.nav,{root:true});}));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   $('#headerWeatherBtn')?.addEventListener('click',()=>NexoNative.openHeaderWeather());
+  setInterval(()=>{if(!document.hidden)NexoNative.refreshHeaderWeather();},20*60*1000);
   $('#calendarDailyQuoteGuide')?.addEventListener('toggle',e=>{
     if(e.target.open)showRandomCalendarQuote();
   });

@@ -6,8 +6,8 @@ s=(r/'setup-release-key.sh').read_text()
 bk=(r/'backup-release-key.sh').read_text()
 
 required_gradle=[
-    "signingConfigs", "release {", "debuggable false", "minifyEnabled false",
-    "shrinkResources false", "keyAlias 'nexo-release'", "storeType 'PKCS12'",
+    "signingConfigs", "release {", "debuggable false", "minifyEnabled true",
+    "shrinkResources true", "keyAlias 'nexo-release'", "storeType 'PKCS12'",
     "NEXO_STORE_PASSWORD", "NEXO_RELEASE_KEYSTORE"
 ]
 for x in required_gradle:
