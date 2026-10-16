@@ -18,11 +18,14 @@ assert "recordingStartTop" not in app
 assert "panel==='recordings'?'Iniciar grabación'" in app
 assert "if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}" in app
 
-# Lugares: Maps busca por nombre y no existe campo de ubicación.
-assert 'id="placeLocation"' not in app
+# Lugares: dirección / enlace y ubicación «Aquí»; busca por nombre solo como respaldo.
+assert 'id="placeLocation"' in app
+assert 'id="placeHere"' in app
 assert "placePreviewMap" not in app
-assert "NexoNative.openPlaceMap(String(i.title))" in app
-assert 'class="secondary-button place-map-direct"' in app
+assert "NexoNative.openPlaceMap(q)" in app
+assert "String(i.locationText||'').trim()||String(i.title||'').trim()" in app
+assert 'class="place-map-direct place-map-direct--compact"' in app
+assert 'id="placeDetailMaps"' in app
 assert "function startPlaceVoice()" in app
 assert "function startPlaceEditorVoice()" in app
 

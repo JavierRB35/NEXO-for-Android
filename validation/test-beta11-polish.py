@@ -61,10 +61,10 @@ assert '<h2 id="homeFamilyInfoTitle">Información familiar</h2>' not in html
 # 8. Acciones compactas; Documentos replica editar/ver/descargar/eliminar de Nexo Familia.
 assert 'function recordIconAction' in js
 for token in ['data-note-share','data-note-delete','data-document-delete',
-              'data-place-share','data-place-delete','data-journal-share','data-journal-delete',
+              'placeDetailShare','placeDetailDelete','data-journal-share','data-journal-delete',
               'data-med-share','data-med-delete','data-list-share','data-list-delete',
               'data-recording-share','data-recording-delete']:
-    assert token in js, f'Falta acción de ficha: {token}'
+    assert token in js, f'Falta acción de ficha completa: {token}'
 for token in ['data-document-edit','data-document-open','data-document-download','data-document-delete']:
     assert token in js, f'Falta acción de documento: {token}'
 assert 'data-document-share' not in js[js.index('function documentCard'):js.index('function openDocumentDetail')]
@@ -82,7 +82,7 @@ assert "bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMap
 assert "bindEventLocationField('#editLocation','#editMapsUrl','#editLocationMapBtn')" in js
 assert "bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn')" in js
 assert "button?.addEventListener('click',()=>openMapsFromFields(locationSelector,mapsSelector));" in js
-assert 'data-place-map' in js
+assert 'data-place-map' in js and 'placeDetailMaps' in js
 assert '@JavascriptInterface public void openLocationDirections(String locationText)' in main
 
 print('Beta12: navegación, FAB, scan manual por defecto, ajustes, fichas, versión y Maps OK')

@@ -20,7 +20,7 @@ const LEGACY_CATEGORY_MAP = {
 };
 const TYPE_LABEL = {note:'Nota',event:'Cita',task:'Cita',reminder:'Cita',expiry:'Cita',place:'Lugar',restaurant:'Restaurante',document:'Documento',product:'Producto',medication:'Medicamento',parking:'Aparcamiento'};
 const RECURRENCE_LABEL = {none:'No se repite',daily:'Diaria',weekly:'Semanal',monthly:'Mensual',bimonthly:'Bimestral',quarterly:'Trimestral',semiannual:'Semestral',annual:'Anual'};
-const PLACE_LABELS = ['Quiero ir','He estado','Restaurante','Lugar bonito','Cafetería','Naturaleza','Playa','Mirador','Alojamiento','Otros'];
+const PLACE_LABELS = ['Restaurante','Cafetería','Naturaleza','Playa','Mirador','Alojamiento','Compras','Casa','Lugar bonito','Otros'];
 const DOCUMENT_LABELS = ['Identificación','Salud','Factura','Contrato','Seguro','Garantía','Manual','Certificado','Justificante','Otros'];
 const PERSON_COLORS = [
   {value:'#3158D4',label:'Azul'},
@@ -43,7 +43,7 @@ const state = {
   calendarLastQuoteId:0,
   journalFilter:'all', journalSearch:'', journalPick:null, journalEditor:null, quoteEditor:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', journalVoiceId:0, journalVoiceTitle:'', journalVoiceTitleManual:false, journalVoiceFavorite:false, journalVoiceRevisit:false, medicationVoiceBase:'', medicationEditor:null, medicationVoiceEditor:false,
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
-  placeFilter:'all', placeSearch:'', places:[], placeEditor:null,
+  placeFilter:'all', placeTypeFilter:'all', placeSearch:'', places:[], placeEditor:null,
   documentFilter:'all', documentSearch:'', documents:[], documentEditor:null, documentRequest:0,
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
@@ -3046,6 +3046,7 @@ function closeModal(force=false){
   // literal true puede saltarse las protecciones de cierre.
   const forced=force===true;
   if(!forced&&window.NexoBooks?.preventClose?.())return false;
+  if(!forced&&guardPlaceEditorClose())return false;
   const noteWasOpen=!!state.noteEditor;
   if(noteWasOpen&&!forced&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
 
@@ -3409,6 +3410,8 @@ function renderMedicationsPanel(){
 }
 
 window.NexoUI={
+  onPlaceLocation(raw){onPlaceLocationResult(raw);},
+  onPlaceLocationError(message){onPlaceLocationError(message);},
   onHeaderWeather(raw){updateHeaderWeather(parseNative(raw,{}));},
   onHeaderWeatherPlaces(raw){renderWeatherPlaceResults(parseNative(raw,{}));},
   receiveImportPreview(raw){
@@ -4015,35 +4018,183 @@ function openDocumentEditor(id=0,incoming=null){
   $("#documentDelete")?.addEventListener("click",()=>confirmDeleteItem(i));
 }
 
-function placeCard(i){
-  const id=Number(i.id);
-  return `<article class="place-card" data-place-card="${id}"><button type="button" class="place-open" data-open-place="${id}"><span class="place-label">${esc(placeLabel(i))}</span><strong>${esc(i.title||'Lugar guardado')}</strong>${i.body?`<span class="place-description">${esc(i.body)}</span>`:''}</button><div class="record-card-actions">${recordIconAction('edit','Editar lugar',`data-open-place="${id}"`)}${recordIconAction('share','Compartir lugar',`data-place-share="${id}"`)}${recordIconAction('trash','Eliminar lugar',`data-place-delete="${id}"`,'icon-action--danger')}<button type="button" class="secondary-button place-map-direct" data-place-map="${id}">${uiIcon('pin')} Maps</button></div></article>`;
-}
 
+function placeStatus(i){
+  const status=String(i?.placeState||'');
+  if(status==='want'||status==='visited')return status;
+  if(i?.subcategory==='Quiero ir')return 'want';
+  if(i?.subcategory==='He estado')return 'visited';
+  return '';
+}
+function placeType(i){
+  const label=String(i?.subcategory||'').trim();
+  if(!label||label==='Quiero ir'||label==='He estado')return i?.type==='restaurant'?'Restaurante':'Otros';
+  return label;
+}
+function placeStatusLabel(status){return status==='want'?'Quiero ir':status==='visited'?'He estado':'Sin clasificar';}
+function placeDate(i){return /^\d{4}-\d{2}-\d{2}$/.test(String(i?.placeVisitedOn||''))?i.placeVisitedOn:'';}
+function placeDateShort(s){return s?s.split('-').reverse().join('/'):'';}
+function placeNorm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();}
+function placeSort(list){
+  return list.slice().sort((a,b)=>{
+    const x=placeStatus(a)==='visited'?placeDate(a):'';
+    const y=placeStatus(b)==='visited'?placeDate(b):'';
+    if(x!==y){if(!x)return 1;if(!y)return -1;return x>y?-1:1;}
+    return (Number(b.createdAt)||0)-(Number(a.createdAt)||0)||Number(b.id)-Number(a.id);
+  });
+}
+function placeMatch(i,f){
+  return f==='all'||f==='favorites'&&!!i.favorite||f==='unclassified'&&!placeStatus(i)||placeStatus(i)===f;
+}
+function placeCandidates(){
+  const tokens=placeNorm(state.placeSearch).split(' ').filter(Boolean);
+  return state.places.filter(i=>(state.placeTypeFilter==='all'||placeType(i)===state.placeTypeFilter)&&tokens.every(t=>
+    placeNorm([i.title,i.body,i.locationText,placeType(i),placeStatusLabel(placeStatus(i))].join(' ')).includes(t)));
+}
+function placeMaps(i){
+  const q=String(i.locationText||'').trim()||String(i.title||'').trim();
+  if(q)NexoNative.openPlaceMap(q);else toast('Este lugar no tiene ubicación.');
+}
+function placeCard(i){
+  const id=Number(i.id),status=placeStatus(i),date=status==='visited'?placeDateShort(placeDate(i)):'';
+  return `<article class="place-card place-card--compact">
+    <div class="place-card-layout">
+      <button type="button" class="place-open place-open--compact" data-open-place="${id}" aria-label="Ver ficha de ${escAttr(i.title)}">
+        <span class="place-status-icon place-status-icon--${status||'unknown'}" aria-hidden="true">${uiIcon(status==='visited'?'check':'pin')}</span>
+        <span class="place-card-copy"><strong>${esc(i.title||'Lugar guardado')}</strong>
+          <small>${esc(placeType(i))} · ${esc(placeStatusLabel(status))}${date?' · '+date:''}</small>
+        </span>
+        ${i.favorite?`<span class="place-card-heart" aria-hidden="true">${uiIcon('heart')}</span>`:''}
+      </button>
+      <button type="button" class="place-map-direct place-map-direct--compact" data-place-map="${id}" aria-label="Abrir ${escAttr(i.title)} en Google Maps">${uiIcon('pin')}<span>Maps</span></button>
+    </div>
+  </article>`;
+}
+function placePayload(i,patch={}){
+  return {id:Number(i.id)||0,title:i.title||'',body:i.body||'',locationText:i.locationText||'',
+    label:placeType(i),placeState:placeStatus(i),placeVisitedOn:placeDate(i),
+    placeRating:Number(i.placeRating)||0,favorite:!!i.favorite,...patch};
+}
+function placeRefreshList(){
+  state.places=parseNative(NexoNative.getCollection('places'),[]);
+  renderPlacesList();
+}
+function savePlaceDetailChange(id,patch){
+  const current=parseNative(NexoNative.getItem(id),{});
+  if(!current.id){toast('Lugar no encontrado.');return;}
+  const result=parseNative(NexoNative.savePlace(JSON.stringify(placePayload(current,patch))),{ok:false});
+  if(!result.ok){toast(result.error||'No se pudo guardar el cambio.');return;}
+  const fresh=parseNative(NexoNative.getItem(id),{});
+  const fav=$('#placeDetailFavorite');
+  if(fav){
+    fav.classList.toggle('active',!!fresh.favorite);
+    fav.setAttribute('aria-pressed',String(!!fresh.favorite));
+    fav.setAttribute('aria-label',fresh.favorite?'Quitar de favoritos':'Añadir a favoritos');
+  }
+  const stars=Math.max(0,Math.min(5,Number(fresh.placeRating)||0));
+  $$('[data-place-rating]').forEach(btn=>{
+    const n=Number(btn.dataset.placeRating);
+    btn.classList.toggle('is-set',n<=stars);
+    btn.setAttribute('aria-pressed',String(n===stars));
+  });
+  if($('#placeRatingCaption'))$('#placeRatingCaption').textContent=stars?stars+' de 5 estrellas':'Sin valorar';
+  placeRefreshList();
+}
+function openPlaceDetail(id){
+  const i=parseNative(NexoNative.getItem(id),{});
+  if(!i.id||!isPlaceType(i.type)){toast('Lugar no encontrado.');return;}
+  const status=placeStatus(i),rating=Math.max(0,Math.min(5,Number(i.placeRating)||0)),visited=placeDate(i);
+  openModal('Ficha del lugar',`<div class="place-detail">
+    <div class="place-detail-heading">
+      <span class="place-status-icon place-status-icon--${status||'unknown'}" aria-hidden="true">${uiIcon(status==='visited'?'check':'pin')}</span>
+      <div class="place-detail-title"><h3>${esc(i.title)}</h3><small>${esc(placeType(i))} · ${esc(placeStatusLabel(status))}</small></div>
+      <button id="placeDetailFavorite" type="button" class="book-favorite-toggle place-detail-heart ${i.favorite?'active':''}" aria-pressed="${!!i.favorite}" aria-label="${i.favorite?'Quitar de favoritos':'Añadir a favoritos'}">${uiIcon('heart')}</button>
+    </div>
+    <div class="book-rating-section place-detail-rating"><strong>Mi valoración</strong>
+      <div class="book-rating-stars" role="group" aria-label="Valorar este lugar con hasta cinco estrellas">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="book-rating-star ${n<=rating?'is-set':''}" data-place-rating="${n}" aria-pressed="${n===rating}" aria-label="${n} estrellas">${uiIcon('star')}</button>`).join('')}
+      </div><small id="placeRatingCaption">${rating?rating+' de 5 estrellas':'Sin valorar'}</small>
+    </div>
+    ${visited?`<p class="place-detail-date"><b>Última visita:</b> ${placeDateShort(visited)}</p>`:''}
+    ${i.locationText?`<section class="place-detail-section"><b>Ubicación</b><p>${esc(i.locationText)}</p></section>`:''}
+    ${i.body?`<section class="place-detail-section"><b>Descripción</b><p>${esc(i.body)}</p></section>`:''}
+    <div class="place-detail-actions">
+      <button id="placeDetailMaps" class="primary-button" type="button">${uiIcon('pin')} Google Maps</button>
+      <button id="placeDetailShare" class="secondary-button" type="button">${uiIcon('share')} Compartir</button>
+      <button id="placeDetailEdit" class="secondary-button" type="button">${uiIcon('edit')} Editar</button>
+      <button id="placeDetailDelete" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button>
+    </div>
+  </div>`);
+  $('#placeDetailFavorite').addEventListener('click',()=>{
+    const live=parseNative(NexoNative.getItem(id),{});
+    if(live.id)savePlaceDetailChange(id,{favorite:!live.favorite});
+  });
+  $$('[data-place-rating]').forEach(btn=>btn.addEventListener('click',()=>{
+    const live=parseNative(NexoNative.getItem(id),{});
+    const n=Number(btn.dataset.placeRating);
+    if(live.id)savePlaceDetailChange(id,{placeRating:Number(live.placeRating)===n?0:n});
+  }));
+  $('#placeDetailMaps').addEventListener('click',()=>placeMaps(i));
+  $('#placeDetailShare').addEventListener('click',()=>NexoNative.shareNexoItem(id,0,false));
+  $('#placeDetailEdit').addEventListener('click',()=>openPlaceEditor(id));
+  $('#placeDetailDelete').addEventListener('click',()=>confirmDeleteItem(i));
+}
 function bindPlaceButtons(root){
-  root.querySelectorAll('[data-open-place]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openPlaceEditor(Number(b.dataset.openPlace));}));
-  root.querySelectorAll('[data-place-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoItem(Number(b.dataset.placeShare),0,false);}));
-  root.querySelectorAll('[data-place-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.placeDelete));}));
-  root.querySelectorAll('[data-place-map]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const i=parseNative(NexoNative.getItem(Number(b.dataset.placeMap)),{});if(i.id&&i.title)NexoNative.openPlaceMap(String(i.title));else toast('Este lugar ya no existe.');}));
+  root.querySelectorAll('[data-open-place]').forEach(b=>b.addEventListener('click',()=>openPlaceDetail(Number(b.dataset.openPlace))));
+  root.querySelectorAll('[data-place-map]').forEach(b=>b.addEventListener('click',()=>{
+    const i=parseNative(NexoNative.getItem(Number(b.dataset.placeMap)),{});
+    if(i.id)placeMaps(i);else toast('Lugar no encontrado.');
+  }));
 }
 function renderPlacesPanel(){
   state.places=parseNative(NexoNative.getCollection('places'),[]);
-  const labels=[...new Set([...PLACE_LABELS,...state.places.map(placeLabel)])];
-  if(state.placeFilter!=='all'&&!labels.includes(state.placeFilter))state.placeFilter='all';
-  $('#panelTitle').textContent='Lugares';$('#panelSubtitle').textContent='Sitios que te gustan o que quieres descubrir';
+  if(!Array.isArray(state.places))state.places=[];
+  const types=[...new Set([...PLACE_LABELS,...state.places.map(placeType)])];
+  if(state.placeTypeFilter!=='all'&&!types.includes(state.placeTypeFilter))state.placeTypeFilter='all';
+  if(state.placeFilter==='unclassified'&&!state.places.some(i=>!placeStatus(i)))state.placeFilter='all';
+  $('#panelTitle').textContent='Lugares';$('#panelSubtitle').textContent='Sitios por descubrir y lugares visitados';
   $('#panelAction').innerHTML='';
-  $('#panelContent').innerHTML=`<div class="place-toolbar"><label>Buscar lugar<input id="placeSearch" type="search" placeholder="Nombre o descripción" value="${escAttr(state.placeSearch)}"></label><label>Etiqueta<select id="placeFilter"><option value="all">Todas las etiquetas</option>${labels.map(label=>`<option value="${escAttr(label)}" ${label===state.placeFilter?'selected':''}>${esc(label)}</option>`).join('')}</select></label></div><p id="placeCount" class="small muted" aria-live="polite"></p><div id="placeList" class="stack"></div>`;
-  $('#placeSearch').addEventListener('input',()=>{state.placeSearch=$('#placeSearch').value;renderPlacesList();});
-  $('#placeFilter').addEventListener('change',()=>{state.placeFilter=$('#placeFilter').value;renderPlacesList();});
+  $('#panelContent').innerHTML=`<div class="places-library">
+    <label class="places-search">${uiIcon('search')} Buscar lugar<input id="placeSearch" type="search" placeholder="Nombre, tipo, descripción o dirección…" value="${escAttr(state.placeSearch)}"></label>
+    <div class="places-filters" role="group" aria-label="Filtrar lugares">
+      ${[['all','Todos'],['want','Quiero ir'],['visited','He estado'],['favorites','Favoritos'],...(state.places.some(i=>!placeStatus(i))?[['unclassified','Sin clasificar']]:[])].map(([key,label])=>`<button type="button" data-place-filter="${key}" aria-pressed="${state.placeFilter===key}" class="place-filter ${state.placeFilter===key?'active':''}">${key==='favorites'?uiIcon('heart'):key==='visited'?uiIcon('check'):key==='want'?uiIcon('pin'):''}${label} <span data-place-count="${key}">0</span></button>`).join('')}
+    </div>
+    <label class="place-type-filter">Tipo de lugar<select id="placeTypeFilter"><option value="all">Todos los tipos</option>
+      ${types.map(type=>`<option value="${escAttr(type)}" ${state.placeTypeFilter===type?'selected':''}>${esc(type)}</option>`).join('')}
+    </select></label>
+    <p id="placeCount" class="small muted" aria-live="polite"></p>
+    <div id="placeList" class="places-stack"></div>
+  </div>`;
+  $('#placeSearch').addEventListener('input',e=>{state.placeSearch=e.target.value;renderPlacesList();});
+  $$('[data-place-filter]').forEach(b=>b.addEventListener('click',()=>{
+    state.placeFilter=b.dataset.placeFilter;
+    $$('[data-place-filter]').forEach(btn=>{
+      const active=btn.dataset.placeFilter===state.placeFilter;
+      btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));
+    });
+    renderPlacesList();
+  }));
+  $('#placeTypeFilter').addEventListener('change',e=>{state.placeTypeFilter=e.target.value;renderPlacesList();});
   renderPlacesList();updateFloatingActions();
 }
 function renderPlacesList(){
-  const tokens=normVoiceText(state.placeSearch).split(' ').filter(Boolean);
-  const rows=state.places.filter(i=>(state.placeFilter==='all'||placeLabel(i)===state.placeFilter)&&tokens.every(t=>normVoiceText([i.title,i.body,i.locationText,placeLabel(i)].join(' ')).includes(t)));
-  $('#placeCount').textContent=`${rows.length} lugar${rows.length===1?'':'es'}${state.placeFilter!=='all'||tokens.length?' en esta vista':rows.length===1?' guardado':' guardados'}`;
-  $('#placeList').innerHTML=rows.length?rows.map(placeCard).join(''):`<div class="empty-state">${state.places.length?'No hay lugares con esta búsqueda y etiqueta.':'Guarda los sitios que te han gustado o que quieres visitar.'}${state.placeFilter!=='all'||tokens.length?'<button id="placeResetFilter" class="text-button">Ver todos los lugares</button>':''}</div>`;
+  const candidates=placeCandidates(),rows=placeSort(candidates.filter(i=>placeMatch(i,state.placeFilter)));
+  $('#placeCount').textContent=rows.length+' lugar'+(rows.length===1?'':'es');
+  $$('[data-place-count]').forEach(span=>{
+    span.textContent=String(candidates.filter(i=>placeMatch(i,span.dataset.placeCount)).length);
+  });
+  $('#placeList').innerHTML=rows.length?rows.map(placeCard).join(''):
+    `<div class="empty-state">${state.places.length?'No hay lugares con estos filtros.':'Aún no has guardado ningún lugar.'}
+      ${state.places.length?'<button type="button" id="placeResetFilter" class="text-button">Ver todos</button>':''}</div>`;
   bindPlaceButtons($('#placeList'));
-  $('#placeResetFilter')?.addEventListener('click',()=>{state.placeFilter='all';state.placeSearch='';$('#placeFilter').value='all';$('#placeSearch').value='';renderPlacesList();});
+  $('#placeResetFilter')?.addEventListener('click',()=>{
+    state.placeFilter='all';state.placeTypeFilter='all';state.placeSearch='';
+    $('#placeSearch').value='';$('#placeTypeFilter').value='all';
+    $$('[data-place-filter]').forEach(btn=>{
+      const active=btn.dataset.placeFilter==='all';btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));
+    });
+    renderPlacesList();
+  });
 }
 function parsePlaceVoice(text){
   const raw=String(text||'').trim(),n=normVoiceText(raw);
@@ -4089,23 +4240,128 @@ function applyDocumentEditorVoice(text){
 }
 
 
+function placeEditorSnapshot(){
+  if(!$('#placeTitle'))return '';
+  return JSON.stringify([
+    $('#placeTitle').value,$('#placeVisitStatus')?.value,$('#placeLabel')?.value,
+    $('#placeLocation')?.value,$('#placeVisitedOn')?.value,$('#placeDescription')?.value
+  ]);
+}
+function guardPlaceEditorClose(){
+  if(!state.placeEditor)return false;
+  if(state.placeEditor.baseline!==placeEditorSnapshot()){
+    confirmGeneric('Descartar cambios','Has modificado datos del lugar sin guardar. ¿Quieres descartarlos?',()=>{
+      state.placeEditor=null;closeModal(true);
+    },'Descartar');
+    return true;
+  }
+  state.placeEditor=null;return false;
+}
+function onPlaceLocationResult(raw){
+  const data=parseNative(raw,{}),field=$('#placeLocation'),status=$('#placeLocationAccuracy');
+  if(!field||!status||!state.placeEditor)return;
+  const button=$('#placeHere');
+  if(button){button.disabled=false;button.innerHTML=uiIcon('pin')+' Aquí';}
+  const lat=Number(data.latitude),lon=Number(data.longitude),accuracy=Math.round(Number(data.accuracy)||0);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180){
+    status.textContent='No se ha recibido una ubicación válida. Prueba de nuevo.';
+    return;
+  }
+  const coordinates=lat.toFixed(6)+','+lon.toFixed(6);
+  if(data.approximate){
+    status.innerHTML='<b>Precisión baja (aprox. '+accuracy+' m).</b> No se han aplicado las coordenadas. '+
+      '<button id="placeAcceptApproximate" type="button" class="secondary-button">Usar igualmente</button>';
+    $('#placeAcceptApproximate').addEventListener('click',()=>{
+      if(!$('#placeLocation'))return;
+      $('#placeLocation').value=coordinates;
+      status.textContent='Coordenadas aplicadas con precisión aproximada de '+accuracy+' m.';
+    });
+  }else{
+    field.value=coordinates;
+    status.textContent='Ubicación capturada · precisión aproximada de '+accuracy+' m. Comprueba el punto en Maps si es necesario.';
+  }
+}
+function onPlaceLocationError(message){
+  const status=$('#placeLocationAccuracy'),button=$('#placeHere');
+  if(button){button.disabled=false;button.innerHTML=uiIcon('pin')+' Aquí';}
+  if(status){status.classList.remove('hidden');status.textContent=String(message||'No se ha podido localizar el teléfono.');}
+  else toast(message||'No se ha podido localizar el teléfono.');
+}
+
 function openPlaceEditor(id=0,prefill=null){
   const editing=Number(id)>0,i=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
   if(editing&&(!i.id||!isPlaceType(i.type))){toast('No se encuentra este lugar.');return;}
-  const initial=prefill||{},label=initial.label||(editing?placeLabel(i):(state.placeFilter!=='all'?state.placeFilter:'Quiero ir')),labels=[...new Set([...PLACE_LABELS,label])];
-  state.placeEditor={id:Number(id)||0,editing,legacyLocation:String(i.locationText||'')};
-  openModal(editing?'Editar lugar':'Guardar lugar',`<div class="modal-form place-form"><label>Nombre<input id="placeTitle" type="text" value="${escAttr(initial.title||i.title||'')}" placeholder="Ej. Mirador del Garbí" required></label><label>Descripción <span class="optional">(opcional)</span><textarea id="placeDescription" rows="4" placeholder="Qué te gustó, qué quieres probar o qué merece la pena recordar">${esc(initial.body!==undefined?initial.body:(i.body||''))}</textarea></label><label>Etiqueta<select id="placeLabel">${labels.map(value=>`<option value="${escAttr(value)}" ${value===label?'selected':''}>${esc(value)}</option>`).join('')}</select></label><div class="small muted">El botón Maps buscará este sitio por su nombre; no necesitas guardar un enlace ni una dirección.</div><p id="placeSaveError" class="place-error hidden" role="alert"></p></div><div class="modal-actions"><button id="placeCancel" type="button" class="secondary-button">Cancelar</button><button id="placeSave" type="button" class="primary-button">Guardar lugar</button></div>${editing?'<button id="placeDelete" type="button" class="danger-link">Eliminar lugar</button>':''}`);
+  const initial=prefill||{};
+  const legacy=String(initial.label||'');
+  const inferredState=legacy==='He estado'?'visited':legacy==='Quiero ir'?'want':'';
+  const status=editing?placeStatus(i):(inferredState||'want');
+  const type=editing?placeType(i):(PLACE_LABELS.includes(legacy)?legacy:'Otros');
+  const types=[...new Set([...PLACE_LABELS,type])];
+  const originalScroll=window.scrollY;
+  state.placeEditor={id:Number(id)||0,editing,originalScroll,baseline:''};
+  openModal(editing?'Editar lugar':'Guardar lugar',`<div class="modal-form place-form">
+    <label>Nombre<input id="placeTitle" type="text" maxlength="250" value="${escAttr(initial.title||i.title||'')}" placeholder="Ej. Mirador del Garbí" required></label>
+    <label>Estado de visita<select id="placeVisitStatus" required>
+      ${status===''?'<option value="" selected>Selecciona un estado</option>':''}
+      <option value="want" ${status==='want'?'selected':''}>Quiero ir</option>
+      <option value="visited" ${status==='visited'?'selected':''}>He estado</option>
+    </select></label>
+    <label>Tipo de lugar<select id="placeLabel">${types.map(t=>`<option value="${escAttr(t)}" ${type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
+    <label>Dirección o enlace de Google Maps <span class="optional">(opcional)</span>
+      <span class="place-location-row"><input id="placeLocation" type="text" value="${escAttr(i.locationText||'')}" placeholder="Dirección o enlace de Maps" maxlength="2048">
+        <button id="placeHere" class="secondary-button place-here" type="button">${uiIcon('pin')} Aquí</button>
+      </span>
+    </label>
+    <div id="placeLocationAccuracy" class="place-location-accuracy hidden" role="status" aria-live="polite"></div>
+    <small class="place-map-help">Si añades una dirección o un enlace de Google Maps se usará para abrir este lugar. Sin ese dato, se buscará por su nombre.</small>
+    <label id="placeVisitedRow" class="${status==='visited'?'':'hidden'}">Fecha de última visita <span class="optional">(opcional)</span>
+      <input id="placeVisitedOn" type="date" value="${escAttr(placeDate(i))}">
+    </label>
+    <label>Descripción <span class="optional">(opcional)</span><textarea id="placeDescription" rows="3" placeholder="Qué te gustó, qué quieres recordar o probar…">${esc(initial.body!==undefined?initial.body:(i.body||''))}</textarea></label>
+    <p id="placeSaveError" class="place-error hidden" role="alert"></p>
+  </div>
+  <div class="modal-actions">
+    <button id="placeCancel" class="secondary-button" type="button">Cancelar</button>
+    <button id="placeSave" class="primary-button" type="button">Guardar lugar</button>
+  </div>`);
   document.body.classList.add('place-editor-open');requestAnimationFrame(updateFloatingActions);
+  state.placeEditor.baseline=placeEditorSnapshot();
+  $('#placeHere').addEventListener('click',()=>{
+    const button=$('#placeHere');button.disabled=true;
+    button.textContent='Localizando…';
+    $('#placeLocationAccuracy').textContent='Obteniendo una posición GPS reciente…';
+    $('#placeLocationAccuracy').classList.remove('hidden');
+    NexoNative.requestPlaceHere();
+  });
+  $('#placeVisitStatus').addEventListener('change',()=>{
+    $('#placeVisitedRow').classList.toggle('hidden',$('#placeVisitStatus').value!=='visited');
+  });
   $('#placeCancel').addEventListener('click',closeModal);
   $('#placeSave').addEventListener('click',()=>{
-    const payload={id:Number(id)||0,title:$('#placeTitle').value.trim(),body:$('#placeDescription').value.trim(),locationText:String(i.locationText||''),label:$('#placeLabel').value};
+    const payload={
+      id:Number(id)||0,title:$('#placeTitle').value.trim(),body:$('#placeDescription').value.trim(),
+      locationText:$('#placeLocation').value.trim(),label:$('#placeLabel').value,
+      placeState:$('#placeVisitStatus').value,
+      placeVisitedOn:$('#placeVisitStatus').value==='visited'?$('#placeVisitedOn').value:'',
+      placeRating:editing?Number(i.placeRating)||0:0,
+      favorite:editing?!!i.favorite:false
+    };
     const error=$('#placeSaveError');error.classList.add('hidden');
-    if(!payload.title){error.textContent='Escribe un nombre para el lugar.';error.classList.remove('hidden');$('#placeTitle').focus();return;}
-    const result=parseNative(NexoNative.savePlace(JSON.stringify(payload)),{});
-    if(!result.ok){error.textContent=result.error||'No se pudo guardar el lugar.';error.classList.remove('hidden');return;}
-    state.placeEditor=null;closeModal();refreshCurrent();toast('Lugar guardado');
+    const fail=message=>{error.textContent=message;error.classList.remove('hidden');};
+    if(!payload.title){fail('Escribe un nombre para el lugar.');$('#placeTitle').focus();return;}
+    if(!['want','visited'].includes(payload.placeState)){fail('Elige Quiero ir o He estado.');return;}
+    if(state.places.some(p=>Number(p.id)!==payload.id&&placeNorm(p.title)===placeNorm(payload.title)&&
+      placeNorm(p.locationText||'')===placeNorm(payload.locationText))){fail('Este lugar con la misma ubicación ya está guardado.');return;}
+    const result=parseNative(NexoNative.savePlace(JSON.stringify(payload)),{ok:false});
+    if(!result.ok){fail(result.error||'No se pudo guardar el lugar.');return;}
+    state.placeEditor=null;
+    closeModal();
+    if(state.screen==='panel'&&state.lastPanel==='places'){
+      renderPlacesPanel();
+      requestAnimationFrame(()=>window.scrollTo(0,originalScroll));
+    }else openPanel('places');
+    toast('Lugar guardado');
   });
-  $('#placeDelete')?.addEventListener('click',()=>confirmDeleteItem(i));
 }
 function renderParkingPanel(){
   const p=parseNative(NexoNative.getLastParking(),{});$('#panelTitle').textContent='Aparcamiento';$('#panelSubtitle').textContent='El último lugar donde has dejado el coche';

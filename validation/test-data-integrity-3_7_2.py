@@ -13,7 +13,7 @@ importer=read('app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.ja
 js=read('app/src/main/assets/app.js')
 
 # P1-01: una v24 defectuosa también recibe revisit al subir a v25.
-assert 'DB_VERSION = 28' in db
+assert 'DB_VERSION = 29' in db
 assert 'oldVersion < 25 && !columnExists(db, "journal_entries", "revisit")' in db
 assert 'PRAGMA table_info(' in db
 

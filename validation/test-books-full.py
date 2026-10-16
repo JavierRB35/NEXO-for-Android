@@ -13,7 +13,7 @@ gradle=(root/"app/build.gradle").read_text()
 for name in ("start_date", "favorite", "rating"):
     assert f'ALTER TABLE books ADD COLUMN {name} ' in db, "Falta migración: "+name
     assert f'"{name} ' in db, "Falta columna en nuevas instalaciones: "+name
-assert "DB_VERSION = 28" in db
+assert "DB_VERSION = 29" in db
 assert "if (oldVersion < 28)" in db
 assert 'columnExists(db, "books", "favorite")' in db
 assert "startDate" in repository and "finishDate" in repository and "abandonedDate" in repository
@@ -58,7 +58,7 @@ assert "book-card-date" in books
 assert 'id="nx-icon-heart"' in index
 assert 'id="nx-icon-star"' in index
 assert ".book-rating-star.is-set" in css and ".book-favorite-toggle.active" in css
-assert "versionCode 121" in gradle and "versionName '3.7.28'" in gradle
+assert "versionCode 122" in gradle and "versionName '3.7.29'" in gradle
 print("OK: DB 27→28 sin pérdida, estrellas/corazón independientes, fechas y filtros")
 
 # Los botones interactivos de valoración y favorito pertenecen solo a la ficha.
@@ -68,4 +68,6 @@ assert "bookFavorite" not in editor and "data-book-edit-rating" not in editor
 assert "bookDetailFavorite" in details and "data-book-detail-rating" in details
 assert "book-favorite-edit" not in editor
 assert "favorite:editor.favorite" in books and "rating:editor.rating" in books
-assert "if(savedId)openDetails(savedId)" in books
+assert "if(savedId)openDetails(savedId)" not in books
+assert "const scrollY=editor.scrollY" in books
+assert "requestAnimationFrame(()=>window.scrollTo(0,scrollY))" in books

@@ -3,6 +3,7 @@ package com.jruiz.nexo.core;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Locale;
+import java.time.LocalDate;
 import org.json.JSONObject;
 
 /** Saved places use existing item fields, without calendar or reminder semantics. */
@@ -31,12 +32,29 @@ public final class PlaceEntry {
         if (!location.isEmpty()) mapsUrl(location);
         String label=in.optString("label", "Otros").trim();
         if (label.isEmpty()) label="Otros";
-        return new JSONObject().put("title",title).put("body",in.optString("body", "").trim())
+        String visitState=in.optString("placeState","").trim();
+        if (!visitState.isEmpty() && !("want".equals(visitState) || "visited".equals(visitState)))
+            throw new IllegalArgumentException("Estado del lugar no válido.");
+        String visitDate=in.optString("placeVisitedOn","").trim();
+        if (!visitDate.isEmpty()) {
+            try { if (!LocalDate.parse(visitDate).toString().equals(visitDate)) throw new IllegalArgumentException(); }
+            catch (Exception ignored) { throw new IllegalArgumentException("Fecha de visita no válida."); }
+        }
+        int rating=in.optInt("placeRating",0);
+        if (rating < 0 || rating > 5) throw new IllegalArgumentException("La valoración debe estar entre 0 y 5 estrellas.");
+        JSONObject out=new JSONObject().put("title",title).put("body",in.optString("body", "").trim())
                 .put("locationText",location).put("subcategory",label)
                 .put("type","place").put("category","Lugares").put("status","active")
                 .put("dueAt",0).put("hasTime",false).put("durationMinutes",0)
                 .put("recurrence","none").put("recurrenceUntil",0)
                 .put("voiceEnabled",false).put("needsReview",false);
+        // Actualizar cada metadato solo cuando se reciba explícitamente; se
+        // preservan las estrellas y el corazón en ediciones antiguas.
+        if (in.has("placeState")) out.put("placeState",visitState);
+        if (in.has("placeRating")) out.put("placeRating",rating);
+        if (in.has("placeVisitedOn")) out.put("placeVisitedOn",visitDate);
+        if (in.has("favorite")) out.put("favorite",in.optBoolean("favorite",false));
+        return out;
     }
 
     /** Google Maps URLs, no API key or SDK. See developers.google.com/maps/documentation/urls/get-started. */

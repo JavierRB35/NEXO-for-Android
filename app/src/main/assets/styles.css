@@ -3024,3 +3024,66 @@ body.startup-loading #app{visibility:hidden}
 .book-rating-section--detail{
   padding:10px 0 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
 }
+
+/* Lugares 3.7.29: listado compacto y navegación tipo Libros. */
+.places-library{display:grid;gap:10px}
+.places-search{display:grid;gap:6px;color:var(--muted);font-size:.82rem;font-weight:750}
+.places-search .ui-icon{width:17px;height:17px;vertical-align:middle}
+.places-search input{width:100%;min-width:0}
+.places-filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.place-filter{display:inline-flex;align-items:center;gap:5px;min-height:38px;background:#fff;color:#49596b;border:1px solid #dce4ed;border-radius:11px;padding:6px 9px;font-size:.76rem;font-weight:800}
+.place-filter.active{background:#e8f1fe;border-color:#659bd6;color:#1457a9}
+.place-filter .ui-icon{width:15px;height:15px}
+.place-filter [data-place-count]{display:inline-flex;min-width:18px;height:18px;align-items:center;justify-content:center;padding:0 4px;border-radius:9px;background:#edf1f6;color:#40576d;font-size:.69rem}
+.place-filter.active [data-place-count]{background:#cce1fd;color:#134f93}
+.place-type-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.8rem;font-weight:700;color:var(--muted)}
+.place-type-filter select{max-width:210px;min-width:0;flex:1;min-height:40px;padding:7px}
+.places-stack{display:grid;gap:7px}
+.places-library #placeCount{margin:0}
+.place-card--compact{border-radius:13px;box-shadow:0 2px 8px rgba(20,35,60,.03)}
+.place-card-layout{display:grid;grid-template-columns:minmax(0,1fr) 63px;align-items:stretch;gap:3px;padding:5px 7px}
+.place-open.place-open--compact{display:flex;align-items:center;gap:9px;min-width:0;min-height:58px;padding:5px 2px;text-align:left}
+.place-status-icon{display:flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;border-radius:11px;color:#ad690e;background:#fff1d9}
+.place-status-icon .ui-icon{height:21px;width:21px}
+.place-status-icon--visited{background:#def6e8;color:#16855b}
+.place-status-icon--unknown{background:#e8eef5;color:#607489}
+.place-card-copy{display:grid;gap:2px;min-width:0;flex:1}
+.place-card-copy strong{display:block;margin:0;font-size:.91rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place-card-copy small{font-size:.74rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.place-card-heart{display:flex;align-items:center;justify-content:center;color:#c52356}
+.place-card-heart .ui-icon{width:18px;height:18px;fill:#e23a6d}
+.place-map-direct.place-map-direct--compact{display:grid;align-content:center;justify-items:center;gap:1px;background:#ecf6fa;color:#17617b;border:1px solid #c6e0e8;border-radius:10px;min-height:50px;padding:4px 2px;font-size:.69rem;font-weight:850}
+.place-map-direct--compact .ui-icon{width:20px;height:20px}
+.place-detail{display:grid;gap:14px}
+.place-detail-heading{display:flex;align-items:flex-start;gap:10px}
+.place-detail-title{display:grid;gap:4px;flex:1;min-width:0}
+.place-detail-title h3{font-size:1.14rem;line-height:1.3;margin:0;overflow-wrap:anywhere}
+.place-detail-title small{color:var(--muted)}
+.place-detail-heart.book-favorite-toggle{width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 44px;padding:6px;border:1px solid transparent;background:transparent;border-radius:12px}
+.place-detail-heart .ui-icon{width:27px;height:27px;fill:none}
+.place-detail-heart.active .ui-icon{fill:#e23a6d}
+.place-detail-rating{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 0 12px}
+.place-detail-section{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:11px}
+.place-detail-section p{margin:0;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.48}
+.place-detail-date{margin:0;font-size:.87rem}
+.place-detail-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.place-detail-actions button{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:45px}
+.place-detail-actions .ui-icon{width:17px;height:17px}
+.place-form label.hidden{display:none}
+.place-form .place-map-help{margin:-4px 0 0}
+@media(max-width:420px){
+  .place-card-layout{grid-template-columns:minmax(0,1fr) 59px}
+  .place-open.place-open--compact{gap:7px}
+  .place-status-icon{width:36px;height:36px}
+  .place-filter{font-size:.72rem;padding:6px 8px}
+  .place-card-copy strong{font-size:.88rem}
+}
+
+/* Captura GPS de lugares: botón Aquí al lado del campo de Maps. */
+.place-location-row{display:grid;grid-template-columns:minmax(0,1fr) 85px;gap:8px;align-items:center}
+.place-location-row input{min-width:0;width:100%}
+.place-location-row .place-here{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:48px;min-width:0;padding:8px 5px;font-size:.82rem}
+.place-here .ui-icon{width:18px;height:18px}
+.place-location-accuracy{font-size:.79rem;line-height:1.45;color:#34654d;background:#f0f7f3;padding:9px;border-radius:10px}
+.place-location-accuracy.hidden{display:none}
+.place-location-accuracy button{display:inline-flex;min-height:36px;margin:6px 0 0;padding:6px 10px;font-size:.77rem}
