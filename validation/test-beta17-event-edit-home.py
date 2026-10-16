@@ -8,7 +8,7 @@ css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf-8')
 
 # 1. Estado manual gana a la inferencia temporal.
-assert 'DB_VERSION = 26' in db
+assert 'DB_VERSION = 27' in db
 assert 'status_manual INTEGER NOT NULL DEFAULT 0' in db
 assert 'WHEN status_manual=1 THEN status' in db
 assert 'in.has("dueAt") && !in.has("status") && !old.optBoolean("statusManual", false)' in db
