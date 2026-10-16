@@ -29,7 +29,7 @@
     <header class="topbar"><button id="brandInfoBtn" class="brand-row brand-info-button" type="button" aria-label="Información de Nexo">
 <img class="brand-logo" src="nexo-toolbar-logo.png" alt=""><span class="brand-copy"><span class="brand">Nexo</span><small id="headerVersion" class="brand-version"></small></span>
 </button>
-<div class="header-actions"><button id="headerWeatherBtn" class="header-weather-button" type="button" aria-label="Consultar el tiempo" title="Consultar el tiempo"><span id="headerWeatherIcon" class="header-weather-symbol" aria-hidden="true">⛅</span><span id="headerWeatherTemp">—°</span></button><a class="header-weather-attribution" href="https://open-meteo.com/" aria-label="Fuente de datos meteorológicos: Open-Meteo, CC BY 4.0" title="Datos meteorológicos: Open-Meteo (CC BY 4.0)">ⓘ</a>
+<div class="header-actions"><div class="header-weather-group"><button id="headerWeatherBtn" class="header-weather-button" type="button" aria-label="Consultar el tiempo" title="Consultar el tiempo"><span class="header-weather-reading"><span id="headerWeatherIcon" class="header-weather-symbol" aria-hidden="true">⛅</span><span id="headerWeatherTemp">—°</span></span><small id="headerWeatherPlace" class="header-weather-place">Ubicación…</small></button><a class="header-weather-attribution" href="https://open-meteo.com/" aria-label="Fuente de datos meteorológicos: Open-Meteo, CC BY 4.0" title="Datos meteorológicos: Open-Meteo (CC BY 4.0)">ⓘ</a></div>
 <button id="settingsBtn" class="icon-button" aria-label="Ajustes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg></button></div></header><main>
       <section class="screen active family-home" data-screen="today" aria-labelledby="homeNowTitle">
   <section class="family-home-search" aria-label="Búsqueda en Nexo">
@@ -319,6 +319,31 @@
     </div>
   </section>
 
+  <section class="settings-accordion" data-settings-accordion="weather">
+    <button class="settings-accordion__summary" type="button" data-settings-section="weather" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-sun"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Tiempo y ubicación</strong><small>GPS del teléfono o localidad elegida</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded weather-location-settings">
+        <label>Ubicación para el tiempo
+          <select id="weatherLocationMode">
+            <option value="automatic">Ubicación actual del teléfono</option>
+            <option value="manual">Elegir una población manualmente</option>
+          </select>
+        </label>
+        <p id="weatherLocationStatus" class="small muted" aria-live="polite"></p>
+        <div id="weatherManualFields" class="weather-manual-fields hidden">
+          <label>Buscar población<input id="weatherPlaceQuery" type="search" placeholder="Ej.: La Pobla de Vallbona" autocomplete="off"></label>
+          <button id="weatherPlaceSearch" type="button" class="secondary-button">Buscar poblaciones</button>
+          <div id="weatherPlaceResults" class="weather-place-results" aria-live="polite"></div>
+        </div>
+        <p class="small muted">En modo automático se prioriza el GPS si está disponible. Si Android solo permite ubicación aproximada, la población también podría ser aproximada.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="settings-accordion" data-settings-accordion="people">
     <button class="settings-accordion__summary" type="button" data-settings-section="people" aria-expanded="false">
       <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-users"></use></svg></span>
@@ -421,7 +446,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.24</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.25</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
