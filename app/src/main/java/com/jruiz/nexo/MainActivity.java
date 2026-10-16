@@ -142,6 +142,10 @@ public class MainActivity extends Activity {
         headerWeather = new HeaderWeather(this,
                 data -> jsCallbackJson("onHeaderWeather", data),
                 data -> jsCallbackJson("onHeaderWeatherPlaces", data));
+        // Comienza en paralelo a la creación de WebView y la splashscreen.
+        // Si el resultado llega antes de que JS esté preparado, el snapshot
+        // se recupera por el puente NexoNative durante beginStartupSequence().
+        headerWeather.refresh(false);
         // Reparación local, segura e idempotente: las reservas antiguas recuperan
         // su subtipo antes de que el Calendario se pinte. No necesita red.
         try { db.repairNexoFamiliaVehicleReservationMarkers(); } catch (Exception ignored) {}
@@ -2414,6 +2418,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openWeather() { MainActivity.this.openWeather(); }
         @JavascriptInterface public void openHeaderWeather() { if (headerWeather != null) headerWeather.openDetails(); }
         @JavascriptInterface public void refreshHeaderWeather() { if (headerWeather != null) headerWeather.refresh(false); }
+        @JavascriptInterface public String getStartupWeatherSnapshot() {
+            return headerWeather == null ? "{}" : headerWeather.getStartupSnapshot().toString();
+        }
         @JavascriptInterface public String getHeaderWeatherSettings() {
             return headerWeather == null ? "{}" : headerWeather.getSettings().toString();
         }
