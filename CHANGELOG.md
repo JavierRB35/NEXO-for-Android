@@ -1,4 +1,4 @@
-# Nexo 3.7.21 · Jeringuilla reconocible para Analítica
+## 3.7.22 (2026-10-16)\n\n- Calendario: nuevo desplegable «Frase del día» que selecciona una frase guardada aleatoriamente en cada apertura, sin repetir consecutivamente si hay varias.\n- Cabecera: icono y temperatura aproximada actual del dispositivo obtenidos con Open-Meteo y permiso de ubicación; enlace a la información meteorológica ampliada de Google.\n- Consultas del tiempo fuera de WebView, con caché, caducidad y tratamiento de errores de red/ubicación.\n- Referencias de versión y pruebas automatizadas actualizadas.\n\n# Nexo 3.7.21 · Jeringuilla reconocible para Analítica
 
 - Rediseño exclusivo del icono de **Analítica**: jeringuilla en diagonal con aguja, cuerpo, émbolo, sangre en el cilindro y una gota roja, legible incluso en casillas pequeñas.
 - Conserva categoría, color granate `#7F1D1D`, eventos existentes, avisos, Android ID y base de datos local.

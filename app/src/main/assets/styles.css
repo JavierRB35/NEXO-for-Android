@@ -2830,3 +2830,8 @@ body.startup-loading #app{visibility:hidden}
 .calendar-daily-quote small{color:#65788e;font-size:.75rem;display:block}
 .calendar-daily-quote small.hidden{display:none}
 @media(max-width:380px){.header-weather-button{padding:4px 2px;gap:2px;font-size:.8rem}.header-weather-symbol{font-size:1rem}.header-actions{gap:0}}
+
+.header-weather-attribution{color:#657787;text-decoration:none;font-size:.7rem;font-weight:750;min-width:12px;line-height:1;display:inline-flex;align-items:center;justify-content:center;min-height:30px}
+.header-weather-attribution:focus-visible{outline:2px solid #2a7665;border-radius:5px}
+.calendar-icon-guide{border-radius:0}
+.calendar-quote-guide{border-radius:0 0 12px 12px;overflow:hidden}
