@@ -277,7 +277,7 @@ window.NexoBooks = (() => {
       <button class="secondary-button" id="bookCancel" type="button">Cancelar</button>
       <button class="primary-button" id="bookSave" type="button">Guardar libro</button>
     </div>`);
-    editor={id:number(id),favorite:!!source.favorite,rating,baseline:'',sourceStatus:source.status||'',
+    editor={id:number(id),favorite:!!source.favorite,rating,scrollY:window.scrollY,baseline:'',sourceStatus:source.status||'',
       hadReadData:!!(source.progress||source.startDate||source.finishDate||source.abandonedDate||source.summary)};
     document.querySelector('#bookStatus').addEventListener('change',()=>{
       const s=document.querySelector('#bookStatus').value;
@@ -315,11 +315,12 @@ window.NexoBooks = (() => {
       if(!result.ok){
         error.textContent=result.error||'No se pudo guardar el libro.';error.classList.remove('hidden');return;
       }
-      const savedId=number(result.id)||number(payload.id);
+      const scrollY=editor.scrollY;
       editor=null;closeModal();
-      if(filter!=='all'&&filter!=='favorites'&&filter!==payload.status)filter=payload.status;
-      refreshLibrary();
-      if(savedId)openDetails(savedId);
+      if(document.querySelector('.books-library')){
+        refreshLibrary();
+        requestAnimationFrame(()=>window.scrollTo(0,scrollY));
+      }else openPanel('books');
       toast('Libro guardado correctamente.');
     };
     if(payload.status==='want'&&editor.id&&editor.sourceStatus!=='want'&&editor.hadReadData){
