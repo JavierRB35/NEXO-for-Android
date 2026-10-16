@@ -3003,3 +3003,24 @@ body.startup-loading #app{visibility:hidden}
  .book-rating-star{width:40px;height:40px}
  .books-stats-grid small{font-size:.63rem}
 }
+
+/* Nexo 3.7.28: corazón único en la ficha, sin checkbox ni botonera de favorito. */
+.book-detail-head{align-items:flex-start}
+.book-detail-heading{flex:1;min-width:0}
+.book-detail-head .book-favorite-toggle{
+  flex:0 0 44px;display:inline-flex;align-items:center;justify-content:center;
+  width:44px;height:44px;min-height:44px;padding:7px;margin:-3px -4px 0 0;
+  border:1px solid transparent;border-radius:13px;
+  background:transparent;color:#b74667;box-shadow:none;
+}
+.book-detail-head .book-favorite-toggle .ui-icon{
+  width:27px;height:27px;stroke:currentColor;stroke-width:1.8;fill:none;
+}
+.book-detail-head .book-favorite-toggle.active{
+  background:#fff0f4;border-color:transparent;color:#c52356;
+}
+.book-detail-head .book-favorite-toggle.active .ui-icon{fill:#e23a6d;stroke:#bd2452}
+.book-detail-head .book-favorite-toggle:focus-visible{outline:2px solid #1e6ec6;outline-offset:2px}
+.book-rating-section--detail{
+  padding:10px 0 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}

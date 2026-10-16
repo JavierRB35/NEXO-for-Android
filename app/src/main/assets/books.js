@@ -156,8 +156,7 @@ window.NexoBooks = (() => {
       favorite.classList.toggle('active',!!newBook.favorite);
       favorite.setAttribute('aria-pressed',String(!!newBook.favorite));
       favorite.setAttribute('aria-label',newBook.favorite?'Quitar de favoritos':'Añadir a favoritos');
-      const label=favorite.querySelector('span');
-      if(label)label.textContent=newBook.favorite?'Favorito':'Marcar favorito';
+      favorite.title=newBook.favorite?'Quitar de favoritos':'Añadir a favoritos';
     }
     paintRating(ratingOf(newBook),'[data-book-detail-rating]','#bookDetailRatingCaption');
     refreshLibrary();
@@ -177,15 +176,13 @@ window.NexoBooks = (() => {
         <div class="book-detail-heading"><h3>${esc(b.title)}</h3><p>${esc(b.author)}</p>
           <span class="book-status book-status--${status}">${esc(labels[status])}</span>
         </div>
+        <button id="bookDetailFavorite" type="button" class="book-favorite-toggle ${b.favorite?'active':''}" aria-pressed="${!!b.favorite}" aria-label="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}" title="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}">${uiIcon('heart')}</button>
       </div>
-      <div class="book-detail-preferences">
-        <button id="bookDetailFavorite" type="button" class="book-favorite-toggle ${b.favorite?'active':''}" aria-pressed="${!!b.favorite}" aria-label="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}">${uiIcon('heart')} <span>${b.favorite?'Favorito':'Marcar favorito'}</span></button>
-        <div class="book-rating-section"><strong>Mi valoración</strong>
-          <div class="book-rating-stars" role="group" aria-label="Valorar este libro de 1 a 5 estrellas">
-            ${[1,2,3,4,5].map(n=>`<button type="button" data-book-detail-rating data-rating="${n}" class="book-rating-star ${n<=rating?'is-set':''}" aria-pressed="${n===rating}" aria-label="${n} ${n===1?'estrella':'estrellas'}" title="${n} ${n===1?'estrella':'estrellas'}">${uiIcon('star')}</button>`).join('')}
-          </div>
-          <small id="bookDetailRatingCaption">${rating?`${rating} de 5 estrellas`:'Sin valorar'}</small>
+      <div class="book-rating-section book-rating-section--detail"><strong>Mi valoración</strong>
+        <div class="book-rating-stars" role="group" aria-label="Valorar este libro de 1 a 5 estrellas">
+          ${[1,2,3,4,5].map(n=>`<button type="button" data-book-detail-rating data-rating="${n}" class="book-rating-star ${n<=rating?'is-set':''}" aria-pressed="${n===rating}" aria-label="${n} ${n===1?'estrella':'estrellas'}" title="${n} ${n===1?'estrella':'estrellas'}">${uiIcon('star')}</button>`).join('')}
         </div>
+        <small id="bookDetailRatingCaption">${rating?`${rating} de 5 estrellas`:'Sin valorar'}</small>
       </div>
       ${start?`<p class="book-detail-date"><strong>Inicio de lectura:</strong> ${start}</p>`:''}
       ${status!=='want'?`<section class="book-detail-section"><strong>Progreso de lectura</strong>
@@ -228,7 +225,7 @@ window.NexoBooks = (() => {
       finishDate:document.querySelector('#bookFinishDate')?.value||'',
       abandonedDate:document.querySelector('#bookAbandonedDate')?.value||'',
       summary:document.querySelector('#bookSummary')?.value.trim()||'',
-      favorite:!!document.querySelector('#bookFavorite')?.checked,
+      favorite:editor.favorite,
       rating:editor.rating
     };
   }
@@ -263,14 +260,6 @@ window.NexoBooks = (() => {
       <label>Estado de lectura<select id="bookStatus">
         ${Object.entries(labels).map(([key,label])=>`<option value="${key}" ${status===key?'selected':''}>${esc(label)}</option>`).join('')}
       </select></label>
-      <label class="book-favorite-edit"><input id="bookFavorite" type="checkbox" ${source.favorite?'checked':''}> ${uiIcon('heart')} Favorito (independiente de la valoración)</label>
-      <div class="book-rating-section">
-        <strong>Mi valoración</strong>
-        <div class="book-rating-stars" role="group" aria-label="Valorar el libro de 1 a 5 estrellas">
-          ${[1,2,3,4,5].map(n=>`<button type="button" class="book-rating-star ${n<=rating?'is-set':''}" data-book-edit-rating data-rating="${n}" aria-pressed="${n===rating}" aria-label="${n} ${n===1?'estrella':'estrellas'}">${uiIcon('star')}</button>`).join('')}
-        </div>
-        <small id="bookEditRatingCaption">${rating?`${rating} de 5 estrellas`:'Sin valorar'}</small>
-      </div>
       <div id="bookReadingFields">
         <label id="bookStartRow">Fecha de inicio <span class="optional">(opcional)</span><input id="bookStartDate" type="date" value="${escAttr(source.startDate||'')}"></label>
         <div class="book-slider-heading"><label for="bookProgress">Progreso de lectura</label><strong id="bookProgressValue">${number(source.progress)}%</strong></div>
@@ -288,13 +277,8 @@ window.NexoBooks = (() => {
       <button class="secondary-button" id="bookCancel" type="button">Cancelar</button>
       <button class="primary-button" id="bookSave" type="button">Guardar libro</button>
     </div>`);
-    editor={id:number(id),rating,baseline:'',sourceStatus:source.status||'',
+    editor={id:number(id),favorite:!!source.favorite,rating,baseline:'',sourceStatus:source.status||'',
       hadReadData:!!(source.progress||source.startDate||source.finishDate||source.abandonedDate||source.summary)};
-    document.querySelectorAll('[data-book-edit-rating]').forEach(button=>button.addEventListener('click',()=>{
-      const clicked=number(button.dataset.rating);
-      editor.rating=editor.rating===clicked?0:clicked;
-      paintRating(editor.rating,'[data-book-edit-rating]','#bookEditRatingCaption');
-    }));
     document.querySelector('#bookStatus').addEventListener('change',()=>{
       const s=document.querySelector('#bookStatus').value;
       if(s==='reading'&&!document.querySelector('#bookStartDate').value&&
@@ -331,9 +315,12 @@ window.NexoBooks = (() => {
       if(!result.ok){
         error.textContent=result.error||'No se pudo guardar el libro.';error.classList.remove('hidden');return;
       }
+      const savedId=number(result.id)||number(payload.id);
       editor=null;closeModal();
       if(filter!=='all'&&filter!=='favorites'&&filter!==payload.status)filter=payload.status;
-      refreshLibrary();toast('Libro guardado correctamente.');
+      refreshLibrary();
+      if(savedId)openDetails(savedId);
+      toast('Libro guardado correctamente.');
     };
     if(payload.status==='want'&&editor.id&&editor.sourceStatus!=='want'&&editor.hadReadData){
       confirmGeneric('Volver a Quiero leer',
