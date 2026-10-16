@@ -46,6 +46,9 @@ jobs:
         run: |
           python3 validation/test-ui-structure.py
           python3 validation/test-version-identity.py
+          python3 validation/test-books-compact.py
+          python3 validation/test-books-full.py
+          node --check app/src/main/assets/books.js
           python3 validation/test-input-hub-reliability.py
           python3 validation/test-nexo-familia-migration.py
           python3 validation/test-calendar-nonrecurring-range.py
@@ -72,7 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          STAGE="$RUNNER_TEMP/Nexo_3_7_26_AndroidIDE"
+          STAGE="$RUNNER_TEMP/Nexo_3_7_27_AndroidIDE"
           mkdir -p "$STAGE"
           git archive --format=tar HEAD | tar -x -C "$STAGE"
 
@@ -90,8 +93,8 @@ jobs:
       - name: Upload clean project
         uses: actions/upload-artifact@v4
         with:
-          name: Nexo_3_7_26_AndroidIDE
-          path: ${{ runner.temp }}/Nexo_3_7_26_AndroidIDE/
+          name: Nexo_3_7_27_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_3_7_27_AndroidIDE/
           include-hidden-files: true
           if-no-files-found: error
           compression-level: 6
