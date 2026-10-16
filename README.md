@@ -1,8 +1,10 @@
-# Nexo 3.7.21
+# Nexo 3.7.23
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta rama de estabilización corresponde a **Nexo 3.7.21**, `versionCode 114`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **25**.
+Esta rama de estabilización corresponde a **Nexo 3.7.23**, `versionCode 116`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **26**.
+
+**Nuevo en 3.7.23:** el catálogo de Frases incluye 40 reflexiones originales inspiradas en Radical Face junto a las 40 frases previas. Se siembran en una instalación nueva y se incorporan de forma aditiva al actualizar al esquema 26, sin borrar ni duplicar las personales. «Frases» y «Frase del día» las seleccionan de la misma base de datos local. Cada reflexión identifica canción, álbum y artista y advierte que no es una cita literal.
 
 ## Base estable
 
@@ -51,7 +53,7 @@ El procedimiento se documenta en [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.
 Desde la raíz del proyecto en el teléfono:
 
 ```sh
-cd "/storage/emulated/0/Download/Nexo_3_7_21"
+cd "/storage/emulated/0/Download/Nexo_3_7_23"
 sh build-on-phone.sh
 ```
 
@@ -60,7 +62,7 @@ No ejecutar `./gradlew` directamente desde `Download`.
 El script conserva la firma Release permanente, usa el baseline de AndroidIDE y copia el APK final a:
 
 ```text
-/storage/emulated/0/Download/Nexo_3_7_21.apk
+/storage/emulated/0/Download/Nexo_3_7_23.apk
 ```
 
 ## Validación
