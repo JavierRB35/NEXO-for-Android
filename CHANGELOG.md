@@ -1,3 +1,11 @@
+## Nexo 3.7.23 — Frases Radical Face (esquema 26)
+
+- Biblioteca inicial ampliada con 40 reflexiones originales en castellano inspiradas en canciones de Radical Face, con canción, álbum y artista identificados.
+- Conservadas las 40 frases previas y todas las entradas personales. Las nuevas frases aparecen en la sección «Frases» y en la selección aleatoria de Nexo.
+- Migración 25→26 aditiva, identificadores estables y deduplicación por contenido y fuente; instalación nueva y actualización compatibles.
+- Referencias indicadas como paráfrasis originales, no letras literales.
+- APK 3.7.23 (versionCode 116), manteniendo la compilación AndroidIDE y la firma Release existente.
+
 ## 3.7.22 (2026-10-16)\n\n- Calendario: nuevo desplegable «Frase del día» que selecciona una frase guardada aleatoriamente en cada apertura, sin repetir consecutivamente si hay varias.\n- Cabecera: icono y temperatura aproximada actual del dispositivo obtenidos con Open-Meteo y permiso de ubicación; enlace a la información meteorológica ampliada de Google.\n- Consultas del tiempo fuera de WebView, con caché de 20 minutos, refresco periódico y tratamiento de errores de red/ubicación.\n- Referencias de versión y pruebas automatizadas actualizadas.\n\n# Nexo 3.7.21 · Jeringuilla reconocible para Analítica
 
 - Rediseño exclusivo del icono de **Analítica**: jeringuilla en diagonal con aguja, cuerpo, émbolo, sangre en el cilindro y una gota roja, legible incluso en casillas pequeñas.
