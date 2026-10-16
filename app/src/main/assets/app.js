@@ -4240,20 +4240,66 @@ function applyDocumentEditorVoice(text){
 function openPlaceEditor(id=0,prefill=null){
   const editing=Number(id)>0,i=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
   if(editing&&(!i.id||!isPlaceType(i.type))){toast('No se encuentra este lugar.');return;}
-  const initial=prefill||{},label=initial.label||(editing?placeLabel(i):(state.placeFilter!=='all'?state.placeFilter:'Quiero ir')),labels=[...new Set([...PLACE_LABELS,label])];
-  state.placeEditor={id:Number(id)||0,editing,legacyLocation:String(i.locationText||'')};
-  openModal(editing?'Editar lugar':'Guardar lugar',`<div class="modal-form place-form"><label>Nombre<input id="placeTitle" type="text" value="${escAttr(initial.title||i.title||'')}" placeholder="Ej. Mirador del Garbí" required></label><label>Descripción <span class="optional">(opcional)</span><textarea id="placeDescription" rows="4" placeholder="Qué te gustó, qué quieres probar o qué merece la pena recordar">${esc(initial.body!==undefined?initial.body:(i.body||''))}</textarea></label><label>Etiqueta<select id="placeLabel">${labels.map(value=>`<option value="${escAttr(value)}" ${value===label?'selected':''}>${esc(value)}</option>`).join('')}</select></label><div class="small muted">El botón Maps buscará este sitio por su nombre; no necesitas guardar un enlace ni una dirección.</div><p id="placeSaveError" class="place-error hidden" role="alert"></p></div><div class="modal-actions"><button id="placeCancel" type="button" class="secondary-button">Cancelar</button><button id="placeSave" type="button" class="primary-button">Guardar lugar</button></div>${editing?'<button id="placeDelete" type="button" class="danger-link">Eliminar lugar</button>':''}`);
+  const initial=prefill||{};
+  const legacy=String(initial.label||'');
+  const inferredState=legacy==='He estado'?'visited':legacy==='Quiero ir'?'want':'';
+  const status=editing?placeStatus(i):(inferredState||'want');
+  const type=editing?placeType(i):(PLACE_LABELS.includes(legacy)?legacy:'Otros');
+  const types=[...new Set([...PLACE_LABELS,type])];
+  const originalScroll=window.scrollY;
+  state.placeEditor={id:Number(id)||0,editing,originalScroll};
+  openModal(editing?'Editar lugar':'Guardar lugar',`<div class="modal-form place-form">
+    <label>Nombre<input id="placeTitle" type="text" maxlength="250" value="${escAttr(initial.title||i.title||'')}" placeholder="Ej. Mirador del Garbí" required></label>
+    <label>Estado de visita<select id="placeVisitStatus" required>
+      ${status===''?'<option value="" selected>Selecciona un estado</option>':''}
+      <option value="want" ${status==='want'?'selected':''}>Quiero ir</option>
+      <option value="visited" ${status==='visited'?'selected':''}>He estado</option>
+    </select></label>
+    <label>Tipo de lugar<select id="placeLabel">${types.map(t=>`<option value="${escAttr(t)}" ${type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
+    <label>Dirección o enlace de Google Maps <span class="optional">(opcional)</span>
+      <input id="placeLocation" type="text" value="${escAttr(i.locationText||'')}" placeholder="Dirección exacta o enlace Compartir de Maps" maxlength="2048">
+    </label>
+    <small class="place-map-help">Si añades una dirección o un enlace de Google Maps se usará para abrir este lugar. Sin ese dato, se buscará por su nombre.</small>
+    <label id="placeVisitedRow" class="${status==='visited'?'':'hidden'}">Fecha de última visita <span class="optional">(opcional)</span>
+      <input id="placeVisitedOn" type="date" value="${escAttr(placeDate(i))}">
+    </label>
+    <label>Descripción <span class="optional">(opcional)</span><textarea id="placeDescription" rows="3" placeholder="Qué te gustó, qué quieres recordar o probar…">${esc(initial.body!==undefined?initial.body:(i.body||''))}</textarea></label>
+    <p id="placeSaveError" class="place-error hidden" role="alert"></p>
+  </div>
+  <div class="modal-actions">
+    <button id="placeCancel" class="secondary-button" type="button">Cancelar</button>
+    <button id="placeSave" class="primary-button" type="button">Guardar lugar</button>
+  </div>`);
   document.body.classList.add('place-editor-open');requestAnimationFrame(updateFloatingActions);
+  $('#placeVisitStatus').addEventListener('change',()=>{
+    $('#placeVisitedRow').classList.toggle('hidden',$('#placeVisitStatus').value!=='visited');
+  });
   $('#placeCancel').addEventListener('click',closeModal);
   $('#placeSave').addEventListener('click',()=>{
-    const payload={id:Number(id)||0,title:$('#placeTitle').value.trim(),body:$('#placeDescription').value.trim(),locationText:String(i.locationText||''),label:$('#placeLabel').value};
+    const payload={
+      id:Number(id)||0,title:$('#placeTitle').value.trim(),body:$('#placeDescription').value.trim(),
+      locationText:$('#placeLocation').value.trim(),label:$('#placeLabel').value,
+      placeState:$('#placeVisitStatus').value,
+      placeVisitedOn:$('#placeVisitStatus').value==='visited'?$('#placeVisitedOn').value:'',
+      placeRating:editing?Number(i.placeRating)||0:0,
+      favorite:editing?!!i.favorite:false
+    };
     const error=$('#placeSaveError');error.classList.add('hidden');
-    if(!payload.title){error.textContent='Escribe un nombre para el lugar.';error.classList.remove('hidden');$('#placeTitle').focus();return;}
-    const result=parseNative(NexoNative.savePlace(JSON.stringify(payload)),{});
-    if(!result.ok){error.textContent=result.error||'No se pudo guardar el lugar.';error.classList.remove('hidden');return;}
-    state.placeEditor=null;closeModal();refreshCurrent();toast('Lugar guardado');
+    const fail=message=>{error.textContent=message;error.classList.remove('hidden');};
+    if(!payload.title){fail('Escribe un nombre para el lugar.');$('#placeTitle').focus();return;}
+    if(!['want','visited'].includes(payload.placeState)){fail('Elige Quiero ir o He estado.');return;}
+    if(state.places.some(p=>Number(p.id)!==payload.id&&placeNorm(p.title)===placeNorm(payload.title)&&
+      placeNorm(p.locationText||'')===placeNorm(payload.locationText))){fail('Este lugar con la misma ubicación ya está guardado.');return;}
+    const result=parseNative(NexoNative.savePlace(JSON.stringify(payload)),{ok:false});
+    if(!result.ok){fail(result.error||'No se pudo guardar el lugar.');return;}
+    state.placeEditor=null;
+    closeModal();
+    if(state.screen==='panel'&&state.lastPanel==='places'){
+      renderPlacesPanel();
+      requestAnimationFrame(()=>window.scrollTo(0,originalScroll));
+    }else openPanel('places');
+    toast('Lugar guardado');
   });
-  $('#placeDelete')?.addEventListener('click',()=>confirmDeleteItem(i));
 }
 function renderParkingPanel(){
   const p=parseNative(NexoNative.getLastParking(),{});$('#panelTitle').textContent='Aparcamiento';$('#panelSubtitle').textContent='El último lugar donde has dejado el coche';
