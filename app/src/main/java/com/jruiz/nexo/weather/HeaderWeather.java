@@ -174,6 +174,14 @@ public final class HeaderWeather {
             }
             return;
         }
+        if (coarse && !fine && promptOnce && !prefs().getBoolean("precise_prompted", false)) {
+            prefs().edit().putBoolean("precise_prompted", true).apply();
+            activity.requestPermissions(new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, REQUEST_LOCATION);
+            return;
+        }
         locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
         if (locationManager == null) { sendError("location"); return; }
         bestLocation = null;
@@ -195,8 +203,8 @@ public final class HeaderWeather {
             }
         } catch (SecurityException | IllegalArgumentException ignored) {}
         if (!requested) {
-            loading = false;
-            if (bestLocation != null) finishLocation(token); else sendError("location");
+            if (bestLocation != null) finishLocation(token);
+            else { loading = false; sendError("location"); }
             return;
         }
         handler.postDelayed(() -> {
