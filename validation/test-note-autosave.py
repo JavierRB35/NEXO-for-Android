@@ -47,7 +47,7 @@ assert 'noteTitleManual' in composer
 assert 'NoteTitleEngine.derive(body)' in java
 
 # Migración y actualización explícita de notas existentes.
-assert 'DB_VERSION = 27' in db
+assert 'DB_VERSION = 28' in db
 assert 'note_title_manual INTEGER NOT NULL DEFAULT 0' in db
 assert 'if (oldVersion < 14)' in db
 assert "UPDATE items SET note_title_manual=1 WHERE type='note'" in db
