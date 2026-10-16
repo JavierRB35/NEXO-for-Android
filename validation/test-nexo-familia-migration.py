@@ -11,7 +11,7 @@ cloud_path=root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaCloudSync
 assert not seed_path.exists(), 'La snapshot familiar privada sigue empaquetada'
 
 db=db_path.read_text(encoding='utf-8')
-assert 'DB_VERSION = 25' in db
+assert 'DB_VERSION = 26' in db
 assert 'columnExists(db, "journal_entries", "revisit")' in db
 assert 'getNexoFamiliaMetadataForLocalItem' in db
 assert 'metadataComplete' in db and 'brokenMappings' in db
