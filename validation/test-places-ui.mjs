@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {JSDOM} from 'jsdom';
 const app=fs.readFileSync('app/src/main/assets/app.js','utf8');
-const section=app.slice(app.indexOf('function placeStatus('),app.indexOf('function parsePlaceVoice('));
+const section=app.slice(app.indexOf('function placeStatus('),app.indexOf('function renderParkingPanel('));
 assert(section.startsWith('function placeStatus('));
 const dom=new JSDOM('<div id="panelTitle"></div><div id="panelSubtitle"></div><div id="panelAction"></div><div id="panelContent"></div><div id="modalBody"></div>',{url:'https://nexo.local/',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window,d=w.document;
