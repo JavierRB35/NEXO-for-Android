@@ -68,4 +68,6 @@ assert "bookFavorite" not in editor and "data-book-edit-rating" not in editor
 assert "bookDetailFavorite" in details and "data-book-detail-rating" in details
 assert "book-favorite-edit" not in editor
 assert "favorite:editor.favorite" in books and "rating:editor.rating" in books
-assert "if(savedId)openDetails(savedId)" in books
+assert "if(savedId)openDetails(savedId)" not in books
+assert "const scrollY=editor.scrollY" in books
+assert "requestAnimationFrame(()=>window.scrollTo(0,scrollY))" in books
