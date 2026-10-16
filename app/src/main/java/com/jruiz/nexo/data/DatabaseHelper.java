@@ -264,8 +264,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (!columnExists(db, "items", "place_rating")) db.execSQL("ALTER TABLE items ADD COLUMN place_rating INTEGER NOT NULL DEFAULT 0");
             if (!columnExists(db, "items", "place_visited_on")) db.execSQL("ALTER TABLE items ADD COLUMN place_visited_on TEXT NOT NULL DEFAULT ''");
             // Solo dos etiquetas antiguas representan estados inequívocos.
-            db.execSQL("UPDATE items SET place_state='want',subcategory='Otros' WHERE type IN ('place','restaurant') AND subcategory='Quiero ir'");
-            db.execSQL("UPDATE items SET place_state='visited',subcategory='Otros' WHERE type IN ('place','restaurant') AND subcategory='He estado'");
+            db.execSQL("UPDATE items SET place_state='want',subcategory=CASE WHEN type='restaurant' THEN 'Restaurante' ELSE 'Otros' END WHERE type IN ('place','restaurant') AND subcategory='Quiero ir'");
+            db.execSQL("UPDATE items SET place_state='visited',subcategory=CASE WHEN type='restaurant' THEN 'Restaurante' ELSE 'Otros' END WHERE type IN ('place','restaurant') AND subcategory='He estado'");
         }
     }
 
