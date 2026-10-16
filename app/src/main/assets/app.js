@@ -3046,6 +3046,7 @@ function closeModal(force=false){
   // literal true puede saltarse las protecciones de cierre.
   const forced=force===true;
   if(!forced&&window.NexoBooks?.preventClose?.())return false;
+  if(!forced&&guardPlaceEditorClose())return false;
   const noteWasOpen=!!state.noteEditor;
   if(noteWasOpen&&!forced&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
 
@@ -4239,6 +4240,23 @@ function applyDocumentEditorVoice(text){
 }
 
 
+function placeEditorSnapshot(){
+  if(!$('#placeTitle'))return '';
+  return JSON.stringify([
+    $('#placeTitle').value,$('#placeVisitStatus')?.value,$('#placeLabel')?.value,
+    $('#placeLocation')?.value,$('#placeVisitedOn')?.value,$('#placeDescription')?.value
+  ]);
+}
+function guardPlaceEditorClose(){
+  if(!state.placeEditor)return false;
+  if(state.placeEditor.baseline!==placeEditorSnapshot()){
+    confirmGeneric('Descartar cambios','Has modificado datos del lugar sin guardar. ¿Quieres descartarlos?',()=>{
+      state.placeEditor=null;closeModal(true);
+    },'Descartar');
+    return true;
+  }
+  state.placeEditor=null;return false;
+}
 function onPlaceLocationResult(raw){
   const data=parseNative(raw,{}),field=$('#placeLocation'),status=$('#placeLocationAccuracy');
   if(!field||!status||!state.placeEditor)return;
@@ -4280,7 +4298,7 @@ function openPlaceEditor(id=0,prefill=null){
   const type=editing?placeType(i):(PLACE_LABELS.includes(legacy)?legacy:'Otros');
   const types=[...new Set([...PLACE_LABELS,type])];
   const originalScroll=window.scrollY;
-  state.placeEditor={id:Number(id)||0,editing,originalScroll};
+  state.placeEditor={id:Number(id)||0,editing,originalScroll,baseline:''};
   openModal(editing?'Editar lugar':'Guardar lugar',`<div class="modal-form place-form">
     <label>Nombre<input id="placeTitle" type="text" maxlength="250" value="${escAttr(initial.title||i.title||'')}" placeholder="Ej. Mirador del Garbí" required></label>
     <label>Estado de visita<select id="placeVisitStatus" required>
@@ -4307,6 +4325,7 @@ function openPlaceEditor(id=0,prefill=null){
     <button id="placeSave" class="primary-button" type="button">Guardar lugar</button>
   </div>`);
   document.body.classList.add('place-editor-open');requestAnimationFrame(updateFloatingActions);
+  state.placeEditor.baseline=placeEditorSnapshot();
   $('#placeHere').addEventListener('click',()=>{
     const button=$('#placeHere');button.disabled=true;
     button.textContent='Localizando…';
