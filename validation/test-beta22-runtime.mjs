@@ -6,6 +6,7 @@ const root=process.cwd();
 const html=fs.readFileSync(root+'/app/src/main/assets/index.html','utf8');
 const nav=fs.readFileSync(root+'/app/src/main/assets/navigation.js','utf8');
 const app=fs.readFileSync(root+'/app/src/main/assets/app.js','utf8');
+const books=fs.readFileSync(root+'/app/src/main/assets/books.js','utf8');
 
 const errors=[];
 const calls=[];
@@ -38,7 +39,7 @@ const objectMethods=new Set([
 const arrayMethods=new Set([
   'getNotes','getRecordings','getLists','getJournalEntries','getMedications','getMedicationTodayDoses',
   'getHistory','getInbox','getInboxCaptures','getPeople','getNexoFamiliaMembers','getCalendar',
-  'getReminders','getFavorites','getCollection','getMedicationMessages'
+  'getReminders','getFavorites','getCollection','getMedicationMessages','getBooks'
 ]);
 const nativeBase={
   getAppVersion:()=> '3.7.0',
@@ -84,7 +85,7 @@ window.NexoNative=new Proxy(nativeBase,{
   }
 });
 
-window.eval(nav+'\n'+app+'\nwindow.__nexoTestInit=init;window.__nexoTestState=state;');
+window.eval(nav+'\n'+app+'\n'+books+'\nwindow.__nexoTestInit=init;window.__nexoTestState=state;');
 window.__nexoTestInit();
 
 assert.equal(errors.length,0,'La inicialización lanzó errores: '+errors.join('\n'));
@@ -110,6 +111,7 @@ const expected={
   lists:'Listas',
   documents:'Documentos',
   journal:'Cuaderno',
+  books:'Libros',
   quotes:'Frases',
   medications:'Medicación',
   places:'Lugares',
@@ -146,4 +148,5 @@ const afterSearch=calls.filter(x=>x==='getFamilyStyleSearchIndex').length;
 assert.equal(afterSearch,beforeSearch+1,'La búsqueda debe crear el índice una sola vez bajo demanda');
 
 assert.equal(errors.length,0,'Errores finales de runtime: '+errors.join('\n'));
-console.log('OK: runtime WebView simulado, Inicio no bloqueante y accesos data-panel operativos');
+console.log('OK: runtime WebView simulado, Inicio no bloqueante y accesos data-panel operativos, incluida Libros');
+window.close();
