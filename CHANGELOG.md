@@ -1,3 +1,11 @@
+## Nexo 3.7.28 — Corazón y valoración únicamente en la ficha del libro
+
+- Desaparecen el checkbox de Favoritos y su texto largo del formulario Nuevo libro / Editar libro, así como las estrellas dentro del editor.
+- En la ficha completa aparece un único corazón pulsable junto al título: vacío si no es favorito, rojo relleno si lo es. No hay casilla, texto, confirmación ni paso de guardar adicional.
+- Cinco estrellas pulsables de 1 a 5 dentro de la ficha completa, independientes del corazón; cada toque se guarda inmediatamente y pulsar de nuevo la puntuación actual permite dejarlo sin valorar.
+- Tras guardar un libro nuevo o editar uno existente, se abre automáticamente su ficha completa. La edición conserva el favorito y puntuación anteriores, sin modificarlos accidentalmente.
+- versionCode 121, versionName 3.7.28; misma DB 28, applicationId, firma Release y toolchain AndroidIDE.
+
 ## Nexo 3.7.27 — Biblioteca: fecha real, favoritos, estrellas y estadísticas
 
 - Libros ordenados por fecha significativa descendente (terminados por finalización, abandonados por abandono, en lectura por inicio). Los libros sin fecha quedan al final y usan la última actualización como desempate. Editar una ficha antigua no cambia su orden cronológico.
