@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 27;
+    private static final int DB_VERSION = 28;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
@@ -247,6 +247,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         if (oldVersion < 27) {
             createBooksTable(db);
+        }
+        if (oldVersion < 28) {
+            // Ampliación aditiva: conservar toda la biblioteca y sus datos.
+            if (!columnExists(db, "books", "start_date")) db.execSQL("ALTER TABLE books ADD COLUMN start_date TEXT NOT NULL DEFAULT ''");
+            if (!columnExists(db, "books", "favorite")) db.execSQL("ALTER TABLE books ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0");
+            if (!columnExists(db, "books", "rating")) db.execSQL("ALTER TABLE books ADD COLUMN rating INTEGER NOT NULL DEFAULT 0");
         }
     }
 
@@ -735,6 +741,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "finish_date TEXT NOT NULL DEFAULT ''," +
                 "abandoned_date TEXT NOT NULL DEFAULT ''," +
                 "summary TEXT NOT NULL DEFAULT ''," +
+                "start_date TEXT NOT NULL DEFAULT ''," +
+                "favorite INTEGER NOT NULL DEFAULT 0," +
+                "rating INTEGER NOT NULL DEFAULT 0," +
                 "created_at INTEGER NOT NULL," +
                 "updated_at INTEGER NOT NULL" +
                 ")");
