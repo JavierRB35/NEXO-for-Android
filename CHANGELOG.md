@@ -1,3 +1,13 @@
+## Nexo 3.7.30 — Meteorología precargada durante la splashscreen
+
+- Comienza a consultar Open-Meteo al arrancar Android, antes de que se termine de crear la WebView.
+- Recupera la última medición local válida al entrar en splash (máximo 2 h), señalizando claramente si es anterior a 20 min. No presenta información antigua como temperatura actual.
+- Coordina splash, Inbox y meteorología: mínimo 3,5 s y tope de seguridad 8,5 s. Cuando no hay conexión o GPS, Inicio no queda bloqueado; muestra estado explícito y actualiza cuando llegan nuevos datos.
+- GPS reciente y suficientemente preciso permite consultar más rápido sin esperar el timeout completo.
+- La temperatura se muestra tan pronto como responde Open-Meteo: el nombre exacto de la localidad se obtiene después de forma asíncrona, sin retrasar la temperatura.
+- Sin cambios de base de datos (29), SDK 34, AGP 8.7.3, Gradle 8.9 ni clave de firma.
+- Nexo 3.7.30 (versionCode 123).
+
 ## Nexo 3.7.29 — Lugares y GPS «Aquí»; volver al listado desde Libros
 
 - Lugares tiene tarjetas compactas, búsqueda instantánea, tipos separados de Quiero ir / He estado y filtros rápidos con contadores y favoritos.

@@ -21,3 +21,18 @@ for token in ('function renderWeatherSettings()','function lookupWeatherPlaces()
 assert 'margin-left:14px' in css
 assert 'font-size:1.45rem' in css
 print('OK: cabecera meteorológica y modos GPS/manual cubiertos')
+
+# Precarga real, retorno desde caché y distinción explícita de lecturas anteriores.
+assert 'STARTUP_DISPLAY_CACHE_MS' in java and 'last_weather_json' in java
+assert 'getStartupSnapshot()' in java
+assert 'persistSuccessfulWeather(data)' in java
+assert 'weatherCacheKey()' in java, 'No reutilizar caché de otra ubicación manual'
+assert 'System.currentTimeMillis() - bestLocation.getTime() <= 120000L' in java
+assert 'new Thread(() -> {' in java and '"nexo-weather-locality"' in java
+assert 'lastFetch = System.currentTimeMillis()' in java
+assert 'headerWeather.refresh(false);' in main, 'La consulta debe iniciar antes de WebView'
+assert main.index('headerWeather.refresh(false);') < main.index('setupWebView();')
+assert '@JavascriptInterface public String getStartupWeatherSnapshot()' in main
+assert 'function updateHeaderWeather(data)' in app
+assert 'Última temperatura registrada' in app and "?' · anterior'" in app
+assert 'headerWeather.refresh(true);' in main, 'La carga activa tras WebView mantiene permisos'

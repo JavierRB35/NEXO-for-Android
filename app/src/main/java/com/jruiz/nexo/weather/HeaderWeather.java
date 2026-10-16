@@ -35,6 +35,7 @@ public final class HeaderWeather {
     public static final int REQUEST_LOCATION = 116;
     private static final String PREFS = "nexo_header_weather";
     private static final long CACHE_MS = 20 * 60 * 1000L;
+    private static final long STARTUP_DISPLAY_CACHE_MS = 2 * 60 * 60 * 1000L;
     private static final long LOCATION_TIMEOUT_MS = 12000L;
     private static final long MAX_LOCATION_AGE_MS = 5 * 60 * 1000L;
 
@@ -58,6 +59,50 @@ public final class HeaderWeather {
         this.activity = activity;
         this.weatherCallback = weatherCallback;
         this.placesCallback = placesCallback;
+        // Última medición local: disponible antes de cargar la interfaz WebView.
+        JSONObject previous = readLastSuccessfulWeather();
+        if (previous != null) {
+            cachedWeather = previous;
+            lastFetch = prefs().getLong("last_weather_at", 0L);
+            lastDisplayName = previous.optString("detailName", previous.optString("name", ""));
+        }
+    }
+
+    private String weatherCacheKey() {
+        SharedPreferences p = prefs();
+        return manual() ? "manual:" + p.getString("manual_lat", "") + ":" +
+                p.getString("manual_lon", "") : "automatic";
+    }
+
+    private JSONObject readLastSuccessfulWeather() {
+        SharedPreferences p = prefs();
+        long at = p.getLong("last_weather_at", 0L);
+        long age = System.currentTimeMillis() - at;
+        if (at <= 0 || age < 0 || age > STARTUP_DISPLAY_CACHE_MS ||
+                !weatherCacheKey().equals(p.getString("last_weather_key", ""))) return null;
+        try {
+            JSONObject data = new JSONObject(p.getString("last_weather_json", "{}"));
+            return data.optBoolean("ok", false) && Double.isFinite(data.optDouble("temperature", Double.NaN))
+                    ? data : null;
+        } catch (Exception ignored) { return null; }
+    }
+
+    private void persistSuccessfulWeather(JSONObject data) {
+        if (data == null || !data.optBoolean("ok", false)) return;
+        prefs().edit().putString("last_weather_json", data.toString())
+                .putLong("last_weather_at", lastFetch)
+                .putString("last_weather_key", weatherCacheKey()).apply();
+    }
+
+    // No indica información antigua como actual: la UI marca la fecha de la medición.
+    public JSONObject getStartupSnapshot() {
+        if (cachedWeather == null) return new JSONObject();
+        long age = System.currentTimeMillis() - lastFetch;
+        if (lastFetch <= 0 || age < 0 || age > STARTUP_DISPLAY_CACHE_MS) return new JSONObject();
+        try {
+            return new JSONObject(cachedWeather.toString()).put("stale", age >= CACHE_MS)
+                    .put("cachedAt", lastFetch);
+        } catch (Exception ignored) { return new JSONObject(); }
     }
 
     private SharedPreferences prefs() {
@@ -134,6 +179,8 @@ public final class HeaderWeather {
         lastLocation = null;
         lastDisplayName = "";
         cancelLocation();
+        prefs().edit().remove("last_weather_json").remove("last_weather_at")
+                .remove("last_weather_key").apply();
     }
 
     private void refreshMain(boolean promptOnce) {
@@ -200,6 +247,13 @@ public final class HeaderWeather {
                 if (LocationManager.GPS_PROVIDER.equals(provider) && !fine) continue;
                 Location recent = locationManager.getLastKnownLocation(provider);
                 if (acceptable(recent)) considerLocation(token, recent, false);
+            }
+            // Una localización reciente y suficientemente precisa evita esperar 12 s
+            // durante la splashscreen para un nuevo fix GPS innecesario.
+            if (loading && bestLocation != null && accuracy(bestLocation) <= 1000f &&
+                    System.currentTimeMillis() - bestLocation.getTime() <= 120000L) {
+                finishLocation(token);
+                return;
             }
         } catch (SecurityException | IllegalArgumentException ignored) {}
         if (!requested) {
@@ -329,8 +383,9 @@ public final class HeaderWeather {
                 JSONObject current = new JSONObject(readResponse(conn, 32768)).getJSONObject("current");
                 double temperature = current.getDouble("temperature_2m");
                 if (!Double.isFinite(temperature)) throw new java.io.IOException("Invalid temperature");
+                // No bloquear la llegada de la temperatura por un geocodificador lento.
                 String name = automatic && accuracyMeters > 3000 ? "Ubicación aproximada"
-                        : automatic ? reverseName(latitude, longitude) : safeLabel(manualName);
+                        : automatic ? "Ubicación actual" : safeLabel(manualName);
                 if (name.isBlank()) name = "Ubicación actual";
                 JSONObject data = new JSONObject();
                 data.put("ok", true);
@@ -348,7 +403,24 @@ public final class HeaderWeather {
                     cachedWeather = data;
                     lastFetch = System.currentTimeMillis();
                     lastDisplayName = data.optString("detailName", data.optString("name", ""));
+                    persistSuccessfulWeather(data);
                     weatherCallback.accept(data);
+                    if (automatic && accuracyMeters <= 3000) {
+                        new Thread(() -> {
+                            String locality = reverseName(latitude, longitude);
+                            if (locality.isBlank()) return;
+                            handler.post(() -> {
+                                if (closed || token != generation || cachedWeather != data) return;
+                                try {
+                                    data.put("name", locality);
+                                    data.put("detailName", locality);
+                                    lastDisplayName = locality;
+                                    persistSuccessfulWeather(data);
+                                    weatherCallback.accept(data);
+                                } catch (Exception ignored) {}
+                            });
+                        }, "nexo-weather-locality").start();
+                    }
                 });
             } catch (Exception ignored) {
                 handler.post(() -> {
@@ -419,6 +491,13 @@ public final class HeaderWeather {
 
     private void sendError(String reason) {
         try {
+            JSONObject previous = getStartupSnapshot();
+            if (previous.optBoolean("ok", false)) {
+                previous.put("stale", true);
+                previous.put("refreshError", reason);
+                weatherCallback.accept(previous);
+                return;
+            }
             weatherCallback.accept(new JSONObject().put("ok", false).put("reason", reason)
                     .put("mode", manual() ? "manual" : "automatic")
                     .put("name", manual() ? prefs().getString("manual_name", "") : "Ubicación no disponible"));
