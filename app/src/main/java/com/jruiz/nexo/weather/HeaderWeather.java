@@ -339,7 +339,7 @@ public final class HeaderWeather {
                     loading = false;
                     cachedWeather = data;
                     lastFetch = System.currentTimeMillis();
-                    lastDisplayName = data.optString("detailName", name);
+                    lastDisplayName = data.optString("detailName", data.optString("name", ""));
                     weatherCallback.accept(data);
                 });
             } catch (Exception ignored) {
