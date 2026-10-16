@@ -233,7 +233,7 @@ window.NexoBooks = (() => {
     };
   }
 
-  function updateForm(){
+  function updateForm(fillDates=false){
     const select=document.querySelector('#bookStatus');if(!select)return;
     const status=select.value,slider=document.querySelector('#bookProgress');
     const want=status==='want';
@@ -248,8 +248,8 @@ window.NexoBooks = (() => {
       if(label)label.textContent=slider.value+'%';
     }
     const finished=document.querySelector('#bookFinishDate'),abandoned=document.querySelector('#bookAbandonedDate');
-    if(status==='finished'&&finished&&!finished.value)finished.value=today();
-    if(status==='abandoned'&&abandoned&&!abandoned.value)abandoned.value=today();
+    if(fillDates&&status==='finished'&&finished&&!finished.value)finished.value=today();
+    if(fillDates&&status==='abandoned'&&abandoned&&!abandoned.value)abandoned.value=today();
   }
 
   function openEditor(id=0,initialStatus=''){
@@ -299,12 +299,12 @@ window.NexoBooks = (() => {
       const s=document.querySelector('#bookStatus').value;
       if(s==='reading'&&!document.querySelector('#bookStartDate').value&&
         (!source.id||source.status==='want'))document.querySelector('#bookStartDate').value=today();
-      updateForm();
+      updateForm(true);
     });
     document.querySelector('#bookProgress').addEventListener('input',e=>{
       if(number(e.target.value)===100)document.querySelector('#bookStatus').value='finished';
       else if(document.querySelector('#bookStatus').value==='finished')document.querySelector('#bookStatus').value='reading';
-      updateForm();
+      updateForm(true);
     });
     document.querySelector('#bookDictate').addEventListener('click',()=>{
       startManagedDictation('book-summary',{
