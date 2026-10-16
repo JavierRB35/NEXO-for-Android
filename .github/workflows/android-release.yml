@@ -114,6 +114,7 @@ jobs:
           set -euo pipefail
           sh validation/validate-project.sh
           node validation/test-beta22-runtime.mjs
+          node validation/test-books-ui.mjs
           python3 validation/test-home-runtime-performance.py
           python3 validation/test-home-section-headings.py
           python3 validation/test-startup-splash.py
