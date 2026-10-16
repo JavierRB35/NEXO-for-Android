@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 26;
+    private static final int DB_VERSION = 27;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
@@ -141,6 +141,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         createExternalWatchTables(db);
         createNexoFamiliaCompatibilityTables(db);
         createJournalTables(db);
+        createBooksTable(db);
         seedJournalBiblicalLibrary(db);
         RadicalFaceQuoteLibrary.seed(db);
         createMedicationTables(db);
@@ -243,6 +244,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 26) {
             // Amplía sin borrar ni reescribir las frases anteriores o las del usuario.
             RadicalFaceQuoteLibrary.seed(db);
+        }
+        if (oldVersion < 27) {
+            createBooksTable(db);
         }
     }
 
@@ -720,6 +724,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return out;
     }
 
+
+    private static void createBooksTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS books (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "title TEXT NOT NULL," +
+                "author TEXT NOT NULL," +
+                "status TEXT NOT NULL DEFAULT 'want'," +
+                "progress INTEGER NOT NULL DEFAULT 0," +
+                "finish_date TEXT NOT NULL DEFAULT ''," +
+                "abandoned_date TEXT NOT NULL DEFAULT ''," +
+                "summary TEXT NOT NULL DEFAULT ''," +
+                "created_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_books_status_title ON books(status,title)");
+    }
 
     private static void createJournalTables(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS journal_entries (" +
