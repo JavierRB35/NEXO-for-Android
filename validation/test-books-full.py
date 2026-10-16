@@ -47,7 +47,7 @@ saved=con.execute("SELECT title,author,status,progress,finish_date,summary,start
 assert saved==('Libro guardado','Autor original','finished',100,'2025-03-07','No perder resumen','',0,0),saved
 
 for k in ("function bookDate", "function sortBooks", "function statsText", "function persistDetailChange",
-          "data-book-detail-rating", "data-book-edit-rating", "bookDetailFavorite", "data-book-count",
+          "data-book-detail-rating", "bookDetailFavorite", "data-book-count",
           "['favorites','Favoritos']", "bookStartDate", "startDate:today()",
           "editor.baseline", "refreshLibrary()", "function openDetails(id)"):
     assert k in books, "Falta UI libros: "+k
@@ -60,3 +60,12 @@ assert 'id="nx-icon-star"' in index
 assert ".book-rating-star.is-set" in css and ".book-favorite-toggle.active" in css
 assert "versionCode 120" in gradle and "versionName '3.7.27'" in gradle
 print("OK: DB 27→28 sin pérdida, estrellas/corazón independientes, fechas y filtros")
+
+# Los botones interactivos de valoración y favorito pertenecen solo a la ficha.
+editor=books.split("  function openEditor(",1)[1].split("  function saveBook()",1)[0]
+details=books.split("  function openDetails(id)",1)[1].split("  function readFields()",1)[0]
+assert "bookFavorite" not in editor and "data-book-edit-rating" not in editor
+assert "bookDetailFavorite" in details and "data-book-detail-rating" in details
+assert "book-favorite-edit" not in editor
+assert "favorite:editor.favorite" in books and "rating:editor.rating" in books
+assert "if(savedId)openDetails(savedId)" in books
