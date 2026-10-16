@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 25;
+    private static final int DB_VERSION = 26;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
@@ -142,6 +142,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         createNexoFamiliaCompatibilityTables(db);
         createJournalTables(db);
         seedJournalBiblicalLibrary(db);
+        RadicalFaceQuoteLibrary.seed(db);
         createMedicationTables(db);
         createPeopleTables(db);
     }
@@ -238,6 +239,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         if (oldVersion < 25 && !columnExists(db, "journal_entries", "revisit")) {
             db.execSQL("ALTER TABLE journal_entries ADD COLUMN revisit INTEGER NOT NULL DEFAULT 0");
+        }
+        if (oldVersion < 26) {
+            // Amplía sin borrar ni reescribir las frases anteriores o las del usuario.
+            RadicalFaceQuoteLibrary.seed(db);
         }
     }
 
