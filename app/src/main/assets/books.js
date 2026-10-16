@@ -117,10 +117,13 @@ window.NexoBooks = (() => {
   function updateForm(){
     const select=document.querySelector('#bookStatus');if(!select)return;
     const status=select.value,slider=document.querySelector('#bookProgress');
+    const want=status==='want';
+    document.querySelector('#bookReadingFields')?.classList.toggle('hidden',want);
     document.querySelector('#bookFinishRow')?.classList.toggle('hidden',status!=='finished');
     document.querySelector('#bookAbandonedRow')?.classList.toggle('hidden',status!=='abandoned');
     if(slider){
-      if(status==='finished')slider.value='100';
+      if(want)slider.value='0';
+      else if(status==='finished')slider.value='100';
       else if(Number(slider.value)>=100)slider.value='99';
       const label=document.querySelector('#bookProgressValue');
       if(label)label.textContent=slider.value+'%';
@@ -133,24 +136,23 @@ window.NexoBooks = (() => {
   function openEditor(id=0,initialStatus=''){
     const source=Number(id)?parseNative(NexoNative.getBook(Number(id)),{}):{};
     if(id&&!source.id){toast('Libro no encontrado.');render();return;}
-    const status=source.status||initialStatus||(tab==='want'?'want':'reading');
-    const want=status==='want';
+    const status=source.status||initialStatus||(filter==='all'?'want':filter);
     openModal(id?'Editar libro':'Nuevo libro',`<div class="modal-form book-editor">
       <label>Título<input id="bookTitle" type="text" maxlength="250" value="${escAttr(source.title||'')}" placeholder="Título del libro" required></label>
       <label>Autor<input id="bookAuthor" type="text" maxlength="180" value="${escAttr(source.author||'')}" placeholder="Nombre del autor" required></label>
-      ${want?'':`<label>Estado de lectura<select id="bookStatus">
-        <option value="reading" ${status==='reading'?'selected':''}>En lectura</option>
-        <option value="finished" ${status==='finished'?'selected':''}>Terminado</option>
-        <option value="abandoned" ${status==='abandoned'?'selected':''}>Abandonado</option>
+      <label>Estado de lectura<select id="bookStatus">
+        ${Object.entries(labels).map(([key,label])=>`<option value="${key}" ${status===key?'selected':''}>${esc(label)}</option>`).join('')}
       </select></label>
-      <div class="book-slider-heading"><label for="bookProgress">Progreso de lectura</label><strong id="bookProgressValue">${Number(source.progress)||0}%</strong></div>
-      <input id="bookProgress" type="range" min="0" max="100" step="1" value="${Number(source.progress)||0}">
-      <div class="book-slider-ends"><small>0 % · Sin empezar</small><small>100 % · Terminado</small></div>
-      <label id="bookFinishRow" class="hidden">Fecha de finalización<input id="bookFinishDate" type="date" value="${escAttr(source.finishDate||'')}"></label>
-      <label id="bookAbandonedRow" class="hidden">Fecha de abandono<input id="bookAbandonedDate" type="date" value="${escAttr(source.abandonedDate||'')}"></label>
-      <label>Mi resumen personal <span class="optional">(opcional)</span><textarea id="bookSummary" rows="5" maxlength="20000" placeholder="Ideas, conclusiones y cosas que quieras recordar…">${esc(source.summary||'')}</textarea></label>
-      <button id="bookDictate" class="secondary-button book-dictate" type="button">${uiIcon('mic')} Dictar resumen</button>
-      <small class="muted">El dictado se convierte a texto editable; no se almacena audio.</small>`}
+      <div id="bookReadingFields">
+        <div class="book-slider-heading"><label for="bookProgress">Progreso de lectura</label><strong id="bookProgressValue">${Number(source.progress)||0}%</strong></div>
+        <input id="bookProgress" type="range" min="0" max="100" step="1" value="${Number(source.progress)||0}">
+        <div class="book-slider-ends"><small>0 % · Sin empezar</small><small>100 % · Terminado</small></div>
+        <label id="bookFinishRow" class="hidden">Fecha de finalización<input id="bookFinishDate" type="date" value="${escAttr(source.finishDate||'')}"></label>
+        <label id="bookAbandonedRow" class="hidden">Fecha de abandono<input id="bookAbandonedDate" type="date" value="${escAttr(source.abandonedDate||'')}"></label>
+        <label>Mi resumen personal <span class="optional">(opcional)</span><textarea id="bookSummary" rows="5" maxlength="20000" placeholder="Ideas, conclusiones y cosas que quieras recordar…">${esc(source.summary||'')}</textarea></label>
+        <button id="bookDictate" class="secondary-button book-dictate" type="button">${uiIcon('mic')} Dictar resumen</button>
+        <small class="muted">El dictado se convierte a texto editable; no se almacena audio.</small>
+      </div>
       <p class="book-form-error hidden" id="bookError" role="alert"></p>
     </div>
     <div class="modal-actions">
@@ -158,22 +160,20 @@ window.NexoBooks = (() => {
       <button class="primary-button" id="bookSave" type="button">Guardar libro</button>
     </div>`);
     editor={id:Number(id)||0,baseline:''};
-    if(!want){
-      document.querySelector('#bookStatus').addEventListener('change',updateForm);
-      document.querySelector('#bookProgress').addEventListener('input',e=>{
-        if(Number(e.target.value)===100)document.querySelector('#bookStatus').value='finished';
-        else if(document.querySelector('#bookStatus').value==='finished')document.querySelector('#bookStatus').value='reading';
-        updateForm();
-      });
-      document.querySelector('#bookDictate').addEventListener('click',()=>{
-        startManagedDictation('book-summary',{
-          base:document.querySelector('#bookSummary')?.value||'',
-          title:'DICTAR RESUMEN DEL LIBRO',
-          hint:'Explica lo que te ha parecido el libro y pulsa TERMINAR.'
-        });
-      });
+    document.querySelector('#bookStatus').addEventListener('change',updateForm);
+    document.querySelector('#bookProgress').addEventListener('input',e=>{
+      if(Number(e.target.value)===100)document.querySelector('#bookStatus').value='finished';
+      else if(document.querySelector('#bookStatus').value==='finished')document.querySelector('#bookStatus').value='reading';
       updateForm();
-    }
+    });
+    document.querySelector('#bookDictate').addEventListener('click',()=>{
+      startManagedDictation('book-summary',{
+        base:document.querySelector('#bookSummary')?.value||'',
+        title:'DICTAR RESUMEN DEL LIBRO',
+        hint:'Explica lo que te ha parecido el libro y pulsa TERMINAR.'
+      });
+    });
+    updateForm();
     editor.baseline=JSON.stringify(readFields());
     document.querySelector('#bookCancel').addEventListener('click',()=>closeModal());
     document.querySelector('#bookSave').addEventListener('click',saveBook);
@@ -191,7 +191,9 @@ window.NexoBooks = (() => {
     if(!result.ok){
       error.textContent=result.error||'No se pudo guardar el libro.';error.classList.remove('hidden');return;
     }
-    editor=null;closeModal();render();toast('Libro guardado correctamente.');
+    editor=null;closeModal();
+    if(filter!=='all'&&filter!==payload.status)filter=payload.status;
+    render();toast('Libro guardado correctamente.');
   }
 
   function startBook(id){
@@ -201,14 +203,14 @@ window.NexoBooks = (() => {
       id,title:b.title,author:b.author,status:'reading',progress:0,finishDate:'',abandonedDate:'',summary:''
     })),{ok:false});
     if(!r.ok){toast(r.error||'No se pudo empezar la lectura.');return;}
-    tab='read';search='';render();toast('Libro movido a Leídos y empezados.');
+    closeModal();filter='reading';search='';render();toast('Libro movido a En lectura.');
   }
 
   function removeBook(id){
     const b=books.find(x=>Number(x.id)===id);if(!b)return;
     confirmGeneric('Eliminar libro','¿Eliminar “'+b.title+'” de tu biblioteca?',()=>{
       const ok=NexoNative.deleteBook(id);toast(ok?'Libro eliminado.':'No se pudo eliminar el libro.');
-      if(ok)render();
+      if(ok){closeModal();render();}
     });
   }
 
