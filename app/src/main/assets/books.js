@@ -159,7 +159,7 @@ window.NexoBooks = (() => {
       <button class="secondary-button" id="bookCancel" type="button">Cancelar</button>
       <button class="primary-button" id="bookSave" type="button">Guardar libro</button>
     </div>`);
-    editor={id:Number(id)||0,baseline:''};
+    editor={id:Number(id)||0,baseline:'',sourceStatus:source.status||'',hadReadData:!!(source.progress||source.finishDate||source.abandonedDate||source.summary)};
     document.querySelector('#bookStatus').addEventListener('change',updateForm);
     document.querySelector('#bookProgress').addEventListener('input',e=>{
       if(Number(e.target.value)===100)document.querySelector('#bookStatus').value='finished';
@@ -187,13 +187,20 @@ window.NexoBooks = (() => {
       error.textContent='Indica el título y el autor.';error.classList.remove('hidden');
       (!payload.title?document.querySelector('#bookTitle'):document.querySelector('#bookAuthor')).focus();return;
     }
-    const result=parseNative(NexoNative.saveBook(JSON.stringify(payload)),{ok:false});
-    if(!result.ok){
-      error.textContent=result.error||'No se pudo guardar el libro.';error.classList.remove('hidden');return;
-    }
-    editor=null;closeModal();
-    if(filter!=='all'&&filter!==payload.status)filter=payload.status;
-    render();toast('Libro guardado correctamente.');
+    const commit=()=>{
+      const result=parseNative(NexoNative.saveBook(JSON.stringify(payload)),{ok:false});
+      if(!result.ok){
+        error.textContent=result.error||'No se pudo guardar el libro.';error.classList.remove('hidden');return;
+      }
+      editor=null;closeModal();
+      if(filter!=='all'&&filter!==payload.status)filter=payload.status;
+      render();toast('Libro guardado correctamente.');
+    };
+    if(payload.status==='want'&&editor.id&&editor.sourceStatus!=='want'&&editor.hadReadData){
+      confirmGeneric('Volver a Quiero leer',
+        'Este cambio reiniciará el progreso y borrará las fechas y el resumen del libro. ¿Quieres continuar?',
+        commit,'Mover a pendientes');
+    }else commit();
   }
 
   function startBook(id){
