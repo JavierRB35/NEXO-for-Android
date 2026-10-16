@@ -815,11 +815,14 @@ function showRandomCalendarQuote(){
 }
 
 function updateHeaderWeather(data){
-  const btn=$('#headerWeatherBtn'),icon=$('#headerWeatherIcon'),temp=$('#headerWeatherTemp');
+  const btn=$('#headerWeatherBtn'),icon=$('#headerWeatherIcon'),temp=$('#headerWeatherTemp'),place=$('#headerWeatherPlace');
   if(!btn||!icon||!temp)return;
+  const location=String(data?.name||'').trim();
+  if(place){place.textContent=location||'Ubicación…';place.title=location;}
   if(!data||!data.ok||!Number.isFinite(Number(data.temperature))){
     icon.textContent='⛅';temp.textContent='—°';
     const message=data?.reason==='permission'?'Permite la ubicación de Nexo para ver la temperatura':
+      data?.reason==='location'?'No hay coordenadas recientes y fiables':
       'No se ha podido obtener el tiempo actual';
     btn.setAttribute('aria-label',message+'. Toca para consultar la previsión');
     btn.title=message;
@@ -836,9 +839,11 @@ function updateHeaderWeather(data){
   else if(code>=95)symbol='⛈️';
   icon.textContent=symbol;
   temp.textContent=Math.round(Number(data.temperature))+'°';
-  const label='Temperatura aproximada actual '+temp.textContent+'C. Toca para ver la previsión detallada';
+  const label='Temperatura actual aproximada '+temp.textContent+'C en '+(location||'ubicación no identificada')+
+    (data.approximate?' (posición aproximada)':'')+'. Toca para ver la previsión detallada';
   btn.setAttribute('aria-label',label);
   btn.title=label+' · Open-Meteo';
+  if(state.screen==='more')renderWeatherSettings();
 }
 
 function journalPromptText(j){
@@ -2275,6 +2280,57 @@ function renderTranscriptionQualitySettings(){
   }));
 }
 
+let weatherPlaceCandidates=[];
+
+function renderWeatherSettings(){
+  const mode=$('#weatherLocationMode'),fields=$('#weatherManualFields'),status=$('#weatherLocationStatus');
+  if(!mode||!fields||!status)return;
+  const settings=parseNative(NexoNative.getHeaderWeatherSettings(),{});
+  const actual=settings.mode==='manual'?'manual':'automatic';
+  // No descartar una búsqueda manual aún no confirmada por recibir el tiempo.
+  if(mode.dataset.pending!=='manual')mode.value=actual;
+  fields.classList.toggle('hidden',mode.value!=='manual');
+  const current=String(settings.manualLabel||'').trim();
+  status.textContent=actual==='manual'
+    ? 'Localidad seleccionada: '+(current||'pendiente de configurar')
+    : settings.hasFinePermission
+      ? 'Ubicación actual · GPS preciso permitido por Android.'
+      : settings.hasCoarsePermission
+        ? 'Ubicación actual aproximada. Activa la ubicación precisa en los permisos de Android para mejorarla.'
+        : 'Sin permiso de ubicación. Puedes permitirlo o seleccionar una población manualmente.';
+}
+
+function lookupWeatherPlaces(){
+  const input=$('#weatherPlaceQuery'),results=$('#weatherPlaceResults');
+  if(!input||!results)return;
+  const q=input.value.trim();
+  if(q.length<2){results.textContent='Escribe al menos dos letras.';return;}
+  weatherPlaceCandidates=[];
+  results.textContent='Buscando poblaciones…';
+  NexoNative.searchHeaderWeatherPlaces(q);
+}
+
+function renderWeatherPlaceResults(response){
+  const results=$('#weatherPlaceResults');
+  if(!results||!$('#weatherManualFields')||$('#weatherManualFields').classList.contains('hidden'))return;
+  if(!response?.ok){results.textContent=String(response?.error||'No se pudieron obtener localidades.');return;}
+  const places=Array.isArray(response.places)?response.places:[];
+  weatherPlaceCandidates=places.filter(x=>Number.isFinite(Number(x.latitude))&&Number.isFinite(Number(x.longitude))&&String(x.name||'').trim());
+  if(!weatherPlaceCandidates.length){results.textContent='No se han encontrado poblaciones. Añade provincia o país para precisar.';return;}
+  results.innerHTML=weatherPlaceCandidates.map((p,i)=>`<button type="button" class="weather-place-choice" data-weather-choice="${i}">${esc(p.label||p.name)}</button>`).join('');
+  results.querySelectorAll('[data-weather-choice]').forEach(b=>b.addEventListener('click',()=>{
+    const chosen=weatherPlaceCandidates[Number(b.dataset.weatherChoice)];
+    if(!chosen)return;
+    const ok=NexoNative.setHeaderWeatherManualPlace(JSON.stringify(chosen));
+    if(!ok){toast('No se pudo guardar la población.');return;}
+    const mode=$('#weatherLocationMode');
+    if(mode)mode.dataset.pending='';
+    results.textContent='Localidad guardada: '+chosen.label;
+    renderWeatherSettings();
+    toast('El tiempo se mostrará para '+chosen.name+'.');
+  }));
+}
+
 function renderMore(){
   $('#startScreen').value=String(NexoNative.getStartScreen()||'today');
   const lists=parseNative(NexoNative.getLists(),[]),preferred=Number(NexoNative.getPreferredShoppingList())||0;
@@ -2282,6 +2338,7 @@ function renderMore(){
   $('#preferredShoppingList').value=lists.some(l=>Number(l.id)===preferred)?String(preferred):'0';
   $$('[data-display-mode]').forEach(b=>{const selected=b.dataset.displayMode===state.displayMode;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
   renderPeopleSettings();
+  renderWeatherSettings();
   renderTranscriptionQualitySettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
@@ -3353,6 +3410,7 @@ function renderMedicationsPanel(){
 
 window.NexoUI={
   onHeaderWeather(raw){updateHeaderWeather(parseNative(raw,{}));},
+  onHeaderWeatherPlaces(raw){renderWeatherPlaceResults(parseNative(raw,{}));},
   receiveImportPreview(raw){
     const p=parseNative(raw,{}),entity=p.entity||'item',typeLabel=entity==='list'?'Lista':entity==='journal'?'Cuaderno':'Elemento';
     const date=p.dueAt?fmtDate(Number(p.dueAt),p.hasTime!==false):'',where=p.locationText||'';
@@ -3612,6 +3670,20 @@ function init(){
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else navigate(b.dataset.nav,{root:true});}));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   $('#headerWeatherBtn')?.addEventListener('click',()=>NexoNative.openHeaderWeather());
+  $('#weatherLocationMode')?.addEventListener('change',e=>{
+    const mode=e.target.value;
+    if(mode==='automatic'){
+      e.target.dataset.pending='';
+      NexoNative.setHeaderWeatherAutomatic();
+      $('#weatherPlaceResults').textContent='';
+      toast('Tiempo: ubicación actual del teléfono.');
+    }else e.target.dataset.pending='manual';
+    renderWeatherSettings();
+  });
+  $('#weatherPlaceSearch')?.addEventListener('click',lookupWeatherPlaces);
+  $('#weatherPlaceQuery')?.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();lookupWeatherPlaces();}
+  });
   setInterval(()=>{if(!document.hidden)NexoNative.refreshHeaderWeather();},20*60*1000);
   $('#calendarDailyQuoteGuide')?.addEventListener('toggle',e=>{
     if(e.target.open)showRandomCalendarQuote();

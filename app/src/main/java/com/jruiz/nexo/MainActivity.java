@@ -138,7 +138,9 @@ public class MainActivity extends Activity {
         db = new DatabaseHelper(getApplicationContext());
         service = new NexoService(this, db);
         familiaCloudSync = new NexoFamiliaCloudSync(getApplicationContext(), db);
-        headerWeather = new HeaderWeather(this, data -> jsCallbackJson("onHeaderWeather", data));
+        headerWeather = new HeaderWeather(this,
+                data -> jsCallbackJson("onHeaderWeather", data),
+                data -> jsCallbackJson("onHeaderWeatherPlaces", data));
         // Reparación local, segura e idempotente: las reservas antiguas recuperan
         // su subtipo antes de que el Calendario se pinte. No necesita red.
         try { db.repairNexoFamiliaVehicleReservationMarkers(); } catch (Exception ignored) {}
@@ -2377,6 +2379,18 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openWeather() { MainActivity.this.openWeather(); }
         @JavascriptInterface public void openHeaderWeather() { if (headerWeather != null) headerWeather.openDetails(); }
         @JavascriptInterface public void refreshHeaderWeather() { if (headerWeather != null) headerWeather.refresh(false); }
+        @JavascriptInterface public String getHeaderWeatherSettings() {
+            return headerWeather == null ? "{}" : headerWeather.getSettings().toString();
+        }
+        @JavascriptInterface public void setHeaderWeatherAutomatic() {
+            if (headerWeather != null) headerWeather.useAutomatic();
+        }
+        @JavascriptInterface public boolean setHeaderWeatherManualPlace(String json) {
+            return headerWeather != null && headerWeather.chooseManual(json);
+        }
+        @JavascriptInterface public void searchHeaderWeatherPlaces(String query) {
+            if (headerWeather != null) headerWeather.searchPlaces(query);
+        }
         @JavascriptInterface public void openExternal(String url) { if (url != null && (url.startsWith("https://")||url.startsWith("http://"))) MainActivity.this.openExternal(url); }
     }
 }
