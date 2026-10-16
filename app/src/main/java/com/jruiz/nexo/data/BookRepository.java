@@ -121,6 +121,8 @@ public final class BookRepository {
         if (rating < 0 || rating > 5)
             return result(false, "La valoración debe estar entre 0 y 5 estrellas.", 0);
         boolean favorite = input.optBoolean("favorite", false);
+        // No asignar la fecha de hoy a libros históricos sin fecha al editar solo sus estrellas o corazón.
+        String previousStatus = id > 0 ? get(helper, id).optString("status", "") : "";
         if (summary.length() > 20000)
             return result(false, "El resumen supera los 20.000 caracteres.", 0);
 
@@ -134,11 +136,11 @@ public final class BookRepository {
             status = "finished";
             progress = 100;
             abandonedDate = "";
-            if (finishDate.isEmpty()) finishDate = LocalDate.now().toString();
+            if (finishDate.isEmpty() && !"finished".equals(previousStatus)) finishDate = LocalDate.now().toString();
         } else if ("abandoned".equals(status)) {
             progress = Math.min(progress, 99);
             finishDate = "";
-            if (abandonedDate.isEmpty()) abandonedDate = LocalDate.now().toString();
+            if (abandonedDate.isEmpty() && !"abandoned".equals(previousStatus)) abandonedDate = LocalDate.now().toString();
         } else {
             finishDate = "";
             abandonedDate = "";
