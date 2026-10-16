@@ -1,3 +1,12 @@
+## Nexo 3.7.26 — Libros: fichas compactas y filtros por estado
+
+- Tarjetas de biblioteca en formato compacto, sin botones de editar, empezar o eliminar en el listado. Icono de estado a la izquierda y solo título, autor y porcentaje si procede.
+- Iconos diferentes y codificación cromática clara: pendiente (marcapáginas ámbar), leyendo (libro abierto azul), terminado (libro con marca verde) y abandonado (libro con aspa roja).
+- Selector bajo el buscador con cinco filtros: Todos, Quiero leer, En lectura, Terminado y Abandonado. La búsqueda incremental por título/autor continúa funcionando sin acentos y ahora respeta el filtro activo.
+- Al tocar una tarjeta se abre la ficha con todos los datos, resumen completo, fechas y las acciones Editar / Eliminar / Empezar lectura según corresponda.
+- El editor ofrece los cuatro estados para libros nuevos y existentes, incluyendo pasar de cualquier estado a Quiero leer. Confirma antes de perder información si ese cambio borrará progreso, fechas o resumen.
+- versionCode 119, versionName 3.7.26; esquema de base de datos 27, firma Release y entorno AndroidIDE sin cambios.
+
 ## Nexo 3.7.25 — Ubicación del tiempo fiable y manual
 
 - Cabecera: símbolo del tiempo y temperatura algo más grandes, nombre de la localidad debajo, separación mayor respecto al engranaje y áreas táctiles diferenciadas.

@@ -3,6 +3,7 @@ set -eu
 cd "$(dirname "$0")/.."
 node --check app/src/main/assets/app.js
 node --check app/src/main/assets/books.js
+python validation/test-books-compact.py
 python validation/test-weather-header.py
 node --check app/src/main/assets/navigation.js
 sh -n build-on-phone.sh
