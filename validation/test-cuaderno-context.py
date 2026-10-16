@@ -36,7 +36,7 @@ assert 'id="journalEdit"' in app
 assert "setTimeout(()=>openJournalComposer('',isQuote?'quote':'',Number(j.id)),60)" in app
 
 # Releer es una marca persistente.
-assert "DB_VERSION = 28" in db
+assert "DB_VERSION = 29" in db
 assert '"revisit INTEGER NOT NULL DEFAULT 0,"' in db
 assert 'ALTER TABLE journal_entries ADD COLUMN revisit INTEGER NOT NULL DEFAULT 0' in db
 assert 'v.put("revisit", in.optBoolean("revisit", false) ? 1 : 0);' in db
