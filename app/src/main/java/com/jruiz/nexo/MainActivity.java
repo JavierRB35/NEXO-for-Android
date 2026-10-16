@@ -112,6 +112,7 @@ public class MainActivity extends Activity {
     private LocationListener parkingNetworkListener;
     private Location bestParkingLocation;
     private boolean parkingCaptureActive = false;
+    private boolean parkingCaptureForPlace = false;
     private final Handler parkingHandler = new Handler(Looper.getMainLooper());
     private static final long PARKING_TIMEOUT_MS = 9000L;
     private static final float PARKING_GOOD_ACCURACY_M = 20f;
@@ -1484,6 +1485,7 @@ public class MainActivity extends Activity {
     private void exportTranscription(String id){runOnUiThread(()->{try{String text=TranscriptionStore.read(this,id);if(text.isBlank())throw new IllegalStateException();String base=RecordingStore.title(this,id).replaceAll("[^\\p{L}\\p{N}._ -]+","_").trim();if(base.isEmpty())base="Transcripcion_Nexo";String fileName=base+".txt";if(Build.VERSION.SDK_INT>=29){ContentValues v=new ContentValues();v.put(MediaStore.MediaColumns.DISPLAY_NAME,fileName);v.put(MediaStore.MediaColumns.MIME_TYPE,"text/plain");v.put(MediaStore.MediaColumns.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/Nexo");Uri u=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,v);if(u==null)throw new IOException();try(OutputStream out=getContentResolver().openOutputStream(u,"w")){if(out==null)throw new IOException();out.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));}Toast.makeText(this,"Transcripción guardada en Descargas/Nexo",Toast.LENGTH_LONG).show();}else{Intent share=new Intent(Intent.ACTION_SEND);share.setType("text/plain");share.putExtra(Intent.EXTRA_TEXT,text);startActivity(Intent.createChooser(share,"Guardar transcripción"));}}catch(Exception e){Toast.makeText(this,"No se pudo guardar la transcripción",Toast.LENGTH_SHORT).show();}});}
 
     private void requestParking(String note) {
+        parkingCaptureForPlace = false;
         pendingParkingNote = note == null ? "" : note.trim();
         runOnUiThread(() -> {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -1493,11 +1495,37 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void requestPlaceHere() {
+        runOnUiThread(() -> {
+            parkingCaptureForPlace = true;
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                    checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOCATION);
+            } else captureParkingLocation();
+        });
+    }
+
+    private void sendPlaceHere(Location loc, boolean needsConfirmation) {
+        if (loc == null) {jsCallback("onPlaceLocationError","No se ha obtenido una ubicación actual. Vuelve a intentarlo.");return;}
+        try {
+            JSONObject response=new JSONObject();
+            response.put("latitude",loc.getLatitude());
+            response.put("longitude",loc.getLongitude());
+            response.put("accuracy",Math.round(parkingAccuracy(loc)));
+            response.put("approximate",needsConfirmation);
+            jsCallbackJson("onPlaceLocation",response);
+        } catch(Exception e) {
+            jsCallback("onPlaceLocationError","No se han podido preparar las coordenadas.");
+        }
+    }
+
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_LOCATION) {
             boolean ok = false; for (int r:grantResults) if (r == PackageManager.PERMISSION_GRANTED) ok = true;
-            if (ok) captureParkingLocation(); else jsCallback("onParkingError", "Necesito permiso de ubicación para guardar dónde has aparcado.");
+            if (ok) captureParkingLocation();
+            else if(parkingCaptureForPlace) jsCallback("onPlaceLocationError","Necesito permiso de ubicación para usar el botón Aquí.");
+            else jsCallback("onParkingError", "Necesito permiso de ubicación para guardar dónde has aparcado.");
         } else if (requestCode == HeaderWeather.REQUEST_LOCATION) {
             if (headerWeather != null) headerWeather.onLocationPermissionResult(grantResults);
         } else if (requestCode == REQ_RECORDING_AUDIO) {
@@ -1559,13 +1587,13 @@ public class MainActivity extends Activity {
         bestParkingLocation = null;
         parkingCaptureActive = true;
         parkingLocationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
-        if (parkingLocationManager == null) { parkingCaptureActive = false; jsCallback("onParkingError","Ubicación no disponible."); return; }
+        if (parkingLocationManager == null) { parkingCaptureActive = false; jsCallback(parkingCaptureForPlace?"onPlaceLocationError":"onParkingError","Ubicación no disponible."); return; }
 
         boolean fine = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         boolean coarse = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         boolean gps = parkingLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean network = parkingLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        if (!gps && !network) { parkingCaptureActive = false; jsCallback("onParkingError","Activa la ubicación para guardar el aparcamiento."); return; }
+        if (!gps && !network) { parkingCaptureActive = false; jsCallback(parkingCaptureForPlace?"onPlaceLocationError":"onParkingError","Activa la ubicación del teléfono para continuar."); return; }
 
         parkingGpsListener = new LocationListener() {
             @Override public void onLocationChanged(Location location) { considerParkingLocation(location); }
@@ -1598,7 +1626,7 @@ public class MainActivity extends Activity {
             }
         } catch (SecurityException ignored) {}
 
-        if (!requested) { parkingCaptureActive = false; stopParkingLocationSearch(); jsCallback("onParkingError","No puedo acceder a una fuente de ubicación válida."); return; }
+        if (!requested) { parkingCaptureActive = false; stopParkingLocationSearch(); jsCallback(parkingCaptureForPlace?"onPlaceLocationError":"onParkingError","No puedo acceder a una fuente de ubicación válida."); return; }
         parkingHandler.postDelayed(this::finishParkingLocationSearch, PARKING_TIMEOUT_MS);
     }
 
@@ -1622,7 +1650,8 @@ public class MainActivity extends Activity {
             Location chosen = new Location(location);
             parkingCaptureActive = false;
             stopParkingLocationSearch();
-            saveParkingLocation(chosen);
+            if (parkingCaptureForPlace) sendPlaceHere(chosen,false);
+            else saveParkingLocation(chosen);
         }
     }
 
@@ -1632,12 +1661,17 @@ public class MainActivity extends Activity {
         parkingHandler.removeCallbacksAndMessages(null);
         stopParkingLocationListenersOnly();
         if (bestParkingLocation == null) {
-            jsCallback("onParkingError","No he podido obtener una ubicación reciente. Sal a una zona con mejor señal e inténtalo de nuevo.");
+            jsCallback(parkingCaptureForPlace?"onPlaceLocationError":"onParkingError","No he podido obtener una ubicación reciente. Inténtalo de nuevo al aire libre.");
             return;
         }
         float accuracy = parkingAccuracy(bestParkingLocation);
         if (accuracy <= PARKING_ACCEPTABLE_ACCURACY_M) {
-            saveParkingLocation(new Location(bestParkingLocation));
+            if (parkingCaptureForPlace) sendPlaceHere(new Location(bestParkingLocation),false);
+            else saveParkingLocation(new Location(bestParkingLocation));
+            return;
+        }
+        if (parkingCaptureForPlace) {
+            sendPlaceHere(new Location(bestParkingLocation),true);
             return;
         }
         try {
@@ -2326,6 +2360,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public int deleteCheckedListEntries(long listId) { return db.deleteCheckedListEntries(listId); }
         @JavascriptInterface public String getLastParking() { return db.getLastParking().toString(); }
         @JavascriptInterface public void saveParking(String note) { requestParking(note); }
+        @JavascriptInterface public void requestPlaceHere() { MainActivity.this.requestPlaceHere(); }
         @JavascriptInterface public void confirmParkingLocation() { runOnUiThread(MainActivity.this::confirmParkingLocation); }
         @JavascriptInterface public void retryParkingLocation() { runOnUiThread(MainActivity.this::captureParkingLocation); }
         @JavascriptInterface public void openParkingDirections() { MainActivity.this.openParkingDirections(); }
