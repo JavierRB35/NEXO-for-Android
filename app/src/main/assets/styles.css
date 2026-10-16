@@ -2912,3 +2912,52 @@ body.startup-loading #app{visibility:hidden}
   #settingsBtn{margin-left:10px}
   .header-weather-attribution{flex-basis:11px;min-width:11px}
 }
+
+/* Libros 3.7.26: tarjetas de lectura de dos líneas, sin botoneras en la lista. */
+.books-library{gap:10px}
+.books-stack{gap:7px}
+.books-status-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.books-status-filter{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:37px;padding:6px 9px;border:1px solid #dce4ed;border-radius:11px;background:#fff;color:#49596b;font-size:.77rem;font-weight:800;cursor:pointer}
+.books-status-filter .ui-icon{width:16px;height:16px}
+.books-status-filter.active{background:#e8f1fe;border-color:#659bd6;color:#1457a9;box-shadow:0 0 0 1px rgba(52,124,204,.13)}
+.books-status-filter:focus-visible{outline:2px solid #2c78b6;outline-offset:1px}
+.book-card{border-radius:13px;box-shadow:0 2px 8px rgba(20,35,60,.03)}
+.book-card-main{display:grid;grid-template-columns:41px minmax(0,1fr) 17px;align-items:center;gap:10px;padding:9px 11px;min-height:61px;text-align:left}
+.book-card-main:active{background:#f5f8fd}
+.book-card-symbol{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;border-radius:12px}
+.book-card-symbol .ui-icon{width:24px;height:24px;stroke:currentColor;stroke-width:1.8;fill:none}
+.book-card-symbol--want{background:#fff1d9;color:#ad690e}
+.book-card-symbol--reading{background:#e6f0ff;color:#245fd1}
+.book-card-symbol--finished{background:#def6e8;color:#16855b}
+.book-card-symbol--abandoned{background:#ffe6e7;color:#c63845}
+.book-card-copy{display:grid;gap:3px;min-width:0}
+.book-card-title{font-size:.91rem;line-height:1.2;font-weight:830;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.book-card-subline{display:flex;align-items:center;gap:7px;min-width:0}
+.book-card-subline .book-author{font-size:.77rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.book-card-percent{font-size:.74rem;font-weight:850;color:var(--navy);white-space:nowrap}
+.book-card-chevron{color:#9aa9b9;line-height:0}
+.book-card-chevron .ui-icon{width:16px;height:16px}
+.book-detail{display:grid;gap:15px}
+.book-detail-head{display:flex;align-items:flex-start;gap:12px}
+.book-detail-head .book-card-symbol{width:49px;height:49px}
+.book-detail-head .book-card-symbol .ui-icon{width:29px;height:29px}
+.book-detail-heading{min-width:0;flex:1;display:grid;gap:7px}
+.book-detail-heading h3{margin:0;font-size:1.19rem;line-height:1.32;overflow-wrap:anywhere}
+.book-detail-heading p{margin:0;color:var(--muted);font-size:.92rem;overflow-wrap:anywhere}
+.book-detail-heading .book-status{justify-self:start}
+.book-detail-section{display:grid;gap:9px;border-top:1px solid var(--line);padding-top:12px}
+.book-detail-section>strong{font-size:.88rem}
+.book-detail .book-progress-row{margin-top:0}
+.book-detail-date{margin:0;color:var(--text);font-size:.86rem}
+.book-detail-summary{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;font-size:.93rem}
+.book-detail-actions{margin-top:17px}
+.book-detail-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.book-detail-actions .ui-icon{width:17px;height:17px}
+#bookReadingFields{display:grid;gap:14px}
+#bookReadingFields.hidden{display:none}
+@media(max-width:420px){
+  .book-card-main{grid-template-columns:38px minmax(0,1fr) 16px;gap:9px;min-height:58px;padding:7px 9px}
+  .book-card-symbol{width:38px;height:38px}
+  .book-card-symbol .ui-icon{width:23px;height:23px}
+  .books-status-filter{font-size:.72rem;padding:6px 8px;min-height:36px}
+}
