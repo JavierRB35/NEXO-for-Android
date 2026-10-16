@@ -35,6 +35,7 @@ import com.jruiz.nexo.calendar.HolidayCalendarService;
 import com.jruiz.nexo.exchange.NexoExchangeManager;
 import com.jruiz.nexo.backup.NexoBackupManager;
 import com.jruiz.nexo.data.DatabaseHelper;
+import com.jruiz.nexo.data.BookRepository;
 import com.jruiz.nexo.reminders.ReminderScheduler;
 import com.jruiz.nexo.medications.MedicationScheduler;
 import com.jruiz.nexo.medications.MedicationVoiceSpeaker;
@@ -1931,6 +1932,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
         @JavascriptInterface public String getAppointments() { return db.getAppointments().toString(); }
+        @JavascriptInterface public String getBooks() { return BookRepository.list(db).toString(); }
+        @JavascriptInterface public String getBook(long id) { return BookRepository.get(db, id).toString(); }
+        @JavascriptInterface public String saveBook(String json) {
+            try { return BookRepository.save(db, new JSONObject(json)).toString(); }
+            catch (Exception e) { return "{\"ok\":false,\"error\":\"Datos del libro no válidos.\"}"; }
+        }
+        @JavascriptInterface public boolean deleteBook(long id) { return BookRepository.delete(db, id); }
         @JavascriptInterface public void startVoiceInput() { MainActivity.this.startVoiceInput(); }
         @JavascriptInterface public void startManagedVoice() { MainActivity.this.startManagedVoice(); }
         @JavascriptInterface public void stopManagedVoice() { MainActivity.this.stopManagedVoice(); }
