@@ -7,6 +7,7 @@ python validation/test-books-compact.py
 python validation/test-books-full.py
 python validation/test-places-library.py
 python validation/test-weather-header.py
+node validation/test-weather-startup-runtime.mjs
 node --check app/src/main/assets/navigation.js
 sh -n build-on-phone.sh
 sh -n build-debug-on-phone.sh
