@@ -60,6 +60,7 @@ import com.jruiz.nexo.input.GmailWatchEngine;
 import com.jruiz.nexo.input.GmailWatchScheduler;
 import com.jruiz.nexo.migration.NexoFamiliaImporter;
 import com.jruiz.nexo.migration.NexoFamiliaCloudSync;
+import com.jruiz.nexo.weather.HeaderWeather;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -129,12 +130,14 @@ public class MainActivity extends Activity {
     private volatile boolean startupInboxScanRunning = false;
     private boolean firstResumeAfterCreate = true;
     private NexoFamiliaCloudSync familiaCloudSync;
+    private HeaderWeather headerWeather;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = new DatabaseHelper(getApplicationContext());
         service = new NexoService(this, db);
         familiaCloudSync = new NexoFamiliaCloudSync(getApplicationContext(), db);
+        headerWeather = new HeaderWeather(this, data -> jsCallbackJson("onHeaderWeather", data));
         // Reparación local, segura e idempotente: las reservas antiguas recuperan
         // su subtipo antes de que el Calendario se pinte. No necesita red.
         try { db.repairNexoFamiliaVehicleReservationMarkers(); } catch (Exception ignored) {}
@@ -197,6 +200,7 @@ public class MainActivity extends Activity {
             jsCallback("onCalendarAccessChanged",
                     checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED ? "1" : "0");
             jsCallback("onInputHubChanged", "resume");
+            if (headerWeather != null) headerWeather.refresh(false);
         }
     }
 
@@ -221,6 +225,7 @@ public class MainActivity extends Activity {
             managedRecognizer = null;
         }
         stopRecordingPlaybackInternal();
+        if (headerWeather != null) headerWeather.close();
         if (webView != null) {
             webView.removeJavascriptInterface("NexoNative");
             webView.destroy();
@@ -256,6 +261,7 @@ public class MainActivity extends Activity {
                 pageReady = true;
                 deliverIncomingIfReady();
                 deliverInboxReviewIfReady();
+                if (headerWeather != null) headerWeather.refresh(true);
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri u = request.getUrl();
@@ -1489,6 +1495,8 @@ public class MainActivity extends Activity {
         if (requestCode == REQ_LOCATION) {
             boolean ok = false; for (int r:grantResults) if (r == PackageManager.PERMISSION_GRANTED) ok = true;
             if (ok) captureParkingLocation(); else jsCallback("onParkingError", "Necesito permiso de ubicación para guardar dónde has aparcado.");
+        } else if (requestCode == HeaderWeather.REQUEST_LOCATION) {
+            if (headerWeather != null) headerWeather.onLocationPermissionResult(grantResults);
         } else if (requestCode == REQ_RECORDING_AUDIO) {
             boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
             if (ok) startRecordingService(); else jsCallback("onRecordingError", "Nexo necesita permiso de micrófono para grabar.");
@@ -2359,6 +2367,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void exportTranscription(String id) { MainActivity.this.exportTranscription(id); }
         @JavascriptInterface public void chooseFile() { runOnUiThread(MainActivity.this::chooseFile); }
         @JavascriptInterface public void openWeather() { MainActivity.this.openWeather(); }
+        @JavascriptInterface public void openHeaderWeather() { if (headerWeather != null) headerWeather.openDetails(); }
         @JavascriptInterface public void openExternal(String url) { if (url != null && (url.startsWith("https://")||url.startsWith("http://"))) MainActivity.this.openExternal(url); }
     }
 }

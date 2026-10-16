@@ -2814,3 +2814,19 @@ body.startup-loading #app{visibility:hidden}
   .day-dots>.calendar-category-marker{flex-basis:12px}
   .calendar-marker-more{min-width:14px;font-size:.55rem}
 }
+
+
+/* Nexo 3.7.22 · frase del día y tiempo en cabecera */
+.header-actions{display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:auto}
+.header-weather-button{display:flex;align-items:center;justify-content:center;gap:4px;min-height:44px;padding:5px 5px;border:0;border-radius:12px;background:transparent;color:#344958;font-size:.9rem;font-weight:850;white-space:nowrap;cursor:pointer}
+.header-weather-button:active{background:#edf2f7}
+.header-weather-button:focus-visible{outline:2px solid #2a7665;outline-offset:2px}
+.header-weather-symbol{font-size:1.15rem;line-height:1.15}
+.calendar-quote-guide{background:#eef4fa;border-top:1px solid #bdcedf}
+.calendar-quote-guide>summary{min-height:38px;padding:10px 12px;color:#395572;cursor:pointer;font-size:.76rem;font-weight:700}
+.calendar-quote-guide>summary:focus-visible{outline:2px solid #427cbb;outline-offset:-2px}
+.calendar-daily-quote{padding:4px 13px 14px;overflow-wrap:anywhere}
+.calendar-daily-quote p{margin:4px 0 5px;color:#2b4157;line-height:1.5;font-size:.83rem;font-style:italic;white-space:pre-wrap}
+.calendar-daily-quote small{color:#65788e;font-size:.75rem;display:block}
+.calendar-daily-quote small.hidden{display:none}
+@media(max-width:380px){.header-weather-button{padding:4px 2px;gap:2px;font-size:.8rem}.header-weather-symbol{font-size:1rem}.header-actions{gap:0}}

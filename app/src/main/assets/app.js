@@ -40,6 +40,7 @@ const state = {
   calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
+  calendarLastQuoteId:0,
   journalFilter:'all', journalSearch:'', journalPick:null, journalEditor:null, quoteEditor:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', journalVoiceId:0, journalVoiceTitle:'', journalVoiceTitleManual:false, journalVoiceFavorite:false, journalVoiceRevisit:false, medicationVoiceBase:'', medicationEditor:null, medicationVoiceEditor:false,
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
   placeFilter:'all', placeSearch:'', places:[], placeEditor:null,
@@ -784,6 +785,57 @@ function renderParkingHomeCard(parking){
     }
   );
   card.classList.remove('hidden');
+}
+
+
+/* El desplegable consulta directamente las frases locales, sin duplicar ni sincronizar datos. */
+function showRandomCalendarQuote(){
+  const textEl=$('#calendarDailyQuoteText'),sourceEl=$('#calendarDailyQuoteSource');
+  if(!textEl||!sourceEl)return;
+  let quotes=[];
+  try{
+    quotes=parseNative(NexoNative.getJournalEntries('','quote',false),[])
+      .filter(j=>j.kind==='quote'&&String(j.body||'').trim());
+  }catch(_){quotes=[];}
+  if(!quotes.length){
+    textEl.textContent='Aún no tienes frases guardadas. Puedes añadirlas en Herramientas → Frases.';
+    sourceEl.textContent='';sourceEl.classList.add('hidden');
+    return;
+  }
+  const choices=quotes.length>1?quotes.filter(j=>Number(j.id)!==state.calendarLastQuoteId):quotes;
+  const selected=choices[Math.floor(Math.random()*choices.length)]||quotes[0];
+  state.calendarLastQuoteId=Number(selected.id)||0;
+  textEl.textContent=String(selected.body||'').trim();
+  const author=String(selected.summary||'').trim();
+  sourceEl.textContent=author;
+  sourceEl.classList.toggle('hidden',!author);
+}
+
+function updateHeaderWeather(data){
+  const btn=$('#headerWeatherBtn'),icon=$('#headerWeatherIcon'),temp=$('#headerWeatherTemp');
+  if(!btn||!icon||!temp)return;
+  if(!data||!data.ok||!Number.isFinite(Number(data.temperature))){
+    icon.textContent='⛅';temp.textContent='—°';
+    const message=data?.reason==='permission'?'Permite la ubicación de Nexo para ver la temperatura':
+      'No se ha podido obtener el tiempo actual';
+    btn.setAttribute('aria-label',message+'. Toca para consultar la previsión');
+    btn.title=message;
+    return;
+  }
+  const code=Number(data.code),day=!!data.isDay;
+  let symbol='🌤️';
+  if(code===0)symbol=day?'☀️':'🌙';
+  else if(code===1||code===2)symbol=day?'🌤️':'☁️';
+  else if(code===3)symbol='☁️';
+  else if(code===45||code===48)symbol='🌫️';
+  else if(code>=51&&code<=67||code>=80&&code<=82)symbol='🌧️';
+  else if(code>=71&&code<=77||code>=85&&code<=86)symbol='❄️';
+  else if(code>=95)symbol='⛈️';
+  icon.textContent=symbol;
+  temp.textContent=Math.round(Number(data.temperature))+'°';
+  const label='Temperatura aproximada actual '+temp.textContent+'C. Toca para ver la previsión detallada';
+  btn.setAttribute('aria-label',label);
+  btn.title=label+' · Open-Meteo';
 }
 
 function journalPromptText(j){
@@ -3293,6 +3345,7 @@ function renderMedicationsPanel(){
 }
 
 window.NexoUI={
+  onHeaderWeather(raw){updateHeaderWeather(parseNative(raw,{}));},
   receiveImportPreview(raw){
     const p=parseNative(raw,{}),entity=p.entity||'item',typeLabel=entity==='list'?'Lista':entity==='journal'?'Cuaderno':'Elemento';
     const date=p.dueAt?fmtDate(Number(p.dueAt),p.hasTime!==false):'',where=p.locationText||'';
@@ -3550,6 +3603,10 @@ function init(){
   setInterpretationStatus('idle','Interpretación local preparada');
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else navigate(b.dataset.nav,{root:true});}));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
+  $('#headerWeatherBtn')?.addEventListener('click',()=>NexoNative.openHeaderWeather());
+  $('#calendarDailyQuoteGuide')?.addEventListener('toggle',e=>{
+    if(e.target.open)showRandomCalendarQuote();
+  });
   $('#brandInfoBtn')?.addEventListener('click',()=>navigate('about'));
   $('#aboutBackBtn')?.addEventListener('click',()=>navigateBack());
   $('#aboutCopyDiagnostics')?.addEventListener('click',copyAboutDiagnostics);

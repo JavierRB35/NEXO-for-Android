@@ -29,7 +29,8 @@
     <header class="topbar"><button id="brandInfoBtn" class="brand-row brand-info-button" type="button" aria-label="Información de Nexo">
 <img class="brand-logo" src="nexo-toolbar-logo.png" alt=""><span class="brand-copy"><span class="brand">Nexo</span><small id="headerVersion" class="brand-version"></small></span>
 </button>
-<button id="settingsBtn" class="icon-button" aria-label="Ajustes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg></button></header><main>
+<div class="header-actions"><button id="headerWeatherBtn" class="header-weather-button" type="button" aria-label="Consultar el tiempo" title="Consultar el tiempo"><span id="headerWeatherIcon" class="header-weather-symbol" aria-hidden="true">⛅</span><span id="headerWeatherTemp">—°</span></button>
+<button id="settingsBtn" class="icon-button" aria-label="Ajustes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg></button></div></header><main>
       <section class="screen active family-home" data-screen="today" aria-labelledby="homeNowTitle">
   <section class="family-home-search" aria-label="Búsqueda en Nexo">
     <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg>
@@ -293,6 +294,7 @@
 <div class="calendar-viewport"><div id="calendarGrid" class="calendar-grid" role="group" aria-label="Días del mes"></div></div>
 <p id="holidayCalendarNote" class="holiday-calendar-note hidden" aria-live="polite"></p>
 <details class="calendar-icon-guide"><summary>Iconos de categorías</summary><div id="calendarIconLegend" class="calendar-icon-legend" aria-label="Iconos de las 20 categorías"></div></details>
+<details id="calendarDailyQuoteGuide" class="calendar-quote-guide"><summary>Frase del día</summary><div class="calendar-daily-quote" aria-live="polite"><p id="calendarDailyQuoteText">Abre para leer una de tus frases guardadas en Nexo.</p><small id="calendarDailyQuoteSource" class="hidden"></small></div></details>
 </div>
 <div class="section-title calendar-day-title"><div>
 <h2 id="calendarSelectedTitle" aria-live="polite"></h2>
@@ -418,7 +420,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.21</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.22</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
