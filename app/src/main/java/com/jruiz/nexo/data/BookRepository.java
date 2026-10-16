@@ -7,17 +7,19 @@ import android.database.sqlite.SQLiteDatabase;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
+import java.util.Locale;
 
 /**
- * Biblioteca personal local. Comparte nexo.db y su copia de seguridad.
- * Las fechas se guardan como ISO local (yyyy-MM-dd), sin conversión de zona.
+ * Biblioteca personal local: los campos adicionales son opcionales y la
+ * migración 27 -> 28 no modifica ni elimina libros previos.
  */
 public final class BookRepository {
     private BookRepository() {}
 
     private static final String FIELDS =
-            "id,title,author,status,progress,finish_date,abandoned_date,summary,created_at,updated_at";
+            "id,title,author,status,progress,finish_date,abandoned_date,summary,created_at,updated_at,start_date,favorite,rating";
 
     private static JSONObject result(boolean ok, String error, long id) {
         JSONObject o = new JSONObject();
@@ -42,6 +44,9 @@ public final class BookRepository {
             o.put("summary", c.getString(7));
             o.put("createdAt", c.getLong(8));
             o.put("updatedAt", c.getLong(9));
+            o.put("startDate", c.getString(10));
+            o.put("favorite", c.getInt(11) != 0);
+            o.put("rating", c.getInt(12));
         } catch (Exception ignored) {}
         return o;
     }
@@ -72,6 +77,26 @@ public final class BookRepository {
         catch (Exception e) { return false; }
     }
 
+    private static String bookKey(String value) {
+        String clean = Normalizer.normalize(value.trim(), Normalizer.Form.NFD);
+        return clean.replaceAll("\\p{M}+", "")
+                .replaceAll("\\s+", " ")
+                .toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isDuplicate(SQLiteDatabase db, long exceptId, String title, String author) {
+        final String normTitle = bookKey(title);
+        final String normAuthor = bookKey(author);
+        try (Cursor c = db.rawQuery("SELECT id,title,author FROM books", null)) {
+            while (c.moveToNext()) {
+                if (c.getLong(0) == exceptId) continue;
+                if (normTitle.equals(bookKey(c.getString(1)))
+                        && normAuthor.equals(bookKey(c.getString(2)))) return true;
+            }
+        }
+        return false;
+    }
+
     public static JSONObject save(DatabaseHelper helper, JSONObject input) {
         if (input == null) return result(false, "Datos de libro no válidos.", 0);
         String title = input.optString("title", "").trim();
@@ -87,18 +112,25 @@ public final class BookRepository {
             return result(false, "Estado de lectura no válido.", 0);
 
         int progress = Math.max(0, Math.min(100, input.optInt("progress", 0)));
+        String startDate = input.optString("startDate", "").trim();
         String finishDate = input.optString("finishDate", "").trim();
         String abandonedDate = input.optString("abandonedDate", "").trim();
         String summary = input.optString("summary", "").trim();
+        long id = input.optLong("id", 0);
+        int rating = input.optInt("rating", 0);
+        if (rating < 0 || rating > 5)
+            return result(false, "La valoración debe estar entre 0 y 5 estrellas.", 0);
+        boolean favorite = input.optBoolean("favorite", false);
         if (summary.length() > 20000)
             return result(false, "El resumen supera los 20.000 caracteres.", 0);
 
         if ("want".equals(status)) {
             progress = 0;
+            startDate = "";
             finishDate = "";
             abandonedDate = "";
             summary = "";
-        } else if ("finished".equals(status) || progress == 100 && !"abandoned".equals(status)) {
+        } else if ("finished".equals(status) || (progress == 100 && !"abandoned".equals(status))) {
             status = "finished";
             progress = 100;
             abandonedDate = "";
@@ -112,22 +144,31 @@ public final class BookRepository {
             abandonedDate = "";
         }
 
-        if (!isValidDate(finishDate) || !isValidDate(abandonedDate))
-            return result(false, "Revisa la fecha del libro.", 0);
+        if (!isValidDate(startDate) || !isValidDate(finishDate) || !isValidDate(abandonedDate))
+            return result(false, "Revisa las fechas del libro.", 0);
+        if (!startDate.isEmpty() && !finishDate.isEmpty() && startDate.compareTo(finishDate) > 0)
+            return result(false, "El inicio no puede ser posterior a la finalización.", 0);
+        if (!startDate.isEmpty() && !abandonedDate.isEmpty() && startDate.compareTo(abandonedDate) > 0)
+            return result(false, "El inicio no puede ser posterior al abandono.", 0);
 
         ContentValues v = new ContentValues();
         v.put("title", title);
         v.put("author", author);
         v.put("status", status);
         v.put("progress", progress);
+        v.put("start_date", startDate);
         v.put("finish_date", finishDate);
         v.put("abandoned_date", abandonedDate);
         v.put("summary", summary);
+        v.put("favorite", favorite ? 1 : 0);
+        v.put("rating", rating);
         long now = System.currentTimeMillis();
         v.put("updated_at", now);
-        long id = input.optLong("id", 0);
         try {
             SQLiteDatabase sql = helper.getWritableDatabase();
+            if (isDuplicate(sql, id, title, author)) {
+                return result(false, "Este libro y autor ya están en tu biblioteca.", 0);
+            }
             if (id > 0) {
                 int changed = sql.update("books", v, "id=?", new String[]{String.valueOf(id)});
                 return changed > 0 ? result(true, "", id) : result(false, "Libro no encontrado.", 0);
