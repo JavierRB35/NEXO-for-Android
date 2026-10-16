@@ -21,6 +21,6 @@ assert "normalizedDueAt(event)" in calendar
 assert "@JavascriptInterface public long findMatchingCalendarItem" in main
 assert "NexoNative.findMatchingCalendarItem" in app, "Inbox debe reparar capturas Calendar antiguas al abrirlas"
 assert "versionCode 103" in gradle and "versionName '3.7.10'" in gradle
-assert "private static final int DB_VERSION = 25;" in db, "3.7.10 usa migración incremental segura"
+assert "private static final int DB_VERSION = 26;" in db, "3.7.10 usa migración incremental segura"
 
 print("OK: Calendar/Inbox 3.7.10 validado")
