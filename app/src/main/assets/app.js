@@ -49,7 +49,7 @@ const state = {
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
   homeSearchIndex:[], homeSearchIndexReady:false, homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
   startupSplashActive:true, startupInboxReady:false, startupHomeReady:false, startupHomeDashboard:null,
-  startupSplashMinReady:false, startupSplashMinTimer:0, startupSplashTimeout:0,
+  startupSplashMinReady:false, startupSplashMinTimer:0, startupSplashTimeout:0, startupWeatherReady:false,
   holidayYears:{}, holidayLoading:new Set(),
   managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
 };
@@ -818,16 +818,18 @@ function updateHeaderWeather(data){
   const btn=$('#headerWeatherBtn'),icon=$('#headerWeatherIcon'),temp=$('#headerWeatherTemp'),place=$('#headerWeatherPlace');
   if(!btn||!icon||!temp)return;
   const location=String(data?.name||'').trim();
-  if(place){place.textContent=location||'Ubicación…';place.title=location;}
+  const stale=!!data?.stale;
   if(!data||!data.ok||!Number.isFinite(Number(data.temperature))){
-    icon.textContent='⛅';temp.textContent='—°';
+    icon.textContent='⛅';temp.textContent='N/D';
     const message=data?.reason==='permission'?'Permite la ubicación de Nexo para ver la temperatura':
       data?.reason==='location'?'No hay coordenadas recientes y fiables':
       'No se ha podido obtener el tiempo actual';
+    if(place){place.textContent=data?.reason==='permission'?'Permite ubicación':'Tiempo no disponible';place.title=message;}
     btn.setAttribute('aria-label',message+'. Toca para consultar la previsión');
     btn.title=message;
     return;
   }
+  if(place){place.textContent=(location||'Ubicación actual')+(stale?' · anterior':'');place.title=location;}
   const code=Number(data.code),day=!!data.isDay;
   let symbol='🌤️';
   if(code===0)symbol=day?'☀️':'🌙';
@@ -839,10 +841,14 @@ function updateHeaderWeather(data){
   else if(code>=95)symbol='⛈️';
   icon.textContent=symbol;
   temp.textContent=Math.round(Number(data.temperature))+'°';
-  const label='Temperatura actual aproximada '+temp.textContent+'C en '+(location||'ubicación no identificada')+
+  const cacheTime=stale&&Number(data.cachedAt)>0
+    ?new Date(Number(data.cachedAt)).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+    :'';
+  const label=(stale?'Última temperatura registrada':'Temperatura actual aproximada')+' '+temp.textContent+'C en '+
+    (location||'ubicación no identificada')+(stale&&cacheTime?' ('+cacheTime+')':'')+
     (data.approximate?' (posición aproximada)':'')+'. Toca para ver la previsión detallada';
   btn.setAttribute('aria-label',label);
-  btn.title=label+' · Open-Meteo';
+  btn.title=label+(data.refreshError?' · No se pudo actualizar':'')+' · Open-Meteo';
   if(state.screen==='more')renderWeatherSettings();
 }
 
@@ -3412,7 +3418,15 @@ function renderMedicationsPanel(){
 window.NexoUI={
   onPlaceLocation(raw){onPlaceLocationResult(raw);},
   onPlaceLocationError(message){onPlaceLocationError(message);},
-  onHeaderWeather(raw){updateHeaderWeather(parseNative(raw,{}));},
+  onHeaderWeather(raw){
+    const weather=parseNative(raw,{});
+    updateHeaderWeather(weather);
+    // No cerrar antes si solo se ha recuperado una medición anterior.
+    if(weather.ok&&!weather.stale||!weather.ok||weather.refreshError){
+      state.startupWeatherReady=true;
+      maybeFinishStartupSplash();
+    }
+  },
   onHeaderWeatherPlaces(raw){renderWeatherPlaceResults(parseNative(raw,{}));},
   receiveImportPreview(raw){
     const p=parseNative(raw,{}),entity=p.entity||'item',typeLabel=entity==='list'?'Lista':entity==='journal'?'Cuaderno':'Elemento';
@@ -3617,7 +3631,15 @@ function finishStartupSplash(){
 }
 
 function maybeFinishStartupSplash(){
-  if(state.startupSplashMinReady&&state.startupHomeReady&&state.startupInboxReady)finishStartupSplash();
+  if(!state.startupSplashActive)return;
+  const progress=$('#startupSplashStatus');
+  if(progress){
+    progress.textContent=!state.startupInboxReady?'Buscando en Inbox…'
+      :!state.startupHomeReady?'Preparando Inicio…'
+      :!state.startupWeatherReady?'Consultando el tiempo…':'Abriendo Nexo…';
+  }
+  if(state.startupSplashMinReady&&state.startupHomeReady&&state.startupInboxReady&&state.startupWeatherReady)
+    finishStartupSplash();
 }
 
 function preloadStartupHomeDashboard(){
@@ -3636,6 +3658,16 @@ function beginStartupSequence(startScreen){
   state.startupInboxReady=false;
   state.startupHomeReady=false;
   state.startupSplashMinReady=!state.startupSplashActive;
+  // Puede haberse completado antes de inicializar JS. Recuperar el dato nativo
+  // sin esperar a otra llamada a Internet, incluso si llegó antes del onPageFinished.
+  try{
+    const snapshot=parseNative(NexoNative.getStartupWeatherSnapshot(),{});
+    if(snapshot?.ok){
+      updateHeaderWeather(snapshot);
+      if(!snapshot.stale)state.startupWeatherReady=true;
+    }
+  }catch(_){/* El clima nunca debe impedir abrir Inicio. */}
+  maybeFinishStartupSplash();
   if(state.startupSplashActive){
     state.startupSplashMinTimer=setTimeout(()=>{
       state.startupSplashMinReady=true;
@@ -3644,7 +3676,7 @@ function beginStartupSequence(startScreen){
     state.startupSplashTimeout=setTimeout(()=>{
       state.startupSplashMinReady=true;
       finishStartupSplash();
-    },5000);
+    },8500);
   }
 
   let inboxStarted=false;
