@@ -62,9 +62,11 @@ assert '<h2 id="homeFamilyInfoTitle">Información familiar</h2>' not in html
 assert 'function recordIconAction' in js
 for token in ['data-note-share','data-note-delete','data-document-delete',
               'placeDetailShare','placeDetailDelete','data-journal-share','data-journal-delete',
-              'data-med-share','data-med-delete','data-list-share','data-list-delete',
+              'data-med-share','data-med-delete',
               'data-recording-share','data-recording-delete']:
     assert token in js, f'Falta acción de ficha completa: {token}'
+assert 'data-list-menu' in js and 'function openListCardMenu(id)' in js
+assert 'listCardShare' in js and 'listCardDelete' in js
 for token in ['data-document-edit','data-document-open','data-document-download','data-document-delete']:
     assert token in js, f'Falta acción de documento: {token}'
 assert 'data-document-share' not in js[js.index('function documentCard'):js.index('function openDocumentDetail')]
