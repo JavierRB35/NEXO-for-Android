@@ -3200,6 +3200,7 @@ function closeModal(force=false){
     }
   }
 
+  if(document.body.classList.contains('document-editor-open'))state.pendingResourceLink=null;
   discardDocumentDraft();
   if(noteWasOpen){
     if(!noteHasUnsavedChanges())clearNoteRecoveryDraft(state.noteEditor?.draftKey||0);
