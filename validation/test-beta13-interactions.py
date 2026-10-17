@@ -43,5 +43,5 @@ assert 'display:flex' in block
 assert 'flex-direction:row' in block
 assert '.note-editor-open .floating-actions{z-index:130}' in css
 
-assert 'v3.7.31' in html
+assert 'v3.7.32' in html
 print('Beta17 conserva las correcciones beta13 de interacción: OK')
