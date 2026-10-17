@@ -2940,19 +2940,70 @@ function renderHistoryPanel(){
   $$('[data-history-index]').forEach(b=>b.addEventListener('click',()=>openHistoryEntry(hs[Number(b.dataset.historyIndex)])));
   updateFloatingActions();
 }
+function listTypeIcon(kind){
+  if(kind==='Compra'||kind==='Productos')return 'cart';
+  if(kind==='Viaje'||kind==='Equipaje')return 'plane';
+  if(kind==='Restaurantes')return 'pin';
+  if(kind==='Casa')return 'home';
+  return 'list';
+}
+function listCountText(count,pending){
+  return Number(count)===0?'Sin elementos':Number(pending)===0?'Todo completado':
+    Number(pending)+' pendiente'+(Number(pending)===1?'':'s')+' de '+Number(count);
+}
 function renderListsPanel(){
   const lists=parseNative(NexoNative.getLists(),[]);
   $('#panelAction').innerHTML='';
-  $('#panelContent').innerHTML=lists.length?lists.map(l=>{
-    const count=Number(l.count||0),pending=Number(l.pending||0),done=Math.max(0,count-pending);
-    return `<div class="list-row"><div class="list-row-shell"><button class="row-open" data-list-open="${l.id}"><div class="list-row-head"><div><strong>${esc(l.title)}</strong><div class="small muted">${esc(l.kind)} · ${pending} pendiente${pending===1?'':'s'} · ${count} elemento${count===1?'':'s'}${done?` · ${done} completado${done===1?'':'s'}`:''}</div></div></div></button><div class="record-card-actions">${recordIconAction('edit','Editar lista',`data-list-manage="${l.id}"`)}${recordIconAction('share','Compartir lista',`data-list-share="${l.id}"`)}${recordIconAction('trash','Eliminar lista',`data-list-delete="${l.id}"`,'icon-action--danger')}</div></div></div>`;
-  }).join(''):'<div class="empty-state">No tienes listas.</div>';
+  $('#panelSubtitle').textContent='Abre una lista para añadir, marcar o compartir elementos';
+  $('#panelContent').innerHTML='<div class="lists-overview-head"><strong>Mis listas <span>'+lists.length+'</span></strong>'+
+    '<button type="button" class="lists-new-inline" id="listsNewInline">'+uiIcon('plus')+' Nueva lista</button></div>'+
+    (lists.length?'<div class="lists-card-stack">'+lists.map(l=>{
+      const count=Number(l.count||0),pending=Number(l.pending||0),done=Math.max(0,count-pending),pct=count?Math.round(done/count*100):0;
+      return '<article class="list-row list-card-compact"><div class="list-row-shell list-row-shell--compact">'+
+        '<button type="button" class="row-open" data-list-open="'+Number(l.id)+'">'+
+        '<span class="list-card-icon list-card-icon--'+escAttr(l.kind==='Compra'?'shopping':'general')+'">'+uiIcon(listTypeIcon(l.kind))+'</span>'+
+        '<span class="list-card-main"><strong>'+esc(l.title||'Lista')+'</strong>'+
+        '<span class="list-card-sub"><span class="list-type-label">'+esc(l.kind||'General')+'</span><span class="list-card-dot">·</span>'+esc(listCountText(count,pending))+'</span>'+
+        (count?'<span class="list-card-track"><span style="width:'+pct+'%"></span></span>':'')+
+        '</span><span class="list-card-chevron">'+uiIcon('right')+'</span></button>'+
+        '<button type="button" class="list-card-menu" data-list-menu="'+Number(l.id)+'" aria-label="Opciones de '+escAttr(l.title||'lista')+'">'+uiIcon('more')+'</button>'+
+        '</div></article>';
+    }).join('')+'</div>':
+    '<div class="lists-empty"><span class="lists-empty-icon">'+uiIcon('list')+'</span>'+
+    '<strong>Empieza con una lista</strong><p>Elige el tipo y añade tu primer elemento. Podrás ponerle nombre después.</p>'+
+    '<button type="button" class="primary-button" data-lists-first>'+uiIcon('plus')+' Crear primera lista</button></div>');
+  $('#listsNewInline')?.addEventListener('click',openNewListModal);
+  $('[data-lists-first]')?.addEventListener('click',openNewListModal);
   $$('[data-list-open]').forEach(b=>b.addEventListener('click',()=>openList(Number(b.dataset.listOpen))));
-  $$('[data-list-manage]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openListManagement(Number(b.dataset.listManage));}));
-  $$('[data-list-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoList(Number(b.dataset.listShare));}));
-  $$('[data-list-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.listDelete),l=parseNative(NexoNative.getList(id),{});confirmGeneric('Eliminar lista','Se eliminará “'+(l.title||'esta lista')+'” y todos sus elementos.',()=>{if(NexoNative.deleteList(id)){toast('Lista eliminada');renderListsPanel();}else toast('No se pudo eliminar');},'Eliminar');}));
+  $$('[data-list-menu]').forEach(b=>b.addEventListener('click',()=>openListCardMenu(Number(b.dataset.listMenu))));
 }
-
+function openListCardMenu(id){
+  const l=parseNative(NexoNative.getList(id),{});if(!l.id){toast('La lista ya no existe');renderListsPanel();return;}
+  openModal(l.title||'Lista','<div class="list-card-menu-sheet">'+
+    '<p class="muted">Elige qué quieres hacer con esta lista.</p>'+
+    '<button id="listCardRename" type="button" class="secondary-button">'+uiIcon('edit')+' Cambiar nombre</button>'+
+    '<button id="listCardShare" type="button" class="secondary-button">'+uiIcon('share')+' Compartir</button>'+
+    '<button id="listCardDuplicate" type="button" class="secondary-button">⧉ Duplicar</button>'+
+    '<button id="listCardDelete" type="button" class="danger-button">'+uiIcon('trash')+' Eliminar lista</button></div>');
+  $('#listCardRename').addEventListener('click',()=>openRenameListModal(id));
+  $('#listCardShare').addEventListener('click',()=>{closeModal();NexoNative.shareNexoList(id);});
+  $('#listCardDuplicate').addEventListener('click',()=>{
+    const newId=Number(NexoNative.duplicateList(id));closeModal();
+    if(newId>0){toast('Lista duplicada');openList(newId);}else toast('No se pudo duplicar');
+  });
+  $('#listCardDelete').addEventListener('click',()=>{
+    closeModal();
+    confirmGeneric('Eliminar lista','Se eliminará “'+(l.title||'esta lista')+'” y todos sus elementos.',()=>{
+      if(NexoNative.deleteList(id)){toast('Lista eliminada');renderListsPanel();}else toast('No se pudo eliminar');
+    },'Eliminar');
+  });
+}
+function refreshListProgressFromDom(){
+  const rows=[...$$('#panelContent .list-entry')],total=rows.length,done=rows.filter(r=>r.classList.contains('checked')).length;
+  const label=$('#listProgressLabel'),bar=$('#listProgressBar');
+  if(label)label.textContent=total?done+' de '+total+' completados':'Añade tu primer elemento';
+  if(bar){bar.max=Math.max(1,total);bar.value=done;}
+}
 function openList(id,options={}){
   const l=parseNative(NexoNative.getList(id),{});
   if(!l.id){
@@ -2962,18 +3013,54 @@ function openList(id,options={}){
   }
   navigate('panel',{...options,panel:'lists',list:id});
   const entries=parseNative(NexoNative.getListEntries(id),[]),shopping=(l.kind||'').toLowerCase()==='compra';
-  $('#panelTitle').textContent=l.title||'Lista';$('#panelSubtitle').textContent=shopping?'Toca un producto para marcarlo. También puedes hablar.':(l.kind||'');
-  $('#panelAction').innerHTML='<div class="list-header-actions"><button id="shareListBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="manageListBtn" class="secondary-button list-manage-button" aria-label="Gestionar lista"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-more"></use></svg></button></div>';
+  const completed=entries.filter(e=>e.checked).length,pending=entries.length-completed;
+  $('#panelTitle').textContent=l.title||'Lista';
+  $('#panelSubtitle').textContent=shopping?'Compra · marca lo que ya tienes':' '+(l.kind||'General')+' · marca lo que completes';
+  $('#panelAction').innerHTML='<div class="list-header-actions list-header-actions--compact">'+
+    '<button id="listRenameInline" type="button" class="secondary-button">'+uiIcon('edit')+' Renombrar</button>'+
+    '<button id="shareListBtn" type="button" class="secondary-button">'+uiIcon('share')+' Compartir</button>'+
+    '<button id="manageListBtn" type="button" class="secondary-button list-manage-button" aria-label="Más opciones">'+uiIcon('more')+'</button></div>';
+  $('#listRenameInline').addEventListener('click',()=>openRenameListModal(id));
   $('#shareListBtn').addEventListener('click',()=>NexoNative.shareNexoList(id));
   $('#manageListBtn').addEventListener('click',()=>openListManagement(id));
-  const voiceHint=shopping?'Para varios productos, sepáralos con «y»: “huevos y mantequilla y leche y pan”. También puedes decir “quita el azúcar” o “ya he comprado los huevos”.':'Para varios elementos, sepáralos con «y»: “pasaporte y cargador y medicamentos”.';
-  $('#panelContent').innerHTML=`<div class="list-voice-hint list-voice-hint--fab">${esc(voiceHint)} Usa el botón flotante del micrófono para dictar.</div><div class="add-inline"><input id="listQuickInput" type="text" placeholder="${shopping?'Escribe productos…':'Escribe un elemento…'}"><button id="listAddBtn" class="primary-button">Añadir</button></div><div>${entries.length?entries.map(e=>`<div class="list-entry ${e.checked?'checked':''}"><input type="checkbox" data-entry-toggle="${e.id}" ${e.checked?'checked':''} aria-label="${e.checked?'Desmarcar':'Marcar'} ${escAttr(e.text)}"><button type="button" class="entry-text entry-text-button" data-entry-text-toggle="${e.id}" data-entry-checked="${e.checked?'1':'0'}">${esc(e.text)}</button>${e.category?`<span class="entry-cat">${esc(e.category)}</span>`:''}<button class="entry-delete" aria-label="Eliminar ${escAttr(e.text)}" data-entry-delete="${e.id}"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-close"></use></svg></button></div>`).join(''):'<div class="empty-state">Lista vacía. Escribe un elemento o usa el micrófono flotante.</div>'}</div>`;
+  const voiceHint=shopping?'Puedes dictar varios productos diciendo «huevos y mantequilla y pan». También puedes decir «quita el azúcar» o «ya he comprado los huevos».':
+    'Puedes dictar varios elementos diciendo «pasaporte y cargador y medicamentos».';
+  $('#panelContent').innerHTML='<section class="list-workspace">'+
+    '<div class="list-progress"><div class="list-progress-row"><span id="listProgressLabel">'+
+    (entries.length?completed+' de '+entries.length+' completados':'Añade tu primer elemento')+
+    '</span><strong>'+esc(l.kind||'Lista')+'</strong></div>'+
+    '<progress id="listProgressBar" value="'+completed+'" max="'+Math.max(1,entries.length)+'"></progress></div>'+
+    '<div class="add-inline list-add-inline"><input id="listQuickInput" type="text" maxlength="300" autocomplete="off" placeholder="'+
+    (shopping?'Añadir producto…':'Añadir elemento…')+'" aria-label="'+(shopping?'Nuevo producto':'Nuevo elemento')+'">'+
+    '<button id="listAddBtn" class="primary-button" type="button" aria-label="Añadir a la lista">'+uiIcon('plus')+' <span>Añadir</span></button></div>'+
+    '<div class="list-entry-group">'+(entries.length?entries.map(e=>'<div class="list-entry '+(e.checked?'checked':'')+'">'+
+    '<input type="checkbox" data-entry-toggle="'+Number(e.id)+'" '+(e.checked?'checked':'')+' aria-label="'+(e.checked?'Desmarcar':'Marcar')+' '+escAttr(e.text)+'">'+
+    '<button type="button" class="entry-text entry-text-button" data-entry-text-toggle="'+Number(e.id)+'" data-entry-checked="'+(e.checked?'1':'0')+'">'+esc(e.text)+'</button>'+
+    (e.category?'<span class="entry-cat">'+esc(e.category)+'</span>':'')+
+    '<button class="entry-delete" aria-label="Eliminar '+escAttr(e.text)+'" data-entry-delete="'+Number(e.id)+'">'+uiIcon('close')+'</button></div>').join(''):
+    '<div class="list-elements-empty">'+uiIcon('list')+'<span>Los elementos aparecerán aquí.</span></div>')+'</div>'+
+    '<details class="list-voice-help"><summary>'+uiIcon('mic')+' Consejo para dictar</summary><p>'+esc(voiceHint)+
+    ' Utiliza el micrófono flotante de Nexo.</p></details></section>';
   $('#panelContent').insertAdjacentHTML('beforeend',relatedOwnersSectionHtml('list',id));bindRelatedOwners($('#panelContent'));
-  $('#listAddBtn').addEventListener('click',()=>{const v=$('#listQuickInput').value.trim();if(!v)return;NexoNative.addListItems(id,v,shopping);openList(id);});
-  $('#listQuickInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#listAddBtn').click();});
-  $$('[data-entry-toggle]').forEach(c=>c.addEventListener('change',()=>{updateListCheck(Number(c.dataset.entryToggle),c.checked,c.closest('.list-entry'));}));
-  $$('[data-entry-text-toggle]').forEach(b=>b.addEventListener('click',()=>{updateListCheck(Number(b.dataset.entryTextToggle),b.dataset.entryChecked!=='1',b.closest('.list-entry'));}));
+  const add=()=>{
+    const input=$('#listQuickInput'),value=input?.value.trim()||'';
+    if(!value){input?.focus();return;}
+    const count=Number(NexoNative.addListItems(id,value,shopping));
+    if(count<=0){toast('No se pudo añadir el elemento');return;}
+    openList(id,{focusInput:true});
+  };
+  $('#listAddBtn').addEventListener('click',add);
+  $('#listQuickInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add();}});
+  $$('[data-entry-toggle]').forEach(c=>c.addEventListener('change',()=>{
+    updateListCheck(Number(c.dataset.entryToggle),c.checked,c.closest('.list-entry'));
+    refreshListProgressFromDom();
+  }));
+  $$('[data-entry-text-toggle]').forEach(b=>b.addEventListener('click',()=>{
+    updateListCheck(Number(b.dataset.entryTextToggle),b.dataset.entryChecked!=='1',b.closest('.list-entry'));
+    refreshListProgressFromDom();
+  }));
   $$('[data-entry-delete]').forEach(b=>b.addEventListener('click',()=>{NexoNative.deleteListEntry(Number(b.dataset.entryDelete));openList(id);}));
+  if(options.focusInput)requestAnimationFrame(()=>$('#listQuickInput')?.focus());
 }
 function openListManagement(id){
   const l=parseNative(NexoNative.getList(id),{});if(!l.id){toast('La lista ya no existe.');if(state.lastPanel==='lists')renderListsPanel();return;}
@@ -3162,9 +3249,51 @@ function openTaskModal(){prepareQuickNoteForType('event');}
 
 function openReminderModal(){prepareQuickNoteForType('event');}
 
+/** La persona elige el uso de la lista; Nexo le asigna un nombre provisional. */
+function automaticListName(kind){
+  const names={Compra:'Compra',Viaje:'Viaje',General:'Lista', 'Cosas pendientes':'Pendientes',
+    Restaurantes:'Restaurantes','Lugares por visitar':'Lugares por visitar',
+    Productos:'Productos',Equipaje:'Equipaje',Casa:'Casa'};
+  const prefix=names[kind]||'Lista';
+  const date=new Date().toLocaleDateString('es-ES',{day:'numeric',month:'short'}).replace(/\.$/,'');
+  const base=prefix+' · '+date;
+  const used=new Set(parseNative(NexoNative.getLists(),[]).map(l=>String(l.title||'').trim().toLocaleLowerCase('es-ES')));
+  let title=base,n=2;
+  while(used.has(title.toLocaleLowerCase('es-ES'))){title=base+' ('+n+')';n++;}
+  return title;
+}
+function quickCreateList(kind){
+  const allowed=['Compra','Viaje','Cosas pendientes','Restaurantes','Lugares por visitar','Productos','Equipaje','Casa','General'];
+  if(!allowed.includes(kind)){toast('Elige un tipo de lista');return;}
+  const title=automaticListName(kind);
+  const reusable=['Compra','Viaje','Equipaje','Productos','Casa'].includes(kind);
+  const id=Number(NexoNative.createList(title,kind,reusable))||0;
+  if(id<=0){toast('No se pudo crear la lista');return;}
+  closeModal();
+  openList(id,{focusInput:true});
+  toast('Lista creada. Añade tu primer elemento.');
+}
 function openNewListModal(){
-  openModal('Nueva lista',`<div class="modal-form"><label>Nombre<input id="listTitle" type="text" placeholder="Ej.: Compra semanal"></label><label>Tipo<select id="listKind"><option>Compra</option><option>Viaje</option><option>Cosas pendientes</option><option>Restaurantes</option><option>Lugares por visitar</option><option>Productos</option><option>Equipaje</option><option>Casa</option><option>General</option></select></label><label class="switch-row"><input id="listReusable" type="checkbox" checked><span>Lista reutilizable</span></label></div><div class="modal-actions"><button id="listSave" class="primary-button">Crear lista</button></div>`);
-  setTimeout(()=>$('#listTitle').focus(),70);$('#listSave').addEventListener('click',()=>{const title=$('#listTitle').value.trim();if(!title){toast('Escribe un nombre');return;}const id=Number(NexoNative.createList(title,$('#listKind').value,$('#listReusable').checked))||0;if(!id){toast('No se pudo crear la lista. El formulario sigue abierto.');return;}closeModal();openList(id);});
+  const presets=[
+    ['Compra','cart','Compra','Supermercado y recados'],
+    ['Cosas pendientes','check','Pendientes','Todo lo que falta por hacer'],
+    ['Viaje','plane','Viaje','Preparativos y equipaje'],
+    ['General','list','Lista libre','Para cualquier idea']
+  ];
+  const more=['Restaurantes','Lugares por visitar','Productos','Equipaje','Casa'];
+  openModal('¿Qué lista necesitas?','<div class="quick-list-create">'+
+    '<p class="quick-list-lead">Elige un tipo y empieza a añadir elementos. <strong>No necesitas escribir un nombre.</strong></p>'+
+    '<div class="quick-list-presets">'+presets.map(([kind,icon,label,help])=>
+      '<button type="button" data-list-preset="'+escAttr(kind)+'" class="quick-list-preset">'+
+      '<span class="quick-list-preset-icon">'+uiIcon(icon)+'</span><strong>'+esc(label)+'</strong>'+
+      '<small>'+esc(help)+'</small></button>').join('')+'</div>'+
+    '<details class="quick-list-other"><summary>Otros tipos de lista '+uiIcon('right')+'</summary>'+
+    '<div class="quick-list-other-body"><label for="quickListKind">Tipo</label>'+
+    '<select id="quickListKind">'+more.map(kind=>'<option value="'+escAttr(kind)+'">'+esc(kind)+'</option>').join('')+'</select>'+
+    '<button type="button" id="quickListOtherCreate" class="secondary-button">'+uiIcon('plus')+' Crear este tipo</button></div></details>'+
+    '<p class="quick-list-footnote">El nombre se genera automáticamente y podrás cambiarlo cuando quieras.</p></div>');
+  $('#modalBody').querySelectorAll('[data-list-preset]').forEach(b=>b.addEventListener('click',()=>quickCreateList(b.dataset.listPreset)));
+  $('#quickListOtherCreate')?.addEventListener('click',()=>quickCreateList($('#quickListKind').value));
 }
 function openParkingModal(prefill=''){
   openModal('Guardar aparcamiento',`<p class="muted" style="margin-top:0">Nexo buscará durante unos segundos la ubicación más precisa disponible. Añade una referencia solo si te ayuda.</p><div class="modal-form"><label>Nota opcional<input id="parkingNote" type="text" value="${escAttr(prefill||'')}" placeholder="Ej.: Planta -2, zona B"></label></div><div class="modal-actions"><button id="parkingSave" class="primary-button">Guardar ubicación actual</button></div>`);
