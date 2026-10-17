@@ -8,7 +8,7 @@ css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf-8')
 
 # 1. Estado manual gana a la inferencia temporal.
-assert 'DB_VERSION = 29' in db
+assert 'DB_VERSION = 30' in db
 assert 'status_manual INTEGER NOT NULL DEFAULT 0' in db
 assert 'WHEN status_manual=1 THEN status' in db
 assert 'in.has("dueAt") && !in.has("status") && !old.optBoolean("statusManual", false)' in db
@@ -19,7 +19,7 @@ for label in ['Pendiente','Completada','Pospuesta','Cancelada']:
 # 2. Guardar arriba y sin duplicado inferior. La misma barra se reutiliza
 # para eventos normales y apariciones recurrentes.
 assert 'function recordEditorActionBar' in js
-assert 'class="record-form-actions"' in js
+assert 'record-form-actions--compact' in js
 item=js[js.index('function openItem(id)'):js.index('function openOccurrence',js.index('function openItem(id)'))]
 assert "recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn')" in item
 assert item.count("'saveEditBtn'") == 1
@@ -76,6 +76,6 @@ assert launcher_foreground.stat().st_size > 1000
 assert '@drawable/ic_launcher_foreground' in launcher_xml and '@drawable/ic_launcher_foreground' in launcher_round_xml
 assert '@color/nexo_launcher_background' in launcher_xml and '@color/nexo_launcher_background' in launcher_round_xml
 assert '<color name="nexo_launcher_background">#F4FBFF</color>' in colors
-assert 'v3.7.30' in html
+assert 'v3.7.31' in html
 
 print('Beta17: criterios de aceptación + mes de Inicio + branding actual OK')
