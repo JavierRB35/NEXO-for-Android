@@ -1,3 +1,10 @@
+## Nexo 3.7.31 — Fichas compactas y relaciones entre contenidos
+
+- Tareas y citas enlazan varias listas, notas y documentos sin duplicarlos. Selector con búsqueda y creación desde la ficha, con acceso de vuelta desde cada recurso.
+- Botonera más pequeña: Editar/Guardar contextual y Compartir/Eliminar en menú Más; editor plegado inicialmente.
+- Nueva tabla `record_links` con migración SQLite 29→30, validación de tipos y ausencia de duplicados. Las relaciones de citas recurrentes se asocian a la serie.
+- versionCode 124, versionName 3.7.31; firma, SDK 34, Gradle 8.9 y AGP 8.7.3 intactos.
+
 ## Nexo 3.7.30 — Meteorología precargada durante la splashscreen
 
 - Comienza a consultar Open-Meteo al arrancar Android, antes de que se termine de crear la WebView.

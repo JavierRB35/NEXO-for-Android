@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 29;
+    private static final int DB_VERSION = 30;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
@@ -149,6 +149,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         RadicalFaceQuoteLibrary.seed(db);
         createMedicationTables(db);
         createPeopleTables(db);
+        createRecordLinksTable(db);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -267,6 +268,110 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("UPDATE items SET place_state='want',subcategory=CASE WHEN type='restaurant' THEN 'Restaurante' ELSE 'Otros' END WHERE type IN ('place','restaurant') AND subcategory='Quiero ir'");
             db.execSQL("UPDATE items SET place_state='visited',subcategory=CASE WHEN type='restaurant' THEN 'Restaurante' ELSE 'Otros' END WHERE type IN ('place','restaurant') AND subcategory='He estado'");
         }
+        if (oldVersion < 30) {
+            // Las relaciones se guardan aparte: no modifica tareas, notas ni listas existentes.
+            createRecordLinksTable(db);
+        }
+    }
+
+
+    /** Vínculos múltiples entre una cita/tarea y recursos existentes, sin copiar sus datos. */
+    private static void createRecordLinksTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS record_links (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "owner_item_id INTEGER NOT NULL," +
+                "resource_kind TEXT NOT NULL," +
+                "resource_id INTEGER NOT NULL," +
+                "created_at INTEGER NOT NULL," +
+                "UNIQUE(owner_item_id,resource_kind,resource_id))");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_record_links_owner ON record_links(owner_item_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_record_links_resource ON record_links(resource_kind,resource_id)");
+    }
+
+    private static boolean allowedResourceKind(String kind) {
+        return "list".equals(kind) || "note".equals(kind) || "document".equals(kind);
+    }
+
+    private boolean isRelatedOwner(long id) {
+        JSONObject item=getItem(id);
+        String type=item.optString("type","");
+        return item.optLong("id",0)>0 &&
+            ("event".equals(type) || "task".equals(type) ||
+             "reminder".equals(type) || "expiry".equals(type));
+    }
+
+    private JSONObject relatedResource(String kind,long id) {
+        if (id<=0 || !allowedResourceKind(kind)) return new JSONObject();
+        if ("list".equals(kind)) return getList(id);
+        JSONObject item=getItem(id);
+        return kind.equals(item.optString("type","")) ? item : new JSONObject();
+    }
+
+    public JSONObject linkRelatedResource(long ownerId,String kind,long resourceId) {
+        JSONObject out=new JSONObject();
+        try {
+            if(!isRelatedOwner(ownerId)) return out.put("ok",false).put("error","La tarea o evento ya no existe.");
+            if(relatedResource(kind,resourceId).optLong("id",0)<=0)
+                return out.put("ok",false).put("error","La lista, nota o documento ya no existe.");
+            ContentValues v=new ContentValues();
+            v.put("owner_item_id",ownerId);
+            v.put("resource_kind",kind);
+            v.put("resource_id",resourceId);
+            v.put("created_at",System.currentTimeMillis());
+            long result=getWritableDatabase().insertWithOnConflict("record_links",null,v,SQLiteDatabase.CONFLICT_IGNORE);
+            return out.put("ok",true).put("alreadyLinked",result<0);
+        } catch(Exception e) {
+            try{return out.put("ok",false).put("error","No se pudo crear el vínculo.");}
+            catch(Exception ignored){return new JSONObject();}
+        }
+    }
+
+    public boolean unlinkRelatedResource(long ownerId,long linkId) {
+        return ownerId>0 && linkId>0 && getWritableDatabase().delete("record_links",
+            "id=? AND owner_item_id=?",new String[]{String.valueOf(linkId),String.valueOf(ownerId)})>0;
+    }
+
+    /** Relación en la serie completa si el evento es recurrente. */
+    public JSONArray getRelatedResources(long ownerId) {
+        JSONArray result=new JSONArray();
+        if(!isRelatedOwner(ownerId))return result;
+        try(Cursor c=getReadableDatabase().rawQuery(
+            "SELECT id,resource_kind,resource_id FROM record_links WHERE owner_item_id=? ORDER BY id",
+            new String[]{String.valueOf(ownerId)})) {
+            while(c.moveToNext()) {
+                String kind=c.getString(1);
+                long resourceId=c.getLong(2);
+                JSONObject resource=relatedResource(kind,resourceId);
+                if(resource.optLong("id",0)<=0)continue;
+                JSONObject row=new JSONObject();
+                row.put("linkId",c.getLong(0));
+                row.put("kind",kind);
+                row.put("id",resourceId);
+                row.put("title",resource.optString("title","Sin título"));
+                result.put(row);
+            }
+        }catch(Exception ignored){}
+        return result;
+    }
+
+    /** La vuelta desde notas, listas y documentos no requiere duplicar relaciones. */
+    public JSONArray getRelatedOwners(String kind,long resourceId) {
+        JSONArray result=new JSONArray();
+        if(relatedResource(kind,resourceId).optLong("id",0)<=0)return result;
+        try(Cursor c=getReadableDatabase().rawQuery(
+            "SELECT i.id,i.title,i.type FROM record_links r JOIN items i ON i.id=r.owner_item_id " +
+            "WHERE r.resource_kind=? AND r.resource_id=? AND i.deleted_at=0 " +
+            "AND i.type IN ('event','task','reminder','expiry') ORDER BY i.updated_at DESC",
+            new String[]{kind,String.valueOf(resourceId)})) {
+            while(c.moveToNext()) {
+                JSONObject row=new JSONObject();
+                row.put("id",c.getLong(0));
+                row.put("title",c.getString(1));
+                row.put("type",c.getString(2));
+                result.put(row);
+            }
+        }catch(Exception ignored){}
+        return result;
     }
 
     private static boolean columnExists(SQLiteDatabase db, String table, String column) {
