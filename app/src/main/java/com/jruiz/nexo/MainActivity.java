@@ -2200,6 +2200,19 @@ public class MainActivity extends Activity {
         @JavascriptInterface public long findMatchingCalendarItem(String title,long dueAt,boolean allDay) {
             return db.findMatchingCalendarItem(title,dueAt,allDay);
         }
+
+        @JavascriptInterface public String getRelatedResources(long ownerId) {
+            return db.getRelatedResources(ownerId).toString();
+        }
+        @JavascriptInterface public String getRelatedOwners(String kind,long resourceId) {
+            return db.getRelatedOwners(kind,resourceId).toString();
+        }
+        @JavascriptInterface public String linkRelatedResource(long ownerId,String kind,long resourceId) {
+            return db.linkRelatedResource(ownerId,kind,resourceId).toString();
+        }
+        @JavascriptInterface public boolean unlinkRelatedResource(long ownerId,long linkId) {
+            return db.unlinkRelatedResource(ownerId,linkId);
+        }
         @JavascriptInterface public String getNotes() { return db.getNotes().toString(); }
         @JavascriptInterface public long saveNote(String json) {
             try { return db.insertNote(new JSONObject(json)); } catch(Exception e) { return 0; }
