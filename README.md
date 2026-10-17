@@ -1,10 +1,10 @@
-# Nexo 3.7.31
+# Nexo 3.7.32
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.31**, `versionCode 124`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **30**.
+Esta versión corresponde a **Nexo 3.7.32**, `versionCode 125`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **30**.
 
-**Nuevo en 3.7.31:** permite relacionar tareas y eventos con múltiples listas, notas y documentos, con creación desde la ficha, navegación bidireccional y un menú compacto de acciones. Migración aditiva a SQLite 30 sin pérdida de datos.
+**Nuevo en 3.7.32:** permite relacionar tareas y eventos con múltiples listas, notas y documentos, con creación desde la ficha, navegación bidireccional y un menú compacto de acciones. Migración aditiva a SQLite 30 sin pérdida de datos.
 
 **Nuevo en 3.7.30:** la temperatura se solicita desde el inicio de Android, durante la splashscreen. Si hay una medición anterior válida se muestra indicando su antigüedad, mientras se actualiza en paralelo. El arranque espera el resultado meteorológico dentro de un límite de 8,5 segundos y nunca queda bloqueado por GPS o Internet; al llegar información nueva la cabecera se actualiza al instante.
 
