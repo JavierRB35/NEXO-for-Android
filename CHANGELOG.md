@@ -1,9 +1,16 @@
-## Nexo 3.7.31 — Fichas compactas y relaciones entre contenidos
+## Nexo 3.7.32 — Listas de creación inmediata y presentación compacta
+
+- Nueva lista: primero se elige Compra, Pendientes, Viaje, Libre u otros tipos; no se obliga a nombrarla. Se crea con un nombre automático y se abre para añadir el primer elemento.
+- Tarjetas de listas más compactas, con icono, pendientes, progreso y un único menú de acciones. Renombrar, compartir, duplicar y eliminar accesibles desde el menú.
+- Dentro de una lista: campo Añadir protagonista, progreso visible, renombrado a un toque, y sugerencias de voz plegadas. Se mantiene la navegación bidireccional con tareas y eventos.
+- Nexo 3.7.32, versionCode 125, DB 30, misma firma Release y baseline AndroidIDE.
+
+## Nexo 3.7.32 — Fichas compactas y relaciones entre contenidos
 
 - Tareas y citas enlazan varias listas, notas y documentos sin duplicarlos. Selector con búsqueda y creación desde la ficha, con acceso de vuelta desde cada recurso.
 - Botonera más pequeña: Editar/Guardar contextual y Compartir/Eliminar en menú Más; editor plegado inicialmente.
 - Nueva tabla `record_links` con migración SQLite 29→30, validación de tipos y ausencia de duplicados. Las relaciones de citas recurrentes se asocian a la serie.
-- versionCode 124, versionName 3.7.31; firma, SDK 34, Gradle 8.9 y AGP 8.7.3 intactos.
+- versionCode 125, versionName 3.7.32; firma, SDK 34, Gradle 8.9 y AGP 8.7.3 intactos.
 
 ## Nexo 3.7.30 — Meteorología precargada durante la splashscreen
 
