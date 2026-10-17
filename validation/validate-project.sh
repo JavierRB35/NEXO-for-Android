@@ -35,6 +35,7 @@ python validation/test-medication-repeat-integration.py
 python validation/test-transcription-integration.py
 python validation/test-transcription-quality.py
 python validation/test-temporal-status.py
+python validation/test-related-links.py
 python validation/test-version-identity.py
 python validation/test-category-icons.py
 python validation/test-analitica-category.py
