@@ -36,6 +36,7 @@ python validation/test-transcription-integration.py
 python validation/test-transcription-quality.py
 python validation/test-temporal-status.py
 python validation/test-related-links.py
+node validation/test-list-quick-runtime.cjs
 python validation/test-version-identity.py
 python validation/test-category-icons.py
 python validation/test-analitica-category.py
