@@ -1358,6 +1358,7 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
   const statusState=dirty?'dirty':(editing?'saved':'idle');
   const html='<div class="note-compose modal-form"><div class="note-compose-top"><span id="noteSaveStatus" class="note-save-status" data-state="'+statusState+'">'+statusText+'</span><button id="noteSave" class="icon-button primary" type="button" aria-label="Guardar nota" title="Guardar nota">'+uiIcon('save')+'</button></div><label>Título<input id="noteTitle" type="text" maxlength="120" value="'+escAttr(title)+'" placeholder="Se generará automáticamente al escribir"></label><div class="small muted note-title-help">Nexo propone el título a partir de la idea principal. Si lo cambias tú, dejará de modificarlo.</div><label>Anotación<textarea id="noteBody" rows="10" placeholder="Escribe o dicta lo que quieras conservar…">'+esc(body)+'</textarea></label><div class="small muted">La nota solo se guarda al pulsar el disquete. Nexo conserva un borrador temporal únicamente para recuperar una edición interrumpida.</div></div><div id="noteSavedActions" class="modal-actions wrap-actions '+(editing?'':'hidden')+'"><button id="noteDelete" class="danger-button" type="button">Eliminar</button><button id="noteShare" class="secondary-button" type="button">'+uiIcon('share')+' Compartir</button></div>';
   openModal(editing?'Editar nota':'Nueva nota',html);
+  if(editing){$('#modalBody').insertAdjacentHTML('beforeend',relatedOwnersSectionHtml('note',Number(id)));bindRelatedOwners($('#modalBody'));}
 
   state.noteEditor={
     id:editing?Number(id):0,
@@ -1639,13 +1640,142 @@ function recordIconAction(icon,label,attrs='',extra=''){
   return `<button type="button" class="icon-action ${extra}" ${attrs} aria-label="${escAttr(label)}" title="${escAttr(label)}">${uiIcon(icon)}</button>`;
 }
 function recordEditorActionBar(saveId,editId,shareId,deleteId){
-  return `<div class="record-form-actions">
-    <button id="${saveId}" class="primary-button" type="button">${uiIcon('check')} Guardar</button>
-    <button id="${editId}" class="secondary-button" type="button">${uiIcon('edit')} Editar</button>
-    <button id="${shareId}" class="secondary-button" type="button">${uiIcon('share')} Compartir</button>
-    <button id="${deleteId}" class="danger-button" type="button">${uiIcon('trash')} Eliminar</button>
-  </div>`;
+  return '<div class="record-form-actions record-form-actions--compact">'+
+    '<button id="'+editId+'" class="secondary-button" type="button">'+uiIcon('edit')+' Editar</button>'+
+    '<button id="'+saveId+'" class="primary-button" type="button" hidden>'+uiIcon('check')+' Guardar</button>'+
+    '<details class="record-action-overflow"><summary aria-label="Más acciones">'+uiIcon('more')+' <span>Más</span></summary>'+
+    '<div class="record-overflow-menu">'+
+    '<button id="'+shareId+'" class="secondary-button" type="button">'+uiIcon('share')+' Compartir</button>'+
+    '<button id="'+deleteId+'" class="danger-button" type="button">'+uiIcon('trash')+' Eliminar</button>'+
+    '</div></details></div>';
 }
+function bindCompactRecordActions(){
+  const bar=$('#modalBody .record-form-actions--compact'),editor=$('#modalBody .details-box');
+  if(!bar||!editor)return;
+  const edit=bar.querySelector('button.secondary-button'),save=bar.querySelector('button.primary-button');
+  const refresh=()=>{edit.hidden=editor.open;save.hidden=!editor.open;};
+  editor.addEventListener('toggle',refresh);refresh();
+}
+
+
+const RELATED_KIND_LABELS={list:'Lista',note:'Nota',document:'Documento'};
+function relatedLinksSectionHtml(ownerId){
+  const links=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]);
+  return '<section class="linked-resources" data-linked-owner="'+Number(ownerId)+'"><div class="linked-resources-header">'+
+    '<strong>Vinculados <span class="linked-count">'+links.length+'</span></strong>'+
+    '<button type="button" class="linked-add" data-related-add="'+Number(ownerId)+'">'+uiIcon('plus')+' Vincular</button></div>'+
+    (links.length?links.map(r=>'<div class="linked-resource-row">'+
+      '<button type="button" class="linked-resource-open" data-related-open="'+escAttr(r.kind)+'" data-related-id="'+Number(r.id)+'">'+
+      '<span class="linked-resource-kind">'+esc(RELATED_KIND_LABELS[r.kind]||'Elemento')+'</span>'+
+      '<span class="linked-resource-title">'+esc(r.title||'Sin título')+'</span>'+uiIcon('right')+'</button>'+
+      '<button type="button" class="linked-resource-remove" data-related-unlink="'+Number(r.linkId)+'" aria-label="Desvincular '+escAttr(r.title||'elemento')+'">'+uiIcon('close')+'</button></div>').join(''):
+      '<p class="linked-empty">Vincula listas, notas o documentos sin duplicar información.</p>')+'</section>';
+}
+function relatedOwnersSectionHtml(kind,id){
+  if(!(Number(id)>0))return '';
+  const owners=parseNative(NexoNative.getRelatedOwners(kind,Number(id)),[]);
+  if(!owners.length)return '';
+  return '<section class="linked-resources linked-backrefs"><strong>Vinculado a</strong>'+
+    owners.map(r=>'<button type="button" class="linked-owner-open" data-related-owner-open="'+Number(r.id)+'">'+
+    '<span class="linked-resource-kind">'+esc(r.type==='task'?'Tarea':'Evento')+'</span>'+
+    '<span class="linked-resource-title">'+esc(r.title||'Sin título')+'</span>'+uiIcon('right')+'</button>').join('')+'</section>';
+}
+function bindRelatedOwners(root=document){
+  root.querySelectorAll('[data-related-owner-open]').forEach(b=>b.addEventListener('click',()=>{
+    if(!closeModal())return;
+    openItem(Number(b.dataset.relatedOwnerOpen));
+  }));
+}
+function openRelatedTarget(kind,id){
+  if(!closeModal())return;
+  if(kind==='list')openList(Number(id));
+  else if(kind==='note')openNoteComposer(Number(id));
+  else if(kind==='document')openDocumentDetail(Number(id));
+}
+function bindRelatedLinks(ownerId){
+  const area=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
+  if(!area)return;
+  area.querySelector('[data-related-add]')?.addEventListener('click',()=>openRelatedPicker(ownerId));
+  area.querySelectorAll('[data-related-open]').forEach(b=>b.addEventListener('click',()=>openRelatedTarget(b.dataset.relatedOpen,Number(b.dataset.relatedId))));
+  area.querySelectorAll('[data-related-unlink]').forEach(b=>b.addEventListener('click',()=>{
+    if(!NexoNative.unlinkRelatedResource(Number(ownerId),Number(b.dataset.relatedUnlink))){toast('No se pudo desvincular');return;}
+    refreshRelatedLinks(ownerId);toast('Vínculo eliminado. El contenido se conserva.');
+  }));
+}
+function refreshRelatedLinks(ownerId){
+  const area=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
+  if(!area)return;
+  area.outerHTML=relatedLinksSectionHtml(ownerId);bindRelatedLinks(ownerId);
+}
+function openRelatedPicker(ownerId){
+  const overlay=document.createElement('div');overlay.className='modal scope-overlay related-picker-overlay';
+  let kind='list';
+  overlay.innerHTML='<div class="confirm-sheet related-picker">'+
+    '<div class="related-picker-heading"><h2>Vincular elemento</h2><button type="button" data-related-close class="icon-button" aria-label="Cerrar">'+uiIcon('close')+'</button></div>'+
+    '<div class="related-picker-tabs" role="group" aria-label="Tipo">'+
+    '<button type="button" data-related-tab="list">Listas</button><button type="button" data-related-tab="note">Notas</button><button type="button" data-related-tab="document">Documentos</button></div>'+
+    '<div class="related-picker-search"><input type="search" data-related-search placeholder="Buscar elemento existente…" aria-label="Buscar elemento"></div>'+
+    '<div class="related-picker-results" data-related-results></div>'+
+    '<button type="button" class="linked-create" data-related-create>'+uiIcon('plus')+' Crear nuevo</button>'+
+    '<div data-related-form hidden></div></div>';
+  document.body.appendChild(overlay);
+  const q=sel=>overlay.querySelector(sel),close=()=>overlay.remove();
+  q('[data-related-close]').addEventListener('click',close);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+  function candidates(){
+    return kind==='list'?parseNative(NexoNative.getLists(),[]):
+      kind==='note'?parseNative(NexoNative.getNotes(),[]):parseNative(NexoNative.getCollection('documents'),[]);
+  }
+  function render(){
+    q('[data-related-form]').hidden=true;q('[data-related-create]').hidden=false;
+    overlay.querySelectorAll('[data-related-tab]').forEach(b=>b.classList.toggle('active',b.dataset.relatedTab===kind));
+    const term=q('[data-related-search]').value.trim().toLocaleLowerCase('es-ES');
+    const linked=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]);
+    const ids=new Set(linked.filter(x=>x.kind===kind).map(x=>Number(x.id)));
+    const choices=candidates().filter(x=>!term||String(x.title||'').toLocaleLowerCase('es-ES').includes(term));
+    q('[data-related-results]').innerHTML=choices.length?choices.map(x=>
+      '<button type="button" class="related-picker-choice" data-related-choice="'+Number(x.id)+'" '+(ids.has(Number(x.id))?'disabled':'')+'>'+
+      '<span>'+esc(x.title||'Sin título')+'</span><small>'+(ids.has(Number(x.id))?'Ya vinculado':'Vincular')+'</small></button>').join(''):
+      '<p class="linked-empty">No se han encontrado elementos.</p>';
+    q('[data-related-results]').querySelectorAll('[data-related-choice]').forEach(b=>b.addEventListener('click',()=>{
+      const linked=parseNative(NexoNative.linkRelatedResource(Number(ownerId),kind,Number(b.dataset.relatedChoice)),{});
+      if(!linked.ok){toast(linked.error||'No se pudo vincular');return;}
+      close();refreshRelatedLinks(ownerId);toast('Elemento vinculado');
+    }));
+    q('[data-related-create]').innerHTML=uiIcon('plus')+' Crear '+(RELATED_KIND_LABELS[kind]||'elemento').toLocaleLowerCase('es-ES');
+  }
+  q('[data-related-search]').addEventListener('input',render);
+  overlay.querySelectorAll('[data-related-tab]').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.relatedTab;q('[data-related-search]').value='';render();}));
+  q('[data-related-create]').addEventListener('click',()=>{
+    if(kind==='document'){
+      close();
+      if(!closeModal())return;
+      state.pendingResourceLink={ownerId:Number(ownerId),kind:'document'};
+      openDocumentEditor();return;
+    }
+    q('[data-related-create]').hidden=true;
+    const form=q('[data-related-form]');form.hidden=false;
+    form.innerHTML='<div class="related-creation-form"><label>Título<input type="text" data-related-title maxlength="120" placeholder="Título"></label>'+
+      (kind==='note'?'<label>Anotación<textarea data-related-body rows="3" placeholder="Escribe aquí…"></textarea></label>':'')+
+      '<div class="related-creation-actions"><button type="button" class="secondary-button" data-related-cancel>Cancelar</button>'+
+      '<button type="button" class="primary-button" data-related-save>Crear y vincular</button></div></div>';
+    form.querySelector('[data-related-cancel]').addEventListener('click',render);
+    form.querySelector('[data-related-save]').addEventListener('click',()=>{
+      const title=form.querySelector('[data-related-title]').value.trim();
+      if(!title){toast('Introduce un título');return;}
+      const selected=kind;
+      const id=selected==='list'?Number(NexoNative.createList(title,'General',false)):
+        Number(NexoNative.saveNote(JSON.stringify({title,body:form.querySelector('[data-related-body]').value.trim(),category:'Notas',source:'notepad',noteTitleManual:true})));
+      if(!(id>0)){toast('No se pudo crear');return;}
+      const linked=parseNative(NexoNative.linkRelatedResource(Number(ownerId),selected,id),{});
+      close();refreshRelatedLinks(ownerId);
+      toast(linked.ok?'Elemento creado y vinculado':'Elemento creado, pero no se pudo vincular');
+    });
+    form.querySelector('[data-related-title]').focus();
+  });
+  render();
+}
+
 function deleteItemFromCard(id){
   const item=parseNative(NexoNative.getItem(Number(id)),{});
   if(item.id)confirmDeleteItem(item);
@@ -2838,6 +2968,7 @@ function openList(id,options={}){
   $('#manageListBtn').addEventListener('click',()=>openListManagement(id));
   const voiceHint=shopping?'Para varios productos, sepáralos con «y»: “huevos y mantequilla y leche y pan”. También puedes decir “quita el azúcar” o “ya he comprado los huevos”.':'Para varios elementos, sepáralos con «y»: “pasaporte y cargador y medicamentos”.';
   $('#panelContent').innerHTML=`<div class="list-voice-hint list-voice-hint--fab">${esc(voiceHint)} Usa el botón flotante del micrófono para dictar.</div><div class="add-inline"><input id="listQuickInput" type="text" placeholder="${shopping?'Escribe productos…':'Escribe un elemento…'}"><button id="listAddBtn" class="primary-button">Añadir</button></div><div>${entries.length?entries.map(e=>`<div class="list-entry ${e.checked?'checked':''}"><input type="checkbox" data-entry-toggle="${e.id}" ${e.checked?'checked':''} aria-label="${e.checked?'Desmarcar':'Marcar'} ${escAttr(e.text)}"><button type="button" class="entry-text entry-text-button" data-entry-text-toggle="${e.id}" data-entry-checked="${e.checked?'1':'0'}">${esc(e.text)}</button>${e.category?`<span class="entry-cat">${esc(e.category)}</span>`:''}<button class="entry-delete" aria-label="Eliminar ${escAttr(e.text)}" data-entry-delete="${e.id}"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-close"></use></svg></button></div>`).join(''):'<div class="empty-state">Lista vacía. Escribe un elemento o usa el micrófono flotante.</div>'}</div>`;
+  $('#panelContent').insertAdjacentHTML('beforeend',relatedOwnersSectionHtml('list',id));bindRelatedOwners($('#panelContent'));
   $('#listAddBtn').addEventListener('click',()=>{const v=$('#listQuickInput').value.trim();if(!v)return;NexoNative.addListItems(id,v,shopping);openList(id);});
   $('#listQuickInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#listAddBtn').click();});
   $$('[data-entry-toggle]').forEach(c=>c.addEventListener('change',()=>{updateListCheck(Number(c.dataset.entryToggle),c.checked,c.closest('.list-entry'));}));
@@ -2882,7 +3013,8 @@ function openItem(id){
   openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
-    <details class="details-box" open><summary>Editar</summary><div class="detail-grid">
+    ${relatedLinksSectionHtml(id)}
+    <details class="details-box"><summary>Editar</summary><div class="detail-grid">
       <label>Título<input id="editTitle" type="text" value="${escAttr(i.title)}"></label>
       <label>Descripción<textarea id="editBody" rows="4">${esc(i.body||'')}</textarea></label>
       ${i.originalText&&i.originalText!==i.body?`<details class="original-capture"><summary>Ver texto original capturado</summary><div>${esc(i.originalText)}</div></details>`:''}
@@ -2901,6 +3033,7 @@ function openItem(id){
     </div></details>
     <div class="modal-actions wrap-actions">${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>`);
 
+  bindCompactRecordActions();bindRelatedLinks(id);
   let editParticipantIds=normalizeParticipantIds(i.participantIds||[]);
   renderPersonAssignment('editPeopleChips',editParticipantIds,ids=>{editParticipantIds=ids;});
   const syncEditAllDay=()=>{
@@ -2948,7 +3081,8 @@ function openOccurrence(seriesId,occurrenceAt){
     <div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
-    <details class="details-box" open><summary>Editar</summary><div class="detail-grid">
+    ${relatedLinksSectionHtml(seriesId)}
+    <details class="details-box"><summary>Editar</summary><div class="detail-grid">
       <label>Título<input id="occTitle" type="text" value="${escAttr(i.title)}"></label>
       <label>Descripción<textarea id="occBody" rows="4">${esc(i.body||'')}</textarea></label>
       ${i.originalText&&i.originalText!==i.body?`<details class="original-capture"><summary>Ver texto original capturado</summary><div>${esc(i.originalText)}</div></details>`:''}
@@ -2968,6 +3102,7 @@ function openOccurrence(seriesId,occurrenceAt){
     ${isAppointmentType(i.type)?`<div class="occurrence-status-actions"><button id="occToggleDone" class="secondary-button">${currentState==='done'?'Marcar pendiente':'Marcar completada'}</button>${currentState!=='done'?'<button id="occPostpone" class="secondary-button">Posponer</button>':''}<span class="small muted">Estas acciones afectan solo a esta aparición.</span></div>`:''}
     `);
 
+  bindCompactRecordActions();bindRelatedLinks(seriesId);
   $('#editOccurrenceTopBtn').addEventListener('click',()=>{const details=$('#modalBody .details-box');if(details)details.open=true;$('#occTitle')?.focus();});
   let occParticipantIds=normalizeParticipantIds(i.participantIds||[]);
   renderPersonAssignment('occPeopleChips',occParticipantIds,ids=>{occParticipantIds=ids;});
@@ -3971,6 +4106,7 @@ function openDocumentDetail(id){
       <button id="documentDetailDownload" type="button" class="secondary-button">${uiIcon("download")} Descargar archivo</button>
     </div>
   </div>`);
+  $("#modalBody .document-detail").insertAdjacentHTML("beforeend",relatedOwnersSectionHtml("document",Number(id)));bindRelatedOwners($("#modalBody"));
   $("#documentDetailEdit").addEventListener("click",()=>{closeModal();openDocumentEditor(Number(id));});
   $("#documentDetailOpen").addEventListener("click",()=>NexoNative.openDocumentFile(String(i.attachmentPath||""),String(i.attachmentName||""),String(i.attachmentMime||"")));
   $("#documentDetailDownload").addEventListener("click",()=>NexoNative.downloadDocument(Number(id)));
@@ -4034,7 +4170,7 @@ function openDocumentEditor(id=0,incoming=null){
     $("#documentSaveError").classList.add("hidden");renderDocumentFile();NexoNative.chooseDocumentFile(editor.request);
   });
   $("#documentPreview").addEventListener("click",()=>{const f=state.documentEditor?.file;if(f?.path)NexoNative.openDocumentFile(f.path,f.name||"",f.mime||"");});
-  $("#documentCancel").addEventListener("click",closeModal);
+  $("#documentCancel").addEventListener("click",()=>{state.pendingResourceLink=null;closeModal();});
   $("#documentSave").addEventListener("click",()=>{
     const editor=state.documentEditor;if(!editor||editor.busy)return;
     const title=$("#documentTitle").value.trim(),description=$("#documentDescription").value.trim(),file=editor.file;
@@ -4045,7 +4181,15 @@ function openDocumentEditor(id=0,incoming=null){
     const payload={id:editor.id,title,description,label:$("#documentLabel").value.trim(),expiryAt,attachmentPath:file.path,attachmentName:file.name||"",attachmentMime:file.mime||""};
     const result=parseNative(NexoNative.saveDocument(JSON.stringify(payload)),{});
     if(!result.ok){showDocumentError(result.error||"No se pudo guardar el documento.");return;}
-    editor.originalPath=file.path;closeModal();refreshCurrent();toast("Documento guardado");
+    editor.originalPath=file.path;
+    const pending=state.pendingResourceLink;
+    if(pending && !editor.id){
+      state.pendingResourceLink=null;
+      const linked=parseNative(NexoNative.linkRelatedResource(Number(pending.ownerId),'document',Number(result.id)),{});
+      closeModal();openItem(Number(pending.ownerId));
+      toast(linked.ok?'Documento creado y vinculado':'Documento creado, pero no se pudo vincular');return;
+    }
+    closeModal();refreshCurrent();toast("Documento guardado");
   });
   $("#documentDelete")?.addEventListener("click",()=>confirmDeleteItem(i));
 }
