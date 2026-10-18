@@ -58,7 +58,7 @@ assert "book-card-date" in books
 assert 'id="nx-icon-heart"' in index
 assert 'id="nx-icon-star"' in index
 assert ".book-rating-star.is-set" in css and ".book-favorite-toggle.active" in css
-assert "versionCode 126" in gradle and "versionName '3.7.33'" in gradle
+assert "versionCode 127" in gradle and "versionName '3.7.34'" in gradle
 print("OK: DB 27→28 sin pérdida, estrellas/corazón independientes, fechas y filtros")
 
 # Los botones interactivos de valoración y favorito pertenecen solo a la ficha.
@@ -71,3 +71,13 @@ assert "favorite:editor.favorite" in books and "rating:editor.rating" in books
 assert "if(savedId)openDetails(savedId)" not in books
 assert "const scrollY=editor.scrollY" in books
 assert "requestAnimationFrame(()=>window.scrollTo(0,scrollY))" in books
+
+# UX de Libros: mismos iconos que Notas, acciones por encima de resúmenes largos.
+assert "book-detail-quick-actions record-card-actions" in books
+assert "bookDetailShare" in books and "NexoNative.sharePlainText(live.title" in books
+assert "icon-action icon-action--danger" in books
+assert "book-editor-toolbar" in books
+assert 'id="bookSave" class="icon-button primary book-editor-save"' in books
+assert 'class="book-card-rating"' in books and "book-card-star" in books
+assert ".book-card-rating" in css and ".book-detail-quick-actions" in css
+assert "position:sticky" in css and ".book-editor-toolbar" in css

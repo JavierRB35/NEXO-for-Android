@@ -76,13 +76,15 @@ window.NexoBooks = (() => {
     const id=number(b.id),percent=Math.max(0,Math.min(100,number(b.progress)));
     const status=Object.hasOwn(labels,b.status)?b.status:'want';
     const date=showDate(bookDate(b));
-    const description=[labels[status],date, b.favorite?'Favorito':''].filter(Boolean).join('. ');
+    const rating=ratingOf(b);
+    const description=[labels[status],date,b.favorite?'Favorito':'',rating?`${rating} de 5 estrellas`:'Sin valorar'].filter(Boolean).join('. ');
     return `<article class="book-card">
       <button class="book-card-main" type="button" data-book-open="${id}" aria-label="Ver ficha de ${escAttr(b.title)}, ${escAttr(b.author)}. ${escAttr(description)}">
         <span class="book-card-symbol book-card-symbol--${status}" aria-hidden="true">${uiIcon(icons[status])}</span>
         <span class="book-card-copy">
           <strong class="book-card-title">${esc(b.title)}</strong>
           <span class="book-card-subline"><span class="book-author">${esc(b.author)}</span>${date?`<span class="book-card-date">${date}</span>`:''}${status!=='want'?`<span class="book-card-percent">${percent}%</span>`:''}</span>
+          <span class="book-card-rating" role="img" aria-label="${rating?`Valoración: ${rating} de 5 estrellas`:'Sin valorar'}">${[1,2,3,4,5].map(n=>`<span class="book-card-star ${n<=rating?'is-set':''}" aria-hidden="true">${uiIcon('star')}</span>`).join('')}</span>
         </span>
         <span class="book-card-trailing" aria-hidden="true">${b.favorite?`<span class="book-card-heart">${uiIcon('heart')}</span>`:''}<span class="book-card-chevron">${uiIcon('right')}</span></span>
       </button>
@@ -171,6 +173,11 @@ window.NexoBooks = (() => {
     const start=showDate(b.startDate);
     const rating=ratingOf(b);
     openModal('Ficha del libro',`<article class="book-detail">
+      <div class="book-detail-quick-actions record-card-actions" role="group" aria-label="Acciones del libro">
+        <button id="bookDetailEdit" class="icon-action" type="button" aria-label="Editar libro" title="Editar libro">${uiIcon('edit')}</button>
+        <button id="bookDetailShare" class="icon-action" type="button" aria-label="Compartir libro" title="Compartir libro">${uiIcon('share')}</button>
+        <button id="bookDetailDelete" class="icon-action icon-action--danger" type="button" aria-label="Eliminar libro" title="Eliminar libro">${uiIcon('trash')}</button>
+      </div>
       <div class="book-detail-head">
         <span class="book-card-symbol book-card-symbol--${status}" aria-hidden="true">${uiIcon(icons[status])}</span>
         <div class="book-detail-heading"><h3>${esc(b.title)}</h3><p>${esc(b.author)}</p>
@@ -178,6 +185,7 @@ window.NexoBooks = (() => {
         </div>
         <button id="bookDetailFavorite" type="button" class="book-favorite-toggle ${b.favorite?'active':''}" aria-pressed="${!!b.favorite}" aria-label="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}" title="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}">${uiIcon('heart')}</button>
       </div>
+      ${status==='want'?`<div class="book-detail-start-row"><button type="button" id="bookDetailStart" class="secondary-button">${uiIcon('book-reading')} Empezar lectura</button></div>`:''}
       <div class="book-rating-section book-rating-section--detail"><strong>Mi valoración</strong>
         <div class="book-rating-stars" role="group" aria-label="Valorar este libro de 1 a 5 estrellas">
           ${[1,2,3,4,5].map(n=>`<button type="button" data-book-detail-rating data-rating="${n}" class="book-rating-star ${n<=rating?'is-set':''}" aria-pressed="${n===rating}" aria-label="${n} ${n===1?'estrella':'estrellas'}" title="${n} ${n===1?'estrella':'estrellas'}">${uiIcon('star')}</button>`).join('')}
@@ -193,12 +201,7 @@ window.NexoBooks = (() => {
       ${status!=='want'?`<section class="book-detail-section"><strong>Mi resumen personal</strong>
         <div class="book-detail-summary">${b.summary?esc(b.summary):'<span class="muted">Todavía no has añadido un resumen.</span>'}</div>
       </section>`:''}
-    </article>
-    <div class="modal-actions wrap-actions book-detail-actions">
-      <button type="button" id="bookDetailDelete" class="danger-button">${uiIcon('trash')} Eliminar</button>
-      ${status==='want'?`<button type="button" id="bookDetailStart" class="secondary-button">${uiIcon('book-reading')} Empezar lectura</button>`:''}
-      <button type="button" id="bookDetailEdit" class="primary-button">${uiIcon('edit')} Editar</button>
-    </div>`);
+    </article>`);
     document.querySelector('#bookDetailFavorite').addEventListener('click',()=>{
       const current=parseNative(NexoNative.getBook(number(b.id)),{});
       if(current.id)persistDetailChange(number(b.id),{favorite:!current.favorite});
@@ -209,6 +212,18 @@ window.NexoBooks = (() => {
       if(current.id)persistDetailChange(number(b.id),{rating:ratingOf(current)===clicked?0:clicked});
     }));
     document.querySelector('#bookDetailEdit').addEventListener('click',()=>openEditor(number(b.id)));
+    document.querySelector('#bookDetailShare').addEventListener('click',()=>{
+      const live=parseNative(NexoNative.getBook(number(b.id)),{});
+      if(!live.id){toast('Libro no encontrado.');return;}
+      const parts=[live.title,live.author?'Autor: '+live.author:'',
+        labels[live.status]?'Estado: '+labels[live.status]:'',
+        live.startDate?'Inicio: '+showDate(live.startDate):'',
+        live.finishDate?'Finalización: '+showDate(live.finishDate):'',
+        live.abandonedDate?'Abandono: '+showDate(live.abandonedDate):'',
+        ratingOf(live)?'Valoración: '+ratingOf(live)+'/5':'',
+        live.summary?'\n'+live.summary:''].filter(Boolean);
+      NexoNative.sharePlainText(live.title,parts.join('\n'));
+    });
     document.querySelector('#bookDetailDelete').addEventListener('click',()=>removeBook(number(b.id)));
     document.querySelector('#bookDetailStart')?.addEventListener('click',()=>startBook(number(b.id)));
   }
@@ -255,6 +270,11 @@ window.NexoBooks = (() => {
     const status=source.status||initialStatus||(!Object.hasOwn(labels,filter)?'want':filter);
     const rating=ratingOf(source);
     openModal(id?'Editar libro':'Nuevo libro',`<div class="modal-form book-editor">
+      <div class="book-editor-toolbar" role="group" aria-label="Acciones del editor">
+        <span class="book-editor-toolbar-label">Datos del libro</span>
+        <button id="bookCancel" class="secondary-button book-editor-cancel" type="button">Cancelar</button>
+        <button id="bookSave" class="icon-button primary book-editor-save" type="button" title="Guardar libro" aria-label="Guardar libro">${uiIcon('save')}</button>
+      </div>
       <label>Título<input id="bookTitle" type="text" maxlength="250" value="${escAttr(source.title||'')}" placeholder="Título del libro" required></label>
       <label>Autor<input id="bookAuthor" type="text" maxlength="180" value="${escAttr(source.author||'')}" placeholder="Nombre del autor" required></label>
       <label>Estado de lectura<select id="bookStatus">
@@ -272,10 +292,6 @@ window.NexoBooks = (() => {
         <small class="muted">El dictado se convierte a texto editable; no se almacena audio.</small>
       </div>
       <p class="book-form-error hidden" id="bookError" role="alert"></p>
-    </div>
-    <div class="modal-actions">
-      <button class="secondary-button" id="bookCancel" type="button">Cancelar</button>
-      <button class="primary-button" id="bookSave" type="button">Guardar libro</button>
     </div>`);
     editor={id:number(id),favorite:!!source.favorite,rating,scrollY:window.scrollY,baseline:'',sourceStatus:source.status||'',
       hadReadData:!!(source.progress||source.startDate||source.finishDate||source.abandonedDate||source.summary)};

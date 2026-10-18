@@ -15,7 +15,7 @@ let rows=[
   {id:5,title:'El infinito en un junco',author:'Irene Vallejo',status:'finished',progress:100,startDate:'2026-09-01',finishDate:'2026-10-10',abandonedDate:'',summary:'',rating:5,favorite:true,updatedAt:1},
   {id:6,title:'Un libro sin fecha',author:'Sin autor conocido',status:'finished',progress:100,startDate:'',finishDate:'',abandonedDate:'',summary:'',rating:0,favorite:false,updatedAt:300}
 ];
-let voice=null,confirmCount=0, lastError='',clock=1000;
+let voice=null,confirmCount=0, lastError='',clock=1000,shareResult=null;
 window.NexoNative={
   getBooks:()=>JSON.stringify(rows),
   getBook:id=>JSON.stringify(rows.find(x=>x.id===id)||{}),
@@ -32,7 +32,8 @@ window.NexoNative={
     rows=rows.filter(x=>x.id!==b.id).concat(b);
     return JSON.stringify({ok:true,id:b.id});
   },
-  deleteBook:id=>{rows=rows.filter(x=>x.id!==id);return true;}
+  deleteBook:id=>{rows=rows.filter(x=>x.id!==id);return true;},
+  sharePlainText:(title,text)=>{shareResult={title,text};}
 };
 window.parseNative=(raw,fallback)=>{try{return JSON.parse(raw);}catch{return fallback;}};
 window.esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -73,6 +74,12 @@ assert(doc.querySelector('#booksStatsContent').textContent.includes('2026'),'Est
 assert(doc.querySelector('[data-book-open="5"] .book-card-heart'),'Corazón visible en tarjeta favorita');
 assert(!doc.querySelector('[data-book-open="1"] .book-card-heart'),'Favorito independiente de estrellas');
 assert(doc.querySelector('[data-book-open="5"] .book-card-date').textContent.includes('10/10/2026'));
+assert.equal(doc.querySelectorAll('[data-book-open="5"] .book-card-star').length,5,'La tarjeta incluye cinco estrellas');
+assert.equal(doc.querySelectorAll('[data-book-open="5"] .book-card-star.is-set').length,5,'Cinco estrellas rellenas en un libro valorado 5');
+assert.equal(doc.querySelectorAll('[data-book-open="1"] .book-card-star.is-set').length,3,'Tres estrellas rellenas en un libro valorado 3');
+assert.equal(doc.querySelectorAll('[data-book-open="2"] .book-card-star.is-set').length,0,'Sin valorar: todas vacías');
+assert(doc.querySelector('[data-book-open="1"] .book-card-rating').getAttribute('aria-label').includes('3 de 5'),'Accesibilidad de valoración');
+assert.equal(doc.querySelectorAll('[data-book-open="1"] .book-card-rating button').length,0,'Las estrellas del listado no modifican la puntuación');
 assert(doc.querySelector('[data-book-open="1"]').getAttribute('aria-label').includes('Terminado'));
 
 setFilter('finished');
@@ -84,12 +91,20 @@ assert(doc.querySelector('#modalBody').textContent.includes('21/01/2024'));
 assert(doc.querySelector('#modalBody').textContent.includes('01/11/2023'),'Inicio visible en detalle');
 assert(doc.querySelectorAll('[data-book-detail-rating]').length===5,'Cinco estrellas en la ficha');
 assert(doc.querySelector('#bookDetailFavorite'),'Corazón en ficha');
-assert(doc.querySelector('#bookDetailEdit')&&doc.querySelector('#bookDetailDelete'));
+assert(doc.querySelector('#bookDetailEdit')&&doc.querySelector('#bookDetailDelete')&&doc.querySelector('#bookDetailShare'));
+assert.equal(doc.querySelectorAll('.book-detail-quick-actions .icon-action').length,3,'Pincel, compartir y eliminar como en Notas');
+assert.equal(doc.querySelector('.book-detail').firstElementChild.classList.contains('book-detail-quick-actions'),true,'Acciones arriba del resumen');
+assert(doc.querySelector('.book-detail-quick-actions').compareDocumentPosition(doc.querySelector('.book-detail-summary')) & 4,'Acciones preceden a resumen largo');
+doc.querySelector('#bookDetailShare').click();
+assert.equal(shareResult.title,'Cien años de soledad');
+assert(shareResult.text.includes('Un clásico'),'Compartir incluye el resumen');
+assert.equal(doc.querySelectorAll('#bookDetailEdit').length,1,'Editar es único en ficha');
 assert.equal(doc.querySelector('#bookTitle'),null,'Detalle no es editor');
 
 // Cambiar valoración y favorito sin editar la ficha, de manera independiente.
 doc.querySelector('[data-book-detail-rating][data-rating="4"]').click();
 assert.equal(rows.find(x=>x.id===1).rating,4);
+assert.equal(doc.querySelectorAll('[data-book-open="1"] .book-card-star.is-set').length,4,'Las estrellas del listado se refrescan inmediatamente');
 assert.equal(rows.find(x=>x.id===1).favorite,false,'Puntuar 4 no marca favorito');
 doc.querySelector('#bookDetailFavorite').click();
 assert.equal(rows.find(x=>x.id===1).favorite,true);
@@ -109,6 +124,11 @@ assert.equal(doc.querySelector('#bookStatus').value,'finished');
 assert.equal(doc.querySelector('#bookFavorite'),null,'No checkbox ni corazón en formulario de edición');
 assert.equal(doc.querySelectorAll('[data-book-edit-rating]').length,0,'Las estrellas no están en edición');
 assert.equal(doc.querySelector('#bookStartDate').value,'2023-11-01');
+assert.equal(doc.querySelector('.book-editor').firstElementChild.classList.contains('book-editor-toolbar'),true,'Guardar y cancelar en cabecera de editor');
+assert.equal(doc.querySelectorAll('#bookSave').length,1,'Guardar solo arriba');
+assert(doc.querySelector('#bookSave .ui-icon')||doc.querySelector('#bookSave svg'),'Icono de disquete como en Notas');
+assert.equal(doc.querySelectorAll('.book-editor .modal-actions').length,0,'Sin botones ocultos tras la descripción');
+assert.equal(doc.querySelector('#bookCancel').closest('.book-editor-toolbar')!==null,true);
 doc.querySelector('#bookStatus').value='reading';
 doc.querySelector('#bookStatus').dispatchEvent(new window.Event('change',{bubbles:true}));
 assert.equal(doc.querySelector('#bookProgress').value,'99');
