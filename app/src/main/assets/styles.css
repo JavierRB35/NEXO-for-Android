@@ -3349,3 +3349,6 @@ body.startup-loading #app{visibility:hidden}
   .book-card-star{width:13px;height:13px}
   .book-card-star .ui-icon{width:12px;height:12px}
 }
+
+/* Etiqueta discreta de tipo, reutilizando las tarjetas compactas de Libros. */
+.media-kind{display:inline-block;font-size:.65rem;font-weight:800;color:#536b86;border:1px solid #dce5ef;border-radius:6px;padding:1px 5px;margin-left:5px;vertical-align:1px}
