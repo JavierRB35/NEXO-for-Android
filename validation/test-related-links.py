@@ -7,7 +7,7 @@ java=(root/'app/src/main/java/com/jruiz/nexo/MainActivity.java').read_text(encod
 db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf-8')
 css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 
-assert 'DB_VERSION = 31' in db
+assert 'DB_VERSION = 32' in db
 assert 'if (oldVersion < 30)' in db and 'createRecordLinksTable(db)' in db
 for token in ['CREATE TABLE IF NOT EXISTS record_links','UNIQUE(owner_item_id,resource_kind,resource_id)',
               'idx_record_links_owner','idx_record_links_resource',

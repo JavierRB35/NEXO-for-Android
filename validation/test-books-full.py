@@ -13,7 +13,7 @@ gradle=(root/"app/build.gradle").read_text()
 for name in ("start_date", "favorite", "rating"):
     assert f'ALTER TABLE books ADD COLUMN {name} ' in db, "Falta migración: "+name
     assert f'"{name} ' in db, "Falta columna en nuevas instalaciones: "+name
-assert "DB_VERSION = 31" in db
+assert "DB_VERSION = 32" in db
 assert "if (oldVersion < 28)" in db
 assert 'columnExists(db, "books", "favorite")' in db
 assert "startDate" in repository and "finishDate" in repository and "abandonedDate" in repository
@@ -39,7 +39,7 @@ CREATE TABLE books(
 INSERT INTO books(title,author,status,progress,finish_date,summary,created_at,updated_at)
 VALUES('Libro guardado','Autor original','finished',100,'2025-03-07','No perder resumen',1,2);
 """)
-sqls=re.findall(r'db\.execSQL\("(ALTER TABLE books ADD COLUMN [^"]+)"\)',db)
+sqls=re.findall(r'db\.execSQL\("(ALTER TABLE books ADD COLUMN (?:start_date|favorite|rating) [^"]+)"\)',db)
 assert len(sqls)==3, sqls
 for stmt in sqls:
     con.execute(stmt)
@@ -58,7 +58,7 @@ assert "book-card-date" in books
 assert 'id="nx-icon-heart"' in index
 assert 'id="nx-icon-star"' in index
 assert ".book-rating-star.is-set" in css and ".book-favorite-toggle.active" in css
-assert "versionCode 128" in gradle and "versionName '3.7.35'" in gradle
+assert "versionCode 129" in gradle and "versionName '3.7.36'" in gradle
 print("OK: DB 27→28 sin pérdida, estrellas/corazón independientes, fechas y filtros")
 
 # Los botones interactivos de valoración y favorito pertenecen solo a la ficha.

@@ -2,10 +2,13 @@
 
 /* Filmoteca local: misma funcionalidad que Libros, datos independientes. */
 window.NexoMedia = (() => {
-  let filter='all', typeFilter='all', search='', books=[], editor=null;
+  let filter='all', typeFilter='all', categoryFilter='all', search='', books=[], editor=null;
   const labels={want:'Quiero ver',reading:'Viendo',finished:'Vista',abandoned:'Abandonada'};
   const typeLabels={movie:'Película',series:'Serie'};
   const icons={want:'film',reading:'play',finished:'check',abandoned:'close'};
+  // Catálogo exclusivo de este módulo; se admiten categorías personalizadas.
+  const categoryPresets=["Acción y aventura","Comedia","Drama","Ciencia ficción","Fantasía","Misterio y suspense","Terror","Romance","Documental","Animación","Histórica","Otros"];
+  const categoryOf=b=>String(b?.category||'').trim();
   const normal=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-ES').trim();
   const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
   const showDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))?String(v).split('-').reverse().join('/'):'';
@@ -45,7 +48,8 @@ window.NexoMedia = (() => {
   }
   function matchesFilter(b){
     return (filter==='all'||filter==='favorites'&&!!b.favorite||b.status===filter)&&
-      (typeFilter==='all'||b.mediaType===typeFilter);
+      (typeFilter==='all'||b.mediaType===typeFilter)&&
+      (categoryFilter==='all'||categoryOf(b)===categoryFilter);
   }
   function renderFilterCounts(){
     const rows=searchedBooks();
@@ -83,18 +87,41 @@ window.NexoMedia = (() => {
     const status=Object.hasOwn(labels,b.status)?b.status:'want';
     const date=showDate(bookDate(b));
     const rating=ratingOf(b);
-    const description=[typeLabels[b.mediaType]||'Película',labels[status],date,b.favorite?'Favorito':'',rating?`${rating} de 5 estrellas`:'Sin valorar'].filter(Boolean).join('. ');
+    const description=[typeLabels[b.mediaType]||'Película',labels[status],categoryOf(b)||'Sin categoría',date,b.favorite?'Favorito':'',rating?`${rating} de 5 estrellas`:'Sin valorar'].filter(Boolean).join('. ');
     return `<article class="book-card">
       <button class="book-card-main" type="button" data-book-open="${id}" aria-label="Ver ficha de ${escAttr(b.title)}, ${escAttr(b.creator)}. ${escAttr(description)}">
         <span class="book-card-symbol book-card-symbol--${status}" aria-hidden="true">${uiIcon(icons[status])}</span>
         <span class="book-card-copy">
           <strong class="book-card-title">${esc(b.title)} <small class="media-kind">${esc(typeLabels[b.mediaType]||'Película')}</small></strong>
           <span class="book-card-subline"><span class="book-author">${esc(b.creator)}</span>${date?`<span class="book-card-date">${date}</span>`:''}${status!=='want'?`<span class="book-card-percent">${percent}%</span>`:''}</span>
+          ${categoryOf(b)?`<span class="book-category-chip">${esc(categoryOf(b))}</span>`:'' }
           <span class="book-card-rating" role="img" aria-label="${rating?`Valoración: ${rating} de 5 estrellas`:'Sin valorar'}">${[1,2,3,4,5].map(n=>`<span class="book-card-star ${n<=rating?'is-set':''}" aria-hidden="true">${uiIcon('star')}</span>`).join('')}</span>
         </span>
         <span class="book-card-trailing" aria-hidden="true">${b.favorite?`<span class="book-card-heart">${uiIcon('heart')}</span>`:''}<span class="book-card-chevron">${uiIcon('right')}</span></span>
       </button>
     </article>`;
+  }
+
+  function refreshCategoryFilter(){
+    const select=document.querySelector('#booksCategoryFilter');
+    if(!select)return;
+    const names=[...new Set(books.map(categoryOf))].sort((a,b)=>a.localeCompare(b,'es'));
+    if(categoryFilter!=='all'&&!names.includes(categoryFilter))categoryFilter='all';
+    select.innerHTML='<option value="all">Todas las categorías ('+books.length+')</option>'+
+      names.map(name=>'<option value="'+escAttr(name)+'">'+
+        esc(name||'Sin categoría')+' ('+books.filter(b=>categoryOf(b)===name).length+')</option>').join('');
+    select.value=categoryFilter;
+  }
+  function categoryOptions(selected){
+    const names=[...new Set([...categoryPresets,...books.map(categoryOf).filter(Boolean),selected].filter(Boolean))];
+    return '<option value="">Sin categoría</option>'+
+      names.map(name=>'<option value="'+escAttr(name)+'" '+(name===selected?'selected':'')+'>'+esc(name)+'</option>').join('')+
+      '<option value="__custom">+ Crear otra categoría…</option>';
+  }
+  function updateCategoryCustom(){
+    const custom=document.querySelector('#bookCategorySelect')?.value==='__custom';
+    document.querySelector('#bookCategoryCustomRow')?.classList.toggle('hidden',!custom);
+    if(custom)document.querySelector('#bookCategoryCustom')?.focus();
   }
 
   function refreshMatches() {
@@ -106,6 +133,7 @@ window.NexoMedia = (() => {
       :`<div class="empty-state">${q?'No hay películas ni series con ese título o creador en el filtro.':'No hay títulos en este filtro.'}</div>`;
     list.querySelectorAll('[data-book-open]').forEach(b=>b.addEventListener('click',()=>openDetails(number(b.dataset.bookOpen))));
     renderFilterCounts();
+    refreshCategoryFilter();
     document.querySelectorAll('[data-media-type-filter]').forEach(b=>{const active=b.dataset.mediaTypeFilter===typeFilter;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
   }
 
@@ -137,11 +165,13 @@ window.NexoMedia = (() => {
       <div class="books-status-filters" role="group" aria-label="Filtrar por estado">
         ${[['all','Todos'],...Object.entries(labels),['favorites','Favoritos']].map(([key,text])=>`<button class="books-status-filter ${filter===key?'active':''}" type="button" data-books-filter="${key}" aria-pressed="${filter===key}">${key==='all'?'':uiIcon(key==='favorites'?'heart':icons[key])}${esc(text)} <span class="books-filter-count" data-book-count="${key}">0</span></button>`).join('')}
       </div>
+      <label class="book-category-filter" for="booksCategoryFilter"><span>Categoría</span><select id="booksCategoryFilter" aria-label="Filtrar por categoría"></select></label>
       <details class="books-stats" id="booksStats"><summary>${uiIcon('chart')} Estadísticas <span id="booksStatsTotal"></span></summary><div id="booksStatsContent"></div></details>
       <div id="booksResults"></div>
     </div>`;
     host.querySelector('#booksSearchInput').addEventListener('input',e=>{search=e.target.value;refreshMatches();});
     host.querySelectorAll('[data-media-type-filter]').forEach(b=>b.addEventListener('click',()=>{typeFilter=b.dataset.mediaTypeFilter;refreshMatches();}));
+    host.querySelector('#booksCategoryFilter').addEventListener('change',e=>{categoryFilter=e.target.value;refreshMatches();});
     host.querySelectorAll('[data-books-filter]').forEach(b=>b.addEventListener('click',()=>{
       filter=b.dataset.booksFilter;updateFilterButtons();refreshMatches();
     }));
@@ -196,6 +226,7 @@ window.NexoMedia = (() => {
         </div>
         <button id="bookDetailFavorite" type="button" class="book-favorite-toggle ${b.favorite?'active':''}" aria-pressed="${!!b.favorite}" aria-label="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}" title="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}">${uiIcon('heart')}</button>
       </div>
+      <p class="book-detail-date"><strong>Categoría:</strong> ${esc(categoryOf(b)||'Sin categoría')}</p>
       ${status==='want'?`<div class="book-detail-start-row"><button type="button" id="bookDetailStart" class="secondary-button">${uiIcon('book-reading')} Empezar a ver</button></div>`:''}
       <div class="book-rating-section book-rating-section--detail"><strong>Mi valoración</strong>
         <div class="book-rating-stars" role="group" aria-label="Valorar este título de 1 a 5 estrellas">
@@ -227,6 +258,7 @@ window.NexoMedia = (() => {
       const live=parseNative(NexoNative.getMediaItem(number(b.id)),{});
       if(!live.id){toast('Película o serie no encontrada.');return;}
       const parts=[live.title,'Tipo: '+(typeLabels[live.mediaType]||'Película'),live.creator?'Director/creador: '+live.creator:'',
+        categoryOf(live)?'Categoría: '+categoryOf(live):'',
         labels[live.status]?'Estado: '+labels[live.status]:'',
         live.startDate?'Inicio: '+showDate(live.startDate):'',
         live.finishDate?'Finalización: '+showDate(live.finishDate):'',
@@ -246,6 +278,9 @@ window.NexoMedia = (() => {
       title:document.querySelector('#bookTitle')?.value.trim()||'',
       creator:document.querySelector('#bookAuthor')?.value.trim()||'',
       mediaType:document.querySelector('#mediaKind')?.value||'movie',
+      category:document.querySelector('#bookCategorySelect')?.value==='__custom'
+        ?(document.querySelector('#bookCategoryCustom')?.value.trim()||'')
+        :(document.querySelector('#bookCategorySelect')?.value||''),
       status:document.querySelector('#bookStatus')?.value||'want',
       progress:number(document.querySelector('#bookProgress')?.value),
       startDate:document.querySelector('#bookStartDate')?.value||'',
@@ -281,6 +316,7 @@ window.NexoMedia = (() => {
     if(id&&!source.id){toast('Película o serie no encontrada.');refreshLibrary();return;}
     const status=source.status||initialStatus||(!Object.hasOwn(labels,filter)?'want':filter);
     const rating=ratingOf(source);
+    const selectedCategory=source.id?categoryOf(source):(categoryFilter==='all'?'':categoryFilter);
     openModal(id?'Editar título':'Nuevo título',`<div class="modal-form book-editor">
       <div class="book-editor-toolbar" role="group" aria-label="Acciones del editor">
         <span class="book-editor-toolbar-label">Datos de la película o serie</span>
@@ -290,6 +326,8 @@ window.NexoMedia = (() => {
       <label>Título<input id="bookTitle" type="text" maxlength="250" value="${escAttr(source.title||'')}" placeholder="Título" required></label>
       <label>Director o creador <span class="optional">(opcional)</span><input id="bookAuthor" type="text" maxlength="180" value="${escAttr(source.creator||'')}" placeholder="Director o creador"></label>
       <label>Tipo<select id="mediaKind"><option value="movie" ${(!source.mediaType||source.mediaType==='movie')?'selected':''}>Película</option><option value="series" ${source.mediaType==='series'?'selected':''}>Serie</option></select></label>
+      <label>Categoría<select id="bookCategorySelect">${categoryOptions(selectedCategory)}</select></label>
+      <label id="bookCategoryCustomRow" class="hidden">Nueva categoría<input id="bookCategoryCustom" type="text" maxlength="80" placeholder="Nombre de la categoría"></label>
       <label>Estado del visionado<select id="bookStatus">
         ${Object.entries(labels).map(([key,label])=>`<option value="${key}" ${status===key?'selected':''}>${esc(label)}</option>`).join('')}
       </select></label>
@@ -308,6 +346,7 @@ window.NexoMedia = (() => {
     </div>`);
     editor={id:number(id),favorite:!!source.favorite,rating,scrollY:window.scrollY,baseline:'',sourceStatus:source.status||'',
       hadReadData:!!(source.progress||source.startDate||source.finishDate||source.abandonedDate||source.summary)};
+    document.querySelector('#bookCategorySelect').addEventListener('change',updateCategoryCustom);
     document.querySelector('#bookStatus').addEventListener('change',()=>{
       const s=document.querySelector('#bookStatus').value;
       if(s==='reading'&&!document.querySelector('#bookStartDate').value&&
@@ -338,6 +377,10 @@ window.NexoMedia = (() => {
     if(!payload.title){
       error.textContent='Indica el título.';error.classList.remove('hidden');
       document.querySelector('#bookTitle').focus();return;
+    }
+    if(document.querySelector('#bookCategorySelect')?.value==='__custom'&&!payload.category){
+      error.textContent='Introduce el nombre de la nueva categoría.';error.classList.remove('hidden');
+      document.querySelector('#bookCategoryCustom')?.focus();return;
     }
     const commit=()=>{
       const result=parseNative(NexoNative.saveMediaItem(JSON.stringify(payload)),{ok:false});

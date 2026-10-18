@@ -16,7 +16,7 @@ public final class MediaRepository {
     private MediaRepository() {}
 
     private static final String FIELDS =
-            "id,title,creator,status,progress,finish_date,abandoned_date,summary,created_at,updated_at,start_date,favorite,rating,media_type";
+            "id,title,creator,status,progress,finish_date,abandoned_date,summary,created_at,updated_at,start_date,favorite,rating,media_type,category";
 
     private static JSONObject result(boolean ok, String error, long id) {
         JSONObject o = new JSONObject();
@@ -45,6 +45,7 @@ public final class MediaRepository {
             o.put("favorite", c.getInt(11) != 0);
             o.put("rating", c.getInt(12));
             o.put("mediaType", c.getString(13));
+            o.put("category", c.getString(14));
         } catch (Exception ignored) {}
         return o;
     }
@@ -118,6 +119,8 @@ public final class MediaRepository {
         String finishDate = input.optString("finishDate", "").trim();
         String abandonedDate = input.optString("abandonedDate", "").trim();
         String summary = input.optString("summary", "").trim();
+        String category = input.optString("category", "").trim();
+        if (category.length() > 80) return result(false, "La categoría supera 80 caracteres.", 0);
         long id = input.optLong("id", 0);
         int rating = input.optInt("rating", 0);
         if (rating < 0 || rating > 5)
@@ -165,6 +168,7 @@ public final class MediaRepository {
         v.put("finish_date", finishDate);
         v.put("abandoned_date", abandonedDate);
         v.put("summary", summary);
+        v.put("category", category);
         v.put("favorite", favorite ? 1 : 0);
         v.put("rating", rating);
         long now = System.currentTimeMillis();

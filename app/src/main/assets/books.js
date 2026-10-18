@@ -2,9 +2,12 @@
 
 /* Biblioteca de Nexo: estados, fechas reales, favoritos y valoración independientes. */
 window.NexoBooks = (() => {
-  let filter='all', search='', books=[], editor=null;
+  let filter='all', categoryFilter='all', search='', books=[], editor=null;
   const labels={want:'Quiero leer',reading:'En lectura',finished:'Terminado',abandoned:'Abandonado'};
   const icons={want:'book-want',reading:'book-reading',finished:'book-finished',abandoned:'book-abandoned'};
+  // Catálogo exclusivo de este módulo; se admiten categorías personalizadas.
+  const categoryPresets=["Novela","Ciencia ficción","Fantasía","Misterio y suspense","Historia","Biografía y memorias","Ensayo","Divulgación","Desarrollo personal","Empresa y economía","Tecnología","Poesía","Otros"];
+  const categoryOf=b=>String(b?.category||'').trim();
   const normal=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-ES').trim();
   const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
   const showDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))?String(v).split('-').reverse().join('/'):'';
@@ -43,7 +46,8 @@ window.NexoBooks = (() => {
     return rows.filter(b=>b.status===key).length;
   }
   function matchesFilter(b){
-    return filter==='all'||filter==='favorites'&&!!b.favorite||b.status===filter;
+    return (filter==='all'||filter==='favorites'&&!!b.favorite||b.status===filter)&&
+      (categoryFilter==='all'||categoryOf(b)===categoryFilter);
   }
   function renderFilterCounts(){
     const rows=searchedBooks();
@@ -77,18 +81,41 @@ window.NexoBooks = (() => {
     const status=Object.hasOwn(labels,b.status)?b.status:'want';
     const date=showDate(bookDate(b));
     const rating=ratingOf(b);
-    const description=[labels[status],date,b.favorite?'Favorito':'',rating?`${rating} de 5 estrellas`:'Sin valorar'].filter(Boolean).join('. ');
+    const description=[labels[status],categoryOf(b)||'Sin categoría',date,b.favorite?'Favorito':'',rating?`${rating} de 5 estrellas`:'Sin valorar'].filter(Boolean).join('. ');
     return `<article class="book-card">
       <button class="book-card-main" type="button" data-book-open="${id}" aria-label="Ver ficha de ${escAttr(b.title)}, ${escAttr(b.author)}. ${escAttr(description)}">
         <span class="book-card-symbol book-card-symbol--${status}" aria-hidden="true">${uiIcon(icons[status])}</span>
         <span class="book-card-copy">
           <strong class="book-card-title">${esc(b.title)}</strong>
           <span class="book-card-subline"><span class="book-author">${esc(b.author)}</span>${date?`<span class="book-card-date">${date}</span>`:''}${status!=='want'?`<span class="book-card-percent">${percent}%</span>`:''}</span>
+          ${categoryOf(b)?`<span class="book-category-chip">${esc(categoryOf(b))}</span>`:'' }
           <span class="book-card-rating" role="img" aria-label="${rating?`Valoración: ${rating} de 5 estrellas`:'Sin valorar'}">${[1,2,3,4,5].map(n=>`<span class="book-card-star ${n<=rating?'is-set':''}" aria-hidden="true">${uiIcon('star')}</span>`).join('')}</span>
         </span>
         <span class="book-card-trailing" aria-hidden="true">${b.favorite?`<span class="book-card-heart">${uiIcon('heart')}</span>`:''}<span class="book-card-chevron">${uiIcon('right')}</span></span>
       </button>
     </article>`;
+  }
+
+  function refreshCategoryFilter(){
+    const select=document.querySelector('#booksCategoryFilter');
+    if(!select)return;
+    const names=[...new Set(books.map(categoryOf))].sort((a,b)=>a.localeCompare(b,'es'));
+    if(categoryFilter!=='all'&&!names.includes(categoryFilter))categoryFilter='all';
+    select.innerHTML='<option value="all">Todas las categorías ('+books.length+')</option>'+
+      names.map(name=>'<option value="'+escAttr(name)+'">'+
+        esc(name||'Sin categoría')+' ('+books.filter(b=>categoryOf(b)===name).length+')</option>').join('');
+    select.value=categoryFilter;
+  }
+  function categoryOptions(selected){
+    const names=[...new Set([...categoryPresets,...books.map(categoryOf).filter(Boolean),selected].filter(Boolean))];
+    return '<option value="">Sin categoría</option>'+
+      names.map(name=>'<option value="'+escAttr(name)+'" '+(name===selected?'selected':'')+'>'+esc(name)+'</option>').join('')+
+      '<option value="__custom">+ Crear otra categoría…</option>';
+  }
+  function updateCategoryCustom(){
+    const custom=document.querySelector('#bookCategorySelect')?.value==='__custom';
+    document.querySelector('#bookCategoryCustomRow')?.classList.toggle('hidden',!custom);
+    if(custom)document.querySelector('#bookCategoryCustom')?.focus();
   }
 
   function refreshMatches() {
@@ -100,6 +127,7 @@ window.NexoBooks = (() => {
       :`<div class="empty-state">${q?'No hay libros con ese título o autor en el filtro seleccionado.':'No hay libros en este filtro.'}</div>`;
     list.querySelectorAll('[data-book-open]').forEach(b=>b.addEventListener('click',()=>openDetails(number(b.dataset.bookOpen))));
     renderFilterCounts();
+    refreshCategoryFilter();
   }
 
   function updateFilterButtons(){
@@ -127,10 +155,12 @@ window.NexoBooks = (() => {
       <div class="books-status-filters" role="group" aria-label="Filtrar libros por estado">
         ${[['all','Todos'],...Object.entries(labels),['favorites','Favoritos']].map(([key,text])=>`<button class="books-status-filter ${filter===key?'active':''}" type="button" data-books-filter="${key}" aria-pressed="${filter===key}">${key==='all'?'':uiIcon(key==='favorites'?'heart':icons[key])}${esc(text)} <span class="books-filter-count" data-book-count="${key}">0</span></button>`).join('')}
       </div>
+      <label class="book-category-filter" for="booksCategoryFilter"><span>Categoría</span><select id="booksCategoryFilter" aria-label="Filtrar por categoría"></select></label>
       <details class="books-stats" id="booksStats"><summary>${uiIcon('chart')} Estadísticas <span id="booksStatsTotal"></span></summary><div id="booksStatsContent"></div></details>
       <div id="booksResults"></div>
     </div>`;
     host.querySelector('#booksSearchInput').addEventListener('input',e=>{search=e.target.value;refreshMatches();});
+    host.querySelector('#booksCategoryFilter').addEventListener('change',e=>{categoryFilter=e.target.value;refreshMatches();});
     host.querySelectorAll('[data-books-filter]').forEach(b=>b.addEventListener('click',()=>{
       filter=b.dataset.booksFilter;updateFilterButtons();refreshMatches();
     }));
@@ -185,6 +215,7 @@ window.NexoBooks = (() => {
         </div>
         <button id="bookDetailFavorite" type="button" class="book-favorite-toggle ${b.favorite?'active':''}" aria-pressed="${!!b.favorite}" aria-label="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}" title="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}">${uiIcon('heart')}</button>
       </div>
+      <p class="book-detail-date"><strong>Categoría:</strong> ${esc(categoryOf(b)||'Sin categoría')}</p>
       ${status==='want'?`<div class="book-detail-start-row"><button type="button" id="bookDetailStart" class="secondary-button">${uiIcon('book-reading')} Empezar lectura</button></div>`:''}
       <div class="book-rating-section book-rating-section--detail"><strong>Mi valoración</strong>
         <div class="book-rating-stars" role="group" aria-label="Valorar este libro de 1 a 5 estrellas">
@@ -216,6 +247,7 @@ window.NexoBooks = (() => {
       const live=parseNative(NexoNative.getBook(number(b.id)),{});
       if(!live.id){toast('Libro no encontrado.');return;}
       const parts=[live.title,live.author?'Autor: '+live.author:'',
+        categoryOf(live)?'Categoría: '+categoryOf(live):'',
         labels[live.status]?'Estado: '+labels[live.status]:'',
         live.startDate?'Inicio: '+showDate(live.startDate):'',
         live.finishDate?'Finalización: '+showDate(live.finishDate):'',
@@ -234,6 +266,9 @@ window.NexoBooks = (() => {
       id:editor.id,
       title:document.querySelector('#bookTitle')?.value.trim()||'',
       author:document.querySelector('#bookAuthor')?.value.trim()||'',
+      category:document.querySelector('#bookCategorySelect')?.value==='__custom'
+        ?(document.querySelector('#bookCategoryCustom')?.value.trim()||'')
+        :(document.querySelector('#bookCategorySelect')?.value||''),
       status:document.querySelector('#bookStatus')?.value||'want',
       progress:number(document.querySelector('#bookProgress')?.value),
       startDate:document.querySelector('#bookStartDate')?.value||'',
@@ -269,6 +304,7 @@ window.NexoBooks = (() => {
     if(id&&!source.id){toast('Libro no encontrado.');refreshLibrary();return;}
     const status=source.status||initialStatus||(!Object.hasOwn(labels,filter)?'want':filter);
     const rating=ratingOf(source);
+    const selectedCategory=source.id?categoryOf(source):(categoryFilter==='all'?'':categoryFilter);
     openModal(id?'Editar libro':'Nuevo libro',`<div class="modal-form book-editor">
       <div class="book-editor-toolbar" role="group" aria-label="Acciones del editor">
         <span class="book-editor-toolbar-label">Datos del libro</span>
@@ -277,6 +313,8 @@ window.NexoBooks = (() => {
       </div>
       <label>Título<input id="bookTitle" type="text" maxlength="250" value="${escAttr(source.title||'')}" placeholder="Título del libro" required></label>
       <label>Autor<input id="bookAuthor" type="text" maxlength="180" value="${escAttr(source.author||'')}" placeholder="Nombre del autor" required></label>
+      <label>Categoría<select id="bookCategorySelect">${categoryOptions(selectedCategory)}</select></label>
+      <label id="bookCategoryCustomRow" class="hidden">Nueva categoría<input id="bookCategoryCustom" type="text" maxlength="80" placeholder="Nombre de la categoría"></label>
       <label>Estado de lectura<select id="bookStatus">
         ${Object.entries(labels).map(([key,label])=>`<option value="${key}" ${status===key?'selected':''}>${esc(label)}</option>`).join('')}
       </select></label>
@@ -295,6 +333,7 @@ window.NexoBooks = (() => {
     </div>`);
     editor={id:number(id),favorite:!!source.favorite,rating,scrollY:window.scrollY,baseline:'',sourceStatus:source.status||'',
       hadReadData:!!(source.progress||source.startDate||source.finishDate||source.abandonedDate||source.summary)};
+    document.querySelector('#bookCategorySelect').addEventListener('change',updateCategoryCustom);
     document.querySelector('#bookStatus').addEventListener('change',()=>{
       const s=document.querySelector('#bookStatus').value;
       if(s==='reading'&&!document.querySelector('#bookStartDate').value&&
@@ -325,6 +364,10 @@ window.NexoBooks = (() => {
     if(!payload.title||!payload.author){
       error.textContent='Indica el título y el autor.';error.classList.remove('hidden');
       (!payload.title?document.querySelector('#bookTitle'):document.querySelector('#bookAuthor')).focus();return;
+    }
+    if(document.querySelector('#bookCategorySelect')?.value==='__custom'&&!payload.category){
+      error.textContent='Introduce el nombre de la nueva categoría.';error.classList.remove('hidden');
+      document.querySelector('#bookCategoryCustom')?.focus();return;
     }
     const commit=()=>{
       const result=parseNative(NexoNative.saveBook(JSON.stringify(payload)),{ok:false});

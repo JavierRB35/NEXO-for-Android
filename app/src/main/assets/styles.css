@@ -3352,3 +3352,9 @@ body.startup-loading #app{visibility:hidden}
 
 /* Etiqueta discreta de tipo, reutilizando las tarjetas compactas de Libros. */
 .media-kind{display:inline-block;font-size:.65rem;font-weight:800;color:#536b86;border:1px solid #dce5ef;border-radius:6px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+
+/* Nexo 3.7.36 · categorías independientes en Libros y Películas/series */
+.book-category-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 1px;font-size:.82rem;font-weight:800;color:var(--navy)}
+.book-category-filter select{min-width:0;flex:1;max-width:72%;min-height:42px;padding:7px 10px;border-radius:11px;border:1px solid #dce4ed;background:#fff;color:var(--text);font-size:.83rem}
+.book-category-chip{display:inline-block;max-width:100%;width:max-content;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid #d5e2eb;border-radius:7px;padding:2px 6px;background:#f0f5fa;color:#415a72;font-size:.69rem;font-weight:750}
+#bookCategoryCustomRow.hidden{display:none!important}
