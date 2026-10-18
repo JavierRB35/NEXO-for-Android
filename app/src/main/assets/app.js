@@ -424,7 +424,7 @@ function updateFloatingActions(){
   if(state.screen==='about'){voiceVisible=false;addVisible=false;}
   if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}
   if(panel==='parking'){voiceVisible=false;}
-  if(panel==='books'){voiceVisible=false;}
+  if(panel==='books'||panel==='media'){voiceVisible=false;}
   if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}
 
   const voiceLabel=
@@ -452,6 +452,7 @@ function updateFloatingActions(){
     state.screen==='calendar'?'Nueva cita':
     panel==='appointments'?'Nueva cita':
     panel==='books'?'Nuevo libro':
+     panel==='media'?'Nueva película o serie':
      panel==='notes'?'Nueva nota':
     panel==='lists'?'Nueva lista':
     panel==='journal'?'Nueva entrada':
@@ -492,6 +493,7 @@ function applyAgendaVoice(text){
 
 function runEventAddFab(){
   if(state.screen==='panel'&&state.lastPanel==='books'){window.NexoBooks.openEditor();return;}
+  if(state.screen==='panel'&&state.lastPanel==='media'){window.NexoMedia.openEditor();return;}
   if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
   if(state.screen==='panel'&&state.lastPanel==='lists'){openNewListModal();return;}
   if(state.screen==='panel'&&state.lastPanel==='journal'){openJournalComposer();return;}
@@ -2639,7 +2641,8 @@ function openPanel(panel,options={}){
     journal:['Cuaderno','Pensamientos y reflexiones personales · fuera del calendario'],
     quotes:['Frases','Citas textuales, autores y referencias · fuera del calendario'],
     notes:['Notas','Anotaciones locales · más recientes primero'],recordings:['Grabaciones','Audio local · reuniones y conversaciones autorizadas'],
-    books:['Libros','Tu biblioteca personal · leídos, empezados y pendientes']
+    books:['Libros','Tu biblioteca personal · leídos, empezados y pendientes'],
+    media:['Películas y series','Tu filmoteca personal · vistas, viendo y pendientes']
   }[panel]||['Más',''];
   $('#panelTitle').textContent=cfg[0];$('#panelSubtitle').textContent=cfg[1];$('#panelAction').innerHTML='';
   if(panel==='appointments')renderAppointmentsPanel();
@@ -2651,6 +2654,7 @@ function openPanel(panel,options={}){
   else if(panel==='journal'||panel==='quotes') renderJournalPanel();
   else if(panel==='notes') renderNotesPanel();
   else if(panel==='books') window.NexoBooks.render();
+  else if(panel==='media') window.NexoMedia.render();
   else if(panel==='recordings') renderRecordingsPanel();
   else if(panel==='places') renderPlacesPanel();
   else if(panel==='documents') renderCollectionPanel(panel);
@@ -3372,6 +3376,7 @@ function closeModal(force=false){
   // literal true puede saltarse las protecciones de cierre.
   const forced=force===true;
   if(!forced&&window.NexoBooks?.preventClose?.())return false;
+  if(!forced&&window.NexoMedia?.preventClose?.())return false;
   if(!forced&&guardPlaceEditorClose())return false;
   const noteWasOpen=!!state.noteEditor;
   if(noteWasOpen&&!forced&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
@@ -3478,6 +3483,7 @@ function finalizeManagedDictation(){
   else if(target==='document-search'){state.documentSearch=String(text).trim();renderCollectionPanel('documents');}
   else if(target==='document-editor')applyDocumentEditorVoice(text);
   else if(target==='book-summary')window.NexoBooks.applyVoiceText(text);
+  else if(target==='media-summary')window.NexoMedia.applyVoiceText(text);
   else if(target==='note')openNoteComposer(noteId,text,noteTitle,noteTitleManual);
   else if(target==='medication'){state.medicationVoiceEditor=false;if(medicationEditorVoice)applyMedicationVoiceToEditor(text);else handleMedicationVoice(text);}
 }
@@ -3838,6 +3844,7 @@ window.NexoUI={
     if(state.voiceMode==='list'){const id=state.managedVoiceListId||state.currentList,shopping=state.managedVoiceShopping,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();handleListVoice(combined,id,shopping);return;}
     if(state.voiceMode==='journal'){const kind=state.journalVoiceKind,journalId=state.journalVoiceId,journalTitle=state.journalVoiceTitle,journalTitleManual=state.journalVoiceTitleManual,journalFavorite=state.journalVoiceFavorite,journalRevisit=state.journalVoiceRevisit,combined=[managedBase||state.journalVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();openJournalComposer(combined,kind,journalId,{id:journalId,title:journalTitle,titleManual:journalTitleManual,favorite:journalFavorite,revisit:journalRevisit});return;}
     if(state.voiceMode==='book-summary'){const combined=mergeVoiceSegments([managedBase,spoken]);resetManagedVoice();window.NexoBooks.applyVoiceText(combined);return;}
+    if(state.voiceMode==='media-summary'){const combined=mergeVoiceSegments([managedBase,spoken]);resetManagedVoice();window.NexoMedia.applyVoiceText(combined);return;}
     if(state.voiceMode==='note'){const noteId=state.noteVoiceId,noteTitle=state.noteVoiceTitle,noteTitleManual=state.noteVoiceTitleManual,combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.noteVoiceId=0;state.noteVoiceTitle='';state.noteVoiceTitleManual=false;openNoteComposer(noteId,combined,noteTitle,noteTitleManual);return;}
     if(state.voiceMode==='medication'){const editor=!!state.medicationVoiceEditor,combined=[managedBase||state.medicationVoiceBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();state.medicationVoiceEditor=false;if(editor)applyMedicationVoiceToEditor(combined);else handleMedicationVoice(combined);return;}
     if(state.voiceMode==='search'){const combined=[managedBase,spoken].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();resetManagedVoice();applySearchVoice(combined);return;}

@@ -36,6 +36,7 @@ import com.jruiz.nexo.exchange.NexoExchangeManager;
 import com.jruiz.nexo.backup.NexoBackupManager;
 import com.jruiz.nexo.data.DatabaseHelper;
 import com.jruiz.nexo.data.BookRepository;
+import com.jruiz.nexo.data.MediaRepository;
 import com.jruiz.nexo.reminders.ReminderScheduler;
 import com.jruiz.nexo.medications.MedicationScheduler;
 import com.jruiz.nexo.medications.MedicationVoiceSpeaker;
@@ -1979,6 +1980,13 @@ public class MainActivity extends Activity {
             catch (Exception e) { return "{\"ok\":false,\"error\":\"Datos del libro no válidos.\"}"; }
         }
         @JavascriptInterface public boolean deleteBook(long id) { return BookRepository.delete(db, id); }
+        @JavascriptInterface public String getMediaItems() { return MediaRepository.list(db).toString(); }
+        @JavascriptInterface public String getMediaItem(long id) { return MediaRepository.get(db, id).toString(); }
+        @JavascriptInterface public String saveMediaItem(String json) {
+            try { return MediaRepository.save(db, new JSONObject(json)).toString(); }
+            catch (Exception e) { return "{\"ok\":false,\"error\":\"Datos de película o serie no válidos.\"}"; }
+        }
+        @JavascriptInterface public boolean deleteMediaItem(long id) { return MediaRepository.delete(db, id); }
         @JavascriptInterface public void startVoiceInput() { MainActivity.this.startVoiceInput(); }
         @JavascriptInterface public void startManagedVoice() { MainActivity.this.startManagedVoice(); }
         @JavascriptInterface public void stopManagedVoice() { MainActivity.this.stopManagedVoice(); }

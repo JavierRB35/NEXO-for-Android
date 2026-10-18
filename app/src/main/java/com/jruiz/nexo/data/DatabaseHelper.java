@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 30;
+    private static final int DB_VERSION = 31;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
@@ -145,6 +145,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         createNexoFamiliaCompatibilityTables(db);
         createJournalTables(db);
         createBooksTable(db);
+        createMediaItemsTable(db);
         seedJournalBiblicalLibrary(db);
         RadicalFaceQuoteLibrary.seed(db);
         createMedicationTables(db);
@@ -271,6 +272,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 30) {
             // Las relaciones se guardan aparte: no modifica tareas, notas ni listas existentes.
             createRecordLinksTable(db);
+        }
+        if (oldVersion < 31) {
+            // Tabla independiente y aditiva; conserva íntegros los libros y el resto de datos.
+            createMediaItemsTable(db);
         }
     }
 
@@ -848,6 +853,26 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return out;
     }
 
+
+    private static void createMediaItemsTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS media_items (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "title TEXT NOT NULL," +
+                "creator TEXT NOT NULL DEFAULT ''," +
+                "media_type TEXT NOT NULL DEFAULT 'movie'," +
+                "status TEXT NOT NULL DEFAULT 'want'," +
+                "progress INTEGER NOT NULL DEFAULT 0," +
+                "finish_date TEXT NOT NULL DEFAULT ''," +
+                "abandoned_date TEXT NOT NULL DEFAULT ''," +
+                "summary TEXT NOT NULL DEFAULT ''," +
+                "start_date TEXT NOT NULL DEFAULT ''," +
+                "favorite INTEGER NOT NULL DEFAULT 0," +
+                "rating INTEGER NOT NULL DEFAULT 0," +
+                "created_at INTEGER NOT NULL," +
+                "updated_at INTEGER NOT NULL" +
+                ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_media_status_type ON media_items(status,media_type)");
+    }
 
     private static void createBooksTable(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS books (" +
