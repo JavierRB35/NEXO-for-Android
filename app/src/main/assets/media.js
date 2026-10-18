@@ -162,7 +162,7 @@ window.NexoMedia = (() => {
     if(!b.id)return toast('Película o serie no encontrada.');
     const updated={...b,...fields};
     const result=parseNative(NexoNative.saveMediaItem(JSON.stringify(updated)),{ok:false});
-    if(!result.ok){toast(result.error||'No se pudo actualizar el libro.');return;}
+    if(!result.ok){toast(result.error||'No se pudo actualizar el título.');return;}
     const newBook=parseNative(NexoNative.getMediaItem(id),updated);
     const favorite=document.querySelector('#bookDetailFavorite');
     if(favorite){
@@ -210,7 +210,7 @@ window.NexoMedia = (() => {
       ${finish?`<p class="book-detail-date"><strong>Finalizado:</strong> ${finish}</p>`:''}
       ${abandoned?`<p class="book-detail-date"><strong>Abandonado:</strong> ${abandoned}</p>`:''}
       ${status!=='want'?`<section class="book-detail-section"><strong>Mis notas y opinión</strong>
-        <div class="book-detail-summary">${b.summary?esc(b.summary):'<span class="muted">Todavía no has añadido un resumen.</span>'}</div>
+        <div class="book-detail-summary">${b.summary?esc(b.summary):'<span class="muted">Todavía no has añadido ninguna opinión.</span>'}</div>
       </section>`:''}
     </article>`);
     document.querySelector('#bookDetailFavorite').addEventListener('click',()=>{
@@ -349,7 +349,7 @@ window.NexoMedia = (() => {
       if(document.querySelector('.books-library')){
         refreshLibrary();
         requestAnimationFrame(()=>window.scrollTo(0,scrollY));
-      }else openPanel('books');
+      }else openPanel('media');
       toast('Título guardado correctamente.');
     };
     if(payload.status==='want'&&editor.id&&editor.sourceStatus!=='want'&&editor.hadReadData){
@@ -365,7 +365,7 @@ window.NexoMedia = (() => {
     const r=parseNative(NexoNative.saveMediaItem(JSON.stringify({
       ...b,status:'reading',progress:0,startDate:today(),finishDate:'',abandonedDate:'',summary:''
     })),{ok:false});
-    if(!r.ok){toast(r.error||'No se pudo empezar la lectura.');return;}
+    if(!r.ok){toast(r.error||'No se pudo comenzar a verla.');return;}
     closeModal();filter='reading';search='';refreshLibrary();
     const searchInput=document.querySelector('#booksSearchInput');if(searchInput)searchInput.value='';
     toast('Título movido a Viendo.');
