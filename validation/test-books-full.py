@@ -39,7 +39,7 @@ CREATE TABLE books(
 INSERT INTO books(title,author,status,progress,finish_date,summary,created_at,updated_at)
 VALUES('Libro guardado','Autor original','finished',100,'2025-03-07','No perder resumen',1,2);
 """)
-sqls=re.findall(r'db\.execSQL\("(ALTER TABLE books ADD COLUMN [^"]+)"\)',db)
+sqls=re.findall(r'db\.execSQL\("(ALTER TABLE books ADD COLUMN (?:start_date|favorite|rating) [^"]+)"\)',db)
 assert len(sqls)==3, sqls
 for stmt in sqls:
     con.execute(stmt)
