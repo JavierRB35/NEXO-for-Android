@@ -1,8 +1,10 @@
-# Nexo 3.7.33
+# Nexo 3.7.34
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.33**, `versionCode 126`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **30**.
+Esta versión corresponde a **Nexo 3.7.34**, `versionCode 127`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **30**.
+
+**Nuevo en 3.7.34:** la ficha de cada libro sitúa los iconos de Editar, Compartir y Eliminar en una barra superior accesible antes del resumen, siguiendo el diseño de Notas. En Nuevo libro / Editar libro, el disquete Guardar y Cancelar se muestran arriba, incluso con resúmenes extensos. Cada tarjeta de libro muestra las cinco estrellas en pequeño, con las seleccionadas resaltadas; el cambio de valoración se mantiene en la ficha completa. Misma base de datos, misma firma Release y configuración AndroidIDE.
 
 **Nuevo en 3.7.33:** Notas se organiza en tarjetas breves con título, fecha y resumen de tres líneas. Tocar cualquier parte de la tarjeta abre una ficha de solo lectura con el contenido íntegro, saltos de línea originales, desplazamiento táctil y ajuste del tamaño de letra. Editar, compartir y eliminar son acciones separadas y el regreso conserva la posición del listado. No cambia el esquema de la base de datos ni el sistema de guardado explícito.
 

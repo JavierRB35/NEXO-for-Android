@@ -1,3 +1,10 @@
+## Nexo 3.7.34 — Acciones superiores de Libros y puntuación visible
+
+- Ficha completa: iconos Editar (lápiz), Compartir y Eliminar (papelera roja) arriba, con la iconografía de Notas. Ya no quedan ocultos al final de resúmenes largos.
+- Editor de libros: disquete Guardar y botón Cancelar situados al principio del formulario, accesibles durante el desplazamiento. Una sola acción de guardado y misma protección ante cambios sin guardar.
+- Listado: todas las tarjetas muestran cinco estrellas pequeñas, rellenas según la valoración (sin valorar = vacías); la puntuación se cambia únicamente desde la ficha completa, manteniendo la independencia de Favoritos.
+- Sin modificación de base de datos ni de los datos personales. Versión 3.7.34 (versionCode 127), AndroidIDE SDK34/JDK17/Gradle8.9/AGP8.7.3.
+
 ## Nexo 3.7.33 — Lectura de notas sin entrar en edición
 
 - Tarjetas de notas compactas con título, fecha, extracto de hasta tres líneas y acceso evidente a la lectura.
