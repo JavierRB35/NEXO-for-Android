@@ -11,10 +11,7 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.Locale;
 
-/**
- * Biblioteca personal local: los campos adicionales son opcionales y la
- * migración 27 -> 28 no modifica ni elimina película o series previos.
- */
+/** Biblioteca local independiente de películas y series (SQLite 31). */
 public final class MediaRepository {
     private MediaRepository() {}
 
@@ -104,15 +101,15 @@ public final class MediaRepository {
         String title = input.optString("title", "").trim();
         String creator = input.optString("creator", "").trim();
         if (title.isEmpty())
-            return result(false, "Indica el título y el director o creador.", 0);
+            return result(false, "Indica el título.", 0);
         if (title.length() > 250 || creator.length() > 180)
-            return result(false, "Título o director o creador demasiado largos.", 0);
+            return result(false, "El título o el nombre del director/creador es demasiado largo.", 0);
 
         String mediaType = input.optString("mediaType", "movie");
         if (!("movie".equals(mediaType) || "series".equals(mediaType)))
             return result(false, "Selecciona Película o Serie.", 0);
         String status = input.optString("status", "want");
-        if (!("want".equals(status) || "watching".equals(status) ||
+        if (!("want".equals(status) || "reading".equals(status) ||
                 "finished".equals(status) || "abandoned".equals(status)))
             return result(false, "Estado de visualización no válido.", 0);
 
@@ -152,7 +149,7 @@ public final class MediaRepository {
         }
 
         if (!isValidDate(startDate) || !isValidDate(finishDate) || !isValidDate(abandonedDate))
-            return result(false, "Revisa las fechas del película o serie.", 0);
+            return result(false, "Revisa las fechas.", 0);
         if (!startDate.isEmpty() && !finishDate.isEmpty() && startDate.compareTo(finishDate) > 0)
             return result(false, "El inicio no puede ser posterior a la finalización.", 0);
         if (!startDate.isEmpty() && !abandonedDate.isEmpty() && startDate.compareTo(abandonedDate) > 0)
@@ -175,7 +172,7 @@ public final class MediaRepository {
         try {
             SQLiteDatabase sql = helper.getWritableDatabase();
             if (isDuplicate(sql, id, title, creator, mediaType)) {
-                return result(false, "Este película o serie y director o creador ya están en tu biblioteca.", 0);
+                return result(false, "Esta película o serie ya está en tu biblioteca.", 0);
             }
             if (id > 0) {
                 int changed = sql.update("media_items", v, "id=?", new String[]{String.valueOf(id)});
