@@ -3347,7 +3347,7 @@ function openNewListModal(){
     '<select id="quickListKind">'+more.map(kind=>'<option value="'+escAttr(kind)+'">'+esc(kind)+'</option>').join('')+'</select>'+
     '<button type="button" id="quickListOtherCreate" class="secondary-button">'+uiIcon('plus')+' Crear este tipo</button></div></details>'+
     '<p class="quick-list-footnote">El nombre se genera automáticamente y podrás cambiarlo cuando quieras.</p></div>');
-  $('#modalBody').querySelectorAll('[data-list-preset]').forEach(b=>b.addEventListener('click',()=>quickCreateList(b.dataset.listPreset)));
+  $('#modalBody [data-list-preset]').forEach(b=>b.addEventListener('click',()=>quickCreateList(b.dataset.listPreset)));
   $('#quickListOtherCreate')?.addEventListener('click',()=>quickCreateList($('#quickListKind').value));
 }
 function openParkingModal(prefill=''){
