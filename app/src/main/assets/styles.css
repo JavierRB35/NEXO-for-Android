@@ -3308,3 +3308,44 @@ body.startup-loading #app{visibility:hidden}
   .note-reader-toolbar>button{flex:1;min-width:85px}
   .note-reader-font-controls{margin-left:auto}
 }
+
+/* Nexo 3.7.34 · acciones de Libros accesibles arriba, iconografía de Notas. */
+.book-card-rating{
+  display:inline-flex;align-items:center;gap:2px;width:max-content;min-height:15px;
+  color:#a9b2c1;line-height:1;
+}
+.book-card-star{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px}
+.book-card-star .ui-icon{width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none}
+.book-card-star.is-set{color:#c78b08}
+.book-card-star.is-set .ui-icon{stroke:#be8410;fill:#e9b039}
+.book-detail-quick-actions{
+  position:sticky;top:0;z-index:5;display:flex;justify-content:flex-end;gap:8px;
+  padding:8px 1px 10px;margin:-2px 0 13px;background:white;
+  border-bottom:1px solid var(--line);
+}
+.book-detail-quick-actions .icon-action{
+  width:44px;height:44px;min-width:44px;min-height:44px;
+  border-radius:12px;
+}
+.book-detail-quick-actions .icon-action .ui-icon{width:20px;height:20px}
+.book-detail-quick-actions .icon-action:focus-visible{outline:2px solid #1b8766;outline-offset:2px}
+.book-detail-start-row{display:flex;justify-content:flex-start;padding:10px 0}
+.book-detail-start-row button{display:flex;align-items:center;gap:7px;min-height:44px}
+.book-detail-start-row .ui-icon{width:18px;height:18px}
+.book-editor-toolbar{
+  position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:9px;
+  padding:8px 2px 10px;margin:-3px 0 3px;background:white;
+  border-bottom:1px solid var(--line);
+}
+.book-editor-toolbar-label{flex:1;min-width:0;color:var(--muted);font-size:.8rem;font-weight:700}
+.book-editor-cancel{flex:0 0 auto;min-height:44px;padding:8px 11px}
+.book-editor-save{flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center;padding:8px}
+.book-editor-save .ui-icon{width:24px;height:24px}
+.book-editor-save:focus-visible,.book-editor-cancel:focus-visible{outline:2px solid #1b8766;outline-offset:2px}
+@media(max-width:370px){
+  .book-card-main{gap:8px}
+  .book-editor-toolbar-label{font-size:.73rem}
+  .book-card-rating{gap:1px}
+  .book-card-star{width:13px;height:13px}
+  .book-card-star .ui-icon{width:12px;height:12px}
+}
