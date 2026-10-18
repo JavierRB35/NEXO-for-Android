@@ -1,3 +1,12 @@
+## Nexo 3.7.33 — Lectura de notas sin entrar en edición
+
+- Tarjetas de notas compactas con título, fecha, extracto de hasta tres líneas y acceso evidente a la lectura.
+- Tocar la tarjeta abre una vista completa de solo lectura, desplazable y con saltos de línea conservados. El encabezado y la X permanecen accesibles mientras se desplaza el texto.
+- Botones de tamaño de letra A− / A+, edición y compartir desde la ficha. Eliminar permanece bajo una acción roja diferenciada con confirmación y opción Deshacer.
+- Las acciones de editar, compartir y borrar de las tarjetas siguen independientes: tocar el contenido no modifica la nota.
+- También se abre en modo lectura una nota desde vínculos internos y el visor de elementos. Cerrar devuelve al listado y a su posición previa.
+- Nexo 3.7.33, versionCode 126, SQLite 30, firma Release habitual, SDK 34, Gradle 8.9, AGP 8.7.3 y AndroidIDE ARM64.
+
 ## Nexo 3.7.32 — Listas de creación inmediata y presentación compacta
 
 - Nueva lista: primero se elige Compra, Pendientes, Viaje, Libre u otros tipos; no se obliga a nombrarla. Se crea con un nombre automático y se abre para añadir el primer elemento.
