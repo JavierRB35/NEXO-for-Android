@@ -11,7 +11,7 @@ native = (root / "app/src/main/java/com/jruiz/nexo/MainActivity.java").read_text
 media = (root / "app/src/main/java/com/jruiz/nexo/data/MediaRepository.java").read_text()
 books = (root / "app/src/main/java/com/jruiz/nexo/data/BookRepository.java").read_text()
 
-assert "DB_VERSION = 31" in db
+assert "DB_VERSION = 32" in db
 assert "if (oldVersion < 31)" in db and "createMediaItemsTable(db);" in db
 assert 'data-panel="media"' in index and 'src="media.js"' in index
 assert "window.NexoMedia.render()" in app and "window.NexoMedia.openEditor()" in app

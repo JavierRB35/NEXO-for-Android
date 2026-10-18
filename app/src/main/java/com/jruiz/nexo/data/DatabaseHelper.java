@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 31;
+    private static final int DB_VERSION = 32;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
 
@@ -276,6 +276,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 31) {
             // Tabla independiente y aditiva; conserva íntegros los libros y el resto de datos.
             createMediaItemsTable(db);
+        }
+        if (oldVersion < 32) {
+            // Clasificación opcional independiente por módulo; ninguna fila antigua se elimina.
+            if (!columnExists(db, "books", "category")) db.execSQL("ALTER TABLE books ADD COLUMN category TEXT NOT NULL DEFAULT ''");
+            if (!columnExists(db, "media_items", "category")) db.execSQL("ALTER TABLE media_items ADD COLUMN category TEXT NOT NULL DEFAULT ''");
         }
     }
 
@@ -868,6 +873,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "start_date TEXT NOT NULL DEFAULT ''," +
                 "favorite INTEGER NOT NULL DEFAULT 0," +
                 "rating INTEGER NOT NULL DEFAULT 0," +
+                "category TEXT NOT NULL DEFAULT ''," +
                 "created_at INTEGER NOT NULL," +
                 "updated_at INTEGER NOT NULL" +
                 ")");
@@ -887,6 +893,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "start_date TEXT NOT NULL DEFAULT ''," +
                 "favorite INTEGER NOT NULL DEFAULT 0," +
                 "rating INTEGER NOT NULL DEFAULT 0," +
+                "category TEXT NOT NULL DEFAULT ''," +
                 "created_at INTEGER NOT NULL," +
                 "updated_at INTEGER NOT NULL" +
                 ")");
