@@ -1149,10 +1149,63 @@ function noteSnippet(body){
 }
 
 function noteCard(n){
-  return `<div class="note-card"><div class="note-card-open note-card-read" aria-label="Lectura de nota"><span class="note-card-head"><strong>${esc(n.title||'Nota sin título')}</strong><small>${esc(fmtDate(n.createdAt,true))}</small></span>${n.body?`<div class="note-card-body" tabindex="0" aria-label="Contenido de la nota">${esc(String(n.body||''))}</div>`:''}</div><div class="record-card-actions">${recordIconAction('edit','Editar nota',`data-open-note="${n.id}"`)}${recordIconAction('share','Compartir nota',`data-note-share="${n.id}"`)}${recordIconAction('trash','Eliminar nota',`data-note-delete="${n.id}"`,'icon-action--danger')}</div></div>`;
+  return `<article class="note-card">
+    <button type="button" class="note-card-open note-card-read" data-note-read="${Number(n.id)||0}" aria-label="Leer nota completa: ${escAttr(n.title||'Nota sin título')}">
+      <span class="note-card-head"><strong>${esc(n.title||'Nota sin título')}</strong><small>${esc(fmtDate(n.createdAt,true))}</small></span>
+      ${n.body?`<span class="note-card-preview">${esc(noteSnippet(n.body))}</span>`:''}
+      <span class="note-card-hint">Leer nota completa ${uiIcon('right')}</span>
+    </button>
+    <div class="record-card-actions">
+      ${recordIconAction('edit','Editar nota',`data-open-note="${n.id}"`)}
+      ${recordIconAction('share','Compartir nota',`data-note-share="${n.id}"`)}
+      ${recordIconAction('trash','Eliminar nota',`data-note-delete="${n.id}"`,'icon-action--danger')}
+    </div>
+  </article>`;
+}
+function openNoteReader(id){
+  const note=parseNative(NexoNative.getItem(Number(id)),{});
+  if(!note.id||note.type!=='note'){toast('La nota ya no existe.');refreshNotesSurface();return;}
+  const initialSize=Math.max(16,Math.min(24,Number(state.noteReaderFontSize)||17));
+  openModal('Leer nota',`<article class="note-reader">
+    <header class="note-reader-heading">
+      <h3 id="noteReaderTitle">${esc(note.title||'Nota sin título')}</h3>
+      <p>${esc(fmtDate(note.createdAt,true))}</p>
+    </header>
+    <div class="note-reader-toolbar">
+      <button id="noteReaderEdit" class="primary-button" type="button">${uiIcon('edit')} Editar</button>
+      <button id="noteReaderShare" class="secondary-button" type="button">${uiIcon('share')} Compartir</button>
+      <div class="note-reader-font-controls" role="group" aria-label="Tamaño del texto">
+        <button id="noteReaderFontDown" type="button" aria-label="Reducir letra" title="Reducir letra">A−</button>
+        <button id="noteReaderFontUp" type="button" aria-label="Ampliar letra" title="Ampliar letra">A+</button>
+      </div>
+    </div>
+    <section id="noteReaderText" class="note-reader-text" aria-label="Texto completo de la nota" style="font-size:${initialSize}px">${esc(String(note.body||''))||'<span class="muted">Nota sin anotación.</span>'}</section>
+    ${relatedOwnersSectionHtml('note',Number(note.id))}
+    <div class="note-reader-bottom">
+      <button id="noteReaderDelete" class="danger-button" type="button">${uiIcon('trash')} Eliminar nota</button>
+    </div>
+  </article>`);
+  document.body.classList.add('note-reading-open');
+  bindRelatedOwners($('#modalBody'));
+  $('#noteReaderEdit').addEventListener('click',()=>openNoteComposer(Number(note.id)));
+  $('#noteReaderShare').addEventListener('click',()=>NexoNative.shareNexoItem(Number(note.id),0,false));
+  $('#noteReaderDelete').addEventListener('click',()=>confirmDeleteItem(note));
+  const changeSize=step=>{
+    const body=$('#noteReaderText');if(!body)return;
+    const size=Math.max(16,Math.min(24,(Number(state.noteReaderFontSize)||17)+step));
+    state.noteReaderFontSize=size;
+    body.style.fontSize=size+'px';
+    $('#noteReaderFontDown').disabled=size===16;
+    $('#noteReaderFontUp').disabled=size===24;
+  };
+  $('#noteReaderFontDown').addEventListener('click',()=>changeSize(-1));
+  $('#noteReaderFontUp').addEventListener('click',()=>changeSize(1));
+  $('#noteReaderFontDown').disabled=initialSize===16;
+  $('#noteReaderFontUp').disabled=initialSize===24;
 }
 
 function bindNoteButtons(root=document){
+  root.querySelectorAll('[data-note-read]').forEach(b=>b.addEventListener('click',()=>openNoteReader(Number(b.dataset.noteRead))));
   root.querySelectorAll('[data-open-note]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openNoteComposer(Number(b.dataset.openNote));}));
   root.querySelectorAll('[data-note-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoItem(Number(b.dataset.noteShare),0,false);}));
   root.querySelectorAll('[data-note-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.noteDelete));}));
@@ -1325,6 +1378,7 @@ function startNoteEditorVoice(){
 }
 
 function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=false){
+  document.body.classList.remove('note-reading-open');
   const editing=Number(id)>0,existing=editing?parseNative(NexoNative.getItem(Number(id)),{}):{};
   if(editing&&(!existing.id||existing.type!=='note')){toast('La nota ya no existe.');refreshNotesSurface();return;}
 
@@ -1689,7 +1743,7 @@ function bindRelatedOwners(root=document){
 function openRelatedTarget(kind,id){
   if(!closeModal())return;
   if(kind==='list')openList(Number(id));
-  else if(kind==='note')openNoteComposer(Number(id));
+  else if(kind==='note')openNoteReader(Number(id));
   else if(kind==='document')openDocumentDetail(Number(id));
 }
 function bindRelatedLinks(ownerId){
@@ -3093,6 +3147,7 @@ function recurrenceOptions(selected='none'){
 
 function openItem(id){
   const i=parseNative(NexoNative.getItem(id),{});if(!i.id)return;
+  if(i.type==='note'){openNoteReader(Number(id));return;}
   if(i.type==='document'){openDocumentEditor(id);return;}
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
@@ -3292,7 +3347,7 @@ function openNewListModal(){
     '<select id="quickListKind">'+more.map(kind=>'<option value="'+escAttr(kind)+'">'+esc(kind)+'</option>').join('')+'</select>'+
     '<button type="button" id="quickListOtherCreate" class="secondary-button">'+uiIcon('plus')+' Crear este tipo</button></div></details>'+
     '<p class="quick-list-footnote">El nombre se genera automáticamente y podrás cambiarlo cuando quieras.</p></div>');
-  $('#modalBody').querySelectorAll('[data-list-preset]').forEach(b=>b.addEventListener('click',()=>quickCreateList(b.dataset.listPreset)));
+  $$('#modalBody [data-list-preset]').forEach(b=>b.addEventListener('click',()=>quickCreateList(b.dataset.listPreset)));
   $('#quickListOtherCreate')?.addEventListener('click',()=>quickCreateList($('#quickListKind').value));
 }
 function openParkingModal(prefill=''){
@@ -3301,6 +3356,7 @@ function openParkingModal(prefill=''){
 }
 
 function openModal(title,html){
+  document.body.classList.remove('note-reading-open');
   discardDocumentDraft();
   if($('#modal').classList.contains('hidden'))state.modalReturnFocus=document.activeElement;
   $('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;$('#modal').classList.remove('hidden');
@@ -3338,7 +3394,7 @@ function closeModal(force=false){
   if(journalWasOpen)state.journalEditor=null;
   const medicationWasOpen=!!state.medicationEditor;if(medicationWasOpen)state.medicationEditor=null;
   state.quoteEditor=null;state.placeEditor=null;
-  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','note-editor-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
+  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','note-reading-open','note-editor-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
   if(noteWasOpen)refreshNotesSurface();
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
   if(state.modalReturnFocus?.isConnected)state.modalReturnFocus.focus({preventScroll:true});state.modalReturnFocus=null;

@@ -3246,3 +3246,65 @@ body.startup-loading #app{visibility:hidden}
  .list-add-inline button span{display:none;}
  .list-header-actions--compact>button{font-size:.78rem;padding:7px 4px!important;}
 }
+
+/* Nexo 3.7.33 · Vista de lectura de Notas: tarjetas breves y desplazamiento de la nota completa. */
+.note-list{gap:9px}
+.note-card{overflow:hidden}
+.note-card-open.note-card-read{
+  display:grid;gap:6px;min-height:0;width:100%;padding:13px 14px 7px;
+  padding-right:14px;text-align:left;cursor:pointer;border:0;border-radius:15px;
+  background:transparent;color:var(--text);touch-action:manipulation;
+}
+.note-card-open.note-card-read:active{background:var(--surface-soft)}
+.note-card-open.note-card-read:focus-visible{outline:2px solid #1b8766;outline-offset:-3px}
+.note-card .note-card-head{display:grid;gap:3px;min-width:0}
+.note-card .note-card-head strong{font-size:1rem;line-height:1.3;overflow-wrap:anywhere}
+.note-card .note-card-head small{text-align:left;color:var(--muted);font-size:.79rem}
+.note-card-preview{
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
+  overflow:hidden;white-space:normal;overflow-wrap:anywhere;
+  color:#536174;font-size:.875rem;line-height:1.47;max-height:3.95em;
+}
+.note-card-hint{display:inline-flex;align-items:center;gap:4px;color:#188466;font-size:.75rem;font-weight:750}
+.note-card-hint .ui-icon{height:13px;width:13px}
+.note-card>.record-card-actions{
+  position:static;display:flex;justify-content:flex-end;gap:7px;
+  padding:3px 12px 10px;z-index:auto;
+}
+.note-card>.record-card-actions .icon-action{min-width:39px;min-height:39px}
+.note-reading-open .modal-sheet{
+  display:flex;flex-direction:column;
+  max-height:calc(100dvh - 24px);overflow:hidden;
+}
+.note-reading-open .modal-head{flex:0 0 auto}
+.note-reading-open #modalBody{
+  flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  touch-action:pan-y;-webkit-overflow-scrolling:touch;padding-bottom:8px;
+}
+.note-reader{display:grid;gap:14px;padding-top:6px}
+.note-reader-heading h3{margin:0;color:var(--text);font-size:1.28rem;line-height:1.32;overflow-wrap:anywhere}
+.note-reader-heading p{margin:6px 0 0;color:var(--muted);font-size:.84rem}
+.note-reader-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.note-reader-toolbar>button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:43px;padding:8px 11px;font-size:.84rem;flex:1}
+.note-reader-toolbar>button .ui-icon{width:17px;height:17px}
+.note-reader-font-controls{display:flex;gap:4px}
+.note-reader-font-controls button{
+  min-height:43px;min-width:43px;padding:6px 7px;border:1px solid var(--line);
+  background:var(--surface-soft);border-radius:10px;color:var(--text);
+  font-weight:800;font-size:.95rem;
+}
+.note-reader-font-controls button:disabled{opacity:.38}
+.note-reader-text{
+  white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
+  text-transform:none;color:var(--text);line-height:1.7;
+  font-weight:400;user-select:text;-webkit-user-select:text;
+  padding:16px 13px;min-height:120px;
+  border:1px solid var(--line);background:#fff;border-radius:14px;
+}
+.note-reader-bottom{display:flex;justify-content:flex-end;padding:8px 0 3px}
+.note-reader-bottom .danger-button{min-height:43px;padding:8px 15px;display:inline-flex;align-items:center;gap:7px}
+.note-reader-bottom .ui-icon{width:17px;height:17px}
+@media(max-width:380px){
+  .note-reader-toolbar>button{flex:1;min-width:85px}
+  .note-reader-font-controls{margin-left:auto}
+}
