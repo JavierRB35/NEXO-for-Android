@@ -35,6 +35,7 @@ w.NexoNative={
 w.openModal=(title,html)=>{d.querySelector('#modalTitle').textContent=title;d.querySelector('#modalBody').innerHTML=html;};
 w.openNoteComposer=id=>events.edit.push(id);
 w.confirmDeleteItem=n=>events.delete.push(n.id);
+w.deleteItemFromCard=id=>events.delete.push(Number(id));
 w.bindRelatedOwners=()=>{events.links++};
 w.relatedOwnersSectionHtml=()=>'<section id="noteRelated">Referencias a esta nota</section>';
 w.refreshNotesSurface=()=>{events.read++};
