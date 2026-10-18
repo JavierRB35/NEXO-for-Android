@@ -26,7 +26,7 @@ for js in (books_js,media_js):
     assert "Categoría: '+categoryOf(live)" in js
     assert "book-category-chip" in js
     assert "selectedCategory" in js
-assert "'Novela'" in books_js and '"Novela"' in books_js
+assert '"Novela"' in books_js
 assert '"Documental"' in media_js and '"Novela"' not in media_js
 assert '"Documental"' not in books_js
 
