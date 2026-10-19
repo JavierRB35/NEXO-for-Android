@@ -3358,3 +3358,11 @@ body.startup-loading #app{visibility:hidden}
 .book-category-filter select{min-width:0;flex:1;max-width:72%;min-height:42px;padding:7px 10px;border-radius:11px;border:1px solid #dce4ed;background:#fff;color:var(--text);font-size:.83rem}
 .book-category-chip{display:inline-block;max-width:100%;width:max-content;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid #d5e2eb;border-radius:7px;padding:2px 6px;background:#f0f5fa;color:#415a72;font-size:.69rem;font-weight:750}
 #bookCategoryCustomRow.hidden{display:none!important}
+
+/* Nexo 3.7.37 · Identidad verificable del remitente en Inbox y ficha de revisión */
+.inbox-sender-identity{display:grid;gap:3px;min-width:0;margin:0 0 7px;padding:0 0 7px;border-bottom:1px solid var(--line)}
+.inbox-sender-name{display:block;font-size:.96rem;font-weight:850;line-height:1.28;color:var(--navy);overflow-wrap:anywhere}
+.inbox-sender-origin{display:block;color:var(--muted);font-size:.77rem;line-height:1.4;overflow-wrap:anywhere}
+.inbox-capture-context{padding:11px 13px;margin:0 0 11px;border:1px solid #dce4ed;border-radius:13px;background:#f7fafc}
+.inbox-capture-context.hidden{display:none!important}
+.inbox-capture-context .inbox-sender-identity{margin:0;padding:0;border:0}

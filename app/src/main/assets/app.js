@@ -2087,6 +2087,7 @@ function clearCapture(keepPinned=false) {
   state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
+  const identity=$('#captureSenderInfo');if(identity){identity.innerHTML='';identity.classList.add('hidden');}
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
   resetAnalysis();
 }
@@ -2667,18 +2668,46 @@ function inboxSourceLabel(capture){
     const change=capture.classification?.calendarChangeType==='updated'?'cambio':'nuevo';
     return `Calendar · ${change}`;
   }
-  if(capture.source==='sms-provider'){
-    const sender=String(capture.sender||capture.subject||'').trim();
-    return sender?`SMS · ${sender}`:'SMS';
-  }
-  if(capture.source==='gmail-api'){
-    const sender=String(capture.sender||capture.subject||'').trim();
-    return sender?`Gmail · ${sender}`:'Gmail';
-  }
+  if(capture.source==='sms-provider')return 'SMS';
+  if(capture.source==='gmail-api')return 'Gmail';
   const pkg=String(capture.sourcePackage||'');
-  const app=pkg==='com.whatsapp'||pkg==='com.whatsapp.w4b'?'WhatsApp':pkg==='com.google.android.gm'?'Gmail':pkg.startsWith('org.telegram.messenger')?'Telegram':pkg.includes('messaging')||pkg==='com.android.mms'?'SMS':capture.source==='notification'?'Comunicación':'Compartido';
-  const sender=String(capture.sender||capture.subject||'').trim();
-  return sender?`${app} · ${sender}`:app;
+  if(pkg==='com.whatsapp'||pkg==='com.whatsapp.w4b')return 'WhatsApp';
+  if(pkg==='com.google.android.gm')return 'Gmail';
+  if(pkg.startsWith('org.telegram.messenger'))return 'Telegram';
+  if(pkg.includes('messaging')||pkg==='com.android.mms'||pkg==='com.google.android.apps.messaging')return 'SMS';
+  if(capture.source==='notification')return 'Comunicación';
+  return 'Compartido';
+}
+
+// Identidad extraída solo de metadatos de origen, nunca del contenido ni del título
+// generado por el clasificador. Gmail guarda el campo From original y SMS la dirección.
+function inboxSenderInfo(capture){
+  const source=inboxSourceLabel(capture);
+  const sourceType=String(capture.source||'');
+  const legacySubject=(sourceType==='sms-provider'||sourceType==='notification')?capture.subject:'';
+  const raw=String(capture.sender||legacySubject||'').trim();
+  const generic=/^(?:\d+\s+)?(?:mensajes? nuevos?|new messages?|notificaciones?|notifications?|mensajes?|messages?|whatsapp|gmail|telegram)$/i;
+  let name=raw,contact='';
+  const mailbox=raw.match(/^(.+?)\s*<([^<>\s]+@[^<>\s]+)>$/);
+  if(mailbox){
+    name=mailbox[1].trim().replace(/^["']|["']$/g,'').trim();
+    contact=mailbox[2].trim();
+  }else if(/^[^\s<>]+@[^\s<>]+$/.test(raw)){
+    contact=raw;
+  }
+  if(!name||generic.test(name)||name.toLowerCase()===source.toLowerCase())name=contact||'Remitente desconocido';
+  const classification=capture.classification||{};
+  const group=(sourceType==='notification'&&typeof classification.sourceGroup==='string')
+    ?classification.sourceGroup.trim():'';
+  const details=[source];
+  if(contact&&contact!==name)details.push(contact);
+  if(group&&group!==name)details.push('Grupo: '+group);
+  return {name,source,contact,group,details:details.join(' · ')};
+}
+
+function inboxSenderHtml(capture){
+  const sender=inboxSenderInfo(capture);
+  return `<div class="inbox-sender-identity"><strong class="inbox-sender-name">De: ${esc(sender.name)}</strong><small class="inbox-sender-origin">${esc(sender.details)}</small></div>`;
 }
 
 function inboxCaptureCard(capture){
@@ -2687,14 +2716,15 @@ function inboxCaptureCard(capture){
   const type=String(capture.detectedType||capture.classification?.type||'').trim();
   const preview=raw.length>220?`${raw.slice(0,217)}…`:raw;
   const attachment=capture.attachmentName?`<div class="item-location">${uiIcon('file')} ${esc(capture.attachmentName)}</div>`:'';
-  const source=inboxSourceLabel(capture),classification=capture.classification||{};
+  const classification=capture.classification||{};
   const candidateReason=String(classification.candidateReason||'').trim();
   const candidateEvidence=String(classification.candidateEvidence||'').trim();
   const filterRevision=String(classification.filterRevision||'').trim();
   const why=candidateReason?`<div class="inbox-candidate-reason"><strong>Por qué entró:</strong> ${esc(candidateReason)}${candidateEvidence?`<span>${esc(candidateEvidence)}</span>`:''}${filterRevision?`<small>Regla ${esc(filterRevision)}</small>`:''}</div>`:'';
   return `<div class="item-card inbox-capture-card">
+    ${inboxSenderHtml(capture)}
     <div class="item-top"><div class="item-title">${esc(title)}</div></div>
-    <div class="item-meta"><span class="pill">${esc(source)}</span>${type?`<span class="meta-tag">${esc(typeLabel(type))}</span>`:''}<span class="meta-tag">${esc(fmtDate(capture.createdAt,true))}</span></div>
+    <div class="item-meta"><span class="pill">${esc(inboxSourceLabel(capture))}</span>${type?`<span class="meta-tag">${esc(typeLabel(type))}</span>`:''}<span class="meta-tag">${esc(fmtDate(capture.createdAt,true))}</span></div>
     ${preview?`<div class="item-body">${esc(preview)}</div>`:''}
     ${why}
     ${attachment}
@@ -2755,6 +2785,8 @@ function openInboxCaptureEditor(capture,incoming=false){
   const suggested=allowed.includes(detected.type)?detected.type:(capture.attachmentPath?'document':'note');
   state.inboxCaptureId=id;
   state.inboxCaptureOriginal=capture;
+  const senderContext=$('#captureSenderInfo');
+  if(senderContext){senderContext.innerHTML=inboxSenderHtml(capture);senderContext.classList.remove('hidden');}
   let calendarUpdateItemId=Number(detected.existingItemId||0);
   if(!calendarUpdateItemId&&capture.source==='calendar'){
     const calendarTitle=String(detected.title||capture.subject||'').trim();
