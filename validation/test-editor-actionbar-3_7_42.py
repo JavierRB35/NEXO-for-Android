@@ -18,7 +18,7 @@ parser = IDs(); parser.feed(html)
 for name in ('headerTodayDate','captureBackBtn','captureText','captureRelated',
              'captureLinkButton','captureLinkCounter','saveCaptureBtn','chooseFileBtn','clearCaptureBtn'):
     assert parser.ids.get(name) == 1, f'{name}: ID inexistente o duplicado'
-assert html.index('class="capture-crud-toolbar"') < html.index('id="captureText"') < html.index('id="captureRelated"')
+assert html.index('id="captureText"') < html.index('id="captureRelated"') < html.index('class="capture-crud-toolbar"')
 assert 'id="captureBackBtn" type="button" class="secondary-button"><svg' in html
 assert '#nx-icon-left' in html and '#nx-icon-trash' in html
 assert 'new Intl.DateTimeFormat(\'es-ES\',{weekday:\'long\',day:\'numeric\',month:\'long\',year:\'numeric\'})' in js
