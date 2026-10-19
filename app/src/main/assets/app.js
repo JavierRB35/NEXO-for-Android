@@ -4436,6 +4436,11 @@ function init(){
 const router=new NexoRouter({screen:'today'});
 function uiIcon(name){return `<svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-${name}"></use></svg>`;}
 function navigateBack(){
+  // Comprobar ANTES de consumir el historial: cancelar debe dejar la cita intacta.
+  if(state.screen==='save'&&state.capturePendingLinks?.length){
+    if(!window.confirm('Hay vínculos preparados sin guardar. ¿Salir y descartarlos?'))return false;
+    discardPendingRelatedDrafts();
+  }
   const route=router.back();
   if(route){
     const options={replace:true,scrollY:route.scrollY||0};
