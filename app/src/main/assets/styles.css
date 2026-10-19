@@ -3596,3 +3596,26 @@ body.startup-loading #app{visibility:hidden}
 @media(max-width:370px){
   .screen[data-screen="save"] .capture-back-button{padding:8px 9px;gap:5px}
 }
+
+
+/* The dictation control belongs to the capture panel heading, not a FAB
+   overlaying fields. The existing button and its listener are reparented. */
+.screen[data-screen="save"] .capture-mode-row>.capture-voice-action{
+  display:inline-flex;position:static;flex:0 0 46px;align-items:center;
+  justify-content:center;width:46px;height:46px;min-width:46px;min-height:46px;
+  padding:0;border:1px solid #c8dbd1;border-radius:13px;
+  background:#eef8f2;color:#237954;box-shadow:none;
+  pointer-events:auto;cursor:pointer;
+}
+.screen[data-screen="save"] .capture-mode-row>.capture-voice-action .ui-icon{
+  width:23px;height:23px;
+}
+.screen[data-screen="save"] .capture-mode-row>.capture-voice-action.hidden{
+  display:none!important;
+}
+.screen[data-screen="save"] .capture-mode-row>.capture-voice-action.is-recording{
+  background:#c83246;color:#fff;border-color:#b5233c;
+}
+.screen[data-screen="save"] .capture-mode-row>.capture-voice-action:focus-visible{
+  outline:3px solid rgba(21,150,107,.34);outline-offset:3px;
+}
