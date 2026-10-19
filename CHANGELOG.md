@@ -1,10 +1,17 @@
-## Nexo 3.7.42 — Acciones inferiores persistentes y fecha en cabecera
+## Nexo 3.7.43 — Corrección de barras inferiores en alta y edición
+- La barra de Nueva cita ya no desaparece porque un campo conserve el foco con el teclado cerrado.
+- El teclado se detecta por la reducción real del área visible.
+- En el editor normal y recurrente, la barra vive fuera del contenedor desplazable y se mantiene visible en el pie.
+- Se elimina la barra persistente al cerrar o sustituir un modal.
+- Conserva la firma, los datos y el entorno de compilación; versionCode 136.
+
+## Nexo 3.7.43 — Acciones inferiores persistentes y fecha en cabecera
 
 - Fecha completa en español bajo la cabecera, actualizada al reabrir la app y al cambiar de día.
 - Alta de cita: comienza por texto libre; relaciones al final; barra inferior fija con Guardar, Adjuntar, Vincular y Limpiar, alineados con icono y texto.
 - Edición de citas y apariciones recurrentes: controles disponibles en el pie de la ficha mientras se desplaza; se reutilizan acciones y manejadores ya existentes.
 - Iconos semánticos y texto visibles para las acciones habituales; controles solo icónicos mantienen etiquetas accesibles.
-- Se conservan la base de datos, los avisos, la recurrencia y el entorno AndroidIDE original. versionCode 135.
+- Se conservan la base de datos, los avisos, la recurrencia y el entorno AndroidIDE original. versionCode 136.
 
 ## Nexo 3.7.34 — Acciones superiores de Libros y puntuación visible
 

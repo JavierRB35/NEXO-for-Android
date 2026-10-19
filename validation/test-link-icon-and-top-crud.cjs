@@ -64,7 +64,7 @@ const capture=index.indexOf('class="capture-crud-toolbar"');
 // La captura mantiene lectura natural: primero texto libre y, al final, barra fija.
 assert(capture>index.indexOf('id="captureRelated"'));
 assert(capture>index.indexOf('id="captureText"'));
-assert(css.includes('3.7.42 · Decisión final: barra inferior fija'));
+assert(css.includes('Nexo 3.7.43 · Acciones inferiores fiables'));
 for(const id of ['saveCaptureBtn','chooseFileBtn','clearCaptureBtn'])assert.equal((index.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'Botón duplicado: '+id);
 assert(src.includes("promoteRecordActions($('#modalBody'));"));
 assert(css.includes('record-top-actions'));

@@ -56,6 +56,6 @@ assert 'Nexo no emite sonidos al iniciar o terminar' in js
 # Feature release must not alter DB identity/schema merely to store recordings.
 assert 'DB_NAME = "nexo.db"' in db
 assert 'DB_VERSION = 32' in db
-assert "versionName '3.7.42'" in gradle
-assert 'versionCode 135' in gradle
+assert "versionName '3.7.43'" in gradle
+assert 'versionCode 136' in gradle
 print('Grabadora: integración, permisos, privacidad local y puentes OK')

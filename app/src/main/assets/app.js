@@ -1729,7 +1729,8 @@ function bindCompactRecordActions(){
       bar.insertBefore(link,bar.querySelector('.record-action-overflow'));
       if(wrapper&&!wrapper.children.length)wrapper.remove();
     }
-    bar.parentNode.appendChild(bar);
+    // El pie queda fuera del contenedor desplazable para que esté siempre visible.
+    $('#modal .modal-sheet')?.appendChild(bar);
   }
   const refresh=()=>{edit.hidden=editor.open;save.hidden=!editor.open;};
   editor.addEventListener('toggle',refresh);refresh();
@@ -3640,6 +3641,8 @@ function openModal(title,html){
   document.body.classList.remove('note-reading-open');
   discardDocumentDraft();
   if($('#modal').classList.contains('hidden'))state.modalReturnFocus=document.activeElement;
+  // Una ficha sustituida no debe conservar los botones de la ficha anterior.
+  $('#modal .modal-sheet > .record-form-actions--compact')?.remove();
   $('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;
   promoteRecordActions($('#modalBody'));
   $('#modal').classList.remove('hidden');
@@ -3678,7 +3681,9 @@ function closeModal(force=false){
   if(journalWasOpen)state.journalEditor=null;
   const medicationWasOpen=!!state.medicationEditor;if(medicationWasOpen)state.medicationEditor=null;
   state.quoteEditor=null;state.placeEditor=null;
-  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';document.body.classList.remove('modal-open','note-reading-open','note-editor-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
+  $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';
+  $('#modal .modal-sheet > .record-form-actions--compact')?.remove();
+  document.body.classList.remove('modal-open','note-reading-open','note-editor-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
   if(noteWasOpen)refreshNotesSurface();
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}
   if(state.modalReturnFocus?.isConnected)state.modalReturnFocus.focus({preventScroll:true});state.modalReturnFocus=null;
@@ -5153,5 +5158,30 @@ function installSaveIconConsistency(){
   observer.observe(document.body,{subtree:true,childList:true});
 }
 
+/** Ocultar los pies solo si el teclado REDUCE de verdad el área visible.
+ * Focus por sí solo no equivale a teclado abierto en Android.
+ */
+function installFixedActionBarViewport(){
+  let fullHeight=0;
+  const viewport=window.visualViewport;
+  const refresh=()=>{
+    const nav=$('.bottom-nav');
+    if(nav)document.documentElement.style.setProperty('--nexo-bottom-nav-height',Math.ceil(nav.getBoundingClientRect().height)+'px');
+    const el=document.activeElement;
+    const writing=!!el?.matches?.('textarea,input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),[contenteditable="true"]');
+    const visibleHeight=Math.min(window.innerHeight||Infinity,viewport?.height||Infinity);
+    if(!writing||!fullHeight)fullHeight=Math.max(fullHeight,visibleHeight);
+    const keyboardOpen=writing&&fullHeight-visibleHeight>Math.max(160,fullHeight*.20);
+    document.body.classList.toggle('nexo-keyboard-visible',keyboardOpen);
+  };
+  refresh();
+  window.addEventListener('resize',refresh);
+  viewport?.addEventListener('resize',refresh);
+  document.addEventListener('focusin',refresh);
+  document.addEventListener('focusout',()=>requestAnimationFrame(refresh));
+  window.addEventListener('orientationchange',()=>{fullHeight=0;requestAnimationFrame(refresh);});
+}
+
 document.addEventListener('DOMContentLoaded',init);
+document.addEventListener('DOMContentLoaded',installFixedActionBarViewport);
 document.addEventListener('DOMContentLoaded',installSaveIconConsistency);

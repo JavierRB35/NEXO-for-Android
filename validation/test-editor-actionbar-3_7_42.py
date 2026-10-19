@@ -24,15 +24,26 @@ assert '#nx-icon-left' in html and '#nx-icon-trash' in html
 assert 'new Intl.DateTimeFormat(\'es-ES\',{weekday:\'long\',day:\'numeric\',month:\'long\',year:\'numeric\'})' in js
 assert "if(!document.hidden)refreshHeaderDate();" in js
 
-# Se usa la última decisión de diseño (la cascada de CSS permite reemplazar propuestas anteriores).
-final_css = css.split('3.7.42 · Decisión final: barra inferior fija',1)[1]
-assert 'position:fixed;left:50%;top:auto;bottom:calc(62px + env(safe-area-inset-bottom))' in final_css
-assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in final_css
-assert '.capture-crud-toolbar{display:none}' in final_css
-assert 'position:sticky;top:auto;bottom:0;z-index:14' in final_css
-assert 'bar.parentNode.appendChild(bar)' in js
+# Regresión 3.7.43: el foco NO oculta una barra si el teclado no está presente.
+fixed = css.split('Nexo 3.7.43 · Acciones inferiores fiables',1)[1]
+assert 'bottom:calc(var(--nexo-bottom-nav-height, 76px) + 1px)' in fixed
+assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in fixed
+assert 'button.hidden{display:none!important}' in fixed
+assert ':has(input:focus,textarea:focus,select:focus)' not in css
+assert 'body.nexo-keyboard-visible .screen[data-screen="save"] .capture-crud-toolbar{display:none}' in fixed
+assert "const viewport=window.visualViewport" in js
+assert 'fullHeight-visibleHeight>Math.max(160,fullHeight*.20)' in js
+assert "document.addEventListener('DOMContentLoaded',installFixedActionBarViewport);" in js
+
+# En edición, las acciones son HERMANAS de #modalBody, nunca hijas del scroll.
+assert "bar.parentNode.appendChild(bar)" not in js
+assert "$('#modal .modal-sheet')?.appendChild(bar);" in js
+assert '.modal-sheet:has(> .record-form-actions--compact)' in fixed
+assert 'flex:1 1 auto;min-height:0;overflow-y:auto' in fixed
+assert 'body.nexo-keyboard-visible .modal-sheet>.record-form-actions--compact{display:none}' in fixed
+assert js.count("$('#modal .modal-sheet > .record-form-actions--compact')?.remove();") >= 2
 assert "editor.querySelector('#editLinkButton,#occLinkButton')" in js
 for marker in ('saveEditBtn','saveOccurrenceBtn','openRelatedPicker(id)','openRelatedPicker(seriesId)'):
     assert marker in js, marker
 
-print('Nexo 3.7.42: fecha local, captura prioritaria y barras inferiores en alta/edición: OK')
+print('Nexo 3.7.43: acciones visibles sin teclado, editor desacoplado del scroll: OK')
