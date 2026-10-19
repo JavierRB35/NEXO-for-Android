@@ -117,6 +117,7 @@ jobs:
           node validation/test-books-ui.mjs
           node validation/test-media-ui.mjs
           node validation/test-library-categories-ui.mjs
+          node validation/test-inbox-sender-ui.mjs
           node validation/test-notes-reading-ui.mjs
           node validation/test-places-ui.mjs
           python3 validation/test-home-runtime-performance.py
