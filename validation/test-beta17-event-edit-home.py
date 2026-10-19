@@ -21,11 +21,11 @@ for label in ['Pendiente','Completada','Pospuesta','Cancelada']:
 assert 'function recordEditorActionBar' in js
 assert 'record-form-actions--compact' in js
 item=js[js.index('function openItem(id)'):js.index('function openOccurrence',js.index('function openItem(id)'))]
-assert "recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',isAppointmentType(i.type)?'duplicateItemBtn':'')" in item
+assert "recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')" in item
 assert item.count("'saveEditBtn'") == 1
 assert 'id="saveEditBtn"' not in item
 occ=js[js.index('function openOccurrence'):js.index('function chooseRecurrenceScope',js.index('function openOccurrence'))]
-assert "recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn','duplicateOccurrenceBtn')" in occ
+assert "recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'')" in occ
 assert occ.count("'saveOccurrenceBtn'") == 1
 assert 'id="saveOccurrenceBtn"' not in occ
 assert '<div class="modal-actions wrap-actions"></div>' not in occ
