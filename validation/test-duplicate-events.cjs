@@ -19,7 +19,7 @@ for(const token of [
   'function duplicateCalendarEvent(', 'id="agendaDuplicateAction"',
   "'duplicateItemBtn'", "'duplicateOccurrenceBtn'",
   "$('#duplicateItemBtn')?.addEventListener('click'",
-  "$('#duplicateOccurrenceBtn').addEventListener('click'",
+  "$('#duplicateOccurrenceBtn')?.addEventListener('click'",
   "$('#agendaDuplicateAction')?.addEventListener('click'"
 ])assert(source.includes(token),'No está conectado: '+token);
 const base={id:17,type:'event',title:'Cita con el dentista',body:'Revisar informe',
