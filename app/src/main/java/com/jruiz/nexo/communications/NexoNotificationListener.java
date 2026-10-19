@@ -78,6 +78,9 @@ public class NexoNotificationListener extends NotificationListenerService {
                 if (equivalent > 0L) return;
             }
 
+            // El grupo identifica la conversación, no al autor del mensaje.
+            // Guardar en la clasificación deja intactos los datos históricos del Inbox.
+            if (!payload.group.isBlank()) classification.put("sourceGroup", payload.group);
             String sourceKey = fingerprint(pkg, payload.sender, payload.text, sbn.getPostTime());
             if (db.inboxCaptureExists(sourceKey)) return;
 
@@ -101,6 +104,8 @@ public class NexoNotificationListener extends NotificationListenerService {
     private NotificationPayload extractPayload(StatusBarNotification sbn) {
         Bundle extras = sbn.getNotification().extras;
         String title = text(extras == null ? null : extras.getCharSequence(Notification.EXTRA_TITLE));
+        String group = text(extras == null ? null : extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE));
+        boolean messageSenderFound = false;
         String body = "";
 
         if (extras != null) {
@@ -136,7 +141,10 @@ public class NexoNotificationListener extends NotificationListenerService {
                                 } else {
                                     lastSender = text(last.getSender());
                                 }
-                                if (!lastSender.isBlank()) title = lastSender;
+                                if (!lastSender.isBlank()) {
+                                    title = lastSender;
+                                    messageSenderFound = true;
+                                }
                             }
                         }
                     }
@@ -145,8 +153,11 @@ public class NexoNotificationListener extends NotificationListenerService {
         }
 
         body = body.trim();
+        // Algunos avisos usan el título para el grupo; no inventar que el grupo
+        // es la persona remitente cuando MessagingStyle no aporta autor.
+        if (!messageSenderFound && !group.isBlank() && group.equalsIgnoreCase(title)) title = "";
         if (body.equals(title)) title = "";
-        return new NotificationPayload(title.trim(), body);
+        return new NotificationPayload(title.trim(), body, group);
     }
 
     private void showCandidateNotification(long captureId, String pkg, String sender, String body, JSONObject classification) {
@@ -243,9 +254,11 @@ public class NexoNotificationListener extends NotificationListenerService {
     private static final class NotificationPayload {
         final String sender;
         final String text;
-        NotificationPayload(String sender, String text) {
+        final String group;
+        NotificationPayload(String sender, String text, String group) {
             this.sender = sender == null ? "" : sender;
             this.text = text == null ? "" : text;
+            this.group = group == null ? "" : group;
         }
     }
 }
