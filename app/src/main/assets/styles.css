@@ -3386,3 +3386,7 @@ body.startup-loading #app{visibility:hidden}
 .event-link-count{font-variant-numeric:tabular-nums;font-size:.8rem}
 @media(max-width:360px){#modalBody>.record-top-actions{gap:6px}#modalBody>.record-top-actions button{font-size:.79rem;padding:7px 9px}.capture-crud-toolbar{gap:6px}}
 @media(prefers-color-scheme:dark){.event-link-indicator{background:#172b40;color:#85c5ff;border-color:#315979}}
+
+/* Papelera de Notas compacta junto a Editar y Compartir */
+.note-reader-toolbar #noteReaderDelete{flex:0 0 40px;min-width:40px;min-height:40px;padding:8px}
+@media(max-width:360px){.note-reader-toolbar #noteReaderDelete{flex:0 0 38px;min-width:38px}}
