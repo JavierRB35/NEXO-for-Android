@@ -53,7 +53,7 @@ assert cx.execute('SELECT COUNT(*) FROM record_links').fetchone()[0]==4
 # El contador de la tarjeta usa el mismo SELECT que el calendario y se
 # calcula en SQLite sin llamadas individuales a la capa web.
 import re
-m=re.search(r'private static final String ITEM_SELECT_WITH_REMINDER\\s*=\\s*(.*?);',db,re.S)
+m=re.search(r'private static final String ITEM_SELECT_WITH_REMINDER\s*=\s*(.*?);',db,re.S)
 assert m, 'Consulta de tarjetas no encontrada'
 sql=''.join(re.findall(r'"([^"]*)"',m.group(1)))
 assert ' AS link_count FROM items' in sql
