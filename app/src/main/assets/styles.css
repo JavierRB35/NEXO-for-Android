@@ -3425,9 +3425,16 @@ body.startup-loading #app{visibility:hidden}
 
 
 /* Nexo 3.7.42 · Fecha en cabecera y jerarquía de captura coherente */
-.topbar:has(.header-today-date){flex-wrap:wrap;row-gap:0}
-.header-today-date{flex:0 0 100%;width:100%;padding:1px 3px 5px 42px;min-height:22px;font-size:.76rem;font-weight:750;line-height:1.35;color:#456357;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:370px){.header-today-date{padding-left:38px;font-size:.72rem}}
+/* The date belongs to Home, not to the global toolbar: retain pre-3.7.42
+   single-row header height on every screen, especially New appointment. */
+.topbar{flex-wrap:nowrap;row-gap:0}
+.home-today-date{
+  display:block;max-width:100%;padding:2px 5px 8px;margin:0 0 9px;
+  text-align:center;min-height:0;font-size:.84rem;font-weight:750;
+  line-height:1.4;color:#456357;letter-spacing:.005em;
+  white-space:normal;overflow-wrap:anywhere;
+}
+@media(max-width:370px){.home-today-date{font-size:.77rem;padding-inline:2px}}
 /* Mantener zona de lectura disponible hasta las últimas opciones del formulario. */
 .screen[data-screen="save"]{padding-bottom:210px}
 .screen[data-screen="save"] .capture-mode-row{padding-top:12px;padding-bottom:11px}
@@ -3570,4 +3577,22 @@ body.startup-loading #app{visibility:hidden}
   .screen[data-screen="save"] #saveCaptureBtn{font-size:.69rem}
   .modal-sheet:has(#saveEditBtn) .record-form-actions--compact>button,
   .modal-sheet:has(#saveOccurrenceBtn) .record-form-actions--compact>button{font-size:.7rem}
+}
+
+/* 3.7.42 corrective: a distinct full arrow and icon+label in Back.
+   Reuses the SVG semantic vocabulary on both light and dark schemes. */
+.screen[data-screen="save"] .screen-heading>.capture-back-button{
+  display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;
+  gap:8px;min-height:44px;padding:8px 12px;border:1px solid #d8e0d8;
+  background:#fff;color:#277a5a;white-space:nowrap;
+}
+.screen[data-screen="save"] .capture-back-button>.ui-icon{
+  display:block;flex:0 0 22px;width:22px;height:22px;
+  min-width:22px;stroke:currentColor;stroke-width:2.4;
+}
+.screen[data-screen="save"] .capture-back-button:focus-visible{
+  outline:3px solid rgba(21,150,107,.34);outline-offset:3px;
+}
+@media(max-width:370px){
+  .screen[data-screen="save"] .capture-back-button{padding:8px 9px;gap:5px}
 }
