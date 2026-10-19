@@ -1800,6 +1800,8 @@ function renderCaptureRelated(){
   const host=$('#captureRelated');if(!host)return;
   const active=captureReviewType()==='event';
   host.classList.toggle('hidden',!active);
+  const action=$('#captureLinkButton');
+  if(action)action.classList.toggle('hidden',!active);
   if(!active)return;
   const pending=state.capturePendingLinks||[],count=pending.length;
   const caption=$('#captureRelatedStatus');
@@ -4289,6 +4291,9 @@ function beginStartupSequence(startScreen){
 }
 
 function init(){
+  refreshHeaderDate();
+  setInterval(()=>{if(!document.hidden)refreshHeaderDate();},60*1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshHeaderDate();});
   bindPanelNavigation();
   const appVersion=String(NexoNative.getAppVersion());
   $$('[data-app-version]').forEach(el=>{el.textContent='v'+appVersion;el.setAttribute('aria-label','Versión '+appVersion);});
@@ -4435,6 +4440,11 @@ function init(){
 
 const router=new NexoRouter({screen:'today'});
 function uiIcon(name){return `<svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-${name}"></use></svg>`;}
+function refreshHeaderDate(){
+  const target=$('#headerTodayDate');if(!target)return;
+  const formatted=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
+  if(target.textContent!==formatted)target.textContent=formatted;
+}
 function navigateBack(){
   // Comprobar ANTES de consumir el historial: cancelar debe dejar la cita intacta.
   if(state.screen==='save'&&state.capturePendingLinks?.length){
@@ -5064,24 +5074,67 @@ function normalizeSaveButtons(root=document){
     const contextual=button.hasAttribute('data-related-save');
     const explicit=saveIds.test(id)||contextual||button.hasAttribute('data-note-close-save');
     if(!explicit)return;
-    if(id==='saveCaptureBtn'&&String(button.textContent||'').trim()==='Revisar pauta')return;
-    if(button.querySelector('use[href="#nx-icon-save"]')&&button.classList.contains('nexo-unified-save'))return;
-    const original=String(button.textContent||'').trim()||String(button.getAttribute('aria-label')||'Guardar');
-    if(!/^(guardar|confirmar tratamiento|crear y vincular)/i.test(original)&&!button.classList.contains('nexo-unified-save'))return;
-    button.setAttribute('aria-label',original);
-    button.setAttribute('title',original);
+    const visibleText=String(button.textContent||'').trim();
+    const label=visibleText||String(button.getAttribute('aria-label')||'Guardar').trim()||'Guardar';
+    if(id==='saveCaptureBtn'&&label==='Revisar pauta')return;
+    if(!/^(guardar|confirmar tratamiento|crear y vincular)/i.test(label)&&!button.classList.contains('nexo-unified-save'))return;
+    const finalLabel=contextual?'Guardar y volver':label;
+    const icon=button.querySelector('use[href="#nx-icon-save"]');
+    const caption=button.querySelector('.nexo-action-label');
+    if(icon&&caption?.textContent===finalLabel&&button.classList.contains('nexo-unified-save'))return;
+    button.setAttribute('aria-label',finalLabel);
+    button.setAttribute('title',finalLabel);
     button.classList.add('nexo-unified-save');
-    button.innerHTML=uiIcon('save')+(contextual?'<span>Guardar y volver</span>':'');
+    button.innerHTML=uiIcon('save')+'<span class="nexo-action-label">'+esc(finalLabel)+'</span>';
+  });
+}
+/** Criterio único: icono semántico a la izquierda y texto legible.
+ * No modifica botones que ya contienen gráficos ni controles compactos sin texto.
+ */
+function semanticActionIcon(label){
+  const key=familyNorm(label).replace(/^\+\s*/,'');
+  if(/^(guardar|salvar|confirmar tratamiento)/.test(key))return 'save';
+  if(/^(adjuntar|seleccionar archivo|elegir archivo|importar|subir)/.test(key))return 'file';
+  if(/^(vincular|enlazar)/.test(key))return 'link';
+  if(/^(limpiar|vaciar|borrar|eliminar|quitar|descartar)/.test(key))return 'trash';
+  if(/^(volver|retroceder|regresar|atras)/.test(key))return 'left';
+  if(/^(cancelar|cerrar|detener|terminar)/.test(key))return 'close';
+  if(/^(crear|nuev[oa]|anadir|agregar|insertar)/.test(key))return 'plus';
+  if(/^(editar|modificar|renombrar|cambiar nombre)/.test(key))return 'edit';
+  if(/^(compartir|enviar)/.test(key))return 'share';
+  if(/^(buscar|consultar|filtrar)/.test(key))return 'search';
+  if(/^(descargar|exportar)/.test(key))return 'download';
+  if(/^(confirmar|aceptar|aplicar|listo|hecho|activar)/.test(key))return 'check';
+  if(/^(abrir|ver |mostrar|revisar|detalles)/.test(key))return 'eye';
+  if(/^(ir al |ir a |ubicacion|mostrar mapa)/.test(key))return 'pin';
+  if(/^(grabar|hablar|dictar)/.test(key))return 'mic';
+  if(/^(reproducir|escuchar)/.test(key))return 'play';
+  return '';
+}
+function normalizeActionButtons(root=document){
+  if(!root?.querySelectorAll)return;
+  const selectors='button.primary-button,button.secondary-button,button.ghost-button,button.danger-button,button.text-button,button.mini-button,button.voice-stop-button';
+  root.querySelectorAll(selectors).forEach(button=>{
+    if(button.querySelector('svg,img')||button.disabled&&button.textContent.trim()==='')return;
+    const label=String(button.textContent||'').trim();
+    if(!label||label.length>85)return;
+    const icon=semanticActionIcon(label);if(!icon)return;
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('class','ui-icon');svg.setAttribute('aria-hidden','true');
+    const use=document.createElementNS('http://www.w3.org/2000/svg','use');
+    use.setAttribute('href','#nx-icon-'+icon);svg.appendChild(use);
+    button.insertBefore(svg,button.firstChild);
   });
 }
 function installSaveIconConsistency(){
-  normalizeSaveButtons(document);
+  const normalize=()=>{normalizeSaveButtons(document);normalizeActionButtons(document);};
+  normalize();
   if(typeof MutationObserver!=='function')return;
   let scheduled=false;
   const observer=new MutationObserver(()=>{
     if(scheduled)return;
     scheduled=true;
-    Promise.resolve().then(()=>{scheduled=false;normalizeSaveButtons(document);});
+    Promise.resolve().then(()=>{scheduled=false;normalize();});
   });
   observer.observe(document.body,{subtree:true,childList:true});
 }
