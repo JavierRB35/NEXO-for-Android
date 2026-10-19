@@ -24,7 +24,7 @@ assert(app.includes("state.calendarUpdateItemId=Number(res.id)||state.calendarUp
 assert(app.includes("if(state.relatedDocumentCallback)state.relatedDocumentCallback(result)"));
 assert(app.includes('data-related-expiry'));
 assert(css.includes('.related-event-origin')&&css.includes('.event-capture-links-head'));
-assert(app.includes("uiIcon('save')+(contextual?"));
+assert(app.includes("button.innerHTML=uiIcon('save')+'<span class="));
 assert(app.includes("observer.observe(document.body,{subtree:true,childList:true})"));
 const changes={list:0,note:0,doc:0,link:[],discard:[],savedIDs:[],failLink:false,failDoc:false};
 let id=100;
@@ -74,7 +74,7 @@ assert.equal(ctx.stageOrLinkRelated(99,{kind:'note',id:11,title:'Nota existente'
 assert.equal(changes.link.at(-1).owner,99,'En edición la asociación usa el ID del evento original');
 assert.equal(changes.list+changes.note+changes.doc,writesBefore,'Vincular existente no crea recursos');
 // The global normalization preserves IDs and listeners and renders exactly the same SVG symbol as Notas.
-const iconCtx={uiIcon:name=>'<svg class="ui-icon"><use href="#nx-icon-'+name+'"></use></svg>',document:{}};
+const iconCtx={uiIcon:name=>'<svg class="ui-icon"><use href="#nx-icon-'+name+'"></use></svg>',esc:value=>String(value),document:{}};
 vm.createContext(iconCtx);vm.runInContext(extract('normalizeSaveButtons'),iconCtx);
 const buttons=[
  {id:'documentSave',textContent:'Guardar documento',attributes:{},innerHTML:'',classList:new Set()},
@@ -85,6 +85,7 @@ const buttons=[
  classList:{contains:k=>o.classList.has(k),add:k=>o.classList.add(k)},querySelector:()=>null}));
 iconCtx.normalizeSaveButtons({querySelectorAll:q=>{assert.equal(q,'button');return buttons;}});
 assert(buttons[0].innerHTML.includes('#nx-icon-save'));
+assert(buttons[0].innerHTML.includes('Guardar documento'),'El texto visible del botón Guardar debe conservarse');
 assert(buttons[1].innerHTML.includes('#nx-icon-save'));
 assert.equal(buttons[2].innerHTML,'','Revisar pauta no es Guardar');
 assert.equal(buttons[3].innerHTML,'','Exportar audio/archivo no es Guardar del CRUD');

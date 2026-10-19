@@ -3422,3 +3422,152 @@ body.startup-loading #app{visibility:hidden}
 .nexo-unified-save:not([data-related-save]):not([data-note-close-save]){min-width:44px;padding:9px 11px}
 .nexo-unified-save>.ui-icon{height:20px;width:20px;flex:0 0 auto}
 .record-form-actions .nexo-unified-save,.record-top-actions .nexo-unified-save{align-self:center}
+
+
+/* Nexo 3.7.42 · Fecha en cabecera y jerarquía de captura coherente */
+.topbar:has(.header-today-date){flex-wrap:wrap;row-gap:0}
+.header-today-date{flex:0 0 100%;width:100%;padding:1px 3px 5px 42px;min-height:22px;font-size:.76rem;font-weight:750;line-height:1.35;color:#456357;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:370px){.header-today-date{padding-left:38px;font-size:.72rem}}
+/* Mantener zona de lectura disponible hasta las últimas opciones del formulario. */
+.screen[data-screen="save"]{padding-bottom:210px}
+.screen[data-screen="save"] .capture-mode-row{padding-top:12px;padding-bottom:11px}
+.screen[data-screen="save"] .capture-mode-row strong{font-size:1.12rem;color:var(--text);font-weight:850}
+.screen[data-screen="save"] .capture-text{min-height:120px;border-color:#b6d4c8;border-width:2px;font-size:1rem}
+.screen[data-screen="save"] .capture-text:focus{border-color:#16845c;box-shadow:0 0 0 3px rgba(22,132,92,.12)}
+.screen[data-screen="save"] .event-capture-links{margin:15px 0 9px;padding:12px 14px}
+.screen[data-screen="save"] .event-capture-links-head{justify-content:flex-start}
+.screen[data-screen="save"] .event-capture-links-head strong{font-size:.93rem}
+.screen[data-screen="save"] .event-capture-links .linked-resource-row{max-width:100%}
+/* Las acciones permanecen visibles por encima de la navegación principal. */
+.screen[data-screen="save"] .capture-crud-toolbar{
+  position:fixed;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:29;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+  width:min(100%,760px);padding:9px max(10px,env(safe-area-inset-left)) 10px max(10px,env(safe-area-inset-right));
+  margin:0;background:rgba(255,255,255,.98);border-top:1px solid #dde7df;
+  box-shadow:0 -7px 24px rgba(17,43,34,.09);backdrop-filter:blur(16px)
+}
+.screen[data-screen="save"] .capture-crud-toolbar:not(:has(#captureLinkButton:not(.hidden))){grid-template-columns:repeat(2,minmax(0,1fr))}
+.screen[data-screen="save"] .capture-crud-toolbar button{
+  display:inline-flex;align-items:center;justify-content:center;min-width:0;width:100%;min-height:44px;
+  padding:7px 5px;gap:6px;font-size:.83rem;font-weight:750;line-height:1.2;white-space:normal;text-align:center;border-radius:12px;
+}
+.screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:19px;height:19px;min-width:19px;flex:0 0 19px}
+.screen[data-screen="save"] #saveCaptureBtn{grid-column:1/-1;grid-row:2;min-height:47px;font-size:.95rem}
+.screen[data-screen="save"] #captureLinkButton .linked-add-count{min-width:19px;height:19px;padding:0 4px;font-size:.7rem}
+.screen[data-screen="save"] .capture-crud-toolbar .ghost-button{background:#f2f4f2;border:1px solid #dce4df;color:#42554c}
+/* Evitar tapar campos cuando aparece el teclado Android. */
+.screen[data-screen="save"]:has(input:focus,textarea:focus,select:focus) .capture-crud-toolbar{display:none}
+@media(max-width:360px){
+  .screen[data-screen="save"] .capture-crud-toolbar{gap:5px;padding-left:6px;padding-right:6px}
+  .screen[data-screen="save"] .capture-crud-toolbar button{gap:4px;font-size:.76rem;padding:7px 3px}
+  .screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:17px;height:17px;min-width:17px}
+}
+/* Misma alineación de icono + texto en todas las acciones semánticas. */
+.primary-button>.ui-icon,.secondary-button>.ui-icon,.ghost-button>.ui-icon,
+.danger-button>.ui-icon,.text-button>.ui-icon,.mini-button>.ui-icon,
+.voice-stop-button>.ui-icon{width:20px;height:20px;min-width:20px;flex:0 0 20px;vertical-align:middle}
+.primary-button,.secondary-button,.ghost-button,.danger-button,.text-button,.mini-button,.voice-stop-button{align-items:center;gap:7px}
+.nexo-unified-save{min-width:0;gap:7px}
+.nexo-unified-save>.nexo-action-label{font-size:inherit;line-height:inherit;white-space:normal}
+
+
+/* 3.7.42 · Barras adhesivas superiores en alta y edición.
+   No se duplica ningún control: conservamos los IDs y los listeners originales. */
+.screen[data-screen="save"]{padding-bottom:28px}
+.screen[data-screen="save"] .capture-crud-toolbar{
+  position:sticky;top:var(--nexo-header-height,85px);left:auto;bottom:auto;transform:none;
+  z-index:19;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;
+  width:calc(100% + 28px);max-width:none;margin:0 -14px 13px;
+  padding:7px max(8px,env(safe-area-inset-left)) 8px max(8px,env(safe-area-inset-right));
+  box-shadow:0 5px 16px rgba(17,43,34,.085);border-bottom:1px solid #d9e5dc;border-top:0;
+}
+.screen[data-screen="save"] .capture-crud-toolbar:not(:has(#captureLinkButton:not(.hidden))){grid-template-columns:repeat(3,minmax(0,1fr))}
+.screen[data-screen="save"] .capture-crud-toolbar button{
+  flex-direction:column;gap:3px;min-height:57px;padding:6px 3px;
+  font-size:.75rem;line-height:1.15;white-space:normal;min-width:0;
+}
+.screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:20px;height:20px;min-width:20px;flex:0 0 20px}
+.screen[data-screen="save"] #saveCaptureBtn{grid-column:auto;grid-row:auto;min-width:0;min-height:57px;font-size:.75rem}
+.screen[data-screen="save"] #saveCaptureBtn .nexo-action-label{font-size:inherit}
+.screen[data-screen="save"] .capture-crud-toolbar .linked-add-count{position:absolute;top:2px;right:3px;transform:scale(.84)}
+.screen[data-screen="save"] .capture-crud-toolbar #captureLinkButton{position:relative}
+.screen[data-screen="save"]:has(input:focus,textarea:focus,select:focus) .capture-crud-toolbar{display:grid}
+/* En los editores abiertos dentro de una ficha, el scroll ocurre en modal-sheet. */
+.modal-sheet:has(#saveEditBtn) #modalBody>.record-form-actions--compact,
+.modal-sheet:has(#saveOccurrenceBtn) #modalBody>.record-form-actions--compact{
+  position:sticky;top:0;z-index:12;margin:0 -8px 12px;padding:6px 8px 9px;
+  background:rgba(255,255,255,.97);border-bottom:1px solid #dce6df;
+  box-shadow:0 5px 14px rgba(20,35,60,.065);backdrop-filter:blur(12px)
+}
+.modal-sheet:has(#saveEditBtn) .record-form-actions--compact>button,
+.modal-sheet:has(#saveOccurrenceBtn) .record-form-actions--compact>button{
+  align-items:center;justify-content:center;gap:5px;min-height:45px!important;
+  padding:8px 7px!important;font-size:.8rem;
+}
+@media(max-width:390px){
+  .screen[data-screen="save"] .capture-crud-toolbar button{font-size:.7rem}
+  .screen[data-screen="save"] #saveCaptureBtn{font-size:.7rem}
+}
+
+
+/* 3.7.42 · Decisión final: barra inferior fija, a un pulgar de distancia.
+   La cabecera y el formulario siguen visibles por encima. */
+.screen[data-screen="save"]{padding-bottom:190px}
+.screen[data-screen="save"] .capture-crud-toolbar{
+  position:fixed;left:50%;top:auto;bottom:calc(62px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);z-index:29;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;
+  width:min(100%,760px);max-width:none;margin:0;padding:8px max(8px,env(safe-area-inset-left)) 10px max(8px,env(safe-area-inset-right));
+  background:rgba(255,255,255,.97);border-top:1px solid #d9e5dc;border-bottom:0;
+  box-shadow:0 -7px 22px rgba(16,39,30,.1);backdrop-filter:blur(16px)
+}
+.screen[data-screen="save"] .capture-crud-toolbar:not(:has(#captureLinkButton:not(.hidden))){grid-template-columns:repeat(3,minmax(0,1fr))}
+.screen[data-screen="save"] .capture-crud-toolbar button{
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;min-height:58px;max-width:100%;width:100%;min-width:0;
+  padding:6px 3px;font-size:.75rem;line-height:1.15;white-space:normal;text-align:center;
+  font-weight:750;border-radius:12px;
+}
+.screen[data-screen="save"] #saveCaptureBtn{grid-row:auto;grid-column:auto;min-width:0;min-height:58px;font-size:.75rem}
+.screen[data-screen="save"] #saveCaptureBtn .nexo-action-label{font-size:inherit;line-height:inherit}
+.screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:21px;height:21px;min-width:21px;flex:0 0 21px}
+.screen[data-screen="save"] .capture-crud-toolbar #captureLinkButton{position:relative}
+.screen[data-screen="save"] .capture-crud-toolbar #captureLinkButton .linked-add-count{position:absolute;top:2px;right:4px;transform:scale(.8)}
+/* Con teclado abierto, se libera espacio para escribir y usar el cursor. */
+.screen[data-screen="save"]:has(input:focus,textarea:focus,select:focus) .capture-crud-toolbar{display:none}
+/* Edición normal y de una aparición recurrente: pie adhesivo de la propia ventana. */
+.modal-sheet:has(#saveEditBtn) #modalBody,
+.modal-sheet:has(#saveOccurrenceBtn) #modalBody{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+.modal-sheet:has(#saveEditBtn) #modalBody>.record-form-actions--compact,
+.modal-sheet:has(#saveOccurrenceBtn) #modalBody>.record-form-actions--compact{
+  position:sticky;top:auto;bottom:0;z-index:14;
+  margin:12px -8px -8px;padding:9px 8px calc(9px + env(safe-area-inset-bottom));
+  display:flex;align-items:stretch;justify-content:space-evenly;gap:6px;
+  background:rgba(255,255,255,.98);border-top:1px solid #dce6df;border-bottom:0;
+  box-shadow:0 -6px 17px rgba(20,35,60,.1);backdrop-filter:blur(14px)
+}
+.modal-sheet:has(#saveEditBtn) .record-form-actions--compact>button,
+.modal-sheet:has(#saveOccurrenceBtn) .record-form-actions--compact>button{
+  display:flex;flex:1 1 0;flex-direction:column;justify-content:center;align-items:center;gap:3px;
+  min-width:0!important;min-height:55px!important;padding:6px 3px!important;
+  font-size:.75rem;line-height:1.1;text-align:center
+}
+.modal-sheet:has(#saveEditBtn) .record-action-overflow,
+.modal-sheet:has(#saveOccurrenceBtn) .record-action-overflow{flex:1 1 0;min-width:0;display:flex}
+.modal-sheet:has(#saveEditBtn) .record-action-overflow>summary,
+.modal-sheet:has(#saveOccurrenceBtn) .record-action-overflow>summary{
+  width:100%;display:flex;flex-direction:column;justify-content:center;gap:3px;
+  min-height:55px;padding:6px 4px;font-size:.75rem
+}
+.modal-sheet:has(#saveEditBtn) .record-overflow-menu,
+.modal-sheet:has(#saveOccurrenceBtn) .record-overflow-menu{
+  top:auto;bottom:calc(100% + 7px);right:0;
+}
+.modal-sheet:has(#saveEditBtn):has(input:focus,textarea:focus,select:focus) #modalBody>.record-form-actions--compact,
+.modal-sheet:has(#saveOccurrenceBtn):has(input:focus,textarea:focus,select:focus) #modalBody>.record-form-actions--compact{visibility:hidden}
+@media(max-width:380px){
+  .screen[data-screen="save"] .capture-crud-toolbar button,
+  .screen[data-screen="save"] #saveCaptureBtn{font-size:.69rem}
+  .modal-sheet:has(#saveEditBtn) .record-form-actions--compact>button,
+  .modal-sheet:has(#saveOccurrenceBtn) .record-form-actions--compact>button{font-size:.7rem}
+}

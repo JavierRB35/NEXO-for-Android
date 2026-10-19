@@ -30,7 +30,7 @@
 <img class="brand-logo" src="nexo-toolbar-logo.png" alt=""><span class="brand-copy"><span class="brand">Nexo</span><small id="headerVersion" class="brand-version"></small></span>
 </button>
 <div class="header-actions"><div class="header-weather-group"><button id="headerWeatherBtn" class="header-weather-button" type="button" aria-label="Consultar el tiempo" title="Consultar el tiempo"><span class="header-weather-reading"><span id="headerWeatherIcon" class="header-weather-symbol" aria-hidden="true">⛅</span><span id="headerWeatherTemp">…</span></span><small id="headerWeatherPlace" class="header-weather-place">Consultando tiempo…</small></button><a class="header-weather-attribution" href="https://open-meteo.com/" aria-label="Fuente de datos meteorológicos: Open-Meteo, CC BY 4.0" title="Datos meteorológicos: Open-Meteo (CC BY 4.0)">ⓘ</a></div>
-<button id="settingsBtn" class="icon-button" aria-label="Ajustes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg></button></div></header><main>
+<button id="settingsBtn" class="icon-button" aria-label="Ajustes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg></button></div><div id="headerTodayDate" class="header-today-date" aria-label="Fecha de hoy"></div></header><main>
       <section class="screen active family-home" data-screen="today" aria-labelledby="homeNowTitle">
   <section class="family-home-search" aria-label="Búsqueda en Nexo">
     <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg>
@@ -158,13 +158,12 @@
 <h1 id="captureHeading">Nueva cita</h1>
 <p id="captureSubtitle" class="muted">Describe lo que quieres guardar y revisa la propuesta antes de confirmar.</p>
 </div>
-<button id="captureBackBtn" class="secondary-button">Volver</button>
+<button id="captureBackBtn" type="button" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg><span>Volver</span></button>
 </div>
 
-        <div class="capture-crud-toolbar" role="group" aria-label="Acciones del nuevo elemento"><button id="saveCaptureBtn" class="primary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-save"></use></svg> Guardar en Nexo</button><button id="chooseFileBtn" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg> Adjuntar</button><button id="clearCaptureBtn" class="ghost-button">Limpiar</button></div>
+        
         <div id="captureSenderInfo" class="inbox-capture-context hidden" aria-live="polite"></div>
         <div id="captureCloneNotice" class="capture-clone-notice hidden" role="status"></div>
-        <div id="captureRelated" class="event-capture-links"><div class="event-capture-links-head"><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-link"></use></svg> Vínculos</strong><button id="captureLinkButton" type="button" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-link"></use></svg> Vincular / crear <span id="captureLinkCounter" class="linked-add-count hidden"></span></button></div><p id="captureRelatedStatus" class="small muted">Vincula o crea elementos sin salir de la cita.</p><div id="captureRelatedItems"></div></div>
         <div class="capture-card">
           <div class="capture-mode-row">
             <div>
@@ -260,6 +259,9 @@
 
         </div>
 
+        <div id="captureRelated" class="event-capture-links"><div class="event-capture-links-head"><strong><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-link"></use></svg> Vínculos</strong></div><p id="captureRelatedStatus" class="small muted">Vincula o crea una lista, nota o documento sin salir de la cita.</p><div id="captureRelatedItems"></div></div>
+        
+        <div class="capture-crud-toolbar" role="group" aria-label="Acciones de captura"><button id="chooseFileBtn" type="button" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg><span>Adjuntar</span></button><button id="captureLinkButton" type="button" class="secondary-button" aria-label="Vincular o crear una lista, nota o documento"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-link"></use></svg><span>Vincular</span><span id="captureLinkCounter" class="linked-add-count hidden"></span></button><button id="clearCaptureBtn" type="button" class="ghost-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg><span>Limpiar</span></button><button id="saveCaptureBtn" type="button" class="primary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-save"></use></svg><span>Guardar en Nexo</span></button></div>
         <div class="info-strip"><span>También puedes enviar contenido a Nexo desde el menú Compartir de Android.</span></div>
       </section>
 
@@ -447,7 +449,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.41</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.42</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>

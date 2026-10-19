@@ -61,8 +61,10 @@ assert(occurrence.includes('relatedLinksSectionHtml(seriesId)'));
 assert(!normal.includes('data-related-indicator-host'));
 assert(!occurrence.includes('data-related-indicator-host'));
 const capture=index.indexOf('class="capture-crud-toolbar"');
-assert(capture>0&&capture<index.indexOf('id="captureTitle"'));
-assert(capture<index.indexOf('id="captureText"'));
+// La captura mantiene lectura natural: primero texto libre y, al final, barra fija.
+assert(capture>index.indexOf('id="captureRelated"'));
+assert(capture>index.indexOf('id="captureText"'));
+assert(css.includes('3.7.42 · Decisión final: barra inferior fija'));
 for(const id of ['saveCaptureBtn','chooseFileBtn','clearCaptureBtn'])assert.equal((index.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'Botón duplicado: '+id);
 assert(src.includes("promoteRecordActions($('#modalBody'));"));
 assert(css.includes('record-top-actions'));
@@ -85,4 +87,4 @@ for(const p of ['books.js','media.js']){
  const file=fs.readFileSync('app/src/main/assets/'+p,'utf8');
  assert(file.includes('book-detail-quick-actions')&&file.includes('book-editor-toolbar'));
 }
-console.log('Vínculos en botón Vincular, sin duplicación de contador; CRUD arriba: OK');
+console.log('Vínculos en botón Vincular, sin duplicación de contador; CRUD contextual e inferior: OK');
