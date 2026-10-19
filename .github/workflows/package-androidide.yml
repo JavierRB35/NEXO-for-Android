@@ -61,6 +61,8 @@ jobs:
           python3 validation/test-beta11-polish.py
           python3 validation/test-calendar-visual-parity.py
           node validation/test-calendar-card-runtime.js
+          python3 validation/test-editor-actionbar-3_7_42.py
+          node validation/test-event-editor-related-drafts.cjs
           node --check app/src/main/assets/app.js
 
       - name: Compile debug APK
