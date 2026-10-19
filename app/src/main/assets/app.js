@@ -1717,6 +1717,20 @@ function bindCompactRecordActions(){
   const bar=$('#modalBody .record-form-actions--compact'),editor=$('#modalBody .details-box');
   if(!bar||!editor)return;
   const edit=bar.querySelector('button.secondary-button'),save=bar.querySelector('button.primary-button');
+  if(bar.querySelector('#saveEditBtn,#saveOccurrenceBtn')){
+    // El editor de eventos y el de recurrencias comparten una barra inferior.
+    // Reutilizar los botones originales conserva sus listeners y evita duplicados.
+    const link=editor.querySelector('#editLinkButton,#occLinkButton');
+    if(link){
+      const wrapper=link.closest('.event-edit-related');
+      const caption=link.querySelector('span');
+      if(caption)caption.textContent='Vincular';
+      else link.innerHTML=uiIcon('link')+'<span>Vincular</span>';
+      bar.insertBefore(link,bar.querySelector('.record-action-overflow'));
+      if(wrapper&&!wrapper.children.length)wrapper.remove();
+    }
+    bar.parentNode.appendChild(bar);
+  }
   const refresh=()=>{edit.hidden=editor.open;save.hidden=!editor.open;};
   editor.addEventListener('toggle',refresh);refresh();
 }
