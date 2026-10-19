@@ -3508,3 +3508,66 @@ body.startup-loading #app{visibility:hidden}
   .screen[data-screen="save"] .capture-crud-toolbar button{font-size:.7rem}
   .screen[data-screen="save"] #saveCaptureBtn{font-size:.7rem}
 }
+
+
+/* 3.7.42 · Decisión final: barra inferior fija, a un pulgar de distancia.
+   La cabecera y el formulario siguen visibles por encima. */
+.screen[data-screen="save"]{padding-bottom:190px}
+.screen[data-screen="save"] .capture-crud-toolbar{
+  position:fixed;left:50%;top:auto;bottom:calc(62px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);z-index:29;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;
+  width:min(100%,760px);max-width:none;margin:0;padding:8px max(8px,env(safe-area-inset-left)) 10px max(8px,env(safe-area-inset-right));
+  background:rgba(255,255,255,.97);border-top:1px solid #d9e5dc;border-bottom:0;
+  box-shadow:0 -7px 22px rgba(16,39,30,.1);backdrop-filter:blur(16px)
+}
+.screen[data-screen="save"] .capture-crud-toolbar:not(:has(#captureLinkButton:not(.hidden))){grid-template-columns:repeat(3,minmax(0,1fr))}
+.screen[data-screen="save"] .capture-crud-toolbar button{
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;min-height:58px;max-width:100%;width:100%;min-width:0;
+  padding:6px 3px;font-size:.75rem;line-height:1.15;white-space:normal;text-align:center;
+  font-weight:750;border-radius:12px;
+}
+.screen[data-screen="save"] #saveCaptureBtn{grid-row:auto;grid-column:auto;min-width:0;min-height:58px;font-size:.75rem}
+.screen[data-screen="save"] #saveCaptureBtn .nexo-action-label{font-size:inherit;line-height:inherit}
+.screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:21px;height:21px;min-width:21px;flex:0 0 21px}
+.screen[data-screen="save"] .capture-crud-toolbar #captureLinkButton{position:relative}
+.screen[data-screen="save"] .capture-crud-toolbar #captureLinkButton .linked-add-count{position:absolute;top:2px;right:4px;transform:scale(.8)}
+/* Con teclado abierto, se libera espacio para escribir y usar el cursor. */
+.screen[data-screen="save"]:has(input:focus,textarea:focus,select:focus) .capture-crud-toolbar{display:none}
+/* Edición normal y de una aparición recurrente: pie adhesivo de la propia ventana. */
+.modal-sheet:has(#saveEditBtn) #modalBody,
+.modal-sheet:has(#saveOccurrenceBtn) #modalBody{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+.modal-sheet:has(#saveEditBtn) #modalBody>.record-form-actions--compact,
+.modal-sheet:has(#saveOccurrenceBtn) #modalBody>.record-form-actions--compact{
+  position:sticky;top:auto;bottom:0;z-index:14;
+  margin:12px -8px -8px;padding:9px 8px calc(9px + env(safe-area-inset-bottom));
+  display:flex;align-items:stretch;justify-content:space-evenly;gap:6px;
+  background:rgba(255,255,255,.98);border-top:1px solid #dce6df;border-bottom:0;
+  box-shadow:0 -6px 17px rgba(20,35,60,.1);backdrop-filter:blur(14px)
+}
+.modal-sheet:has(#saveEditBtn) .record-form-actions--compact>button,
+.modal-sheet:has(#saveOccurrenceBtn) .record-form-actions--compact>button{
+  display:flex;flex:1 1 0;flex-direction:column;justify-content:center;align-items:center;gap:3px;
+  min-width:0!important;min-height:55px!important;padding:6px 3px!important;
+  font-size:.75rem;line-height:1.1;text-align:center
+}
+.modal-sheet:has(#saveEditBtn) .record-action-overflow,
+.modal-sheet:has(#saveOccurrenceBtn) .record-action-overflow{flex:1 1 0;min-width:0;display:flex}
+.modal-sheet:has(#saveEditBtn) .record-action-overflow>summary,
+.modal-sheet:has(#saveOccurrenceBtn) .record-action-overflow>summary{
+  width:100%;display:flex;flex-direction:column;justify-content:center;gap:3px;
+  min-height:55px;padding:6px 4px;font-size:.75rem
+}
+.modal-sheet:has(#saveEditBtn) .record-overflow-menu,
+.modal-sheet:has(#saveOccurrenceBtn) .record-overflow-menu{
+  top:auto;bottom:calc(100% + 7px);right:0;
+}
+.modal-sheet:has(#saveEditBtn):has(input:focus,textarea:focus,select:focus) #modalBody>.record-form-actions--compact,
+.modal-sheet:has(#saveOccurrenceBtn):has(input:focus,textarea:focus,select:focus) #modalBody>.record-form-actions--compact{visibility:hidden}
+@media(max-width:380px){
+  .screen[data-screen="save"] .capture-crud-toolbar button,
+  .screen[data-screen="save"] #saveCaptureBtn{font-size:.69rem}
+  .modal-sheet:has(#saveEditBtn) .record-form-actions--compact>button,
+  .modal-sheet:has(#saveOccurrenceBtn) .record-form-actions--compact>button{font-size:.7rem}
+}
