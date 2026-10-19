@@ -51,7 +51,7 @@ const crud=group(['placeSave','placeCancel'],'lugar');
 const other=group(['confirmDelete','confirmCancel'],'confirmación');
 const journal=group(['journalEdit','journalDelete'],'cuaderno');
 const doc=group(['documentDetailEdit','documentDetailOpen'],'documento');
-const root={firstChild:{},querySelectorAll:q=>{assert.equal(q,'.modal-actions,.place-detail-actions,.document-detail__actions');return[crud,other,journal,doc];},insertBefore:(el,node)=>{assert.equal(node,root.firstChild);moved.push(el.name);}};
+const root={firstChild:{},querySelector:()=>null,querySelectorAll:q=>{assert.equal(q,'.modal-actions,.place-detail-actions,.document-detail__actions');return[crud,other,journal,doc];},insertBefore:(el,node)=>{assert.equal(node,root.firstChild);moved.push(el.name);}};
 vm.runInContext(extract('promoteRecordActions'),ctx);
 ctx.promoteRecordActions(root);
 assert.deepEqual(moved,['lugar','cuaderno','documento']);
