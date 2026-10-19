@@ -58,7 +58,7 @@ assert "book-card-date" in books
 assert 'id="nx-icon-heart"' in index
 assert 'id="nx-icon-star"' in index
 assert ".book-rating-star.is-set" in css and ".book-favorite-toggle.active" in css
-assert "versionCode 133" in gradle and "versionName '3.7.40'" in gradle
+assert "versionCode 134" in gradle and "versionName '3.7.41'" in gradle
 print("OK: DB 27→28 sin pérdida, estrellas/corazón independientes, fechas y filtros")
 
 # Los botones interactivos de valoración y favorito pertenecen solo a la ficha.
