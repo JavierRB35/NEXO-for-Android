@@ -1763,10 +1763,24 @@ function bindRelatedLinks(ownerId){
     refreshRelatedLinks(ownerId);toast('Vínculo eliminado. El contenido se conserva.');
   }));
 }
+/** Mantiene el distintivo de la tarjeta sincronizado sin recargar Inicio o Calendario. */
+function refreshLinkedEventCardBadges(ownerId){
+  const id=Number(ownerId)||0;
+  if(id<=0)return;
+  const event=parseNative(NexoNative.getItem(id),{});
+  if(event.type!=='event')return;
+  const count=parseNative(NexoNative.getRelatedResources(id),[]).length;
+  document.querySelectorAll('[data-home-event="'+id+'"]').forEach(card=>{
+    card.querySelector('.upcoming-card__links')?.remove();
+    if(count>0)card.insertAdjacentHTML('beforeend',
+      '<span class="upcoming-card__links" title="'+count+' vínculo'+(count===1?'':'s')+'" aria-label="'+count+' vínculo'+(count===1?'':'s')+'">'+uiIcon('link')+'<span>'+count+'</span></span>');
+  });
+}
 function refreshRelatedLinks(ownerId){
   const area=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
   if(!area)return;
   area.outerHTML=relatedLinksSectionHtml(ownerId);bindRelatedLinks(ownerId);
+  refreshLinkedEventCardBadges(ownerId);
 }
 function openRelatedPicker(ownerId){
   const overlay=document.createElement('div');overlay.className='modal scope-overlay related-picker-overlay';
