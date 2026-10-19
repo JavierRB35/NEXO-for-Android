@@ -715,6 +715,10 @@ function homeUpcomingCard(item){
   const past=hasDate&&Number(itemEffectiveEndAt(item)||item.dueAt)<new Date().setHours(0,0,0,0);
   const avatars=eventParticipantAvatarsHtml(item);
   const reminder=eventReminderBellHtml(item,'event-reminder-indicator--time');
+  // El contador llega desde SQLite en la misma consulta del calendario.
+  // Las apariciones recurrentes comparten los vínculos de la serie.
+  const linkCount=item.type==='event'?Math.max(0,Number(item.linkCount)||0):0;
+  const linksBadge=linkCount?'<span class="upcoming-card__links" title="'+linkCount+' vínculo'+(linkCount===1?'':'s')+'" aria-label="'+linkCount+' vínculo'+(linkCount===1?'':'s')+'">'+uiIcon('link')+'<span>'+linkCount+'</span></span>':'';
   const timed=!(item.allDay===true||item.hasTime===false);
   const startTime=timed&&hasDate?fmtTime(item.dueAt):'';
   const endAt=Number(item.endAt||0);
@@ -729,7 +733,7 @@ function homeUpcomingCard(item){
       (item.locationText?'<span class="upcoming-card__location">'+uiIcon('pin')+esc(item.locationText)+'</span>':'')+
       (description&&description!==title?'<span class="upcoming-card__note" title="'+escAttr(description)+'">'+esc(description)+'</span>':'')+
       '<span class="upcoming-category-pill">'+uiIcon(icon)+esc(isVehicleReservation(item)?'Reserva coche':categoryLabel(item.category))+'</span></span>'+
-    '<span class="upcoming-card__aside">'+avatars+timeMeta+'</span></button>';
+    '<span class="upcoming-card__aside">'+avatars+timeMeta+'</span>'+linksBadge+'</button>';
 }
 function bindHomeUpcoming(root=document){
   root.querySelectorAll('[data-home-event]').forEach(b=>{
@@ -1715,27 +1719,12 @@ function bindCompactRecordActions(){
 
 
 const RELATED_KIND_LABELS={list:'Lista',note:'Nota',document:'Documento'};
-function eventLinkIndicatorHtml(ownerId){
-  const count=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]).length;
-  return count?'<button type="button" class="event-link-indicator" data-related-jump="'+Number(ownerId)+'" title="'+count+' elemento'+(count===1?'':'s')+' vinculado'+(count===1?'':'s')+'" aria-label="'+count+' elemento'+(count===1?'':'s')+' vinculado'+(count===1?'':'s')+'. Ver vínculos">'+
-    uiIcon('link')+'<span class="event-link-count">'+count+'</span></button>':'';
-}
-function bindEventLinkIndicator(ownerId){
-  const host=$('#modalBody .detail-meta[data-related-indicator-host="'+Number(ownerId)+'"]');
-  if(!host)return;
-  host.querySelector('.event-link-indicator')?.remove();
-  host.insertAdjacentHTML('beforeend',eventLinkIndicatorHtml(ownerId));
-  host.querySelector('[data-related-jump]')?.addEventListener('click',()=>{
-    const section=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
-    section?.scrollIntoView({behavior:'smooth',block:'nearest'});
-  });
-}
 
 function relatedLinksSectionHtml(ownerId){
   const links=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]);
   return '<section class="linked-resources" data-linked-owner="'+Number(ownerId)+'"><div class="linked-resources-header">'+
-    '<strong>'+uiIcon('link')+' Vinculados <span class="linked-count">'+links.length+'</span></strong>'+
-    '<button type="button" class="linked-add" data-related-add="'+Number(ownerId)+'" aria-label="Vincular lista, nota o documento">'+uiIcon('link')+' Vincular</button></div>'+
+    '<strong>'+uiIcon('link')+' Vinculados</strong>'+
+    '<button type="button" class="linked-add" data-related-add="'+Number(ownerId)+'" aria-label="Vincular lista, nota o documento. '+links.length+' vínculo'+(links.length===1?'':'s')+' existente'+(links.length===1?'':'s')+'">'+uiIcon('link')+' Vincular'+(links.length?'<span class="linked-add-count">'+links.length+'</span>':'')+'</button></div>'+
     (links.length?links.map(r=>'<div class="linked-resource-row">'+
       '<button type="button" class="linked-resource-open" data-related-open="'+escAttr(r.kind)+'" data-related-id="'+Number(r.id)+'">'+
       '<span class="linked-resource-kind">'+esc(RELATED_KIND_LABELS[r.kind]||'Elemento')+'</span>'+
@@ -1767,7 +1756,6 @@ function openRelatedTarget(kind,id){
 function bindRelatedLinks(ownerId){
   const area=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
   if(!area)return;
-  bindEventLinkIndicator(ownerId);
   area.querySelector('[data-related-add]')?.addEventListener('click',()=>openRelatedPicker(ownerId));
   area.querySelectorAll('[data-related-open]').forEach(b=>b.addEventListener('click',()=>openRelatedTarget(b.dataset.relatedOpen,Number(b.dataset.relatedId))));
   area.querySelectorAll('[data-related-unlink]').forEach(b=>b.addEventListener('click',()=>{
@@ -1775,10 +1763,24 @@ function bindRelatedLinks(ownerId){
     refreshRelatedLinks(ownerId);toast('Vínculo eliminado. El contenido se conserva.');
   }));
 }
+/** Mantiene el distintivo de la tarjeta sincronizado sin recargar Inicio o Calendario. */
+function refreshLinkedEventCardBadges(ownerId){
+  const id=Number(ownerId)||0;
+  if(id<=0)return;
+  const event=parseNative(NexoNative.getItem(id),{});
+  if(event.type!=='event')return;
+  const count=parseNative(NexoNative.getRelatedResources(id),[]).length;
+  document.querySelectorAll('[data-home-event="'+id+'"]').forEach(card=>{
+    card.querySelector('.upcoming-card__links')?.remove();
+    if(count>0)card.insertAdjacentHTML('beforeend',
+      '<span class="upcoming-card__links" title="'+count+' vínculo'+(count===1?'':'s')+'" aria-label="'+count+' vínculo'+(count===1?'':'s')+'">'+uiIcon('link')+'<span>'+count+'</span></span>');
+  });
+}
 function refreshRelatedLinks(ownerId){
   const area=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
   if(!area)return;
   area.outerHTML=relatedLinksSectionHtml(ownerId);bindRelatedLinks(ownerId);
+  refreshLinkedEventCardBadges(ownerId);
 }
 function openRelatedPicker(ownerId){
   const overlay=document.createElement('div');overlay.className='modal scope-overlay related-picker-overlay';
@@ -3263,7 +3265,7 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')}<div class="detail-meta" data-related-indicator-host="${id}"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(id)}
@@ -3332,7 +3334,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,endTime=endTimeForItem(i),originalEndTime=endTime,originalAllDay=allDay,originalVoiceEnabled=!!i.voiceEnabled,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
   openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
-    <div class="detail-meta" data-related-indicator-host="${seriesId}"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
+    <div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(seriesId)}

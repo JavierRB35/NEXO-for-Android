@@ -23,7 +23,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
     private static final int DB_VERSION = 32;
     private static final String ITEM_SELECT_WITH_REMINDER =
-            "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder FROM items";
+            "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder, " +
+            "(SELECT COUNT(*) FROM record_links linked WHERE linked.owner_item_id=items.id " +
+            "AND ((linked.resource_kind='list' AND EXISTS(SELECT 1 FROM lists linked_list WHERE linked_list.id=linked.resource_id)) " +
+            "OR (linked.resource_kind IN ('note','document') AND EXISTS(SELECT 1 FROM items linked_item " +
+            "WHERE linked_item.id=linked.resource_id AND linked_item.type=linked.resource_kind AND linked_item.deleted_at=0)))) AS link_count FROM items";
 
     public static String databaseName() { return DB_NAME; }
     public static int schemaVersion() { return DB_VERSION; }
@@ -3559,6 +3563,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             o.put("updatedAt",c.getLong(c.getColumnIndexOrThrow("updated_at")));
             int reminderIndex=c.getColumnIndex("has_reminder");
             o.put("hasReminder",reminderIndex>=0 && c.getInt(reminderIndex)==1);
+            int linkCountIndex=c.getColumnIndex("link_count");
+            o.put("linkCount",linkCountIndex>=0 ? Math.max(0,c.getInt(linkCountIndex)) : 0);
             attachItemPeople(o);
         } catch (Exception ignored) {}
         return o;

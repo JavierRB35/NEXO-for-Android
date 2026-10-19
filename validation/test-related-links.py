@@ -49,4 +49,32 @@ assert cx.execute('SELECT COUNT(*) FROM record_links').fetchone()[0]==5
 assert cx.execute("SELECT COUNT(*) FROM record_links WHERE resource_kind='note' AND resource_id=7").fetchone()[0]==2
 cx.execute("DELETE FROM record_links WHERE owner_item_id=42 AND resource_kind='note' AND resource_id=7")
 assert cx.execute('SELECT COUNT(*) FROM record_links').fetchone()[0]==4
+
+# El contador de la tarjeta usa el mismo SELECT que el calendario y se
+# calcula en SQLite sin llamadas individuales a la capa web.
+import re
+m=re.search(r'private static final String ITEM_SELECT_WITH_REMINDER\s*=\s*(.*?);',db,re.S)
+assert m, 'Consulta de tarjetas no encontrada'
+sql=''.join(re.findall(r'"([^"]*)"',m.group(1)))
+assert ' AS link_count FROM items' in sql
+assert 'idx_record_links_owner' in db
+assert 'o.put("linkCount",linkCountIndex>=0' in db
+assert 'JSONObject o = new JSONObject(base.toString());' in db # series heredan el contador
+cx2=sqlite3.connect(':memory:')
+cx2.executescript("""
+CREATE TABLE items (id INTEGER PRIMARY KEY, type TEXT, deleted_at INTEGER);
+CREATE TABLE lists (id INTEGER PRIMARY KEY);
+CREATE TABLE reminders (item_id INTEGER);
+CREATE TABLE record_links (owner_item_id INTEGER,resource_kind TEXT,resource_id INTEGER);
+INSERT INTO items VALUES (42,'event',0),(50,'note',0),(51,'document',1),(99,'event',0);
+INSERT INTO lists VALUES (7);
+INSERT INTO record_links VALUES (42,'list',7),(42,'note',50),(42,'document',51),
+  (42,'list',999),(99,'document',51);
+""")
+rows={row[0]:row[-1] for row in cx2.execute(sql+' WHERE items.id IN (42,99)')}
+assert rows=={42:2,99:0},rows
+cx2.execute("DELETE FROM record_links WHERE owner_item_id=42 AND resource_kind='note'")
+rows={row[0]:row[-1] for row in cx2.execute(sql+' WHERE items.id IN (42,99)')}
+assert rows=={42:1,99:0},rows
+
 print('Vínculos Nexo: migración, tipos, duplicados, multiplicidad, navegación y UI: OK')

@@ -9,6 +9,8 @@ db=sqlite3.connect(':memory:')
 db.executescript('''
 CREATE TABLE items(id INTEGER PRIMARY KEY,type TEXT,title TEXT,body TEXT,subcategory TEXT,due_at INTEGER,end_at INTEGER,recurrence TEXT,recurrence_until INTEGER,updated_at INTEGER,deleted_at INTEGER);
 CREATE TABLE reminders(id INTEGER PRIMARY KEY,item_id INTEGER,title TEXT,trigger_at INTEGER,occurrence_at INTEGER,lead_days INTEGER,lead_minutes INTEGER,enabled INTEGER,created_at INTEGER);
+CREATE TABLE lists(id INTEGER PRIMARY KEY);
+CREATE TABLE record_links(owner_item_id INTEGER,resource_kind TEXT,resource_id INTEGER);
 ''')
 db.executemany('INSERT INTO items VALUES(?,?,?,?,?,?,?,?,?,?,?)',[
  (1,'place','Playa','Descripción','Quiero ir',120,0,'none',0,10,0),
@@ -24,7 +26,7 @@ assert places
 where,order,limit=places.groups()
 assert [r[0] for r in db.execute(f'SELECT * FROM items WHERE deleted_at=0 AND ({where}) ORDER BY {order} LIMIT {limit}')]==[5,2,1]
 calendar=source.split('public JSONArray getCalendar(long start, long end)',1)[1].split('public JSONObject getOccurrence',1)[0]
-item_select=re.search(r'ITEM_SELECT_WITH_REMINDER\s*=\s*"([^"]+)"',source).group(1)
+item_select=''.join(re.findall(r'"([^"]*)"',re.search(r'ITEM_SELECT_WITH_REMINDER\s*=\s*(.*?);',source,re.S).group(1)))
 suffixes=re.findall(r'rawQuery\(ITEM_SELECT_WITH_REMINDER \+ "([^"]+)"',calendar)
 assert len(suffixes)==2
 queries=[item_select+suffix for suffix in suffixes]

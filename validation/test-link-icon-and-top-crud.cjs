@@ -16,25 +16,50 @@ function extract(name){
 assert(index.includes('id="nx-icon-link"'));
 assert(src.includes("uiIcon('link')+' Vincular"));
 assert(src.includes("uiIcon('link')+' Vinculados"));
-assert(css.includes('.event-link-indicator')&&css.includes('#1263b5'));
-assert(src.includes('bindEventLinkIndicator(ownerId);'));
-assert(src.includes("section?.scrollIntoView({behavior:'smooth',block:'nearest'});"));
+assert(css.includes('.upcoming-card__links')&&css.includes('#1263b5'));
+assert(css.includes('.linked-add-count'));
+assert(!src.includes('function eventLinkIndicatorHtml('), 'No repetir contador fuera del botón Vincular');
 const ctx={Number,JSON,NexoNative:{getRelatedResources:()=>JSON.stringify([])},
  parseNative:(s,fallback)=>{try{return JSON.parse(s);}catch{return fallback;}},
- uiIcon:n=>'<svg data-icon="'+n+'"></svg>'};
+ uiIcon:n=>'<svg data-icon="'+n+'"></svg>',esc:s=>String(s||''),escAttr:s=>String(s||''),
+ RELATED_KIND_LABELS:{list:'Lista',note:'Nota',document:'Documento'}};
 vm.createContext(ctx);
-vm.runInContext(extract('eventLinkIndicatorHtml'),ctx);
-assert.equal(ctx.eventLinkIndicatorHtml(42),'','Sin vínculos no hay indicador');
-ctx.NexoNative.getRelatedResources=()=>JSON.stringify([{linkId:1},{linkId:2},{linkId:3}]);
-const out=ctx.eventLinkIndicatorHtml(42);
-assert(out.includes('data-related-jump="42"'));
-assert(out.includes('data-icon="link"'));
-assert(out.includes('event-link-count">3</span>'));
-assert(out.includes('3 elementos vinculados'));
+vm.runInContext(extract('relatedLinksSectionHtml'),ctx);
+const empty=ctx.relatedLinksSectionHtml(42);
+assert(empty.includes('data-related-add="42"')&&empty.includes('Vincular'));
+assert(!empty.includes('linked-add-count'),'No mostrar cero dentro del botón');
+ctx.NexoNative.getRelatedResources=()=>JSON.stringify([
+ {linkId:1,kind:'list',id:11,title:'Compra'},
+ {linkId:2,kind:'note',id:12,title:'Notas'}]);
+const linked=ctx.relatedLinksSectionHtml(42);
+assert(linked.includes('data-icon="link"'));
+assert(linked.includes('linked-add-count">2</span>'),'El botón Vincular debe llevar el número dentro');
+assert.equal((linked.match(/linked-add-count/g)||[]).length,1,'Sin contadores repetidos');
+assert(!linked.includes('linked-count'),'No repetir el número en Vinculados');
+assert(src.includes('refreshLinkedEventCardBadges(ownerId);'),'Actualizar tarjetas al vincular o desvincular');
+const card={html:'',removed:0,querySelector:q=>{
+ assert.equal(q,'.upcoming-card__links');
+ return {remove:()=>{card.removed++;card.html='';}};
+},insertAdjacentHTML:(where,html)=>{
+ assert.equal(where,'beforeend');card.html=html;
+}};
+ctx.NexoNative.getItem=()=>JSON.stringify({id:42,type:'event'});
+ctx.document={querySelectorAll:query=>{
+ assert.equal(query,'[data-home-event="42"]');return [card];
+}};
+vm.runInContext(extract('refreshLinkedEventCardBadges'),ctx);
+ctx.refreshLinkedEventCardBadges(42);
+assert(card.html.includes('upcoming-card__links')&&card.html.includes('<span>2</span>'),'El contador debe actualizarse inmediatamente');
+ctx.NexoNative.getRelatedResources=()=>JSON.stringify([]);
+ctx.refreshLinkedEventCardBadges(42);
+assert(!card.html,'Sin vínculos debe desaparecer el indicador');
+
 const normal=src.slice(src.indexOf('function openItem(id)'),src.indexOf('function openOccurrence('));
 const occurrence=src.slice(src.indexOf('function openOccurrence('),src.indexOf('function chooseRecurrenceScope('));
-assert(normal.includes('data-related-indicator-host=')&&normal.includes('relatedLinksSectionHtml(id)'));
-assert(occurrence.includes('data-related-indicator-host=')&&occurrence.includes('relatedLinksSectionHtml(seriesId)'));
+assert(normal.includes('relatedLinksSectionHtml(id)'));
+assert(occurrence.includes('relatedLinksSectionHtml(seriesId)'));
+assert(!normal.includes('data-related-indicator-host'));
+assert(!occurrence.includes('data-related-indicator-host'));
 const capture=index.indexOf('class="capture-crud-toolbar"');
 assert(capture>0&&capture<index.indexOf('id="captureTitle"'));
 assert(capture<index.indexOf('id="captureText"'));
@@ -60,4 +85,4 @@ for(const p of ['books.js','media.js']){
  const file=fs.readFileSync('app/src/main/assets/'+p,'utf8');
  assert(file.includes('book-detail-quick-actions')&&file.includes('book-editor-toolbar'));
 }
-console.log('Vínculos con cadena, contador y salto; CRUD arriba, confirmaciones intactas: OK');
+console.log('Vínculos en botón Vincular, sin duplicación de contador; CRUD arriba: OK');
