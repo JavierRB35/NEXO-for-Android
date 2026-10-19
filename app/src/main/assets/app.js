@@ -395,6 +395,18 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
 function updateFloatingActions(){
   const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
   if(!voice||!add)return;
+  // El mismo botón de micrófono pertenece a la cabecera del formulario
+  // mientras se edita Nueva cita. Fuera de esta pantalla vuelve a su host
+  // habitual, conservando listeners y estado de dictado (no se clona).
+  const captureMicHost=$('.screen[data-screen="save"] .capture-mode-row');
+  const floatingHost=$('.floating-actions');
+  if(state.screen==='save'&&captureMicHost){
+    if(voice.parentElement!==captureMicHost)captureMicHost.appendChild(voice);
+    voice.classList.add('capture-voice-action');
+  }else if(floatingHost){
+    if(voice.parentElement!==floatingHost)floatingHost.prepend(voice);
+    voice.classList.remove('capture-voice-action');
+  }
   const panel=state.screen==='panel'?state.lastPanel:'';
   const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
   const noteEditorActive=!!state.noteEditor&&panel==='notes'&&!$('#modal')?.classList.contains('hidden');
