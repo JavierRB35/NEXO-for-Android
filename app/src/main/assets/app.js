@@ -1932,7 +1932,7 @@ function prepareQuickNote(){prepareQuickNoteForType('');}
  */
 function duplicateCalendarEvent(id,occurrenceAt=0,recurring=false){
   const source=parseNative(recurring?NexoNative.getOccurrence(Number(id),Number(occurrenceAt)):NexoNative.getItem(Number(id)),{});
-  if(!source.id||!isAppointmentType(source.type)){
+  if(!source.id||source.type!=='event'){
     toast('No se puede duplicar este evento.');return;
   }
   const iso=source.dueAt?isoFromMs(Number(source.dueAt)):{date:'',time:''};
@@ -3028,7 +3028,7 @@ function openAgendaOptions(id,occurrenceAt,recurring){
   const i=parseNative(recurring?NexoNative.getOccurrence(id,occurrenceAt):NexoNative.getItem(id),{});
   if(!i.id){toast('Este elemento ya no existe.');refreshCurrent();return;}
   const done=i.status==='done'||i.occurrenceStatus==='done',appointment=isAppointmentType(i.type);
-  openModal(i.title||'Cita',`<div class="scope-buttons"><button id="agendaEditAction" class="primary-button">${uiIcon('edit')} Ver / editar</button>${appointment?`<button id="agendaDoneAction" class="secondary-button">${uiIcon('check')} ${done?'Marcar pendiente':'Marcar completada'}</button>`:''}${appointment&&!done&&i.dueAt?'<button id="agendaPostponeAction" class="secondary-button">Posponer</button>':''}${(i.locationText||i.mapsUrl)?`<button id="agendaDirectionsAction" class="secondary-button">${uiIcon('pin')} Ir al lugar</button>`:''}<button id="agendaShareAction" class="secondary-button">${uiIcon('share')} Compartir</button>${appointment?'<button id="agendaDuplicateAction" class="secondary-button">⧉ Duplicar evento</button>':''}</div>`);
+  openModal(i.title||'Cita',`<div class="scope-buttons"><button id="agendaEditAction" class="primary-button">${uiIcon('edit')} Ver / editar</button>${appointment?`<button id="agendaDoneAction" class="secondary-button">${uiIcon('check')} ${done?'Marcar pendiente':'Marcar completada'}</button>`:''}${appointment&&!done&&i.dueAt?'<button id="agendaPostponeAction" class="secondary-button">Posponer</button>':''}${(i.locationText||i.mapsUrl)?`<button id="agendaDirectionsAction" class="secondary-button">${uiIcon('pin')} Ir al lugar</button>`:''}<button id="agendaShareAction" class="secondary-button">${uiIcon('share')} Compartir</button>${i.type==='event'?'<button id="agendaDuplicateAction" class="secondary-button">⧉ Duplicar evento</button>':''}</div>`);
   $('#agendaEditAction').addEventListener('click',()=>{closeModal();if(recurring)openOccurrence(id,occurrenceAt);else openItem(id);});
   $('#agendaDoneAction')?.addEventListener('click',()=>{
     const result=parseNative(recurring?NexoNative.setOccurrenceStatus(id,occurrenceAt,done?'pending':'done'):NexoNative.updateItem(JSON.stringify({id,status:done?'pending':'done',statusManual:true})),{});
@@ -3247,7 +3247,7 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',isAppointmentType(i.type)?'duplicateItemBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(id)}
@@ -3315,7 +3315,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if(i.type==='document'){openDocumentEditor(seriesId);return;}
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,endTime=endTimeForItem(i),originalEndTime=endTime,originalAllDay=allDay,originalVoiceEnabled=!!i.voiceEnabled,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn','duplicateOccurrenceBtn')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
+  openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
     <div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
@@ -3363,7 +3363,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if($('#occPostpone'))$('#occPostpone').addEventListener('click',()=>{closeModal();openPostponeSheet(seriesId,occurrenceAt,true);});
   bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn');
   $('#shareOccurrenceBtn').addEventListener('click',()=>openItemShareMenu(seriesId,occurrenceAt,true,true));
-  $('#duplicateOccurrenceBtn').addEventListener('click',()=>duplicateCalendarEvent(seriesId,occurrenceAt,true));
+  $('#duplicateOccurrenceBtn')?.addEventListener('click',()=>duplicateCalendarEvent(seriesId,occurrenceAt,true));
   $('#saveOccurrenceBtn').addEventListener('click',()=>{
     const date=$('#occDate').value,allDay=!!$('#occAllDay').checked,time=allDay?'':$('#occTime').value,endDate=$('#occEndDate').value||date,endTime=allDay?'':$('#occEndTime').value,rec=$('#occRecurrence').value,untilDate=$('#occUntil').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
     if(!date){toast('Indica una fecha.');return;}if(endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');return;}
