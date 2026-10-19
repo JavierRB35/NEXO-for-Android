@@ -3422,3 +3422,50 @@ body.startup-loading #app{visibility:hidden}
 .nexo-unified-save:not([data-related-save]):not([data-note-close-save]){min-width:44px;padding:9px 11px}
 .nexo-unified-save>.ui-icon{height:20px;width:20px;flex:0 0 auto}
 .record-form-actions .nexo-unified-save,.record-top-actions .nexo-unified-save{align-self:center}
+
+
+/* Nexo 3.7.42 · Fecha en cabecera y jerarquía de captura coherente */
+.topbar:has(.header-today-date){flex-wrap:wrap;row-gap:0}
+.header-today-date{flex:0 0 100%;width:100%;padding:1px 3px 5px 42px;min-height:22px;font-size:.76rem;font-weight:750;line-height:1.35;color:#456357;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:370px){.header-today-date{padding-left:38px;font-size:.72rem}}
+/* Mantener zona de lectura disponible hasta las últimas opciones del formulario. */
+.screen[data-screen="save"]{padding-bottom:210px}
+.screen[data-screen="save"] .capture-mode-row{padding-top:12px;padding-bottom:11px}
+.screen[data-screen="save"] .capture-mode-row strong{font-size:1.12rem;color:var(--text);font-weight:850}
+.screen[data-screen="save"] .capture-text{min-height:120px;border-color:#b6d4c8;border-width:2px;font-size:1rem}
+.screen[data-screen="save"] .capture-text:focus{border-color:#16845c;box-shadow:0 0 0 3px rgba(22,132,92,.12)}
+.screen[data-screen="save"] .event-capture-links{margin:15px 0 9px;padding:12px 14px}
+.screen[data-screen="save"] .event-capture-links-head{justify-content:flex-start}
+.screen[data-screen="save"] .event-capture-links-head strong{font-size:.93rem}
+.screen[data-screen="save"] .event-capture-links .linked-resource-row{max-width:100%}
+/* Las acciones permanecen visibles por encima de la navegación principal. */
+.screen[data-screen="save"] .capture-crud-toolbar{
+  position:fixed;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:29;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+  width:min(100%,760px);padding:9px max(10px,env(safe-area-inset-left)) 10px max(10px,env(safe-area-inset-right));
+  margin:0;background:rgba(255,255,255,.98);border-top:1px solid #dde7df;
+  box-shadow:0 -7px 24px rgba(17,43,34,.09);backdrop-filter:blur(16px)
+}
+.screen[data-screen="save"] .capture-crud-toolbar:not(:has(#captureLinkButton:not(.hidden))){grid-template-columns:repeat(2,minmax(0,1fr))}
+.screen[data-screen="save"] .capture-crud-toolbar button{
+  display:inline-flex;align-items:center;justify-content:center;min-width:0;width:100%;min-height:44px;
+  padding:7px 5px;gap:6px;font-size:.83rem;font-weight:750;line-height:1.2;white-space:normal;text-align:center;border-radius:12px;
+}
+.screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:19px;height:19px;min-width:19px;flex:0 0 19px}
+.screen[data-screen="save"] #saveCaptureBtn{grid-column:1/-1;grid-row:2;min-height:47px;font-size:.95rem}
+.screen[data-screen="save"] #captureLinkButton .linked-add-count{min-width:19px;height:19px;padding:0 4px;font-size:.7rem}
+.screen[data-screen="save"] .capture-crud-toolbar .ghost-button{background:#f2f4f2;border:1px solid #dce4df;color:#42554c}
+/* Evitar tapar campos cuando aparece el teclado Android. */
+.screen[data-screen="save"]:has(input:focus,textarea:focus,select:focus) .capture-crud-toolbar{display:none}
+@media(max-width:360px){
+  .screen[data-screen="save"] .capture-crud-toolbar{gap:5px;padding-left:6px;padding-right:6px}
+  .screen[data-screen="save"] .capture-crud-toolbar button{gap:4px;font-size:.76rem;padding:7px 3px}
+  .screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:17px;height:17px;min-width:17px}
+}
+/* Misma alineación de icono + texto en todas las acciones semánticas. */
+.primary-button>.ui-icon,.secondary-button>.ui-icon,.ghost-button>.ui-icon,
+.danger-button>.ui-icon,.text-button>.ui-icon,.mini-button>.ui-icon,
+.voice-stop-button>.ui-icon{width:20px;height:20px;min-width:20px;flex:0 0 20px;vertical-align:middle}
+.primary-button,.secondary-button,.ghost-button,.danger-button,.text-button,.mini-button,.voice-stop-button{align-items:center;gap:7px}
+.nexo-unified-save{min-width:0;gap:7px}
+.nexo-unified-save>.nexo-action-label{font-size:inherit;line-height:inherit;white-space:normal}
