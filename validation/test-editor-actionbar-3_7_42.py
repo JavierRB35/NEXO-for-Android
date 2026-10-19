@@ -19,8 +19,13 @@ for name in ('headerTodayDate','captureBackBtn','captureText','captureRelated',
              'captureLinkButton','captureLinkCounter','saveCaptureBtn','chooseFileBtn','clearCaptureBtn'):
     assert parser.ids.get(name) == 1, f'{name}: ID inexistente o duplicado'
 assert html.index('id="captureText"') < html.index('id="captureRelated"') < html.index('class="capture-crud-toolbar"')
-assert 'id="captureBackBtn" type="button" class="secondary-button"><svg' in html
+assert 'id="captureBackBtn" type="button" class="secondary-button capture-back-button"' in html
 assert '#nx-icon-left' in html and '#nx-icon-trash' in html
+assert '<path d="M19 12H5m7-7-7 7 7 7"></path>' in html, 'Volver debe mostrar flecha completa, no solo chevron'
+assert html.index('id="headerTodayDate"') > html.index('data-screen="today"'), 'La fecha debe mostrarse en Inicio, no agrandar el toolbar global'
+assert html.index('</header><main>') < html.index('id="headerTodayDate"'), 'La cabecera debe conservar una sola fila'
+assert '.topbar{flex-wrap:nowrap;row-gap:0}' in css
+assert '.screen[data-screen="save"] .capture-back-button>.ui-icon' in css
 assert 'new Intl.DateTimeFormat(\'es-ES\',{weekday:\'long\',day:\'numeric\',month:\'long\',year:\'numeric\'})' in js
 assert "if(!document.hidden)refreshHeaderDate();" in js
 
