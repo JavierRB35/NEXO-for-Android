@@ -36,6 +36,24 @@ assert(linked.includes('data-icon="link"'));
 assert(linked.includes('linked-add-count">2</span>'),'El botón Vincular debe llevar el número dentro');
 assert.equal((linked.match(/linked-add-count/g)||[]).length,1,'Sin contadores repetidos');
 assert(!linked.includes('linked-count'),'No repetir el número en Vinculados');
+assert(src.includes('refreshLinkedEventCardBadges(ownerId);'),'Actualizar tarjetas al vincular o desvincular');
+const card={html:'',removed:0,querySelector:q=>{
+ assert.equal(q,'.upcoming-card__links');
+ return {remove:()=>{card.removed++;card.html='';}};
+},insertAdjacentHTML:(where,html)=>{
+ assert.equal(where,'beforeend');card.html=html;
+}};
+ctx.NexoNative.getItem=()=>JSON.stringify({id:42,type:'event'});
+ctx.document={querySelectorAll:query=>{
+ assert.equal(query,'[data-home-event="42"]');return [card];
+}};
+vm.runInContext(extract('refreshLinkedEventCardBadges'),ctx);
+ctx.refreshLinkedEventCardBadges(42);
+assert(card.html.includes('upcoming-card__links')&&card.html.includes('<span>2</span>'),'El contador debe actualizarse inmediatamente');
+ctx.NexoNative.getRelatedResources=()=>JSON.stringify([]);
+ctx.refreshLinkedEventCardBadges(42);
+assert(!card.html,'Sin vínculos debe desaparecer el indicador');
+
 const normal=src.slice(src.indexOf('function openItem(id)'),src.indexOf('function openOccurrence('));
 const occurrence=src.slice(src.indexOf('function openOccurrence('),src.indexOf('function chooseRecurrenceScope('));
 assert(normal.includes('relatedLinksSectionHtml(id)'));
