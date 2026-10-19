@@ -620,6 +620,10 @@ function copyAboutDiagnostics(){
 
 function navigate(screen, options={}) {
   if(!['today','save','search','more','calendar','tools','panel','about'].includes(screen))return;
+  if(state.screen==='save'&&screen!=='save'&&state.capturePendingLinks?.length){
+    if(!window.confirm('Hay vínculos y elementos preparados que todavía no se han guardado. ¿Descartar la preparación y salir?'))return;
+    discardPendingRelatedDrafts();
+  }
   const route={screen};
   if(screen==='panel'){route.panel=options.panel||state.lastPanel;route.list=options.list??null;}
   if(screen==='save'&&state.screen!=='save')state.captureReturnRoute={...router.current,scrollY:window.scrollY};
@@ -1824,7 +1828,7 @@ function finishPendingEventLinks(ownerId){
       if(p.kind==='list')id=Number(NexoNative.createList(p.title,p.listKind||'General',false))||0;
       else if(p.kind==='note')id=Number(NexoNative.saveNote(JSON.stringify({title:p.title,body:p.body||'',category:'Notas',source:'notepad',noteTitleManual:true})))||0;
       else if(p.kind==='document'){
-        const result=parseNative(NexoNative.saveDocument(JSON.stringify({title:p.title,description:p.body||'',label:p.category||'',attachmentPath:p.file?.path||'',attachmentName:p.file?.name||'',attachmentMime:p.file?.mime||''})),{});
+        const result=parseNative(NexoNative.saveDocument(JSON.stringify({title:p.title,description:p.body||'',label:p.category||'',expiryAt:p.expiryAt||0,attachmentPath:p.file?.path||'',attachmentName:p.file?.name||'',attachmentMime:p.file?.mime||''})),{});
         id=result.ok?Number(result.id)||0:0;
       }
       if(!id)return false;
@@ -1844,7 +1848,7 @@ function stageOrLinkRelated(ownerId,entry){
       if(entry.kind==='list')id=Number(NexoNative.createList(entry.title,entry.listKind||'General',false))||0;
       else if(entry.kind==='note')id=Number(NexoNative.saveNote(JSON.stringify({title:entry.title,body:entry.body||'',category:'Notas',source:'notepad',noteTitleManual:true})))||0;
       else if(entry.kind==='document'){
-        const res=parseNative(NexoNative.saveDocument(JSON.stringify({title:entry.title,description:entry.body||'',label:entry.category||'',attachmentPath:entry.file?.path||'',attachmentName:entry.file?.name||'',attachmentMime:entry.file?.mime||''})),{});
+        const res=parseNative(NexoNative.saveDocument(JSON.stringify({title:entry.title,description:entry.body||'',label:entry.category||'',expiryAt:entry.expiryAt||0,attachmentPath:entry.file?.path||'',attachmentName:entry.file?.name||'',attachmentMime:entry.file?.mime||''})),{});
         id=res.ok?Number(res.id)||0:0;
       }
       if(!id){toast('No se pudo crear el elemento. Puedes volver a intentarlo.');return false;}
@@ -1913,8 +1917,8 @@ function openRelatedPicker(ownerId=0){
       '<label>Título<input type="text" data-related-title maxlength="120" placeholder="Título"></label>'+
       (kind==='note'?'<label>Anotación<textarea data-related-body rows="6" placeholder="Escribe aquí…"></textarea></label>':'')+
       (kind==='list'?'<label>Tipo de lista<select data-related-list-kind><option>General</option><option>Compra</option><option>Cosas pendientes</option><option>Viaje</option><option>Casa</option></select></label>':'')+
-      (kind==='document'?'<label>Categoría<input data-related-category placeholder="Seguro, vivienda, garantía…"></label><label>Descripción<textarea data-related-body rows="3" placeholder="Opcional"></textarea></label><div class="related-document-file"><span data-related-filename>Ningún archivo seleccionado</span><button type="button" class="secondary-button" data-related-choose>'+uiIcon('file')+' Seleccionar archivo</button></div>':'')+
-      '<div class="related-creation-actions"><button type="button" class="secondary-button" data-related-cancel>'+uiIcon('arrow-left')+' Volver</button>'+
+      (kind==='document'?'<label>Categoría<input data-related-category placeholder="Seguro, vivienda, garantía…"></label><label>Caducidad (opcional)<input type="date" data-related-expiry></label><label>Descripción<textarea data-related-body rows="3" placeholder="Opcional"></textarea></label><div class="related-document-file"><span data-related-filename>Ningún archivo seleccionado</span><button type="button" class="secondary-button" data-related-choose>'+uiIcon('file')+' Seleccionar archivo</button></div>':'')+
+      '<div class="related-creation-actions"><button type="button" class="secondary-button" data-related-cancel>'+uiIcon('left')+' Volver</button>'+
       '<button type="button" class="primary-button" data-related-save title="Guardar y volver" aria-label="Guardar y volver">'+uiIcon('save')+' Guardar y volver</button></div></div>';
     form.querySelector('[data-related-cancel]').addEventListener('click',()=>{releaseDraftFile();render();});
     form.querySelector('[data-related-choose]')?.addEventListener('click',()=>{
@@ -1936,6 +1940,7 @@ function openRelatedPicker(ownerId=0){
         body:form.querySelector('[data-related-body]')?.value.trim()||'',
         listKind:form.querySelector('[data-related-list-kind]')?.value||'General',
         category:form.querySelector('[data-related-category]')?.value.trim()||'',
+        expiryAt:form.querySelector('[data-related-expiry]')?.value?new Date(form.querySelector('[data-related-expiry]').value+'T12:00:00').getTime():0,
         file:documentFile};
       if(stageOrLinkRelated(eventId,entry)){
         documentFile=null;close();
@@ -2097,6 +2102,9 @@ function duplicateCalendarEvent(id,occurrenceAt=0,recurring=false){
 }
 
 function prepareQuickNoteForType(type='event',date=''){
+  if(state.screen==='save'&&state.capturePendingLinks?.length){
+    if(!window.confirm('Hay vínculos preparados. ¿Descartarlos y empezar un elemento nuevo?'))return;
+  }
   if(type==='document'){openDocumentEditor();return;}
   if(isPlaceType(type)){openPlaceEditor();return;}
   type=(!type||isAppointmentType(type))?'event':type;
@@ -4078,7 +4086,7 @@ window.NexoUI={
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
   onDocumentFileChosen(raw){
     const result=parseNative(raw,{});
-    if(String(result.request||'').startsWith('related-') && state.relatedDocumentCallback){state.relatedDocumentCallback(result);return;}
+    if(String(result.request||'').startsWith('related-')){if(state.relatedDocumentCallback)state.relatedDocumentCallback(result);else if(result.file?.path)NexoNative.discardDocumentFile(result.file.path);return;}
     const editor=state.documentEditor;
     if(!editor||result.request!==editor.request){if(result.file?.path)NexoNative.discardDocumentFile(result.file.path);return;}
     editor.busy=false;
@@ -5037,4 +5045,40 @@ function handleDialogKeys(event){
   else if(!event.shiftKey&&(document.activeElement===last||!active.contains(document.activeElement))){event.preventDefault();first.focus();}
 }
 
+
+/** El disquete es la acción única de Guardar en todos los editores.
+ * IDs, validación y listeners existentes permanecen intactos.
+ * Los cambios de etiqueta hechos por módulos legacy se normalizan en el siguiente microtask.
+ */
+function normalizeSaveButtons(root=document){
+  if(!root?.querySelectorAll)return;
+  const saveIds=/^(?:save[A-Z]|.*Save(?:Btn)?$|.*Save$)/;
+  root.querySelectorAll('button').forEach(button=>{
+    const id=String(button.id||'');
+    const contextual=button.hasAttribute('data-related-save');
+    const explicit=saveIds.test(id)||contextual||button.hasAttribute('data-note-close-save');
+    if(!explicit)return;
+    if(id==='saveCaptureBtn'&&String(button.textContent||'').trim()==='Revisar pauta')return;
+    if(button.querySelector('use[href="#nx-icon-save"]')&&button.classList.contains('nexo-unified-save'))return;
+    const original=String(button.textContent||'').trim()||String(button.getAttribute('aria-label')||'Guardar');
+    if(!/^(guardar|confirmar tratamiento|crear y vincular)/i.test(original)&&!button.classList.contains('nexo-unified-save'))return;
+    button.setAttribute('aria-label',original);
+    button.setAttribute('title',original);
+    button.classList.add('nexo-unified-save');
+    button.innerHTML=uiIcon('save')+(contextual?'<span>Guardar y volver</span>':'');
+  });
+}
+function installSaveIconConsistency(){
+  normalizeSaveButtons(document);
+  if(typeof MutationObserver!=='function')return;
+  let scheduled=false;
+  const observer=new MutationObserver(()=>{
+    if(scheduled)return;
+    scheduled=true;
+    Promise.resolve().then(()=>{scheduled=false;normalizeSaveButtons(document);});
+  });
+  observer.observe(document.body,{subtree:true,childList:true});
+}
+
 document.addEventListener('DOMContentLoaded',init);
+document.addEventListener('DOMContentLoaded',installSaveIconConsistency);
