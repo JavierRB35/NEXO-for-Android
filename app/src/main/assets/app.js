@@ -1862,7 +1862,7 @@ function stageOrLinkRelated(ownerId,entry){
   state.capturePendingLinks.push(entry);
   renderCaptureRelated();return true;
 }
-function openRelatedPicker(ownerId=0){
+function openRelatedPicker(ownerId){
   const eventId=Number(ownerId)||0,title=relatedContextTitle(eventId);
   const overlay=document.createElement('div');overlay.className='modal scope-overlay related-picker-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
   let kind='list',documentFile=null,documentRequest='';
