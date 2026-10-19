@@ -3416,3 +3416,9 @@ body.startup-loading #app{visibility:hidden}
 .related-document-file{display:flex;flex-wrap:wrap;gap:9px;align-items:center;justify-content:space-between}
 .related-creation-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
 .related-creation-actions button{display:inline-flex;align-items:center;gap:6px}
+
+/* Disquete universal del CRUD, alineación y área táctil coherente. */
+.nexo-unified-save{display:inline-flex;align-items:center;justify-content:center;gap:7px;vertical-align:middle;min-height:42px}
+.nexo-unified-save:not([data-related-save]):not([data-note-close-save]){min-width:44px;padding:9px 11px}
+.nexo-unified-save>.ui-icon{height:20px;width:20px;flex:0 0 auto}
+.record-form-actions .nexo-unified-save,.record-top-actions .nexo-unified-save{align-self:center}

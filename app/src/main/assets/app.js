@@ -1852,6 +1852,7 @@ function stageOrLinkRelated(ownerId,entry){
         id=res.ok?Number(res.id)||0:0;
       }
       if(!id){toast('No se pudo crear el elemento. Puedes volver a intentarlo.');return false;}
+      entry.id=id; // Reintento sin duplicados si la asociación falla después de crear.
     }
     const result=parseNative(NexoNative.linkRelatedResource(ownerId,entry.kind,id),{});
     if(!result.ok){toast('Elemento creado, pero no se pudo vincular. Está disponible en su módulo.');return false;}
