@@ -3,6 +3,7 @@ set -eu
 cd "$(dirname "$0")/.."
 node --check app/src/main/assets/app.js
 node validation/test-duplicate-events.cjs
+node validation/test-link-icon-and-top-crud.cjs
 node --check app/src/main/assets/books.js
 node --check app/src/main/assets/media.js
 python validation/test-media-library.py

@@ -3370,3 +3370,23 @@ body.startup-loading #app{visibility:hidden}
 /* 3.7.38 · estado de borrador al duplicar un evento */
 .capture-clone-notice{padding:12px 14px;margin:0 0 12px;border:1px solid #b7d7ca;border-radius:12px;background:#eef8f3;color:#245c48;font-size:.84rem;line-height:1.5}
 .capture-clone-notice.hidden{display:none!important}
+
+/* 3.7.39: barra CRUD arriba, compacta y sin acciones inferiores duplicadas */
+#modalBody>.record-top-actions{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin:0 0 16px;padding:0 0 12px;border-bottom:1px solid var(--border,#dde4ea)}
+#modalBody>.record-top-actions button{width:auto;min-height:38px;flex:0 1 auto;max-width:100%}
+#modalBody>.record-top-actions .danger-button,#modalBody>.record-top-actions .danger-link{margin-left:auto}
+.capture-crud-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
+.capture-crud-toolbar button{min-height:38px;flex:0 1 auto}
+.capture-crud-toolbar .primary-button{min-width:132px}
+.linked-resources-header strong{display:inline-flex;align-items:center;gap:6px}
+.linked-resources-header strong>.ui-icon{width:17px;height:17px;color:#1672ce}
+.linked-add>.ui-icon{width:17px;height:17px;color:currentColor}
+.event-link-indicator{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:5px 9px;min-height:30px;border:1px solid #b7d8f7;border-radius:999px;background:#eef6ff;color:#1263b5;cursor:pointer;font-weight:750;white-space:nowrap}
+.event-link-indicator .ui-icon{width:17px;height:17px}
+.event-link-count{font-variant-numeric:tabular-nums;font-size:.8rem}
+@media(max-width:360px){#modalBody>.record-top-actions{gap:6px}#modalBody>.record-top-actions button{font-size:.79rem;padding:7px 9px}.capture-crud-toolbar{gap:6px}}
+@media(prefers-color-scheme:dark){.event-link-indicator{background:#172b40;color:#85c5ff;border-color:#315979}}
+
+/* Papelera de Notas compacta junto a Editar y Compartir */
+.note-reader-toolbar #noteReaderDelete{flex:0 0 40px;min-width:40px;min-height:40px;padding:8px}
+@media(max-width:360px){.note-reader-toolbar #noteReaderDelete{flex:0 0 38px;min-width:38px}}

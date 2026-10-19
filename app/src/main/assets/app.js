@@ -1176,6 +1176,7 @@ function openNoteReader(id){
     <div class="note-reader-toolbar">
       <button id="noteReaderEdit" class="primary-button" type="button">${uiIcon('edit')} Editar</button>
       <button id="noteReaderShare" class="secondary-button" type="button">${uiIcon('share')} Compartir</button>
+      <button id="noteReaderDelete" class="icon-action icon-action--danger" type="button" title="Eliminar nota" aria-label="Eliminar nota">${uiIcon('trash')}</button>
       <div class="note-reader-font-controls" role="group" aria-label="Tamaño del texto">
         <button id="noteReaderFontDown" type="button" aria-label="Reducir letra" title="Reducir letra">A−</button>
         <button id="noteReaderFontUp" type="button" aria-label="Ampliar letra" title="Ampliar letra">A+</button>
@@ -1183,9 +1184,7 @@ function openNoteReader(id){
     </div>
     <section id="noteReaderText" class="note-reader-text" aria-label="Texto completo de la nota" style="font-size:${initialSize}px">${esc(String(note.body||''))||'<span class="muted">Nota sin anotación.</span>'}</section>
     ${relatedOwnersSectionHtml('note',Number(note.id))}
-    <div class="note-reader-bottom">
-      <button id="noteReaderDelete" class="danger-button" type="button">${uiIcon('trash')} Eliminar nota</button>
-    </div>
+
   </article>`);
   document.body.classList.add('note-reading-open');
   bindRelatedOwners($('#modalBody'));
@@ -1716,11 +1715,27 @@ function bindCompactRecordActions(){
 
 
 const RELATED_KIND_LABELS={list:'Lista',note:'Nota',document:'Documento'};
+function eventLinkIndicatorHtml(ownerId){
+  const count=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]).length;
+  return count?'<button type="button" class="event-link-indicator" data-related-jump="'+Number(ownerId)+'" title="'+count+' elemento'+(count===1?'':'s')+' vinculado'+(count===1?'':'s')+'" aria-label="'+count+' elemento'+(count===1?'':'s')+' vinculado'+(count===1?'':'s')+'. Ver vínculos">'+
+    uiIcon('link')+'<span class="event-link-count">'+count+'</span></button>':'';
+}
+function bindEventLinkIndicator(ownerId){
+  const host=$('#modalBody .detail-meta[data-related-indicator-host="'+Number(ownerId)+'"]');
+  if(!host)return;
+  host.querySelector('.event-link-indicator')?.remove();
+  host.insertAdjacentHTML('beforeend',eventLinkIndicatorHtml(ownerId));
+  host.querySelector('[data-related-jump]')?.addEventListener('click',()=>{
+    const section=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
+    section?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+}
+
 function relatedLinksSectionHtml(ownerId){
   const links=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]);
   return '<section class="linked-resources" data-linked-owner="'+Number(ownerId)+'"><div class="linked-resources-header">'+
-    '<strong>Vinculados <span class="linked-count">'+links.length+'</span></strong>'+
-    '<button type="button" class="linked-add" data-related-add="'+Number(ownerId)+'">'+uiIcon('plus')+' Vincular</button></div>'+
+    '<strong>'+uiIcon('link')+' Vinculados <span class="linked-count">'+links.length+'</span></strong>'+
+    '<button type="button" class="linked-add" data-related-add="'+Number(ownerId)+'" aria-label="Vincular lista, nota o documento">'+uiIcon('link')+' Vincular</button></div>'+
     (links.length?links.map(r=>'<div class="linked-resource-row">'+
       '<button type="button" class="linked-resource-open" data-related-open="'+escAttr(r.kind)+'" data-related-id="'+Number(r.id)+'">'+
       '<span class="linked-resource-kind">'+esc(RELATED_KIND_LABELS[r.kind]||'Elemento')+'</span>'+
@@ -1752,6 +1767,7 @@ function openRelatedTarget(kind,id){
 function bindRelatedLinks(ownerId){
   const area=$('#modalBody .linked-resources[data-linked-owner="'+Number(ownerId)+'"]');
   if(!area)return;
+  bindEventLinkIndicator(ownerId);
   area.querySelector('[data-related-add]')?.addEventListener('click',()=>openRelatedPicker(ownerId));
   area.querySelectorAll('[data-related-open]').forEach(b=>b.addEventListener('click',()=>openRelatedTarget(b.dataset.relatedOpen,Number(b.dataset.relatedId))));
   area.querySelectorAll('[data-related-unlink]').forEach(b=>b.addEventListener('click',()=>{
@@ -3247,7 +3263,7 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')}<div class="detail-meta" data-related-indicator-host="${id}"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(id)}
@@ -3316,7 +3332,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,endTime=endTimeForItem(i),originalEndTime=endTime,originalAllDay=allDay,originalVoiceEnabled=!!i.voiceEnabled,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
   openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
-    <div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
+    <div class="detail-meta" data-related-indicator-host="${seriesId}"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(seriesId)}
@@ -3452,11 +3468,45 @@ function openParkingModal(prefill=''){
   $('#parkingSave').addEventListener('click',()=>{const b=$('#parkingSave');b.disabled=true;b.textContent='Obteniendo ubicación…';NexoNative.saveParking($('#parkingNote').value.trim());});
 }
 
+/**
+ * CRUD arriba en las fichas y editores, sin tocar botones de confirmación o contexto.
+ * Los controles se mueven con su ID original, antes de enlazar sus listeners.
+ */
+function promoteRecordActions(root){
+  if(!root)return;
+  const recordIds=new Set([
+    'journalSave','journalDelete','journalEdit','noteDelete','noteShare',
+    'personSave','personDelete','documentSave','documentDelete','documentDetailEdit',
+    'placeSave','placeDetailEdit','placeDetailDelete',
+    'medSave','medDelete','listRenameSave','recordingRenameSave','postponeSave',
+    'parkingSave'
+  ]);
+  root.querySelectorAll('.modal-actions,.place-detail-actions,.document-detail__actions').forEach(group=>{
+    if(![...group.querySelectorAll('button[id]')].some(b=>recordIds.has(b.id)))return;
+    group.classList.add('record-top-actions');
+    root.insertBefore(group,root.firstChild);
+  });
+  // Eliminar documento estaba fuera del grupo de Guardar; agruparlos arriba.
+  const docDelete=root.querySelector('#documentDelete');
+  const docSave=root.querySelector('#documentSave');
+  if(docDelete&&docSave){
+    docDelete.classList.remove('danger-link');
+    docDelete.classList.add('danger-button');
+    docSave.closest('.record-top-actions')?.appendChild(docDelete);
+  }
+  // Posponer modifica el evento: se gestiona en Más, sin controles CRUD al pie.
+  const postpone=root.querySelector('#postponeItemBtn');
+  const overflow=root.querySelector('.record-action-overflow .record-overflow-menu');
+  if(postpone&&overflow)overflow.insertBefore(postpone,overflow.firstChild);
+}
+
 function openModal(title,html){
   document.body.classList.remove('note-reading-open');
   discardDocumentDraft();
   if($('#modal').classList.contains('hidden'))state.modalReturnFocus=document.activeElement;
-  $('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;$('#modal').classList.remove('hidden');
+  $('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;
+  promoteRecordActions($('#modalBody'));
+  $('#modal').classList.remove('hidden');
   bindCategorySelectIcon('#editCategory');bindCategorySelectIcon('#occCategory');
   document.body.classList.add('modal-open');
   requestAnimationFrame(()=>$('#modalClose').focus());
