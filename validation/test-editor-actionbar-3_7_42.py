@@ -26,6 +26,10 @@ assert html.index('id="headerTodayDate"') > html.index('data-screen="today"'), '
 assert html.index('</header><main>') < html.index('id="headerTodayDate"'), 'La cabecera debe conservar una sola fila'
 assert '.topbar{flex-wrap:nowrap;row-gap:0}' in css
 assert '.screen[data-screen="save"] .capture-back-button>.ui-icon' in css
+assert "captureMicHost=$('.screen[data-screen=\"save\"] .capture-mode-row')" in js
+assert 'captureMicHost.appendChild(voice)' in js and 'floatingHost.prepend(voice)' in js
+assert '.capture-mode-row>.capture-voice-action' in css
+assert 'class="fab fab-voice hidden"' in html, 'Se conserva el mismo micrófono con su ID/listener global'
 assert 'new Intl.DateTimeFormat(\'es-ES\',{weekday:\'long\',day:\'numeric\',month:\'long\',year:\'numeric\'})' in js
 assert "if(!document.hidden)refreshHeaderDate();" in js
 
