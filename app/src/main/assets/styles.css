@@ -3469,3 +3469,42 @@ body.startup-loading #app{visibility:hidden}
 .primary-button,.secondary-button,.ghost-button,.danger-button,.text-button,.mini-button,.voice-stop-button{align-items:center;gap:7px}
 .nexo-unified-save{min-width:0;gap:7px}
 .nexo-unified-save>.nexo-action-label{font-size:inherit;line-height:inherit;white-space:normal}
+
+
+/* 3.7.42 · Barras adhesivas superiores en alta y edición.
+   No se duplica ningún control: conservamos los IDs y los listeners originales. */
+.screen[data-screen="save"]{padding-bottom:28px}
+.screen[data-screen="save"] .capture-crud-toolbar{
+  position:sticky;top:var(--nexo-header-height,85px);left:auto;bottom:auto;transform:none;
+  z-index:19;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;
+  width:calc(100% + 28px);max-width:none;margin:0 -14px 13px;
+  padding:7px max(8px,env(safe-area-inset-left)) 8px max(8px,env(safe-area-inset-right));
+  box-shadow:0 5px 16px rgba(17,43,34,.085);border-bottom:1px solid #d9e5dc;border-top:0;
+}
+.screen[data-screen="save"] .capture-crud-toolbar:not(:has(#captureLinkButton:not(.hidden))){grid-template-columns:repeat(3,minmax(0,1fr))}
+.screen[data-screen="save"] .capture-crud-toolbar button{
+  flex-direction:column;gap:3px;min-height:57px;padding:6px 3px;
+  font-size:.75rem;line-height:1.15;white-space:normal;min-width:0;
+}
+.screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{width:20px;height:20px;min-width:20px;flex:0 0 20px}
+.screen[data-screen="save"] #saveCaptureBtn{grid-column:auto;grid-row:auto;min-width:0;min-height:57px;font-size:.75rem}
+.screen[data-screen="save"] #saveCaptureBtn .nexo-action-label{font-size:inherit}
+.screen[data-screen="save"] .capture-crud-toolbar .linked-add-count{position:absolute;top:2px;right:3px;transform:scale(.84)}
+.screen[data-screen="save"] .capture-crud-toolbar #captureLinkButton{position:relative}
+.screen[data-screen="save"]:has(input:focus,textarea:focus,select:focus) .capture-crud-toolbar{display:grid}
+/* En los editores abiertos dentro de una ficha, el scroll ocurre en modal-sheet. */
+.modal-sheet:has(#saveEditBtn) #modalBody>.record-form-actions--compact,
+.modal-sheet:has(#saveOccurrenceBtn) #modalBody>.record-form-actions--compact{
+  position:sticky;top:0;z-index:12;margin:0 -8px 12px;padding:6px 8px 9px;
+  background:rgba(255,255,255,.97);border-bottom:1px solid #dce6df;
+  box-shadow:0 5px 14px rgba(20,35,60,.065);backdrop-filter:blur(12px)
+}
+.modal-sheet:has(#saveEditBtn) .record-form-actions--compact>button,
+.modal-sheet:has(#saveOccurrenceBtn) .record-form-actions--compact>button{
+  align-items:center;justify-content:center;gap:5px;min-height:45px!important;
+  padding:8px 7px!important;font-size:.8rem;
+}
+@media(max-width:390px){
+  .screen[data-screen="save"] .capture-crud-toolbar button{font-size:.7rem}
+  .screen[data-screen="save"] #saveCaptureBtn{font-size:.7rem}
+}
