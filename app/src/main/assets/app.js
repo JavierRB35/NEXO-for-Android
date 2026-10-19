@@ -3486,6 +3486,18 @@ function promoteRecordActions(root){
     group.classList.add('record-top-actions');
     root.insertBefore(group,root.firstChild);
   });
+  // Eliminar documento estaba fuera del grupo de Guardar; agruparlos arriba.
+  const docDelete=root.querySelector('#documentDelete');
+  const docSave=root.querySelector('#documentSave');
+  if(docDelete&&docSave){
+    docDelete.classList.remove('danger-link');
+    docDelete.classList.add('danger-button');
+    docSave.closest('.record-top-actions')?.appendChild(docDelete);
+  }
+  // Posponer modifica el evento: se gestiona en Más, sin controles CRUD al pie.
+  const postpone=root.querySelector('#postponeItemBtn');
+  const overflow=root.querySelector('.record-action-overflow .record-overflow-menu');
+  if(postpone&&overflow)overflow.insertBefore(postpone,overflow.firstChild);
 }
 
 function openModal(title,html){
