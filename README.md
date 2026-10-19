@@ -1,8 +1,10 @@
-# Nexo 3.7.40
+# Nexo 3.7.41
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.40**, `versionCode 133`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
+Esta versión corresponde a **Nexo 3.7.41**, `versionCode 134`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
+
+**Nuevo en 3.7.41:** vinculación y creación de listas, notas y documentos desde **Nueva cita** o **Editar cita**, también en apariciones recurrentes. Los elementos se crean desde el contexto del evento con «Guardar y volver» y una banda de origen. Las nuevas citas mantienen los vínculos como borradores hasta guardarse, evitan recursos huérfanos al cancelar y pueden reintentar una vinculación sin duplicar el registro ni el recurso. Se conservan los formularios anteriores, las fechas, los avisos, las personas, la repetición, la ubicación y los permisos. Disquete uniforme en acciones Guardar, sin cambiar la lógica de los botones.
 
 **Nuevo en 3.7.40:** la cadena azul con contador aparece ahora en las tarjetas de Próximamente, Agenda y Calendario cuando el evento tiene vínculos; funciona también para apariciones recurrentes sin botones anidados. En la ficha desplegada, el número de vínculos se muestra **dentro del botón «Vincular»**, sin repetirlo en otra insignia. Los contadores se obtienen en la consulta SQLite original (sin consultas individuales por tarjeta), distinguen vínculos válidos y se actualizan al vincular/desvincular.
 
@@ -10,7 +12,7 @@ Esta versión corresponde a **Nexo 3.7.40**, `versionCode 133`, `applicationId c
 
 **Nuevo en 3.7.38:** botón **Duplicar evento** en «Más» de las fichas de Agenda y en las opciones de los eventos del calendario. Abre una nueva captura prellenada con título, descripción, categoría, fechas, horas, ubicación, participantes, prioridad y avisos (incluida la voz si estaba activa). No guarda automáticamente, no modifica el original, no hereda su identidad ni sincronización; los eventos recurrentes se copian desde la aparición elegida como evento independiente sin repetición por defecto. Aviso visible para revisar fechas y avisos antes de guardar.
 
-**Nuevo en 3.7.40:** categorías independientes para Libros y Películas y series, con propuestas propias de cada módulo, nuevas categorías personalizadas, selección al editar y filtro combinado con búsqueda, estado y tipo. La categoría se muestra en tarjetas, fichas y contenido compartido. Migración aditiva de SQLite 31→32, sin alterar los registros ni sus valoraciones.
+**Nuevo en 3.7.36:** categorías independientes para Libros y Películas y series, con propuestas propias de cada módulo, nuevas categorías personalizadas, selección al editar y filtro combinado con búsqueda, estado y tipo. La categoría se muestra en tarjetas, fichas y contenido compartido. Migración aditiva de SQLite 31→32, sin alterar los registros ni sus valoraciones.
 
 **Nuevo en 3.7.35:** Herramientas → Ideas y escritos incorpora **Películas y series**: tipos separados, búsqueda, estados Quiero ver / Viendo / Vista / Abandonada, progreso, fechas, favoritos, valoración de 1 a 5 estrellas, notas con dictado, estadísticas y fichas con editar, compartir y eliminar. Usa tabla local `media_items`, independiente de `books`; migración aditiva a esquema 31.
 

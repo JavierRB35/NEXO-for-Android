@@ -620,6 +620,10 @@ function copyAboutDiagnostics(){
 
 function navigate(screen, options={}) {
   if(!['today','save','search','more','calendar','tools','panel','about'].includes(screen))return;
+  if(state.screen==='save'&&screen!=='save'&&state.capturePendingLinks?.length){
+    if(!window.confirm('Hay vínculos y elementos preparados que todavía no se han guardado. ¿Descartar la preparación y salir?'))return;
+    discardPendingRelatedDrafts();
+  }
   const route={screen};
   if(screen==='panel'){route.panel=options.panel||state.lastPanel;route.list=options.list??null;}
   if(screen==='save'&&state.screen!=='save')state.captureReturnRoute={...router.current,scrollY:window.scrollY};
@@ -1719,6 +1723,7 @@ function bindCompactRecordActions(){
 
 
 const RELATED_KIND_LABELS={list:'Lista',note:'Nota',document:'Documento'};
+const RELATED_KIND_ICONS={list:'list',note:'note',document:'file'};
 
 function relatedLinksSectionHtml(ownerId){
   const links=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]);
@@ -1782,19 +1787,101 @@ function refreshRelatedLinks(ownerId){
   area.outerHTML=relatedLinksSectionHtml(ownerId);bindRelatedLinks(ownerId);
   refreshLinkedEventCardBadges(ownerId);
 }
+
+/** El editor de vínculos funciona sobre el formulario actual, sin cerrar ni recrearlo.
+ * ownerId=0: operación pendiente hasta que el evento tenga ID. En edición: vinculación inmediata.
+ */
+function relatedContextTitle(ownerId){
+  const title=ownerId>0?parseNative(NexoNative.getItem(ownerId),{}).title:$('#captureTitle')?.value;
+  return String(title||'Nueva cita').trim()||'Nueva cita';
+}
+function capturePendingLinkCount(){return (state.capturePendingLinks||[]).length;}
+function renderCaptureRelated(){
+  const host=$('#captureRelated');if(!host)return;
+  const active=captureReviewType()==='event';
+  host.classList.toggle('hidden',!active);
+  if(!active)return;
+  const pending=state.capturePendingLinks||[],count=pending.length;
+  const caption=$('#captureRelatedStatus');
+  if(caption)caption.textContent=count?count+' vínculo'+(count===1?'':'s')+' preparado'+(count===1?'':'s')+'. Se asociará'+(count===1?'':'n')+' al guardar la cita.':'Vincula o crea una lista, nota o documento sin salir de la cita.';
+  const badge=$('#captureLinkCounter');
+  if(badge){badge.textContent=String(count);badge.classList.toggle('hidden',!count);}
+  const list=$('#captureRelatedItems');
+  if(list){list.innerHTML=pending.map((p,i)=>'<div class="linked-resource-row"><span class="linked-resource-kind">'+uiIcon(RELATED_KIND_ICONS[p.kind]||'link')+' '+esc(RELATED_KIND_LABELS[p.kind]||'Elemento')+'</span><span class="linked-resource-title">'+esc(p.title||'Sin título')+'</span><button type="button" class="linked-resource-remove" data-pending-unlink="'+i+'" aria-label="Quitar vínculo">'+uiIcon('close')+'</button></div>').join('');
+    list.querySelectorAll('[data-pending-unlink]').forEach(b=>b.addEventListener('click',()=>{const i=Number(b.dataset.pendingUnlink),p=state.capturePendingLinks.splice(i,1)[0];if(p?.kind==='document'&&p.file?.path)NexoNative.discardDocumentFile(p.file.path);renderCaptureRelated();}));
+  }
+}
+function discardPendingRelatedDrafts(){
+  for(const p of state.capturePendingLinks||[]){
+    if(p.kind==='document'&&!p.id&&p.file?.path)NexoNative.discardDocumentFile(p.file.path);
+  }
+  state.capturePendingLinks=[];
+  renderCaptureRelated();
+}
+/** No se crean registros huérfanos si la nueva cita se cancela. */
+function finishPendingEventLinks(ownerId){
+  if(!(Number(ownerId)>0))return false;
+  const pending=state.capturePendingLinks||[];
+  for(let index=0;index<pending.length;){
+    const p=pending[index];let id=Number(p.id||0);
+    if(!id){
+      if(p.kind==='list')id=Number(NexoNative.createList(p.title,p.listKind||'General',false))||0;
+      else if(p.kind==='note')id=Number(NexoNative.saveNote(JSON.stringify({title:p.title,body:p.body||'',category:'Notas',source:'notepad',noteTitleManual:true})))||0;
+      else if(p.kind==='document'){
+        const result=parseNative(NexoNative.saveDocument(JSON.stringify({title:p.title,description:p.body||'',label:p.category||'',expiryAt:p.expiryAt||0,attachmentPath:p.file?.path||'',attachmentName:p.file?.name||'',attachmentMime:p.file?.mime||''})),{});
+        id=result.ok?Number(result.id)||0:0;
+      }
+      if(!id)return false;
+      p.id=id; // retry: reutilizar ID si el vínculo falla; no crear el recurso dos veces.
+    }
+    const ok=parseNative(NexoNative.linkRelatedResource(ownerId,p.kind,id),{});
+    if(!ok.ok)return false;
+    pending.splice(index,1);
+  }
+  renderCaptureRelated();
+  return true;
+}
+function stageOrLinkRelated(ownerId,entry){
+  if(ownerId>0){
+    let id=Number(entry.id||0);
+    if(!id){
+      if(entry.kind==='list')id=Number(NexoNative.createList(entry.title,entry.listKind||'General',false))||0;
+      else if(entry.kind==='note')id=Number(NexoNative.saveNote(JSON.stringify({title:entry.title,body:entry.body||'',category:'Notas',source:'notepad',noteTitleManual:true})))||0;
+      else if(entry.kind==='document'){
+        const res=parseNative(NexoNative.saveDocument(JSON.stringify({title:entry.title,description:entry.body||'',label:entry.category||'',expiryAt:entry.expiryAt||0,attachmentPath:entry.file?.path||'',attachmentName:entry.file?.name||'',attachmentMime:entry.file?.mime||''})),{});
+        id=res.ok?Number(res.id)||0:0;
+      }
+      if(!id){toast('No se pudo crear el elemento. Puedes volver a intentarlo.');return false;}
+      entry.id=id; // Reintento sin duplicados si la asociación falla después de crear.
+    }
+    const result=parseNative(NexoNative.linkRelatedResource(ownerId,entry.kind,id),{});
+    if(!result.ok){toast('Elemento creado, pero no se pudo vincular. Está disponible en su módulo.');return false;}
+    refreshRelatedLinks(ownerId);return true;
+  }
+  if(!Array.isArray(state.capturePendingLinks))state.capturePendingLinks=[];
+  if(entry.id&&state.capturePendingLinks.some(x=>x.kind===entry.kind&&Number(x.id)===Number(entry.id))){toast('Este elemento ya está preparado para vincular.');return false;}
+  state.capturePendingLinks.push(entry);
+  renderCaptureRelated();return true;
+}
 function openRelatedPicker(ownerId){
-  const overlay=document.createElement('div');overlay.className='modal scope-overlay related-picker-overlay';
-  let kind='list';
+  const eventId=Number(ownerId)||0,title=relatedContextTitle(eventId);
+  const overlay=document.createElement('div');overlay.className='modal scope-overlay related-picker-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
+  let kind='list',documentFile=null,documentRequest='';
+  const kindName=k=>RELATED_KIND_LABELS[k]||'Elemento';
+  const kindIcon=k=>uiIcon(RELATED_KIND_ICONS[k]||'link');
   overlay.innerHTML='<div class="confirm-sheet related-picker">'+
-    '<div class="related-picker-heading"><h2>Vincular elemento</h2><button type="button" data-related-close class="icon-button" aria-label="Cerrar">'+uiIcon('close')+'</button></div>'+
+    '<div class="related-picker-heading"><h2>'+uiIcon('link')+' Vincular elementos</h2><button type="button" data-related-close class="icon-button" aria-label="Volver a la cita">'+uiIcon('close')+'</button></div>'+
+    '<div class="related-event-origin">'+uiIcon('calendar')+'<div><small>Se vinculará al evento</small><strong>'+esc(title)+'</strong></div></div>'+
     '<div class="related-picker-tabs" role="group" aria-label="Tipo">'+
-    '<button type="button" data-related-tab="list">Listas</button><button type="button" data-related-tab="note">Notas</button><button type="button" data-related-tab="document">Documentos</button></div>'+
+    ['list','note','document'].map(k=>'<button type="button" data-related-tab="'+k+'">'+kindIcon(k)+' '+esc(kindName(k))+'</button>').join('')+'</div>'+
     '<div class="related-picker-search"><input type="search" data-related-search placeholder="Buscar elemento existente…" aria-label="Buscar elemento"></div>'+
     '<div class="related-picker-results" data-related-results></div>'+
     '<button type="button" class="linked-create" data-related-create>'+uiIcon('plus')+' Crear nuevo</button>'+
     '<div data-related-form hidden></div></div>';
   document.body.appendChild(overlay);
-  const q=sel=>overlay.querySelector(sel),close=()=>overlay.remove();
+  const q=sel=>overlay.querySelector(sel);
+  const releaseDraftFile=()=>{if(documentFile?.path)NexoNative.discardDocumentFile(documentFile.path);documentFile=null;};
+  const close=()=>{if(documentRequest){state.relatedDocumentCallback=null;documentRequest='';}releaseDraftFile();overlay.remove();};
   q('[data-related-close]').addEventListener('click',close);
   overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
   function candidates(){
@@ -1803,48 +1890,63 @@ function openRelatedPicker(ownerId){
   }
   function render(){
     q('[data-related-form]').hidden=true;q('[data-related-create]').hidden=false;
+    q('[data-related-search]').parentElement.hidden=false;
     overlay.querySelectorAll('[data-related-tab]').forEach(b=>b.classList.toggle('active',b.dataset.relatedTab===kind));
     const term=q('[data-related-search]').value.trim().toLocaleLowerCase('es-ES');
-    const linked=parseNative(NexoNative.getRelatedResources(Number(ownerId)),[]);
+    const linked=eventId?parseNative(NexoNative.getRelatedResources(eventId),[]):(state.capturePendingLinks||[]);
     const ids=new Set(linked.filter(x=>x.kind===kind).map(x=>Number(x.id)));
     const choices=candidates().filter(x=>!term||String(x.title||'').toLocaleLowerCase('es-ES').includes(term));
     q('[data-related-results]').innerHTML=choices.length?choices.map(x=>
       '<button type="button" class="related-picker-choice" data-related-choice="'+Number(x.id)+'" '+(ids.has(Number(x.id))?'disabled':'')+'>'+
-      '<span>'+esc(x.title||'Sin título')+'</span><small>'+(ids.has(Number(x.id))?'Ya vinculado':'Vincular')+'</small></button>').join(''):
+      '<span>'+kindIcon(kind)+' '+esc(x.title||'Sin título')+'</span><small>'+(ids.has(Number(x.id))?'Ya vinculado':'Vincular')+'</small></button>').join(''):
       '<p class="linked-empty">No se han encontrado elementos.</p>';
     q('[data-related-results]').querySelectorAll('[data-related-choice]').forEach(b=>b.addEventListener('click',()=>{
-      const linked=parseNative(NexoNative.linkRelatedResource(Number(ownerId),kind,Number(b.dataset.relatedChoice)),{});
-      if(!linked.ok){toast(linked.error||'No se pudo vincular');return;}
-      close();refreshRelatedLinks(ownerId);toast('Elemento vinculado');
+      const id=Number(b.dataset.relatedChoice),item=candidates().find(x=>Number(x.id)===id)||{};
+      if(stageOrLinkRelated(eventId,{kind,id,title:String(item.title||'Sin título')})){close();toast(eventId?'Elemento vinculado':'Vínculo preparado para guardar');}
     }));
-    q('[data-related-create]').innerHTML=uiIcon('plus')+' Crear '+(RELATED_KIND_LABELS[kind]||'elemento').toLocaleLowerCase('es-ES');
+    q('[data-related-create]').innerHTML=uiIcon('plus')+' Crear '+kindName(kind).toLocaleLowerCase('es-ES');
   }
   q('[data-related-search]').addEventListener('input',render);
-  overlay.querySelectorAll('[data-related-tab]').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.relatedTab;q('[data-related-search]').value='';render();}));
+  overlay.querySelectorAll('[data-related-tab]').forEach(b=>b.addEventListener('click',()=>{
+    releaseDraftFile();kind=b.dataset.relatedTab;q('[data-related-search]').value='';render();
+  }));
   q('[data-related-create]').addEventListener('click',()=>{
-    if(kind==='document'){
-      close();
-      if(!closeModal())return;
-      state.pendingResourceLink={ownerId:Number(ownerId),kind:'document'};
-      openDocumentEditor();return;
-    }
-    q('[data-related-create]').hidden=true;
+    q('[data-related-create]').hidden=true;q('[data-related-results]').innerHTML='';
+    q('[data-related-search]').parentElement.hidden=true;
     const form=q('[data-related-form]');form.hidden=false;
-    form.innerHTML='<div class="related-creation-form"><label>Título<input type="text" data-related-title maxlength="120" placeholder="Título"></label>'+
-      (kind==='note'?'<label>Anotación<textarea data-related-body rows="3" placeholder="Escribe aquí…"></textarea></label>':'')+
-      '<div class="related-creation-actions"><button type="button" class="secondary-button" data-related-cancel>Cancelar</button>'+
-      '<button type="button" class="primary-button" data-related-save>Crear y vincular</button></div></div>';
-    form.querySelector('[data-related-cancel]').addEventListener('click',render);
+    form.innerHTML='<div class="related-creation-form"><div class="related-event-origin">'+kindIcon(kind)+'<span>Nueva '+esc(kindName(kind).toLocaleLowerCase('es-ES'))+' · se vinculará a '+esc(title)+'</span></div>'+
+      '<label>Título<input type="text" data-related-title maxlength="120" placeholder="Título"></label>'+
+      (kind==='note'?'<label>Anotación<textarea data-related-body rows="6" placeholder="Escribe aquí…"></textarea></label>':'')+
+      (kind==='list'?'<label>Tipo de lista<select data-related-list-kind><option>General</option><option>Compra</option><option>Cosas pendientes</option><option>Viaje</option><option>Casa</option></select></label>':'')+
+      (kind==='document'?'<label>Categoría<input data-related-category placeholder="Seguro, vivienda, garantía…"></label><label>Caducidad (opcional)<input type="date" data-related-expiry></label><label>Descripción<textarea data-related-body rows="3" placeholder="Opcional"></textarea></label><div class="related-document-file"><span data-related-filename>Ningún archivo seleccionado</span><button type="button" class="secondary-button" data-related-choose>'+uiIcon('file')+' Seleccionar archivo</button></div>':'')+
+      '<div class="related-creation-actions"><button type="button" class="secondary-button" data-related-cancel>'+uiIcon('left')+' Volver</button>'+
+      '<button type="button" class="primary-button" data-related-save title="Guardar y volver" aria-label="Guardar y volver">'+uiIcon('save')+' Guardar y volver</button></div></div>';
+    form.querySelector('[data-related-cancel]').addEventListener('click',()=>{releaseDraftFile();render();});
+    form.querySelector('[data-related-choose]')?.addEventListener('click',()=>{
+      if(documentRequest)return;
+      documentRequest='related-'+Date.now();
+      state.relatedDocumentCallback=(result)=>{
+        if(result.request!==documentRequest){if(result.file?.path)NexoNative.discardDocumentFile(result.file.path);return;}
+        documentRequest='';state.relatedDocumentCallback=null;
+        if(result.file?.path){releaseDraftFile();documentFile=result.file;form.querySelector('[data-related-filename]').textContent=documentFile.name||'Archivo seleccionado';}
+        if(result.error)toast(result.error);
+      };
+      NexoNative.chooseDocumentFile(documentRequest);
+    });
     form.querySelector('[data-related-save]').addEventListener('click',()=>{
-      const title=form.querySelector('[data-related-title]').value.trim();
-      if(!title){toast('Introduce un título');return;}
-      const selected=kind;
-      const id=selected==='list'?Number(NexoNative.createList(title,'General',false)):
-        Number(NexoNative.saveNote(JSON.stringify({title,body:form.querySelector('[data-related-body]').value.trim(),category:'Notas',source:'notepad',noteTitleManual:true})));
-      if(!(id>0)){toast('No se pudo crear');return;}
-      const linked=parseNative(NexoNative.linkRelatedResource(Number(ownerId),selected,id),{});
-      close();refreshRelatedLinks(ownerId);
-      toast(linked.ok?'Elemento creado y vinculado':'Elemento creado, pero no se pudo vincular');
+      const itemTitle=form.querySelector('[data-related-title]').value.trim();
+      if(!itemTitle){toast('Introduce un título');return;}
+      if(kind==='document'&&!documentFile?.path){toast('Selecciona un archivo para el documento');return;}
+      const entry={kind,title:itemTitle,
+        body:form.querySelector('[data-related-body]')?.value.trim()||'',
+        listKind:form.querySelector('[data-related-list-kind]')?.value||'General',
+        category:form.querySelector('[data-related-category]')?.value.trim()||'',
+        expiryAt:form.querySelector('[data-related-expiry]')?.value?new Date(form.querySelector('[data-related-expiry]').value+'T12:00:00').getTime():0,
+        file:documentFile};
+      if(stageOrLinkRelated(eventId,entry)){
+        documentFile=null;close();
+        toast(eventId?'Elemento creado y vinculado':'Elemento preparado · se guardará junto con la cita');
+      }
     });
     form.querySelector('[data-related-title]').focus();
   });
@@ -2001,6 +2103,9 @@ function duplicateCalendarEvent(id,occurrenceAt=0,recurring=false){
 }
 
 function prepareQuickNoteForType(type='event',date=''){
+  if(state.screen==='save'&&state.capturePendingLinks?.length){
+    if(!window.confirm('Hay vínculos preparados. ¿Descartarlos y empezar un elemento nuevo?'))return;
+  }
   if(type==='document'){openDocumentEditor();return;}
   if(isPlaceType(type)){openPlaceEditor();return;}
   type=(!type||isAppointmentType(type))?'event':type;
@@ -2048,6 +2153,7 @@ function captureReviewType(){
 function updateCaptureReviewMode(){
   const type=captureReviewType(),appointment=isAppointmentType(type);
   $('#captureEventFields')?.classList.toggle('hidden',!appointment);
+  renderCaptureRelated();
   const hint=$('#captureRouteHint'),subtitle=$('#captureSubtitle'),save=$('#saveCaptureBtn');
   if(subtitle)subtitle.textContent=appointment
     ? 'Revisa los datos de la cita antes de guardarla. El micrófono continúa sobre esta misma captura.'
@@ -2158,6 +2264,7 @@ function resetAnalysis() {
 }
 
 function clearCapture(keepPinned=false) {
+  discardPendingRelatedDrafts();
   clearTimeout(state.pendingSaveTimer);
   state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
@@ -2218,6 +2325,13 @@ function commitCapture() {
   const res=parseNative(NexoNative.saveCapture(JSON.stringify(payload)),{});
   $('#saveCaptureBtn').disabled=false; $('#saveCaptureBtn').textContent='Guardar en Nexo';
   if(res.ok){
+    if(state.capturePendingLinks?.length){
+      // Un fallo de recurso o vínculo no permite volver a crear el evento.
+      state.calendarUpdateItemId=Number(res.id)||state.calendarUpdateItemId;
+      if(!finishPendingEventLinks(state.calendarUpdateItemId)){
+        toast('Cita guardada. Hay un vínculo pendiente: vuelve a pulsar el disquete para reintentarlo.');return;
+      }
+    }
     const avisos=alerts.length?` · ${alerts.length} aviso${alerts.length===1?'':'s'}`:'';
     const updated=!!state.calendarUpdateItemId;
     toast(updated?'Actualizado desde Calendar':(conflicts.length?`Guardado${avisos} · ya había ${conflicts.length} elemento${conflicts.length===1?'':'s'} a esa hora`:`Guardado en Nexo${avisos}`));
@@ -3270,6 +3384,7 @@ function openItem(id){
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(id)}
     <details class="details-box"><summary>Editar</summary><div class="detail-grid">
+      ${i.type==='event'?'<div class="event-edit-related"><button id="editLinkButton" type="button" class="secondary-button">'+uiIcon('link')+' Vincular / crear</button></div>':''}
       <label>Título<input id="editTitle" type="text" value="${escAttr(i.title)}"></label>
       <label>Descripción<textarea id="editBody" rows="4">${esc(i.body||'')}</textarea></label>
       ${i.originalText&&i.originalText!==i.body?`<details class="original-capture"><summary>Ver texto original capturado</summary><div>${esc(i.originalText)}</div></details>`:''}
@@ -3289,6 +3404,7 @@ function openItem(id){
     <div class="modal-actions wrap-actions">${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>`);
 
   bindCompactRecordActions();bindRelatedLinks(id);
+  $('#editLinkButton')?.addEventListener('click',()=>openRelatedPicker(id));
   let editParticipantIds=normalizeParticipantIds(i.participantIds||[]);
   renderPersonAssignment('editPeopleChips',editParticipantIds,ids=>{editParticipantIds=ids;});
   const syncEditAllDay=()=>{
@@ -3339,6 +3455,7 @@ function openOccurrence(seriesId,occurrenceAt){
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(seriesId)}
     <details class="details-box"><summary>Editar</summary><div class="detail-grid">
+      ${i.type==='event'?'<div class="event-edit-related"><button id="occLinkButton" type="button" class="secondary-button">'+uiIcon('link')+' Vincular / crear</button></div>':''}
       <label>Título<input id="occTitle" type="text" value="${escAttr(i.title)}"></label>
       <label>Descripción<textarea id="occBody" rows="4">${esc(i.body||'')}</textarea></label>
       ${i.originalText&&i.originalText!==i.body?`<details class="original-capture"><summary>Ver texto original capturado</summary><div>${esc(i.originalText)}</div></details>`:''}
@@ -3359,6 +3476,7 @@ function openOccurrence(seriesId,occurrenceAt){
     `);
 
   bindCompactRecordActions();bindRelatedLinks(seriesId);
+  $('#occLinkButton')?.addEventListener('click',()=>openRelatedPicker(seriesId));
   $('#editOccurrenceTopBtn').addEventListener('click',()=>{const details=$('#modalBody .details-box');if(details)details.open=true;$('#occTitle')?.focus();});
   let occParticipantIds=normalizeParticipantIds(i.participantIds||[]);
   renderPersonAssignment('occPeopleChips',occParticipantIds,ids=>{occParticipantIds=ids;});
@@ -3968,7 +4086,9 @@ window.NexoUI={
   },
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
   onDocumentFileChosen(raw){
-    const result=parseNative(raw,{}),editor=state.documentEditor;
+    const result=parseNative(raw,{});
+    if(String(result.request||'').startsWith('related-')){if(state.relatedDocumentCallback)state.relatedDocumentCallback(result);else if(result.file?.path)NexoNative.discardDocumentFile(result.file.path);return;}
+    const editor=state.documentEditor;
     if(!editor||result.request!==editor.request){if(result.file?.path)NexoNative.discardDocumentFile(result.file.path);return;}
     editor.busy=false;
     if(result.file?.path){
@@ -4266,6 +4386,7 @@ function init(){
   $('#addCaptureAlert').addEventListener('click',()=>openAddAlertOverlay(v=>setCaptureAlerts([...state.captureAlerts,v],true)));
   $('#acceptReminderSuggestion').addEventListener('click',()=>{if(state.captureSuggestedAlert===null)return;setCaptureAlerts([...state.captureAlerts,state.captureSuggestedAlert],true);state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');});
   $('#voiceCaptureBtn')?.addEventListener('click',()=>startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'}));
+  $('#captureLinkButton')?.addEventListener('click',()=>openRelatedPicker(0));
   $('#saveCaptureBtn').addEventListener('click',saveCapture);$('#clearCaptureBtn').addEventListener('click',()=>clearCapture());$('#chooseFileBtn').addEventListener('click',()=>NexoNative.chooseFile());
   $('#searchBtn')?.addEventListener('click',()=>runSearch());
   $('#searchInput').addEventListener('input',e=>{clearTimeout(runSearch._inputTimer);runSearch._inputTimer=setTimeout(()=>runSearch(e.target.value),180);});
@@ -4315,6 +4436,11 @@ function init(){
 const router=new NexoRouter({screen:'today'});
 function uiIcon(name){return `<svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-${name}"></use></svg>`;}
 function navigateBack(){
+  // Comprobar ANTES de consumir el historial: cancelar debe dejar la cita intacta.
+  if(state.screen==='save'&&state.capturePendingLinks?.length){
+    if(!window.confirm('Hay vínculos preparados sin guardar. ¿Salir y descartarlos?'))return false;
+    discardPendingRelatedDrafts();
+  }
   const route=router.back();
   if(route){
     const options={replace:true,scrollY:route.scrollY||0};
@@ -4925,4 +5051,40 @@ function handleDialogKeys(event){
   else if(!event.shiftKey&&(document.activeElement===last||!active.contains(document.activeElement))){event.preventDefault();first.focus();}
 }
 
+
+/** El disquete es la acción única de Guardar en todos los editores.
+ * IDs, validación y listeners existentes permanecen intactos.
+ * Los cambios de etiqueta hechos por módulos legacy se normalizan en el siguiente microtask.
+ */
+function normalizeSaveButtons(root=document){
+  if(!root?.querySelectorAll)return;
+  const saveIds=/^(?:save[A-Z]|.*Save(?:Btn)?$|.*Save$)/;
+  root.querySelectorAll('button').forEach(button=>{
+    const id=String(button.id||'');
+    const contextual=button.hasAttribute('data-related-save');
+    const explicit=saveIds.test(id)||contextual||button.hasAttribute('data-note-close-save');
+    if(!explicit)return;
+    if(id==='saveCaptureBtn'&&String(button.textContent||'').trim()==='Revisar pauta')return;
+    if(button.querySelector('use[href="#nx-icon-save"]')&&button.classList.contains('nexo-unified-save'))return;
+    const original=String(button.textContent||'').trim()||String(button.getAttribute('aria-label')||'Guardar');
+    if(!/^(guardar|confirmar tratamiento|crear y vincular)/i.test(original)&&!button.classList.contains('nexo-unified-save'))return;
+    button.setAttribute('aria-label',original);
+    button.setAttribute('title',original);
+    button.classList.add('nexo-unified-save');
+    button.innerHTML=uiIcon('save')+(contextual?'<span>Guardar y volver</span>':'');
+  });
+}
+function installSaveIconConsistency(){
+  normalizeSaveButtons(document);
+  if(typeof MutationObserver!=='function')return;
+  let scheduled=false;
+  const observer=new MutationObserver(()=>{
+    if(scheduled)return;
+    scheduled=true;
+    Promise.resolve().then(()=>{scheduled=false;normalizeSaveButtons(document);});
+  });
+  observer.observe(document.body,{subtree:true,childList:true});
+}
+
 document.addEventListener('DOMContentLoaded',init);
+document.addEventListener('DOMContentLoaded',installSaveIconConsistency);

@@ -3399,3 +3399,26 @@ body.startup-loading #app{visibility:hidden}
 .upcoming-card__links{position:absolute;top:12px;right:13px;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:41px;padding:5px 7px;border:1px solid #b7d8f7;border-radius:999px;background:#eef6ff;color:#1263b5;font-size:.75rem;font-weight:850;font-variant-numeric:tabular-nums;line-height:1;pointer-events:none}
 .upcoming-card__links .ui-icon{width:16px;height:16px;flex:0 0 16px}
 @media(max-width:360px){.upcoming-card__links{top:8px;right:8px}.upcoming-card:has(.upcoming-card__links) .upcoming-title{padding-right:49px}}
+
+/* 3.7.41 · vínculos contextuales: creación y edición conservan el formulario */
+.event-capture-links,.event-edit-related{margin:9px 0 13px;padding:10px 12px;border:1px solid #dbe7f5;border-radius:14px;background:var(--surface-soft,#f8fafc)}
+.event-capture-links-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.event-capture-links-head strong{display:inline-flex;align-items:center;gap:7px;color:#1263b5}
+.event-capture-links-head .ui-icon,.event-edit-related .ui-icon{width:17px;height:17px}
+.event-capture-links .linked-resource-row{margin-top:7px}
+.event-capture-links p{margin:5px 0 7px}
+.event-edit-related button{display:inline-flex;align-items:center;gap:7px}
+.related-event-origin{display:flex;align-items:center;gap:9px;padding:9px 10px;background:#eef6ff;color:#18496c;border-radius:10px;margin:7px 0 12px;font-size:.84rem}
+.related-event-origin .ui-icon{width:18px;height:18px;flex-shrink:0}
+.related-event-origin>div{display:grid;gap:2px;min-width:0}
+.related-event-origin small{font-size:.72rem;color:#526d80}
+.related-picker-heading h2 .ui-icon,.related-picker-tabs .ui-icon,.related-picker-choice .ui-icon{width:17px;height:17px;vertical-align:middle}
+.related-document-file{display:flex;flex-wrap:wrap;gap:9px;align-items:center;justify-content:space-between}
+.related-creation-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.related-creation-actions button{display:inline-flex;align-items:center;gap:6px}
+
+/* Disquete universal del CRUD, alineación y área táctil coherente. */
+.nexo-unified-save{display:inline-flex;align-items:center;justify-content:center;gap:7px;vertical-align:middle;min-height:42px}
+.nexo-unified-save:not([data-related-save]):not([data-note-close-save]){min-width:44px;padding:9px 11px}
+.nexo-unified-save>.ui-icon{height:20px;width:20px;flex:0 0 auto}
+.record-form-actions .nexo-unified-save,.record-top-actions .nexo-unified-save{align-self:center}
