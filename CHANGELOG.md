@@ -1,3 +1,11 @@
+## Nexo 3.7.42 — Acciones inferiores persistentes y fecha en cabecera
+
+- Fecha completa en español bajo la cabecera, actualizada al reabrir la app y al cambiar de día.
+- Alta de cita: comienza por texto libre; relaciones al final; barra inferior fija con Guardar, Adjuntar, Vincular y Limpiar, alineados con icono y texto.
+- Edición de citas y apariciones recurrentes: controles disponibles en el pie de la ficha mientras se desplaza; se reutilizan acciones y manejadores ya existentes.
+- Iconos semánticos y texto visibles para las acciones habituales; controles solo icónicos mantienen etiquetas accesibles.
+- Se conservan la base de datos, los avisos, la recurrencia y el entorno AndroidIDE original. versionCode 135.
+
 ## Nexo 3.7.34 — Acciones superiores de Libros y puntuación visible
 
 - Ficha completa: iconos Editar (lápiz), Compartir y Eliminar (papelera roja) arriba, con la iconografía de Notas. Ya no quedan ocultos al final de resúmenes largos.
