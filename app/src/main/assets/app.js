@@ -1695,13 +1695,14 @@ function renderHomeAgenda(){if(state.screen==='calendar')renderCalendarDay();}
 function recordIconAction(icon,label,attrs='',extra=''){
   return `<button type="button" class="icon-action ${extra}" ${attrs} aria-label="${escAttr(label)}" title="${escAttr(label)}">${uiIcon(icon)}</button>`;
 }
-function recordEditorActionBar(saveId,editId,shareId,deleteId){
+function recordEditorActionBar(saveId,editId,shareId,deleteId,duplicateId=''){
   return '<div class="record-form-actions record-form-actions--compact">'+
     '<button id="'+editId+'" class="secondary-button" type="button">'+uiIcon('edit')+' Editar</button>'+
     '<button id="'+saveId+'" class="primary-button" type="button" hidden>'+uiIcon('check')+' Guardar</button>'+
     '<details class="record-action-overflow"><summary aria-label="Más acciones">'+uiIcon('more')+' <span>Más</span></summary>'+
     '<div class="record-overflow-menu">'+
     '<button id="'+shareId+'" class="secondary-button" type="button">'+uiIcon('share')+' Compartir</button>'+
+    (duplicateId?'<button id="'+duplicateId+'" class="secondary-button" type="button">⧉ Duplicar evento</button>':'')+
     '<button id="'+deleteId+'" class="danger-button" type="button">'+uiIcon('trash')+' Eliminar</button>'+
     '</div></details></div>';
 }
@@ -1925,6 +1926,62 @@ function openPostponeSheet(id,occurrenceAt,recurring){
 
 function prepareQuickNote(){prepareQuickNoteForType('');}
 
+/** Crea un borrador NUEVO desde un evento; nunca actualiza la fila ni la serie original.
+ * Una aparición recurrente se copia como evento independiente, sin repetición automática.
+ * Los avisos se presentan para revisión; no se programan antes de pulsar Guardar.
+ */
+function duplicateCalendarEvent(id,occurrenceAt=0,recurring=false){
+  const source=parseNative(recurring?NexoNative.getOccurrence(Number(id),Number(occurrenceAt)):NexoNative.getItem(Number(id)),{});
+  if(!source.id||source.type!=='event'){
+    toast('No se puede duplicar este evento.');return;
+  }
+  const iso=source.dueAt?isoFromMs(Number(source.dueAt)):{date:'',time:''};
+  const endAt=source.dueAt?itemEffectiveEndAt(source):0;
+  const endIso=endAt?isoFromMs(endAt):{date:'',time:''};
+  const allDay=!!(source.allDay===true||source.hasTime===false);
+  const sourceAlerts=normalizeAlertMinutes(getItemAlertMinutes(recurring?Number(id):Number(source.id)));
+
+  closeModal(true);
+  navigate('save');
+  clearCapture(); // Elimina también los identificadores de Inbox y Calendar de la captura anterior.
+  state.capturePinnedType=source.type;
+  state.capturePinnedDate='';
+  state.captureParticipantIds=normalizeParticipantIds(source.participantIds||[]);
+  $('#captureType').value=source.type;
+  $('#captureHeading').textContent='Duplicar evento';
+  $('#captureTitle').value=String(source.title||'');
+  $('#captureDescription').value=String(source.body||'');
+  $('#captureCategory').value=CATEGORIES.includes(categoryLabel(source.category))?categoryLabel(source.category):'Otro';
+  updateCategorySelectIcon($('#captureCategory'));
+  $('#captureDate').value=iso.date;
+  $('#captureEndDate').value=endIso.date||iso.date;
+  $('#captureAllDay').checked=allDay;
+  $('#captureTime').value=!allDay?iso.time:'';
+  $('#captureEndTime').value=!allDay?endTimeForItem(source):'';
+  $('#captureLocation').value=eventLocationValue(source);
+  $('#captureMapsUrl').value=String(source.mapsUrl||'');
+  $('#captureTimeZone').value=String(source.timeZone||'Europe/Madrid');
+  $('#capturePriority').value=String(source.priority||1);
+  // No copiar la periodicidad: duplicar una serie puede generar cientos de eventos/avisos.
+  $('#captureRecurrence').value='none';
+  $('#captureRecurrenceUntil').value='';
+  $('#captureRecurrenceUntilLabel').classList.add('hidden');
+  state.captureAlerts=iso.date?sourceAlerts:[];
+  state.captureSuggestedAlert=null;
+  $('#captureVoiceEnabled').checked=!!(iso.date&&source.voiceEnabled);
+  syncCaptureAllDay(false);
+  renderCapturePeopleAssignment();
+  refreshCaptureAlertEditor();
+  $('#captureDetails').open=true;
+  const notice=$('#captureCloneNotice');
+  if(notice){
+    notice.textContent='Borrador nuevo a partir de «'+String(source.title||'evento')+'». Revisa especialmente la fecha y los avisos antes de guardar. El original no se modificará.'+
+      (recurring?' Esta aparición se ha copiado sin repetición para evitar crear otra serie.':'');
+    notice.classList.remove('hidden');
+  }
+  requestAnimationFrame(()=>$('#captureDate')?.focus());
+}
+
 function prepareQuickNoteForType(type='event',date=''){
   if(type==='document'){openDocumentEditor();return;}
   if(isPlaceType(type)){openPlaceEditor();return;}
@@ -2087,6 +2144,7 @@ function clearCapture(keepPinned=false) {
   state.pendingSave=false; state.attachment=null; resetCaptureManualFields(); state.inboxCaptureId=0; state.inboxCaptureOriginal=null; state.calendarUpdateItemId=0;
   if(!keepPinned){state.capturePinnedDate='';state.capturePinnedType='event';state.captureReturn='today';}
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
+  $('#captureCloneNotice')?.classList.add('hidden');
   const identity=$('#captureSenderInfo');if(identity){identity.innerHTML='';identity.classList.add('hidden');}
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
   resetAnalysis();
@@ -2970,7 +3028,7 @@ function openAgendaOptions(id,occurrenceAt,recurring){
   const i=parseNative(recurring?NexoNative.getOccurrence(id,occurrenceAt):NexoNative.getItem(id),{});
   if(!i.id){toast('Este elemento ya no existe.');refreshCurrent();return;}
   const done=i.status==='done'||i.occurrenceStatus==='done',appointment=isAppointmentType(i.type);
-  openModal(i.title||'Cita',`<div class="scope-buttons"><button id="agendaEditAction" class="primary-button">${uiIcon('edit')} Ver / editar</button>${appointment?`<button id="agendaDoneAction" class="secondary-button">${uiIcon('check')} ${done?'Marcar pendiente':'Marcar completada'}</button>`:''}${appointment&&!done&&i.dueAt?'<button id="agendaPostponeAction" class="secondary-button">Posponer</button>':''}${(i.locationText||i.mapsUrl)?`<button id="agendaDirectionsAction" class="secondary-button">${uiIcon('pin')} Ir al lugar</button>`:''}<button id="agendaShareAction" class="secondary-button">${uiIcon('share')} Compartir</button></div>`);
+  openModal(i.title||'Cita',`<div class="scope-buttons"><button id="agendaEditAction" class="primary-button">${uiIcon('edit')} Ver / editar</button>${appointment?`<button id="agendaDoneAction" class="secondary-button">${uiIcon('check')} ${done?'Marcar pendiente':'Marcar completada'}</button>`:''}${appointment&&!done&&i.dueAt?'<button id="agendaPostponeAction" class="secondary-button">Posponer</button>':''}${(i.locationText||i.mapsUrl)?`<button id="agendaDirectionsAction" class="secondary-button">${uiIcon('pin')} Ir al lugar</button>`:''}<button id="agendaShareAction" class="secondary-button">${uiIcon('share')} Compartir</button>${i.type==='event'?'<button id="agendaDuplicateAction" class="secondary-button">⧉ Duplicar evento</button>':''}</div>`);
   $('#agendaEditAction').addEventListener('click',()=>{closeModal();if(recurring)openOccurrence(id,occurrenceAt);else openItem(id);});
   $('#agendaDoneAction')?.addEventListener('click',()=>{
     const result=parseNative(recurring?NexoNative.setOccurrenceStatus(id,occurrenceAt,done?'pending':'done'):NexoNative.updateItem(JSON.stringify({id,status:done?'pending':'done',statusManual:true})),{});
@@ -2980,6 +3038,7 @@ function openAgendaOptions(id,occurrenceAt,recurring){
   $('#agendaPostponeAction')?.addEventListener('click',()=>{closeModal();openPostponeSheet(id,occurrenceAt,recurring);});
   $('#agendaDirectionsAction')?.addEventListener('click',()=>{closeModal();if(i.mapsUrl)NexoNative.openExternal(String(i.mapsUrl));else NexoNative.openLocationDirections(String(i.locationText));});
   $('#agendaShareAction').addEventListener('click',()=>{closeModal();openItemShareMenu(id,occurrenceAt,recurring,!!i.dueAt);});
+  $('#agendaDuplicateAction')?.addEventListener('click',()=>duplicateCalendarEvent(id,occurrenceAt,recurring));
 }
 
 function renderTasksPanel(){renderAppointmentsPanel();}
@@ -3188,7 +3247,7 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${relatedLinksSectionHtml(id)}
@@ -3245,6 +3304,7 @@ function openItem(id){
   });
   bindEventLocationField('#editLocation','#editMapsUrl','#editLocationMapBtn');
   if($('#shareItemBtn'))$('#shareItemBtn').addEventListener('click',()=>openItemShareMenu(i.id,i.dueAt||0,false,!!i.dueAt));
+  $('#duplicateItemBtn')?.addEventListener('click',()=>duplicateCalendarEvent(i.id,0,false));
   if($('#postponeItemBtn'))$('#postponeItemBtn').addEventListener('click',()=>{closeModal();openPostponeSheet(i.id,i.dueAt,false);});
   if(url)$('#openUrlBtn').addEventListener('click',()=>NexoNative.openExternal(url));
   $('#deleteItemBtn').addEventListener('click',()=>confirmDeleteItem(i));
@@ -3255,7 +3315,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if(i.type==='document'){openDocumentEditor(seriesId);return;}
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,endTime=endTimeForItem(i),originalEndTime=endTime,originalAllDay=allDay,originalVoiceEnabled=!!i.voiceEnabled,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
+  openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
     <div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
@@ -3303,6 +3363,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if($('#occPostpone'))$('#occPostpone').addEventListener('click',()=>{closeModal();openPostponeSheet(seriesId,occurrenceAt,true);});
   bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn');
   $('#shareOccurrenceBtn').addEventListener('click',()=>openItemShareMenu(seriesId,occurrenceAt,true,true));
+  $('#duplicateOccurrenceBtn')?.addEventListener('click',()=>duplicateCalendarEvent(seriesId,occurrenceAt,true));
   $('#saveOccurrenceBtn').addEventListener('click',()=>{
     const date=$('#occDate').value,allDay=!!$('#occAllDay').checked,time=allDay?'':$('#occTime').value,endDate=$('#occEndDate').value||date,endTime=allDay?'':$('#occEndTime').value,rec=$('#occRecurrence').value,untilDate=$('#occUntil').value,dueAt=dateTimeToMs(date,time),endAt=eventEndFromFields(date,time,endDate,endTime,allDay),durationMinutes=durationMinutesBetween(dueAt,endAt);
     if(!date){toast('Indica una fecha.');return;}if(endDate<date){toast('La fecha de fin no puede ser anterior al inicio.');return;}

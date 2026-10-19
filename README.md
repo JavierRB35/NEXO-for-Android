@@ -1,10 +1,12 @@
-# Nexo 3.7.37
+# Nexo 3.7.38
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.37**, `versionCode 130`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
+Esta versión corresponde a **Nexo 3.7.38**, `versionCode 131`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
 
-**Nuevo en 3.7.37:** categorías independientes para Libros y Películas y series, con propuestas propias de cada módulo, nuevas categorías personalizadas, selección al editar y filtro combinado con búsqueda, estado y tipo. La categoría se muestra en tarjetas, fichas y contenido compartido. Migración aditiva de SQLite 31→32, sin alterar los registros ni sus valoraciones.
+**Nuevo en 3.7.38:** botón **Duplicar evento** en «Más» de las fichas de Agenda y en las opciones de los eventos del calendario. Abre una nueva captura prellenada con título, descripción, categoría, fechas, horas, ubicación, participantes, prioridad y avisos (incluida la voz si estaba activa). No guarda automáticamente, no modifica el original, no hereda su identidad ni sincronización; los eventos recurrentes se copian desde la aparición elegida como evento independiente sin repetición por defecto. Aviso visible para revisar fechas y avisos antes de guardar.
+
+**Nuevo en 3.7.38:** categorías independientes para Libros y Películas y series, con propuestas propias de cada módulo, nuevas categorías personalizadas, selección al editar y filtro combinado con búsqueda, estado y tipo. La categoría se muestra en tarjetas, fichas y contenido compartido. Migración aditiva de SQLite 31→32, sin alterar los registros ni sus valoraciones.
 
 **Nuevo en 3.7.35:** Herramientas → Ideas y escritos incorpora **Películas y series**: tipos separados, búsqueda, estados Quiero ver / Viendo / Vista / Abandonada, progreso, fechas, favoritos, valoración de 1 a 5 estrellas, notas con dictado, estadísticas y fichas con editar, compartir y eliminar. Usa tabla local `media_items`, independiente de `books`; migración aditiva a esquema 31.
 
