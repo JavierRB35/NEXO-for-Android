@@ -21,7 +21,7 @@ for(const id of ['editLinkButton','occLinkButton'])assert(app.includes("'#"+id+"
 assert(app.includes('saveCapture(JSON.stringify(payload))'));
 assert(app.includes('finishPendingEventLinks(state.calendarUpdateItemId)'));
 assert(app.includes("state.calendarUpdateItemId=Number(res.id)||state.calendarUpdateItemId"));
-assert(app.includes("state.relatedDocumentCallback(result);return;"));
+assert(app.includes("if(state.relatedDocumentCallback)state.relatedDocumentCallback(result)"));
 assert(app.includes('data-related-expiry'));
 assert(css.includes('.related-event-origin')&&css.includes('.event-capture-links-head'));
 assert(app.includes("uiIcon('save')+(contextual?"));
