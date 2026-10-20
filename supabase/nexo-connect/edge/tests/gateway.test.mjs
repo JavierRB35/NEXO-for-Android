@@ -60,3 +60,28 @@ test("reject oversize bodies and methods other than POST",async()=>{
   body:JSON.stringify({junk:"a".repeat(3000)})});
  assert.equal((await f.handle(huge)).status,413);
 });
+
+test("streamed request without content-length cannot bypass payload limit",async()=>{
+ const f=fixture();
+ const long=new Uint8Array(3000).fill(65);
+ const stream=new ReadableStream({
+   start(ctrl){ctrl.enqueue(long);ctrl.close()}
+ });
+ const request=new Request("https://nexo.test/functions/v1/nexo-connect-gateway/status",{
+  method:"POST",headers:authHeader,body:stream,duplex:"half"
+ });
+ const r=await f.handle(request);
+ assert.equal(r.status,413);
+ assert.equal(f.calls.device,0);
+});
+test("Edge Function route is strict and accepts only named status path",async()=>{
+ const f=fixture();
+ const r=await f.handle(new Request("https://x.test/functions/v1/nexo-connect-gateway/status",{
+  method:"POST",headers:authHeader,body:"{}"
+ }));
+ assert.equal(r.status,200);
+ const other=await f.handle(new Request("https://x.test/functions/v1/nexo-connect-gateway/anything",{
+  method:"POST",headers:authHeader,body:"{}"
+ }));
+ assert.equal(other.status,404);
+});
