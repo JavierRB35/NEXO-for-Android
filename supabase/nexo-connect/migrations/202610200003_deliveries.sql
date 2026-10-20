@@ -202,7 +202,7 @@ BEGIN
       WHERE id=p_id;
     INSERT INTO connect.delivery_events(delivery_id,actor_id,new_status)
       VALUES(p_id,d.recipient_id,'expired');
-    RAISE EXCEPTION 'Delivery expired; retry after refresh' USING ERRCODE='22023';
+    RETURN 'expired';
   END IF;
   UPDATE connect.deliveries
    SET status=p_target,resolved_at=now(),ciphertext=NULL
