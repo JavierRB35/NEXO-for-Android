@@ -13,23 +13,24 @@ SET ROLE service_role;
 SELECT connect.api_issue_challenge(
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
  'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',2,'delivery/send') AS nonce \gset
+SELECT set_config('nexo.test_challenge', :'nonce', false);
 DO $check$
 BEGIN
  IF connect.api_consume_challenge(
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
- 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',2,'delivery/resolve',:'nonce')
+ 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',2,'delivery/resolve',current_setting('nexo.test_challenge')::uuid)
  THEN RAISE EXCEPTION 'Wrong route consumed nonce'; END IF;
  IF connect.api_consume_challenge(
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
- 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',1,'delivery/send',:'nonce')
+ 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',1,'delivery/send',current_setting('nexo.test_challenge')::uuid)
  THEN RAISE EXCEPTION 'Revoked old device consumed nonce'; END IF;
  IF NOT connect.api_consume_challenge(
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
- 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',2,'delivery/send',:'nonce')
+ 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',2,'delivery/send',current_setting('nexo.test_challenge')::uuid)
  THEN RAISE EXCEPTION 'Valid nonce not consumed'; END IF;
  IF connect.api_consume_challenge(
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
- 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',2,'delivery/send',:'nonce')
+ 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',2,'delivery/send',current_setting('nexo.test_challenge')::uuid)
  THEN RAISE EXCEPTION 'Replay accepted'; END IF;
 END $check$;
 RESET ROLE;
