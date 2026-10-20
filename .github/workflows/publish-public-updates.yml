@@ -69,7 +69,7 @@ jobs:
           name,code,tag=os.environ['NAME'],int(os.environ['CODE']),os.environ['TAG']
           filename=f'Nexo-{tag}-release.apk'
           apk=Path('dist')/filename
-          release=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())['release']
+          release=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text()).get('release') or {}
           notes=(release.get('body') or 'Mejoras y correcciones de Nexo.').strip()[:800]
           metadata={
             'schemaVersion':1,'packageName':'com.jruiz.nexo',
