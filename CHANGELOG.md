@@ -1,3 +1,10 @@
+## Nexo 3.7.46 — Actualizaciones verificadas desde la aplicación
+- Se consulta una versión oficial publicada en un canal de distribución separado del código privado.
+- Aviso en primer plano y notificación diaria (sujeta a las restricciones de Android).
+- Descarga de APK comprobando SHA-256, tamaño, paquete, versionCode y firma Release anclada.
+- Instalación mediante instalador Android con confirmación; sin perder datos por reinstalación.
+- Requiere la configuración inicial del repositorio público y credencial de publicación en GitHub Actions.
+
 ## Nexo 3.7.45 — Guardar solo como disquete en toda Nexo
 - Se elimina el texto visible de todos los botones CRUD de guardado; se preservan el icono de disquete, el aria-label y el title para accesibilidad.
 - Libros y Películas/series utilizan el mismo pie de acciones inferior fijo, con Cancelar y Guardar compactos; sin desbordes de texto.

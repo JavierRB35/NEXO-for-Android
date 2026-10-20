@@ -1,0 +1,125 @@
+name: Publish Nexo public update channel
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag published by the signed APK workflow
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing official release tag, e.g. v3.7.46
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Verify release identity
+        id: version
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          NAME="$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" app/build.gradle | head -1)"
+          CODE="$(sed -n 's/.*versionCode \([0-9][0-9]*\).*/\1/p' app/build.gradle | head -1)"
+          [ "$TAG" = "v$NAME" ] && [ -n "$CODE" ] || exit 1
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Download and verify signed private release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "Nexo-*-release.apk" --dir dist
+          FILE="dist/Nexo-$TAG-release.apk"
+          [ -s "$FILE" ] || { echo "Falta la APK oficial"; exit 1; }
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          [ -n "$APKSIGNER" ] || exit 1
+          "$APKSIGNER" verify --print-certs "$FILE" > dist/signatures.txt
+          EXPECTED="595799e351233418f05bc5053e42b3aff439d677ffbb0f59a1d92e29d15fec48"
+          ACTUAL="$(sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' dist/signatures.txt | head -1 | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          [ "$ACTUAL" = "$EXPECTED" ] || { echo "Firma no oficial"; exit 1; }
+
+      - name: Prepare public metadata
+        env:
+          NAME: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          name,code,tag=os.environ['NAME'],int(os.environ['CODE']),os.environ['TAG']
+          filename=f'Nexo-{tag}-release.apk'
+          apk=Path('dist')/filename
+          release=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())['release']
+          notes=(release.get('body') or 'Mejoras y correcciones de Nexo.').strip()[:800]
+          metadata={
+            'schemaVersion':1,'packageName':'com.jruiz.nexo',
+            'versionName':name,'versionCode':code,
+            'apkUrl':f'https://github.com/JavierRB35/nexo-android-updates/releases/download/{tag}/{filename}',
+            'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
+            'apkSize':apk.stat().st_size,'notes':notes
+          }
+          Path('dist/latest.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n')
+          PY
+
+      # El repositorio fuente sigue privado. Solo la APK y latest.json son públicos.
+      - name: Publish to public distribution repository
+        env:
+          GH_TOKEN: ${{ secrets.NEXO_UPDATE_PUBLISH_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          NAME: ${{ steps.version.outputs.name }}
+        run: |
+          set -euo pipefail
+          [ -n "$GH_TOKEN" ] || { echo "Falta secret NEXO_UPDATE_PUBLISH_TOKEN"; exit 1; }
+          PUBLIC="JavierRB35/nexo-android-updates"
+          [ "$(gh api "repos/$PUBLIC" --jq '.private')" = false ] || { echo "Crea primero el repo público"; exit 1; }
+          PREVIOUS_SHA="$(gh api "repos/$PUBLIC/contents/latest.json" --jq '.sha' 2>/dev/null || true)"
+          if [ -n "$PREVIOUS_SHA" ]; then
+            gh api "repos/$PUBLIC/contents/latest.json" --jq '.content' | base64 --decode > dist/previous.json
+            python3 - <<'PY'
+          import json
+          previous=json.load(open('dist/previous.json'))
+          current=json.load(open('dist/latest.json'))
+          if current['versionCode'] < previous['versionCode']:
+              raise SystemExit('No se puede publicar una versión antigua')
+          if current['versionCode'] == previous['versionCode'] and current['apkSha256'] != previous['apkSha256']:
+              raise SystemExit('No se puede sustituir silenciosamente una versión ya publicada')
+          PY
+          fi
+          APK="dist/Nexo-$TAG-release.apk"
+          if gh release view "$TAG" --repo "$PUBLIC" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --repo "$PUBLIC" --clobber
+          else
+            gh release create "$TAG" "$APK" --repo "$PUBLIC" --target main \
+              --title "Nexo $NAME" --notes "APK oficial firmada de Nexo."
+          fi
+          DATA="$(base64 -w0 dist/latest.json)"
+          if [ -n "$PREVIOUS_SHA" ]; then
+            gh api --method PUT "repos/$PUBLIC/contents/latest.json" \
+              -f message="Update manifest for $TAG" -f branch=main \
+              -f content="$DATA" -f sha="$PREVIOUS_SHA" >/dev/null
+          else
+            gh api --method PUT "repos/$PUBLIC/contents/latest.json" \
+              -f message="Publish initial Nexo update manifest" -f branch=main \
+              -f content="$DATA" >/dev/null
+          fi
+          echo "Canal público actualizado: $TAG"
