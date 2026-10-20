@@ -116,4 +116,29 @@ BEGIN
  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
 END $revoked$;
 RESET ROLE;
+-- A late key-verification attempt must never restore trust after unlink.
+-- This tests the revoked state. The FOR SHARE/UPDATE race is serialized by
+-- the function's active-contact row lock (subject to future stress testing).
+SET ROLE service_role;
+DO $no_stale_pin$
+BEGIN
+ BEGIN
+  PERFORM connect.api_approve_peer_key(
+   '11111111-1111-4111-8111-111111111111',
+   '66666666-6666-4666-8666-666666666666',1,
+   extensions.digest(decode(repeat('c6',32),'hex'),'sha256'),
+   extensions.digest(decode(repeat('d6',32),'hex'),'sha256'));
+  RAISE EXCEPTION 'Revoked contact trust restored by late verifier';
+ EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+END $no_stale_pin$;
+RESET ROLE;
+DO $trust_still_revoked$
+BEGIN
+ IF EXISTS(SELECT 1 FROM connect.peer_key_approvals
+   WHERE (owner_id='11111111-1111-4111-8111-111111111111'
+    AND peer_id='66666666-6666-4666-8666-666666666666')
+      OR (owner_id='66666666-6666-4666-8666-666666666666'
+    AND peer_id='11111111-1111-4111-8111-111111111111'))
+ THEN RAISE EXCEPTION 'Peer key approvals survive unlink'; END IF;
+END $trust_still_revoked$;
 \echo NEXO CONNECT: SIGNED CONTACT PERMISSIONS, UNLINK, KEY WIPE, CIPHERTEXT CANCELLATION PASS
