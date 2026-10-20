@@ -135,11 +135,11 @@ BEGIN
   IF substring(p_context FROM 6 FOR 16)<>decode(replace(p_id::text,'-',''),'hex')
     OR substring(p_context FROM 22 FOR 16)<>decode(replace(p_sender::text,'-',''),'hex')
     OR substring(p_context FROM 38 FOR 16)<>decode(replace(p_recipient::text,'-',''),'hex')
-    OR get_byte(p_context,53)<>CASE p_entity_type
+    OR get_byte(p_context,53)<>(CASE p_entity_type
       WHEN 'appointment' THEN 1 WHEN 'note' THEN 2
       WHEN 'list' THEN 3 WHEN 'journal' THEN 4
       WHEN 'book' THEN 5 WHEN 'movie' THEN 6
-      WHEN 'document' THEN 7 ELSE 0 END
+      WHEN 'document' THEN 7 ELSE 0 END)
     OR (get_byte(p_context,54)*16777216+get_byte(p_context,55)*65536+
         get_byte(p_context,56)*256+get_byte(p_context,57))<>p_sender_generation
     OR (get_byte(p_context,58)*16777216+get_byte(p_context,59)*65536+
