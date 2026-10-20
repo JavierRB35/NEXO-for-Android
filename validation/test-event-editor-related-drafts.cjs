@@ -24,7 +24,7 @@ assert(app.includes("state.calendarUpdateItemId=Number(res.id)||state.calendarUp
 assert(app.includes("if(state.relatedDocumentCallback)state.relatedDocumentCallback(result)"));
 assert(app.includes('data-related-expiry'));
 assert(css.includes('.related-event-origin')&&css.includes('.event-capture-links-head'));
-assert(app.includes("button.innerHTML=uiIcon('save')+'<span class="));
+assert(app.includes("button.innerHTML=uiIcon('save');"),'Guardar no debe añadir texto visible');
 assert(app.includes("observer.observe(document.body,{subtree:true,childList:true})"));
 const changes={list:0,note:0,doc:0,link:[],discard:[],savedIDs:[],failLink:false,failDoc:false};
 let id=100;
