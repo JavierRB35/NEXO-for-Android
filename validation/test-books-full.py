@@ -72,12 +72,16 @@ assert "if(savedId)openDetails(savedId)" not in books
 assert "const scrollY=editor.scrollY" in books
 assert "requestAnimationFrame(()=>window.scrollTo(0,scrollY))" in books
 
-# UX de Libros: mismos iconos que Notas, acciones por encima de resúmenes largos.
+# UX de Libros: acciones de ficha arriba y guardado fijo, como en eventos.
 assert "book-detail-quick-actions record-card-actions" in books
 assert "bookDetailShare" in books and "NexoNative.sharePlainText(live.title" in books
 assert "icon-action icon-action--danger" in books
 assert "book-editor-toolbar" in books
-assert 'id="bookSave" class="icon-button primary book-editor-save"' in books
+assert 'class="record-form-actions--compact book-editor-actions"' in books
+assert 'id="bookSave" class="primary-button"' in books
+assert 'id="bookCancel" class="secondary-button"' in books
+assert 'class="nexo-action-label">Guardar libro</span>' in books
+assert "appendChild(document.querySelector('.book-editor-actions'))" in books
+assert ".modal-sheet>.book-editor-actions>button" in css
 assert 'class="book-card-rating"' in books and "book-card-star" in books
 assert ".book-card-rating" in css and ".book-detail-quick-actions" in css
-assert "position:sticky" in css and ".book-editor-toolbar" in css

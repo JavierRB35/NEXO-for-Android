@@ -5100,6 +5100,8 @@ function normalizeSaveButtons(root=document){
     const explicit=saveIds.test(id)||contextual||button.hasAttribute('data-note-close-save');
     if(!explicit)return;
     const visibleText=String(button.textContent||'').trim();
+    // Un control solo-icono no admite una etiqueta visible sin cambiar su geometría.
+    if(!visibleText&&button.classList.contains('icon-button'))return;
     const label=visibleText||String(button.getAttribute('aria-label')||'Guardar').trim()||'Guardar';
     if(id==='saveCaptureBtn'&&label==='Revisar pauta')return;
     if(!/^(guardar|confirmar tratamiento|crear y vincular)/i.test(label)&&!button.classList.contains('nexo-unified-save'))return;
