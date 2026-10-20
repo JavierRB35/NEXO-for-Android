@@ -20,7 +20,7 @@ async function fixture(){
  const calls={auth:0,consume:0,create:0};
  let used=false;
  const handle=createGateway({
-  authenticate:async token=>{calls.auth++;assert.equal(token,"verified","Incorrect bearer token extraction");return {id:UID}},
+  authenticate:async token=>{calls.auth++;return token==="verified"?{id:UID}:null},
   getDevice:async user=>{
     assert.equal(user,UID);
     return {user_id:UID,device_id:DEVICE,generation:2,signing_public_key:raw};

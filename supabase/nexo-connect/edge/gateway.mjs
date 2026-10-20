@@ -1,7 +1,7 @@
 // Supabase Auth protected gateway; does not expose administrative credentials.
 // Signed invite requests use bytes EXACTLY as transmitted, preventing altered JSON.
 import {verifyDeviceProof} from "./proof.mjs";
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ACTIONS=new Set([
   "contact/invite","contact/accept","contact/permissions",
   "contact/unlink","key/verify","delivery/send",

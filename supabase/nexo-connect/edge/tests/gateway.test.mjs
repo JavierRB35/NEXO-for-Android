@@ -13,7 +13,7 @@ const req=(path,body={},headers=authHeader,method="POST")=>
 function fixture(){
  const calls={auth:0,device:0,challenge:0};
  const handle=createGateway({
-  authenticate:async token=>{calls.auth++;assert.equal(token,"valid-session","Incorrect bearer token extraction");return {id:UID}},
+  authenticate:async token=>{calls.auth++;return token==="valid-session"?{id:UID}:null},
   getDevice:async user=>{calls.device++;assert.equal(user,UID);
     return {user_id:UID,device_id:DEVICE,generation:2}},
   issueChallenge:async d=>{calls.challenge++;
