@@ -136,7 +136,10 @@ assert.equal(doc.querySelectorAll('#bookSave').length,1,'Una única acción de g
 assert.equal(doc.querySelector('.modal-sheet>.book-editor-actions #bookSave')!==null,true,'Guardar está en el pie fijo, no encima del formulario');
 assert.equal(doc.querySelector('.modal-sheet>.book-editor-actions #bookCancel')!==null,true,'Cancelar comparte el pie del editor');
 assert.equal(doc.querySelector('#bookSave').classList.contains('primary-button'),true,'Mismo botón principal que en eventos');
-assert.equal(doc.querySelector('#bookSave .nexo-action-label').textContent,'Guardar libro','El texto está visible y no depende de aria-label');
+assert.equal(doc.querySelector('#bookSave').textContent.trim(),'','Guardar solo tiene icono, sin texto');
+assert.equal(doc.querySelector('#bookSave').getAttribute('aria-label'),'Guardar libro','Etiqueta accesible del disquete');
+assert.equal(doc.querySelector('#bookSave').getAttribute('title'),'Guardar libro');
+assert.equal(doc.querySelector('#bookSave').classList.contains('nexo-unified-save'),true);
 assert.equal(doc.querySelector('#bookSave svg').getAttribute('data-icon'),'save','Icono de disquete');
 assert.equal(doc.querySelectorAll('.book-editor .modal-actions').length,0,'Sin botonera duplicada al final del formulario');
 doc.querySelector('#bookStatus').value='reading';

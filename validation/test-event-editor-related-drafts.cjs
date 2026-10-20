@@ -24,7 +24,7 @@ assert(app.includes("state.calendarUpdateItemId=Number(res.id)||state.calendarUp
 assert(app.includes("if(state.relatedDocumentCallback)state.relatedDocumentCallback(result)"));
 assert(app.includes('data-related-expiry'));
 assert(css.includes('.related-event-origin')&&css.includes('.event-capture-links-head'));
-assert(app.includes("button.innerHTML=uiIcon('save')+'<span class="));
+assert(app.includes("button.innerHTML=uiIcon('save');"),'Guardar no debe añadir texto visible');
 assert(app.includes("observer.observe(document.body,{subtree:true,childList:true})"));
 const changes={list:0,note:0,doc:0,link:[],discard:[],savedIDs:[],failLink:false,failDoc:false};
 let id=100;
@@ -82,11 +82,14 @@ const buttons=[
  {id:'saveCaptureBtn',textContent:'Revisar pauta',attributes:{},innerHTML:'',classList:new Set()},
  {id:'downloadFile',textContent:'Guardar archivo en Descargas',attributes:{},innerHTML:'',classList:new Set()}
 ].map(o=>({...o,hasAttribute:k=>k in o.attributes,getAttribute:k=>o.attributes[k]||'',setAttribute(k,v){this.attributes[k]=v;},
- classList:{contains:k=>o.classList.has(k),add:k=>o.classList.add(k)},querySelector:()=>null}));
+ classList:{contains:k=>o.classList.has(k),add:k=>o.classList.add(k),remove:k=>o.classList.delete(k)},querySelector:()=>null}));
 iconCtx.normalizeSaveButtons({querySelectorAll:q=>{assert.equal(q,'button');return buttons;}});
 assert(buttons[0].innerHTML.includes('#nx-icon-save'));
-assert(buttons[0].innerHTML.includes('Guardar documento'),'El texto visible del botón Guardar debe conservarse');
+assert(!buttons[0].innerHTML.includes('Guardar documento'),'Guardar es exclusivamente un disquete');
+assert(buttons[0].classList.contains('nexo-unified-save'));
+assert.equal(buttons[0].attributes.title,'Guardar documento');
 assert(buttons[1].innerHTML.includes('#nx-icon-save'));
+assert(!buttons[1].innerHTML.includes('Confirmar tratamiento'),'La accesibilidad conserva la etiqueta, no se ve el texto');
 assert.equal(buttons[2].innerHTML,'','Revisar pauta no es Guardar');
 assert.equal(buttons[3].innerHTML,'','Exportar audio/archivo no es Guardar del CRUD');
 assert.equal(buttons[0].attributes['aria-label'],'Guardar documento');

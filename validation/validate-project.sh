@@ -5,6 +5,7 @@ node --check app/src/main/assets/app.js
 node validation/test-duplicate-events.cjs
 node validation/test-link-icon-and-top-crud.cjs
 node validation/test-event-editor-related-drafts.cjs
+node validation/test-save-icon-only.cjs
 node validation/test-fixed-actionbar-runtime.cjs
 node --check app/src/main/assets/books.js
 node --check app/src/main/assets/media.js

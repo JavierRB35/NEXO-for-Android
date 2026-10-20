@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {JSDOM} from 'jsdom';
 
-const dom=new JSDOM('<main><div id="panelContent"></div><div id="modalBody"></div></main>',{
+const dom=new JSDOM('<main><div id="panelContent"></div><div id="modal"><div class="modal-sheet"><div id="modalBody"></div></div></div></main>',{
   url:'https://nexo.local/',runScripts:'outside-only',pretendToBeVisual:true
 });
 const {window}=dom, document=window.document;
@@ -12,10 +12,16 @@ window.scrollTo=()=>{};
 window.parseNative=(raw,fallback)=>{try{return JSON.parse(raw);}catch{return fallback;}};
 window.esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 window.escAttr=v=>window.esc(v).replace(/"/g,'&quot;');
-window.uiIcon=name=>'<i>'+name+'</i>';
+window.uiIcon=name=>'<svg data-icon="'+name+'"></svg>';
 window.toast=()=>{};
-window.openModal=(_title,html)=>{document.querySelector('#modalBody').innerHTML=html;};
-window.closeModal=()=>{document.querySelector('#modalBody').innerHTML='';};
+window.openModal=(_title,html)=>{
+  document.querySelector('.modal-sheet>.record-form-actions--compact')?.remove();
+  document.querySelector('#modalBody').innerHTML=html;
+};
+window.closeModal=()=>{
+  document.querySelector('#modalBody').innerHTML='';
+  document.querySelector('.modal-sheet>.record-form-actions--compact')?.remove();
+};
 window.confirmGeneric=(_title,_body,callback)=>callback();
 window.startManagedDictation=()=>{};
 window.openPanel=()=>window.NexoMedia.render();
@@ -37,6 +43,11 @@ window.eval(fs.readFileSync('app/src/main/assets/media.js','utf8'));
 window.NexoMedia.render();
 assert.equal(document.querySelectorAll('[data-media-type-filter]').length,3);
 window.NexoMedia.openEditor();
+assert.equal(document.querySelectorAll('#bookSave').length,1,'Solo un disquete de guardar');
+assert(document.querySelector('.modal-sheet>.book-editor-actions #bookSave'),'Guardar permanece fijo abajo');
+assert.equal(document.querySelector('#bookSave').textContent.trim(),'','Disquete sin texto');
+assert.equal(document.querySelector('#bookSave').getAttribute('aria-label'),'Guardar título');
+assert.equal(document.querySelector('#bookSave svg').getAttribute('data-icon'),'save');
 document.querySelector('#bookTitle').value='El viaje';
 document.querySelector('#bookAuthor').value='Ana';
 document.querySelector('#mediaKind').value='series';

@@ -63,6 +63,7 @@ jobs:
           node validation/test-calendar-card-runtime.js
           python3 validation/test-editor-actionbar-3_7_42.py
           node validation/test-event-editor-related-drafts.cjs
+          node --check validation/test-save-icon-only.cjs
           node --check app/src/main/assets/app.js
 
       - name: Compile debug APK
@@ -82,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          STAGE="$RUNNER_TEMP/Nexo_3_7_44_AndroidIDE"
+          STAGE="$RUNNER_TEMP/Nexo_3_7_45_AndroidIDE"
           mkdir -p "$STAGE"
           git archive --format=tar HEAD | tar -x -C "$STAGE"
 
@@ -100,8 +101,8 @@ jobs:
       - name: Upload clean project
         uses: actions/upload-artifact@v4
         with:
-          name: Nexo_3_7_44_AndroidIDE
-          path: ${{ runner.temp }}/Nexo_3_7_44_AndroidIDE/
+          name: Nexo_3_7_45_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_3_7_45_AndroidIDE/
           include-hidden-files: true
           if-no-files-found: error
           compression-level: 6

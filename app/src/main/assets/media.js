@@ -318,11 +318,7 @@ window.NexoMedia = (() => {
     const rating=ratingOf(source);
     const selectedCategory=source.id?categoryOf(source):(categoryFilter==='all'?'':categoryFilter);
     openModal(id?'Editar título':'Nuevo título',`<div class="modal-form book-editor">
-      <div class="book-editor-toolbar" role="group" aria-label="Acciones del editor">
-        <span class="book-editor-toolbar-label">Datos de la película o serie</span>
-        <button id="bookCancel" class="secondary-button book-editor-cancel" type="button">Cancelar</button>
-        <button id="bookSave" class="icon-button primary book-editor-save" type="button" title="Guardar título" aria-label="Guardar título">${uiIcon('save')}</button>
-      </div>
+      <div class="book-editor-toolbar"><span class="book-editor-toolbar-label">Datos de la película o serie</span></div>
       <label>Título<input id="bookTitle" type="text" maxlength="250" value="${escAttr(source.title||'')}" placeholder="Título" required></label>
       <label>Director o creador <span class="optional">(opcional)</span><input id="bookAuthor" type="text" maxlength="180" value="${escAttr(source.creator||'')}" placeholder="Director o creador"></label>
       <label>Tipo<select id="mediaKind"><option value="movie" ${(!source.mediaType||source.mediaType==='movie')?'selected':''}>Película</option><option value="series" ${source.mediaType==='series'?'selected':''}>Serie</option></select></label>
@@ -343,7 +339,12 @@ window.NexoMedia = (() => {
         <small class="muted">El dictado se convierte a texto editable; no se almacena audio.</small>
       </div>
       <p class="book-form-error hidden" id="bookError" role="alert"></p>
+      <div class="record-form-actions--compact book-editor-actions" role="group" aria-label="Acciones del editor de películas y series">
+        <button id="bookCancel" class="secondary-button" type="button">${uiIcon('close')}<span>Cancelar</span></button>
+        <button id="bookSave" class="primary-button nexo-unified-save" type="button" title="Guardar título" aria-label="Guardar título">${uiIcon('save')}</button>
+      </div>
     </div>`);
+    document.querySelector('#modal .modal-sheet')?.appendChild(document.querySelector('.book-editor-actions'));
     editor={id:number(id),favorite:!!source.favorite,rating,scrollY:window.scrollY,baseline:'',sourceStatus:source.status||'',
       hadReadData:!!(source.progress||source.startDate||source.finishDate||source.abandonedDate||source.summary)};
     document.querySelector('#bookCategorySelect').addEventListener('change',updateCategoryCustom);
