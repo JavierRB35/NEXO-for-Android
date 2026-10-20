@@ -34,7 +34,7 @@ BEGIN
 END $role$;
 SET ROLE service_role;
 DO $signed_send$
-DECLARE id uuid;
+DECLARE v_sent uuid;
 BEGIN
  BEGIN
   PERFORM connect.test_send_signed_bridge(
@@ -54,22 +54,22 @@ BEGIN
    '22222222-2222-4222-8222-222222222222',2,'note');
   RAISE EXCEPTION 'Stale recipient generation accepted';
  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
- id:=connect.test_send_signed_bridge(
+ v_sent:=connect.test_send_signed_bridge(
    'f3333333-3333-4333-8333-333333333333',
    'f3434343-3434-4343-8343-343434343434',
    '11111111-1111-4111-8111-111111111111',
    '11111111-1111-4111-8111-111111111111',1,
    '22222222-2222-4222-8222-222222222222',1,'note');
- IF id<>'f3333333-3333-4333-8333-333333333333' THEN
+ IF v_sent<>'f3333333-3333-4333-8333-333333333333' THEN
   RAISE EXCEPTION 'Wrong id returned'; END IF;
  IF connect.test_send_signed_bridge(
    'f3333333-3333-4333-8333-333333333333',
    'f3434343-3434-4343-8343-343434343434',
    '11111111-1111-4111-8111-111111111111',
    '11111111-1111-4111-8111-111111111111',1,
-   '22222222-2222-4222-8222-222222222222',1,'note')<>id THEN
+   '22222222-2222-4222-8222-222222222222',1,'note')<>v_sent THEN
    RAISE EXCEPTION 'Idempotent bridge retry failed'; END IF;
- IF (SELECT count(*) FROM connect.deliveries WHERE id=id)<>1 THEN
+ IF (SELECT count(*) FROM connect.deliveries WHERE id=v_sent)<>1 THEN
   RAISE EXCEPTION 'Duplicate delivered'; END IF;
 END $signed_send$;
 SELECT connect.api_set_receive_permission(
