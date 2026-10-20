@@ -71,6 +71,9 @@ SELECT public.nexo_connect_unlink_contact(
  '66666666-6666-4666-8666-666666666666',
  '67676767-6767-4767-8767-676767676767',1,
  '11111111-1111-4111-8111-111111111111');
+-- Assertions needing synthetic post-unlink INSERT run as fixture owner.
+-- The service role still has no direct deliveries INSERT privilege.
+RESET ROLE;
 DO $revoked$
 BEGIN
  IF (SELECT status FROM connect.contacts
