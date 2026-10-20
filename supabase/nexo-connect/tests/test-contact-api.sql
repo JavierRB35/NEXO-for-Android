@@ -29,8 +29,8 @@ SELECT connect.api_register_device(
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
  decode(repeat('09',32),'hex'),decode(repeat('18',32),'hex'),
- digest(decode(repeat('09',32),'hex'),'sha256'),
- digest(decode(repeat('18',32),'hex'),'sha256'),false) AS device_generation \gset
+ extensions.digest(decode(repeat('09',32),'hex'),'sha256'),
+ extensions.digest(decode(repeat('18',32),'hex'),'sha256'),false) AS device_generation \gset
 
 DO $initial$
 BEGIN
@@ -43,8 +43,8 @@ BEGIN
    'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
    'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
    decode(repeat('09',32),'hex'),decode(repeat('18',32),'hex'),
-   digest(decode(repeat('09',32),'hex'),'sha256'),
-   digest(decode(repeat('18',32),'hex'),'sha256'),false);
+   extensions.digest(decode(repeat('09',32),'hex'),'sha256'),
+   extensions.digest(decode(repeat('18',32),'hex'),'sha256'),false);
    RAISE EXCEPTION 'Silently replaced existing device';
  EXCEPTION WHEN unique_violation THEN NULL;
  END;
@@ -54,8 +54,8 @@ SELECT connect.api_register_device(
  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
  'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
  decode(repeat('0a',32),'hex'),decode(repeat('19',32),'hex'),
- digest(decode(repeat('0a',32),'hex'),'sha256'),
- digest(decode(repeat('19',32),'hex'),'sha256'),true) AS next_generation \gset
+ extensions.digest(decode(repeat('0a',32),'hex'),'sha256'),
+ extensions.digest(decode(repeat('19',32),'hex'),'sha256'),true) AS next_generation \gset
 
 DO $replaced$
 BEGIN
@@ -72,7 +72,7 @@ BEGIN
    'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
    'ffffffff-ffff-4fff-8fff-ffffffffffff',
    decode(repeat('0a',32),'hex'),decode(repeat('19',32),'hex'),
-   decode(repeat('00',32),'hex'),digest(decode(repeat('19',32),'hex'),'sha256'),true);
+   decode(repeat('00',32),'hex'),extensions.digest(decode(repeat('19',32),'hex'),'sha256'),true);
    RAISE EXCEPTION 'Invalid fingerprint accepted';
  EXCEPTION WHEN invalid_parameter_value THEN NULL;
  END;
@@ -81,10 +81,10 @@ END $replaced$;
 -- A invita a C, C aprueba mediante el token QR; B no queda vinculado.
 SELECT connect.api_create_invite(
  '11111111-1111-4111-8111-111111111111',
- digest('nexo-connect-test-token-unique','sha256'),3600) AS invite_id \gset
+ extensions.digest('nexo-connect-test-token-unique','sha256'),3600) AS invite_id \gset
 SELECT connect.api_accept_invite(
  '33333333-3333-4333-8333-333333333333',
- digest('nexo-connect-test-token-unique','sha256')) AS request_id \gset
+ extensions.digest('nexo-connect-test-token-unique','sha256')) AS request_id \gset
 
 DO $linked$
 BEGIN
@@ -100,7 +100,7 @@ BEGIN
       AND allow_receive)<>2 THEN RAISE EXCEPTION 'Bilateral default permission absent'; END IF;
  BEGIN
    PERFORM connect.api_accept_invite('22222222-2222-4222-8222-222222222222',
-     digest('nexo-connect-test-token-unique','sha256'));
+     extensions.digest('nexo-connect-test-token-unique','sha256'));
    RAISE EXCEPTION 'Consumed invitation reused';
  EXCEPTION WHEN invalid_parameter_value THEN NULL;
  END;

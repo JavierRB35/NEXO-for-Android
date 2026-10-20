@@ -153,7 +153,7 @@ BEGIN
       AND substring(p_context FROM 111 FOR 32)=r.encryption_fingerprint
   ) THEN RAISE EXCEPTION 'Canonical key fingerprints mismatch'
       USING ERRCODE='22023'; END IF;
-  hash := public.digest(p_ciphertext,'sha256');
+  hash := extensions.digest(p_ciphertext,'sha256');
   PERFORM pg_catalog.pg_advisory_xact_lock(
       pg_catalog.hashtextextended('nexo-delivery:'||p_sender::text||':'||p_recipient::text||':'||p_client_request_id::text,0));
   SELECT * INTO old_rec FROM connect.deliveries

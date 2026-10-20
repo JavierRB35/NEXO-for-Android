@@ -3,7 +3,7 @@
 -- Las funciones NO validan JWT, prueba de posesion, reautenticacion ni antiabuso
 -- externo: el gateway DEBE realizar tales verificaciones ANTES de llamarlas.
 BEGIN;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 GRANT USAGE ON SCHEMA connect TO service_role;
 -- Supabase service_role is a privileged backend role, not a client-facing key.
 GRANT SELECT ON ALL TABLES IN SCHEMA connect TO service_role;
@@ -24,8 +24,8 @@ BEGIN
     IF p_user IS NULL OR p_device IS NULL
        OR octet_length(p_signing_key) NOT BETWEEN 32 AND 8192
        OR octet_length(p_encryption_key) NOT BETWEEN 32 AND 8192
-       OR p_signing_fingerprint IS DISTINCT FROM public.digest(p_signing_key,'sha256')
-       OR p_encryption_fingerprint IS DISTINCT FROM public.digest(p_encryption_key,'sha256') THEN
+       OR p_signing_fingerprint IS DISTINCT FROM extensions.digest(p_signing_key,'sha256')
+       OR p_encryption_fingerprint IS DISTINCT FROM extensions.digest(p_encryption_key,'sha256') THEN
        RAISE EXCEPTION 'Invalid device key material' USING ERRCODE='22023';
     END IF;
     PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('nexo-device:'||p_user::text, 0));
@@ -83,7 +83,7 @@ BEGIN
         AND consumed_at IS NULL AND expires_at>pg_catalog.now()) >= 5 THEN
         RAISE EXCEPTION 'Too many invitations' USING ERRCODE='22023';
     END IF;
-    invite_id := public.gen_random_uuid();
+    invite_id := pg_catalog.gen_random_uuid();
     INSERT INTO connect.contact_invites(id,creator_id,token_sha256,expires_at)
     VALUES(invite_id,p_creator,p_token_hash,pg_catalog.now()+pg_catalog.make_interval(secs=>p_seconds));
     RETURN invite_id;
@@ -127,7 +127,7 @@ BEGIN
         RAISE EXCEPTION 'Already linked' USING ERRCODE='22023';
     END IF;
     UPDATE connect.contact_invites SET consumed_at=pg_catalog.now() WHERE token_sha256=p_token_hash;
-    request_id := public.gen_random_uuid();
+    request_id := pg_catalog.gen_random_uuid();
     INSERT INTO connect.contact_requests(id,requester_id,recipient_id,status,expires_at)
     VALUES(request_id,creator,p_recipient,'accepted',pg_catalog.now()+interval '1 day');
     INSERT INTO connect.contacts(user_a,user_b,status)
