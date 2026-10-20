@@ -283,7 +283,7 @@ REVOKE ALL ON FUNCTION connect.api_expire_deliveries(integer)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION connect.api_approve_peer_key(uuid,uuid,bigint,bytea,bytea)
   TO service_role;
-GRANT EXECUTE ON FUNCTION connect.api_send_delivery(uuid,uuid,uuid,uuid,bigint,bigint,text,bytea,bytea)
+GRANT EXECUTE ON FUNCTION connect.api_send_delivery(uuid,uuid,uuid,uuid,bigint,bigint,text,bytea,bytea,bytea)
   TO service_role;
 GRANT EXECUTE ON FUNCTION connect.api_resolve_delivery(uuid,uuid,text)
   TO service_role;
