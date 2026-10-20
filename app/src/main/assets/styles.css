@@ -3558,3 +3558,36 @@ body.nexo-keyboard-visible .modal-sheet>.record-form-actions--compact{display:no
 .modal-sheet>.book-editor-actions>button:focus-visible{
   outline:2px solid #16855b;outline-offset:-3px;
 }
+
+
+/* Nexo 3.7.45 · Guardar es un único icono compacto en todos los editores.
+   Se evita que normalizadores o estilos antiguos vuelvan a expandirlo. */
+button.nexo-unified-save{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:0!important;padding:8px!important;overflow:hidden;
+  text-align:center;white-space:nowrap;vertical-align:middle
+}
+button.nexo-unified-save>.nexo-action-label{display:none!important}
+button.nexo-unified-save>.ui-icon{
+  display:block;width:24px;height:24px;min-width:24px;flex:0 0 24px;margin:0
+}
+/* Los formularios antiguos daban la mitad de la fila al texto de Guardar. */
+.modal-actions>button.nexo-unified-save,
+.modal-sheet>.record-form-actions--compact>button.nexo-unified-save{
+  flex:0 0 54px!important;width:54px!important;min-width:54px!important;max-width:54px!important;
+  height:54px!important;min-height:54px!important;max-height:54px!important;
+  align-self:center!important
+}
+/* Libros y películas: mismo pie, Cancelar flexible y disquete cuadrado a la derecha. */
+.modal-sheet>.book-editor-actions{align-items:center}
+.modal-sheet>.book-editor-actions>button:not(.nexo-unified-save){flex:1 1 auto;min-width:0}
+.modal-sheet>.book-editor-actions>button.nexo-unified-save{
+  flex:0 0 70px!important;width:70px!important;min-width:70px!important;max-width:70px!important;
+  height:70px!important;min-height:70px!important;max-height:70px!important
+}
+/* Captura rápida conserva sus cuatro columnas de idéntico tamaño y altura. */
+.screen[data-screen="save"] .capture-crud-toolbar>button.nexo-unified-save{
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  height:70px!important;min-height:70px!important;max-height:70px!important;
+  margin:0!important;align-self:stretch!important
+}
