@@ -27,15 +27,4 @@ const gateway=createGateway({
     return data;
   }
 });
-Deno.serve(async req=>{
-  // Supabase function URL /functions/v1/nexo-connect-gateway/{status|challenge}.
-  const url=new URL(req.url);
-  const path=url.pathname.split("/").pop();
-  if(path!=="status"&&path!=="challenge")
-    return new Response('{"error":"unknown-action"}',{status:404,
-      headers:{"content-type":"application/json","cache-control":"no-store"}});
-  return gateway(new Request("https://nexo-connect.invalid/"+path,{
-    method:req.method,headers:req.headers,body:req.method==="POST"?req.body:undefined,
-    duplex:"half"
-  }));
-});
+Deno.serve(gateway);
