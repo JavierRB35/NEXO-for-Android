@@ -11,14 +11,37 @@ const reply=(status,data)=>new Response(JSON.stringify(data),{
     "x-content-type-options":"nosniff"}
 });
 const equal=(a,b)=>a===b;
-function bad(msg){throw new TypeError(msg);}
+async function readLimitedJson(request) {
+  if (!request.body) throw new SyntaxError("empty-body");
+  const reader=request.body.getReader();
+  const chunks=[];
+  let total=0;
+  try {
+    for (;;) {
+      const {done,value}=await reader.read();
+      if (done) break;
+      total+=value.byteLength;
+      if(total>MAX_BODY) throw new RangeError("payload-too-large");
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes=new Uint8Array(total);
+  let offset=0;
+  for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  return JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes));
+}
 export function createGateway({authenticate,getDevice,issueChallenge}) {
   if (![authenticate,getDevice,issueChallenge].every(x=>typeof x==="function"))
     throw new TypeError("Missing trusted backend dependencies");
   return async (request)=>{
     try {
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
-      const path=new URL(request.url).pathname;
+      const pathname=new URL(request.url).pathname;
+      const path=pathname.startsWith("/functions/v1/nexo-connect-gateway/")
+        ? pathname.substring("/functions/v1/nexo-connect-gateway".length)
+        : pathname;
       if(path!=="/status" && path!=="/challenge")
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
@@ -31,11 +54,12 @@ export function createGateway({authenticate,getDevice,issueChallenge}) {
       if(claimedLength!==null && (!/^\d+$/.test(claimedLength) ||
           Number(claimedLength)>MAX_BODY))
         return reply(413,{error:"payload-too-large"});
-      const bytes=new Uint8Array(await request.arrayBuffer());
-      if(bytes.length>MAX_BODY)return reply(413,{error:"payload-too-large"});
       let body;
-      try {body=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes));}
-      catch{return reply(400,{error:"invalid-json"});}
+      try { body=await readLimitedJson(request); }
+      catch (error) {
+        if(error instanceof RangeError) return reply(413,{error:"payload-too-large"});
+        return reply(400,{error:"invalid-json"});
+      }
       if(!body||typeof body!=="object"||Array.isArray(body))
         return reply(400,{error:"invalid-json"});
       const device=await getDevice(user.id);
