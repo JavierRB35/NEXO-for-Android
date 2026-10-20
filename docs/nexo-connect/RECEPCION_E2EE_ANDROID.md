@@ -18,3 +18,7 @@
 - Si el teléfono tiene reloj alterado, el servidor ya filtra la caducidad, pero la experiencia completa de conciliación de acuses queda pendiente.
 - Estas pruebas son instrumentadas, con claves de laboratorio generadas en Android, y no equivalen a pruebas entre dos teléfonos con identidades reales.
 - No activar ni fusionar a `main`, y no desplegar migraciones pendientes mientras falte integración y validación global.
+
+## Vinculación de la clave confiable a identidad y generación
+
+El API exige además `pinnedSenderAccount` y `pinnedSenderGeneration` procedentes de la misma entrada **local y comprobada por QR** que `pinnedSenderPublic`; compara ambos con el sobre firmado. Un antiguo móvil del contacto, aunque conservase su vieja clave Ed25519, no hereda silenciosamente la confianza de una generación más reciente. Prueba negativa instrumentada añadida.

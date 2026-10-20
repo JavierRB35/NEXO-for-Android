@@ -116,7 +116,7 @@ public class NexoConnectInboxProcessorTest {
         }
         NexoConnectAtomicImporter.Result receive(SQLiteDatabase database)throws Exception {
             return NexoConnectInboxProcessor.receiveAndImport(database,packet,
-                receiver,signer.getPublicKeysetHandle(),RECIPIENT,1,NOW);
+                receiver,signer.getPublicKeysetHandle(),SENDER,1,RECIPIENT,1,NOW);
         }
     }
     @Test public void verifiesDecryptsAndImportsOnceOnlyAfterCommit()throws Exception {
@@ -166,7 +166,7 @@ public class NexoConnectInboxProcessorTest {
         try(SQLiteDatabase database=db()){
             KeysetHandle outsider=KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
             expectReject(()->NexoConnectInboxProcessor.receiveAndImport(database,f.packet,
-                f.receiver,outsider.getPublicKeysetHandle(),RECIPIENT,1,NOW));
+                f.receiver,outsider.getPublicKeysetHandle(),SENDER,1,RECIPIENT,1,NOW));
             assertEquals(0,rows(database));
         }
         Fixture g=new Fixture();
@@ -177,7 +177,7 @@ public class NexoConnectInboxProcessorTest {
                 .setAeadId(HpkeParameters.AeadId.AES_256_GCM)
                 .setVariant(HpkeParameters.Variant.TINK).build());
             expectReject(()->NexoConnectInboxProcessor.receiveAndImport(database,g.packet,
-                otherReceiver,g.signer.getPublicKeysetHandle(),RECIPIENT,1,NOW));
+                otherReceiver,g.signer.getPublicKeysetHandle(),SENDER,1,RECIPIENT,1,NOW));
             assertEquals(0,rows(database));
         }
     }
@@ -185,10 +185,23 @@ public class NexoConnectInboxProcessorTest {
         Fixture f=new Fixture();
         try(SQLiteDatabase database=db()){
             expectReject(()->NexoConnectInboxProcessor.receiveAndImport(database,
-                f.packet,f.receiver,f.signer.getPublicKeysetHandle(),RECIPIENT,1,NOW+60001));
+                f.packet,f.receiver,f.signer.getPublicKeysetHandle(),SENDER,1,RECIPIENT,1,NOW+60001));
             assertEquals(0,rows(database));
             f.packet.put("expiresAtMs",NOW+300000);
             expectReject(()->f.receive(database));
+            assertEquals(0,rows(database));
+        }
+    }
+    @Test public void senderIdentityAndGenerationMustMatchLocallyPinnedTrust() throws Exception {
+        Fixture f=new Fixture();
+        try(SQLiteDatabase database=db()){
+            expectReject(()->NexoConnectInboxProcessor.receiveAndImport(database,
+                f.packet,f.receiver,f.signer.getPublicKeysetHandle(),
+                UUID.fromString("44444444-4444-4444-8444-444444444444"),1,
+                RECIPIENT,1,NOW));
+            expectReject(()->NexoConnectInboxProcessor.receiveAndImport(database,
+                f.packet,f.receiver,f.signer.getPublicKeysetHandle(),
+                SENDER,2,RECIPIENT,1,NOW));
             assertEquals(0,rows(database));
         }
     }

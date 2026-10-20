@@ -67,23 +67,27 @@ public final class NexoConnectInboxProcessor {
     public static NexoConnectAtomicImporter.Result receiveAndImport(
             SQLiteDatabase db, JSONObject serverEnvelope,
             KeysetHandle recipientPrivate, KeysetHandle pinnedSenderPublic,
+            UUID pinnedSenderAccount, int pinnedSenderGeneration,
             UUID recipientAccount, int recipientGeneration, long nowMillis)
             throws Exception {
         if (db == null || serverEnvelope == null || recipientPrivate == null ||
                 pinnedSenderPublic == null || recipientAccount == null ||
                 recipientGeneration <= 0 || nowMillis <= 0)
             throw new GeneralSecurityException("Missing trusted inbox inputs");
+        if (pinnedSenderAccount == null || pinnedSenderGeneration <= 0)
+            throw new GeneralSecurityException("Sender trust pin is unavailable");
         if (!db.isOpen()) throw new GeneralSecurityException("Database is closed");
 
         UUID deliveryId = strictUuid(serverEnvelope, "deliveryId");
         UUID senderId = strictUuid(serverEnvelope, "senderId");
         UUID recipientId = strictUuid(serverEnvelope, "recipientId");
-        if (senderId.equals(recipientId) || !recipientId.equals(recipientAccount))
+        if (senderId.equals(recipientId) || !recipientId.equals(recipientAccount) ||
+                !senderId.equals(pinnedSenderAccount))
             throw new GeneralSecurityException("Wrong message recipient");
 
         int senderGen = strictGeneration(serverEnvelope,"senderGeneration");
         int recipientGen = strictGeneration(serverEnvelope,"recipientGeneration");
-        if (recipientGen != recipientGeneration)
+        if (recipientGen != recipientGeneration || senderGen != pinnedSenderGeneration)
             throw new GeneralSecurityException("Recipient generation changed");
         String entity = serverEnvelope.optString("entityType","");
         byte entityCode = 0;
