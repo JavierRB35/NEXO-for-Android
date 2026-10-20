@@ -5,6 +5,8 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 GRANT USAGE ON SCHEMA connect TO service_role;
+-- Supabase service_role is a privileged backend role, not a client-facing key.
+GRANT SELECT ON ALL TABLES IN SCHEMA connect TO service_role;
 
 -- Registro inicial o sustitucion por correo nuevamente verificado.
 -- Solo el gateway puede invocar; p_replacement=true NO es una autorizacion.
