@@ -16,6 +16,7 @@ import static org.junit.Assert.*;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
