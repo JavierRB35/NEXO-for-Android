@@ -1,3 +1,10 @@
+## Nexo 3.7.47 — Datos y seguridad se traslada a Ajustes
+- Se retira el grupo «Datos y seguridad» de Herramientas/Aplicaciones.
+- Se incorpora «Datos y seguridad» a Ajustes, desplegable desde la rueda dentada superior.
+- Historial y Copia de seguridad conservan las mismas pantallas, acciones, almacenamiento y funcionamiento.
+- La navegación Atrás devuelve a Ajustes; sin cambios de esquema de base de datos ni permisos.
+- Publicación como Release firmada para probar la actualización integrada desde 3.7.46.
+
 ## Nexo 3.7.46 — Actualizaciones verificadas desde la aplicación
 - Se consulta una versión oficial publicada en un canal de distribución separado del código privado.
 - Aviso en primer plano y notificación diaria (sujeta a las restricciones de Android).

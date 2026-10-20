@@ -10,13 +10,13 @@ importer=(root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.j
 seed=root/'app/src/main/assets/nexo_familia_seed_v1.json'
 
 assert "applicationId 'com.jruiz.nexo'" in gradle
-assert "versionCode 139" in gradle
-assert "versionName '3.7.46'" in gradle
-assert 'v3.7.46' in html
-assert 'APP_NAME="Nexo_3_7_46"' in script
+assert "versionCode 140" in gradle
+assert "versionName '3.7.47'" in gradle
+assert 'v3.7.47' in html
+assert 'APP_NAME="Nexo_3_7_47"' in script
 assert 'assembleRelease' in script and 'apksigner' in script
 assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 32' in db
 assert 'manifest.put("appVersion", BuildConfig.VERSION_NAME);' in backup
 assert not seed.exists(), 'La APK no debe volver a incluir una snapshot familiar privada'
 assert 'validatePayload(payload, events, rules)' in importer
-print('Nexo 3.7.46, versionCode 139, applicationId, BD 32 y snapshot privada retirada: OK')
+print('Nexo 3.7.47, versionCode 140, applicationId, BD 32 y snapshot privada retirada: OK')

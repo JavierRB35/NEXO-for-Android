@@ -44,11 +44,13 @@ assert "if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addV
 assert "Todo organizado" in app
 assert "Actividad reciente de Nexo" in app
 
-# Historial es accesible desde Herramientas, junto a copia.
-assert "<h2>Datos y seguridad</h2>" in html
-assert 'data-panel="history"' in html
-assert 'data-panel="backup"' in html
-assert html.index('data-panel="history"') < html.index('data-panel="backup"')
+# Historial y copia viven exclusivamente bajo Datos y seguridad en Ajustes.
+tools = html.split('data-screen="tools"', 1)[1].split('data-screen="save"', 1)[0]
+settings = html.split('data-screen="more"', 1)[1].split('data-screen="about"', 1)[0]
+assert 'data-settings-accordion="security"' in settings
+assert 'data-panel="history"' in settings and 'data-panel="backup"' in settings
+assert 'data-panel="history"' not in tools and 'data-panel="backup"' not in tools
+assert settings.index('data-panel="history"') < settings.index('data-panel="backup"')
 
 # Captura: solo micrófono contextual; Ajustes y Herramientas no crean contenido.
 assert "else if(state.screen==='save'){voiceVisible=!modalOpen;addVisible=false;}" in app
