@@ -1,5 +1,7 @@
-// Dependence-injected HTTP handler: pure JS usable in Node and Deno.
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+// Supabase Auth protected gateway; does not expose administrative credentials.
+// Signed invite requests use bytes EXACTLY as transmitted, preventing altered JSON.
+import {verifyDeviceProof} from "./proof.mjs";
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ACTIONS=new Set([
   "contact/invite","contact/accept","contact/permissions",
   "contact/unlink","key/verify","delivery/send",
@@ -10,84 +12,116 @@ const reply=(status,data)=>new Response(JSON.stringify(data),{
   status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",
     "x-content-type-options":"nosniff"}
 });
-const equal=(a,b)=>a===b;
+const isHex64=x=>typeof x==="string"&&/^[a-f0-9]{64}$/.test(x);
 async function readLimitedJson(request) {
   if (!request.body) throw new SyntaxError("empty-body");
-  const reader=request.body.getReader();
-  const chunks=[];
-  let total=0;
+  const reader=request.body.getReader(),chunks=[];let total=0;
   try {
     for (;;) {
       const {done,value}=await reader.read();
-      if (done) break;
+      if(done)break;
       total+=value.byteLength;
-      if(total>MAX_BODY) throw new RangeError("payload-too-large");
+      if(total>MAX_BODY)throw new RangeError("payload-too-large");
       chunks.push(value);
     }
-  } finally {
-    reader.releaseLock();
-  }
+  }finally{reader.releaseLock();}
   const bytes=new Uint8Array(total);
   let offset=0;
-  for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
-  return JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes));
+  for(const part of chunks){bytes.set(part,offset);offset+=part.byteLength;}
+  const data=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes));
+  return {data,bytes};
 }
-export function createGateway({authenticate,getDevice,issueChallenge}) {
-  if (![authenticate,getDevice,issueChallenge].every(x=>typeof x==="function"))
+function normalizePath(pathname){
+  const prefix="/functions/v1/nexo-connect-gateway";
+  if(pathname.startsWith(prefix+"/")) return pathname.substring(prefix.length);
+  return pathname;
+}
+function validDevice(device,userId) {
+ return Boolean(device&&device.user_id===userId&&UUID.test(device.device_id)
+    &&Number.isSafeInteger(device.generation)&&device.generation>0);
+}
+export function createGateway({
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,clock=()=>Date.now()
+}) {
+  if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,clock]
+      .every(x=>typeof x==="function"))
     throw new TypeError("Missing trusted backend dependencies");
-  return async (request)=>{
-    try {
+  return async request=>{
+    try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
-      const pathname=new URL(request.url).pathname;
-      const path=pathname.startsWith("/functions/v1/nexo-connect-gateway/")
-        ? pathname.substring("/functions/v1/nexo-connect-gateway".length)
-        : pathname;
-      if(path!=="/status" && path!=="/challenge")
+      const path=normalizePath(new URL(request.url).pathname);
+      if(!["/status","/challenge","/contact/invite"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!/^Bearer [^\s]+$/.test(bearer))
         return reply(401,{error:"unauthorized"});
-      // authenticate MUST call Supabase Auth getUser(token), not decode JWT.
+      // Do not rely on decoded JWT claims: actual Supabase getUser verification.
       const user=await authenticate(bearer.slice(7));
-      if(!user || !UUID.test(user.id))return reply(401,{error:"unauthorized"});
+      if(!user||!UUID.test(user.id))return reply(401,{error:"unauthorized"});
       const claimedLength=request.headers.get("content-length");
-      if(claimedLength!==null && (!/^\d+$/.test(claimedLength) ||
-          Number(claimedLength)>MAX_BODY))
+      if(claimedLength!==null&&(!/^\d+$/.test(claimedLength)||Number(claimedLength)>MAX_BODY))
         return reply(413,{error:"payload-too-large"});
-      let body;
-      try { body=await readLimitedJson(request); }
-      catch (error) {
-        if(error instanceof RangeError) return reply(413,{error:"payload-too-large"});
+      let data,bytes;
+      try {({data,bytes}=await readLimitedJson(request));}
+      catch(error){
+        if(error instanceof RangeError)return reply(413,{error:"payload-too-large"});
         return reply(400,{error:"invalid-json"});
       }
-      if(!body||typeof body!=="object"||Array.isArray(body))
+      if(!data||typeof data!=="object"||Array.isArray(data))
         return reply(400,{error:"invalid-json"});
       const device=await getDevice(user.id);
       if(path==="/status"){
-        if(Object.keys(body).length) return reply(400,{error:"unexpected-fields"});
-        // No public keys or PII are emitted by this endpoint.
+        if(Object.keys(data).length)return reply(400,{error:"unexpected-fields"});
         return reply(200,{registered:Boolean(device),
           deviceId:device?.device_id??null,generation:device?.generation??null});
       }
-      if(Object.keys(body).sort().join(",")!=="action,deviceId,generation" ||
-        !ACTIONS.has(body.action) || typeof body.deviceId!=="string" ||
-        !UUID.test(body.deviceId) ||
-        !Number.isSafeInteger(body.generation) || body.generation<=0)
+      if(path==="/challenge"){
+        if(Object.keys(data).sort().join(",")!=="action,deviceId,generation"
+          ||!ACTIONS.has(data.action)||!UUID.test(data.deviceId)
+          ||!Number.isSafeInteger(data.generation)||data.generation<=0)
+          return reply(400,{error:"invalid-request"});
+        if(!validDevice(device,user.id)||device.device_id!==data.deviceId
+          ||device.generation!==data.generation)
+          return reply(403,{error:"device-revoked"});
+        const nonce=await issueChallenge({
+          userId:user.id,deviceId:device.device_id,
+          generation:device.generation,action:data.action
+        });
+        if(typeof nonce!=="string"||!UUID.test(nonce))throw Error("Invalid challenge");
+        return reply(200,{challengeId:nonce,expiresInSeconds:120});
+      }
+      // Only mutation currently offered: CREATE CONTACT INVITATION.
+      // All future routes must independently pass signed, one-use proof.
+      if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
+        ||!isHex64(data.tokenSha256)
+        ||!Number.isSafeInteger(data.expiresInSeconds)
+        ||data.expiresInSeconds<300||data.expiresInSeconds>86400)
         return reply(400,{error:"invalid-request"});
-      if(!device || !equal(device.device_id,body.deviceId) ||
-        !equal(device.generation,body.generation))
+      if(!validDevice(device,user.id))
         return reply(403,{error:"device-revoked"});
-      // DB enforces max five outstanding and TTL; no public access to RPC.
-      const nonce=await issueChallenge({
-        userId:user.id,deviceId:device.device_id,
-        generation:device.generation,action:body.action
+      const key=device.signing_public_key;
+      if(!(key instanceof Uint8Array)||key.length!==32)
+        return reply(503,{error:"temporarily-unavailable"});
+      try {
+        await verifyDeviceProof({
+          headers:request.headers,userId:user.id,method:"POST",
+          path:"/nexo-connect/contact/invite",body:bytes,
+          activeDevice:device,nowMillis:clock(),
+          consumeChallenge:async({userId,deviceId,generation,challengeId,action})=>
+            consumeChallenge({userId,deviceId,generation,challengeId,action})
+        });
+      }catch(error){
+        return reply(403,{error:"invalid-device-proof"});
+      }
+      const inviteId=await createInvite({
+        userId:user.id,tokenSha256:data.tokenSha256,
+        expiresInSeconds:data.expiresInSeconds
       });
-      if(typeof nonce!=="string"||!UUID.test(nonce))
-        throw Error("Unexpected challenge ID");
-      return reply(200,{challengeId:nonce,expiresInSeconds:120});
-    }catch(error){
-      if(error instanceof TypeError)return reply(400,{error:"invalid-request"});
-      // Do not disclose DB, Auth or private identifiers to clients.
+      if(typeof inviteId!=="string"||!UUID.test(inviteId))
+        throw Error("Invalid invite creation response");
+      // Server stores ONLY the token hash, not the clear QR token.
+      return reply(201,{inviteId,expiresInSeconds:data.expiresInSeconds});
+    }catch(error) {
       return reply(503,{error:"temporarily-unavailable"});
     }
   };
