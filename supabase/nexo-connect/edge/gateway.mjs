@@ -1,6 +1,7 @@
 // Supabase Auth protected gateway; does not expose administrative credentials.
 // Signed invite requests use bytes EXACTLY as transmitted, preventing altered JSON.
 import {verifyDeviceProof} from "./proof.mjs";
+import {validateSignedEnvelope} from "./delivery.mjs";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ACTIONS=new Set([
   "contact/invite","contact/accept","contact/permissions",
@@ -8,12 +9,13 @@ const ACTIONS=new Set([
   "delivery/resolve","delivery/request-resend"
 ]);
 const MAX_BODY=2048;
+const MAX_INLINE_SEND_BODY=768*1024;
 const reply=(status,data)=>new Response(JSON.stringify(data),{
   status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",
     "x-content-type-options":"nosniff"}
 });
 const isHex64=x=>typeof x==="string"&&/^[a-f0-9]{64}$/.test(x);
-async function readLimitedJson(request) {
+async function readLimitedJson(request,limit=MAX_BODY) {
   if (!request.body) throw new SyntaxError("empty-body");
   const reader=request.body.getReader(),chunks=[];let total=0;
   try {
@@ -21,7 +23,7 @@ async function readLimitedJson(request) {
       const {done,value}=await reader.read();
       if(done)break;
       total+=value.byteLength;
-      if(total>MAX_BODY)throw new RangeError("payload-too-large");
+      if(total>limit)throw new RangeError("payload-too-large");
       chunks.push(value);
     }
   }finally{reader.releaseLock();}
@@ -42,18 +44,20 @@ function validDevice(device,userId) {
     &&Number.isSafeInteger(device.generation)&&device.generation>0);
 }
 export function createGateway({
-  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,resolveDelivery,clock=()=>Date.now()
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,resolveDelivery,sendDelivery,clock=()=>Date.now()
 }) {
   if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,clock]
       .every(x=>typeof x==="function"))
     throw new TypeError("Missing trusted backend dependencies");
   if (resolveDelivery!==undefined&&typeof resolveDelivery!=="function")
     throw new TypeError("Invalid delivery resolution dependency");
+  if (sendDelivery!==undefined&&typeof sendDelivery!=="function")
+    throw new TypeError("Invalid delivery sender dependency");
   return async request=>{
     try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
       const path=normalizePath(new URL(request.url).pathname);
-      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink","/delivery/resolve"].includes(path))
+      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink","/delivery/resolve","/delivery/send"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!bearer.startsWith("Bearer ")||
@@ -62,11 +66,12 @@ export function createGateway({
       // Do not rely on decoded JWT claims: actual Supabase getUser verification.
       const user=await authenticate(bearer.slice(7));
       if(!user||!UUID.test(user.id))return reply(401,{error:"unauthorized"});
+      const maxBody=path==="/delivery/send"?MAX_INLINE_SEND_BODY:MAX_BODY;
       const claimedLength=request.headers.get("content-length");
-      if(claimedLength!==null&&(!/^\d+$/.test(claimedLength)||Number(claimedLength)>MAX_BODY))
+      if(claimedLength!==null&&(!/^\d+$/.test(claimedLength)||Number(claimedLength)>maxBody))
         return reply(413,{error:"payload-too-large"});
       let data,bytes;
-      try {({data,bytes}=await readLimitedJson(request));}
+      try {({data,bytes}=await readLimitedJson(request,maxBody));}
       catch(error){
         if(error instanceof RangeError)return reply(413,{error:"payload-too-large"});
         return reply(400,{error:"invalid-json"});
@@ -101,6 +106,7 @@ export function createGateway({
       const permitting=path==="/contact/permissions";
       const unlinking=path==="/contact/unlink";
       const resolving=path==="/delivery/resolve";
+      const sending=path==="/delivery/send";
       if(creating){
         if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
           ||!isHex64(data.tokenSha256)
@@ -128,6 +134,12 @@ export function createGateway({
         if(Object.keys(data).sort().join(",")!=="deliveryId,target"
           ||!UUID.test(data.deliveryId)
           ||!["accepted","rejected","cancelled"].includes(data.target))
+          return reply(400,{error:"invalid-request"});
+      }else if(sending){
+        if(Object.keys(data).sort().join(",")!==
+          "ciphertext,clientRequestId,context,deliveryId,entityType,recipientGeneration,recipientId,signature"
+          ||!UUID.test(data.deliveryId)||!UUID.test(data.clientRequestId)
+          ||!UUID.test(data.recipientId)||data.recipientId===user.id)
           return reply(400,{error:"invalid-request"});
       }else{
         if(Object.keys(data).sort().join(",")!==
@@ -190,6 +202,25 @@ export function createGateway({
           generation:device.generation,peerId:data.peerId
         });
         return reply(200,{peerId:data.peerId,unlinked:true});
+      }
+      if(sending){
+        if(typeof sendDelivery!=="function")throw Error("Send not configured");
+        // Fail closed: never trust body-supplied sender identity or public key.
+        let sealed;
+        try{
+          sealed=await validateSignedEnvelope({
+            data,activeDevice:device,authenticatedUserId:user.id,nowMillis:clock()
+          });
+        }catch(error){return reply(403,{error:"invalid-delivery-envelope"});}
+        const sentId=await sendDelivery({
+          senderId:user.id,deviceId:device.device_id,generation:device.generation,
+          deliveryId:data.deliveryId,clientRequestId:data.clientRequestId,
+          recipientId:data.recipientId,
+          recipientGeneration:data.recipientGeneration,entityType:data.entityType,
+          context:sealed.context,ciphertext:sealed.ciphertext,signature:sealed.signature
+        });
+        if(sentId!==data.deliveryId)throw Error("Unexpected delivery ID");
+        return reply(201,{deliveryId:sentId,status:"pending"});
       }
       if(resolving){
         if(typeof resolveDelivery!=="function")throw Error("Resolution not configured");

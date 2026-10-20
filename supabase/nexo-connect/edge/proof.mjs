@@ -10,7 +10,8 @@ const ACTIONS = Object.freeze([
   "contact/unlink", "key/verify", "delivery/send",
   "delivery/resolve", "delivery/request-resend"
 ]);
-const MAX_BODY = 524288;
+// Signed inline delivery is base64url encoded; 512 KiB cipher can expand to 700 KiB JSON.
+const MAX_BODY = 768 * 1024;
 const CLOCK_SKEW_MS = 90000;
 const te = new TextEncoder();
 

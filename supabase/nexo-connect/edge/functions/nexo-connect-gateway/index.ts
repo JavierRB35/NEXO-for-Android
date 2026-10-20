@@ -18,6 +18,12 @@ const hexToBytea=hex=>{
     throw Error("Unexpected hash");
   return "\\x"+hex;
 };
+const bytesToBytea=bytes=>{
+  if(!(bytes instanceof Uint8Array))throw Error("Binary input required");
+  let hex="\\x";
+  for(const b of bytes)hex+=b.toString(16).padStart(2,"0");
+  return hex;
+};
 const rpc=async(name,args)=>{
   const {data,error}=await admin.rpc(name,args);
   if(error)throw Error("Service operation failed");
@@ -83,6 +89,15 @@ const gateway=createGateway({
     rpc("nexo_connect_resolve_delivery",{
       p_actor:actorId,p_device:deviceId,p_generation:generation,
       p_delivery:deliveryId,p_target:target
+    }),
+  sendDelivery:async({senderId,deviceId,generation,deliveryId,clientRequestId,
+                       recipientId,recipientGeneration,entityType,context,ciphertext,signature})=>
+    rpc("nexo_connect_send_delivery",{
+      p_sender:senderId,p_device:deviceId,p_generation:generation,
+      p_id:deliveryId,p_request:clientRequestId,p_recipient:recipientId,
+      p_recipient_generation:recipientGeneration,p_entity_type:entityType,
+      p_context:bytesToBytea(context),p_ciphertext:bytesToBytea(ciphertext),
+      p_signature:bytesToBytea(signature)
     })
 });
 Deno.serve(gateway);
