@@ -18,8 +18,11 @@
 | `202610200003_deliveries.sql` | `nexo_connect_e2ee_deliveries` | aplicada |
 | `202610200004_device_challenges.sql` | `nexo_connect_device_challenges` | aplicada |
 | `202610200005_indexes.sql` | `nexo_connect_foreign_key_indexes` | aplicada |
+| `202610200006_storage.sql` | `nexo_connect_private_ciphertext_bucket` | aplicada |
 
 **Todas las tablas del esquema `connect` están vacías y tienen RLS activo.**
+
+**Supabase Storage:** contenedor `nexo-connect-ciphertext` creado con `public=false`, límite de 12 MiB y únicamente MIME `application/octet-stream`. No se añadieron políticas de acceso directas a usuarios: la futura API deberá verificar permisos de cada destinatario antes de mover ciphertext.
 
 ## Informe del asesor de seguridad
 
