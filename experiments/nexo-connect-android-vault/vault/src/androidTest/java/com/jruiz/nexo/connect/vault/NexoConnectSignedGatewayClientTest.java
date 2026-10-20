@@ -33,12 +33,17 @@ public class NexoConnectSignedGatewayClientTest {
 
     private static final class FakeTransport implements NexoConnectSignedGatewayClient.Transport {
         final PublicKeyVerify verifier;
+        final UUID account;
         final ArrayList<String> actions=new ArrayList<>();
         String grantedAction;
         boolean spent;
         boolean failSigned;
         int statusOnAction=200;
         FakeTransport(KeysetHandle handle) throws Exception {
+            this(handle,ACCOUNT);
+        }
+        FakeTransport(KeysetHandle handle,UUID account) throws Exception {
+            this.account=account;
             SignatureConfig.register();
             verifier=handle.getPublicKeysetHandle().getPrimitive(
                     RegistryConfiguration.get(),PublicKeyVerify.class);
@@ -72,7 +77,7 @@ public class NexoConnectSignedGatewayClientTest {
             StringBuilder hex=new StringBuilder();
             for(byte b:hash)hex.append(String.format("%02x",b&255));
             String canonical="NEXO-CONNECT-PROOF-V1\nPOST\n/nexo-connect/"+action+"\n"+
-                    ACCOUNT+"\n"+PHONE+"\n1\n"+NONCE+"\n"+time+"\n"+hex+"\n";
+                    account+"\n"+PHONE+"\n1\n"+NONCE+"\n"+time+"\n"+hex+"\n";
             byte[] signature=android.util.Base64.decode(headers.get("x-nexo-signature"),
                     android.util.Base64.URL_SAFE|android.util.Base64.NO_PADDING|android.util.Base64.NO_WRAP);
             verifier.verify(signature,canonical.getBytes(StandardCharsets.UTF_8));
@@ -282,7 +287,7 @@ public class NexoConnectSignedGatewayClientTest {
                 androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
                     .getTargetContext(),b);
         KeysetHandle bKey=KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
-        FakeTransport bNet=new FakeTransport(bKey);
+        FakeTransport bNet=new FakeTransport(bKey,b);
         NexoConnectSignedGatewayClient bClient=new NexoConnectSignedGatewayClient(
                 b,PHONE,1,"secret.jwt","publishable",bKey,bNet,()->NOW);
         try{
