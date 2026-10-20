@@ -7,7 +7,7 @@ import com.google.crypto.tink.PublicKeySign;
 import com.google.crypto.tink.PublicKeyVerify;
 import com.google.crypto.tink.RegistryConfiguration;
 import com.google.crypto.tink.hybrid.HybridConfig;
-import com.google.crypto.tink.hybrid.HybridKeyTemplates;
+import com.google.crypto.tink.hybrid.HpkeParameters;
 import com.google.crypto.tink.signature.SignatureConfig;
 import com.google.crypto.tink.signature.SignatureKeyTemplates;
 
@@ -34,8 +34,12 @@ public final class CryptoProof {
 
     public static KeysetHandle newRecipientKeys() throws GeneralSecurityException {
         HybridConfig.register();
-        return KeysetHandle.generateNew(
-                HybridKeyTemplates.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_AES_256_GCM);
+        return KeysetHandle.generateNew(HpkeParameters.builder()
+                .setKemId(HpkeParameters.KemId.DHKEM_X25519_HKDF_SHA256)
+                .setKdfId(HpkeParameters.KdfId.HKDF_SHA256)
+                .setAeadId(HpkeParameters.AeadId.AES_256_GCM)
+                .setVariant(HpkeParameters.Variant.TINK)
+                .build());
     }
 
     public static KeysetHandle newSenderSigningKeys() throws GeneralSecurityException {
