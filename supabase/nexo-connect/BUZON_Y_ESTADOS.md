@@ -38,3 +38,9 @@ por ahora el límite del ciphertext inline es 512 KiB.
 
 **Bloqueantes:** ejecución real en Supabase independiente, firmas/gateway,
 almacenamiento de documentos, anti-replay, FCM, UI y pruebas end-to-end.
+
+## Cierre de entregas firmado (migración 0013, experimental)
+
+`POST /delivery/resolve` recibe exclusivamente `{"deliveryId":"<UUID>","target":"accepted|rejected|cancelled"}` mediante sesión JWT verificada, firma Ed25519 del teléfono registrado y desafío de acción `delivery/resolve` de un solo uso. El backend fija por sí mismo el usuario y el dispositivo, no acepta identidad del cliente. Solo destinatario puede aceptar/rechazar y solo emisor cancelar; el estado resultante puede ser `expired` si se superó el TTL. La actualización y eliminación de ciphertext son atómicas e idempotentes para un estado ya terminal idéntico.
+
+**Invariante pendiente en Android:** responder `accepted` ÚNICAMENTE tras confirmar la importación SQLite local con identificador de entrega único; un error de red al emitir acuse no debe volver a importar. El endpoint aún no está conectado a la interfaz. Migración 0013 y Edge se mantienen sin desplegar.

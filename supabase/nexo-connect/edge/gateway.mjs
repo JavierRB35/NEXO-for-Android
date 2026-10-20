@@ -42,16 +42,18 @@ function validDevice(device,userId) {
     &&Number.isSafeInteger(device.generation)&&device.generation>0);
 }
 export function createGateway({
-  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,clock=()=>Date.now()
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,resolveDelivery,clock=()=>Date.now()
 }) {
   if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,clock]
       .every(x=>typeof x==="function"))
     throw new TypeError("Missing trusted backend dependencies");
+  if (resolveDelivery!==undefined&&typeof resolveDelivery!=="function")
+    throw new TypeError("Invalid delivery resolution dependency");
   return async request=>{
     try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
       const path=normalizePath(new URL(request.url).pathname);
-      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink"].includes(path))
+      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink","/delivery/resolve"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!bearer.startsWith("Bearer ")||
@@ -98,6 +100,7 @@ export function createGateway({
       const verifying=path==="/key/verify";
       const permitting=path==="/contact/permissions";
       const unlinking=path==="/contact/unlink";
+      const resolving=path==="/delivery/resolve";
       if(creating){
         if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
           ||!isHex64(data.tokenSha256)
@@ -120,6 +123,11 @@ export function createGateway({
       }else if(unlinking){
         if(Object.keys(data).sort().join(",")!=="peerId"
           ||!UUID.test(data.peerId)||data.peerId===user.id)
+          return reply(400,{error:"invalid-request"});
+      }else if(resolving){
+        if(Object.keys(data).sort().join(",")!=="deliveryId,target"
+          ||!UUID.test(data.deliveryId)
+          ||!["accepted","rejected","cancelled"].includes(data.target))
           return reply(400,{error:"invalid-request"});
       }else{
         if(Object.keys(data).sort().join(",")!==
@@ -182,6 +190,18 @@ export function createGateway({
           generation:device.generation,peerId:data.peerId
         });
         return reply(200,{peerId:data.peerId,unlinked:true});
+      }
+      if(resolving){
+        if(typeof resolveDelivery!=="function")throw Error("Resolution not configured");
+        // Authenticated actor and verified phone come from the server, NEVER
+        // from a body-supplied userId/deviceId.
+        const status=await resolveDelivery({
+          actorId:user.id,deviceId:device.device_id,
+          generation:device.generation,deliveryId:data.deliveryId,target:data.target
+        });
+        if(!["accepted","rejected","cancelled","expired"].includes(status))
+          throw Error("Invalid resolution status");
+        return reply(200,{deliveryId:data.deliveryId,status});
       }
       const requestId=await acceptInvite({
         recipientId:user.id,recipientDeviceId:device.device_id,

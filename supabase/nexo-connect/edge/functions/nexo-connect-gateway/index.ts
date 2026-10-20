@@ -78,6 +78,11 @@ const gateway=createGateway({
   unlinkContact:async({userId,deviceId,generation,peerId})=>
     rpc("nexo_connect_unlink_contact",{
       p_actor:userId,p_device:deviceId,p_generation:generation,p_peer:peerId
+    }),
+  resolveDelivery:async({actorId,deviceId,generation,deliveryId,target})=>
+    rpc("nexo_connect_resolve_delivery",{
+      p_actor:actorId,p_device:deviceId,p_generation:generation,
+      p_delivery:deliveryId,p_target:target
     })
 });
 Deno.serve(gateway);
