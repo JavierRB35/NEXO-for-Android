@@ -1,3 +1,10 @@
+## Nexo 3.7.48 — Actualizaciones consultadas y ofrecidas al abrir
+- Al terminar la pantalla inicial se consulta el canal de actualizaciones sin el límite diario de las verificaciones periódicas.
+- Si se publica una versión superior, aparece un diálogo con dos opciones: Actualizar o Más tarde.
+- Elegir Más tarde no desactiva avisos en aperturas posteriores; se evitan consultas y avisos duplicados por cambios breves de actividad.
+- Se conservan la actualización manual, la notificación de segundo plano, la validación SHA-256, la firma oficial y la confirmación de instalación Android.
+- Sin migración de datos, cambio de permisos ni de herramientas de compilación.
+
 ## Nexo 3.7.47 — Datos y seguridad se traslada a Ajustes
 - Se retira el grupo «Datos y seguridad» de Herramientas/Aplicaciones.
 - Se incorpora «Datos y seguridad» a Ajustes, desplegable desde la rueda dentada superior.
