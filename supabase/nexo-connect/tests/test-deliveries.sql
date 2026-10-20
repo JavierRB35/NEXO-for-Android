@@ -29,7 +29,8 @@ BEGIN
    WHEN 'document' THEN 7 ELSE 0 END;
  SELECT signing_fingerprint INTO sender_fp FROM connect.devices WHERE user_id=p_sender;
  SELECT encryption_fingerprint INTO recipient_fp FROM connect.devices WHERE user_id=p_recipient;
- issued:=(extract(epoch FROM now())*1000)::bigint;
+ -- Same logical request must preserve identical signed context for retries.
+ issued:=1780000000000;
  ctx:=decode('4e58433101'||
     replace(p_id::text,'-','')||
     replace(p_sender::text,'-','')||
