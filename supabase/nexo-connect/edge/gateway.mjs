@@ -32,8 +32,9 @@ async function readLimitedJson(request) {
   return {data,bytes};
 }
 function normalizePath(pathname){
-  const prefix="/functions/v1/nexo-connect-gateway";
-  if(pathname.startsWith(prefix+"/")) return pathname.substring(prefix.length);
+  for(const prefix of ["/functions/v1/nexo-connect-gateway","/nexo-connect-gateway"]){
+    if(pathname.startsWith(prefix+"/")) return pathname.substring(prefix.length);
+  }
   return pathname;
 }
 function validDevice(device,userId) {

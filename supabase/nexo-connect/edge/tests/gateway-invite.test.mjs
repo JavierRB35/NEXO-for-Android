@@ -123,3 +123,15 @@ test("signed action is route-bound and prevents replay on another path",async()=
  assert.equal((await f.handle(wrong)).status,400);
  assert.equal(f.calls.consume,0);
 });
+
+test("route works with function-relative path without weakening signature binding",async()=>{
+ const f=await fixture();
+ const signed=await f.signed();
+ const moved=new Request("https://example.invalid/nexo-connect-gateway/contact/invite",{
+   method:"POST",headers:signed.headers,body:JSON.stringify(payload)
+ });
+ const res=await f.handle(moved);
+ assert.equal(res.status,201);
+ assert.equal(f.calls.consume,1);
+ assert.equal(f.calls.create,1);
+});
