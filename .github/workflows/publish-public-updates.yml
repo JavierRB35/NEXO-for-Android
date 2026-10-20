@@ -53,7 +53,9 @@ jobs:
           [ -n "$APKSIGNER" ] || exit 1
           "$APKSIGNER" verify --print-certs "$FILE" > dist/signatures.txt
           EXPECTED="595799e351233418f05bc5053e42b3aff439d677ffbb0f59a1d92e29d15fec48"
-          ACTUAL="$(sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' dist/signatures.txt | head -1 | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          # apksigner puede mostrar "V2 Signer: certificate ..." o "Signer #1 certificate ...".
+          # Comprobar todas las huellas distintas: ninguna firma extra queda permitida.
+          ACTUAL="$(sed -n 's/^.*certificate SHA-256 digest: //p' dist/signatures.txt | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]' | sort -u)"
           [ "$ACTUAL" = "$EXPECTED" ] || { echo "Firma no oficial"; exit 1; }
 
       - name: Prepare public metadata
