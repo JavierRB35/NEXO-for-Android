@@ -51,11 +51,49 @@ public final class NexoConnectInboxCoordinator {
      * SECURITY: sender UUID/generation and signing PUBLIC KEY must come from
      * the QR-confirmed on-device trust store, NEVER from server JSON.
      */
-    public ImportOutcome importApproved(SQLiteDatabase db,UUID deliveryId,
+    /**
+     * The PUBLIC entrypoint resolves the authoritative peer pin from the
+     * encrypted QR trust store. A public Tink keyset is not trusted merely
+     * because a caller supplied it: its raw Ed25519 bytes MUST equal the pin.
+     */
+    public ImportOutcome importApprovedFromTrust(SQLiteDatabase db,UUID deliveryId,
+            boolean userApproved,KeysetHandle recipientPrivate,
+            KeysetHandle candidateSenderPublic,AndroidPeerTrustStore trustStore,
+            UUID senderAccount,UUID currentAccount,int currentGeneration,
+            long nowMillis)throws Exception {
+        if(!userApproved)throw new SecurityException("Explicit import consent required");
+        if(trustStore==null||currentAccount==null||
+                !currentAccount.equals(trustStore.ownerAccountId()))
+            throw new SecurityException("Wrong local trust store owner");
+        if(senderAccount==null)throw new SecurityException("Missing sender");
+        AndroidPeerTrustStore.PeerPin pin=trustStore.findActive(senderAccount);
+        if(pin==null)throw new SecurityException("QR trust missing or revoked");
+        pin.verifyTinkPublicKey(candidateSenderPublic);
+        return importApprovedInternal(db,deliveryId,true,recipientPrivate,
+                candidateSenderPublic,senderAccount,pin.generation,
+                currentAccount,currentGeneration,nowMillis,trustStore);
+    }
+
+    /**
+     * Package-private for isolated legacy tests only. Real integrations
+     * MUST use importApprovedFromTrust, not caller-supplied pin metadata.
+     */
+    ImportOutcome importApproved(SQLiteDatabase db,UUID deliveryId,
             boolean userApproved,KeysetHandle recipientPrivate,
             KeysetHandle pinnedSenderPublic,UUID pinnedSenderId,
             int pinnedSenderGeneration,UUID currentAccount,
             int currentGeneration,long nowMillis)throws Exception {
+        return importApprovedInternal(db,deliveryId,userApproved,recipientPrivate,
+                pinnedSenderPublic,pinnedSenderId,pinnedSenderGeneration,
+                currentAccount,currentGeneration,nowMillis,null);
+    }
+
+    private ImportOutcome importApprovedInternal(SQLiteDatabase db,UUID deliveryId,
+            boolean userApproved,KeysetHandle recipientPrivate,
+            KeysetHandle pinnedSenderPublic,UUID pinnedSenderId,
+            int pinnedSenderGeneration,UUID currentAccount,
+            int currentGeneration,long nowMillis,
+            AndroidPeerTrustStore trustStore)throws Exception {
         if(!userApproved)throw new SecurityException("Explicit import consent required");
         if(db==null||!db.isOpen()||deliveryId==null)
             throw new IllegalArgumentException("Invalid destination or delivery");
@@ -63,6 +101,14 @@ public final class NexoConnectInboxCoordinator {
         if(encrypted==null||!deliveryId.toString().equals(
                 encrypted.optString("deliveryId","")))
             throw new SecurityException("Opened delivery ID mismatch");
+        // Re-check persisted trust after a potentially slow network request.
+        // A contact revoked while downloading must not be imported.
+        if(trustStore!=null) {
+            AndroidPeerTrustStore.PeerPin latest=trustStore.findActive(pinnedSenderId);
+            if(latest==null||latest.generation!=pinnedSenderGeneration)
+                throw new SecurityException("QR trust revoked during download");
+            latest.verifyTinkPublicKey(pinnedSenderPublic);
+        }
         NexoConnectAtomicImporter.Result imported=importer.importVerified(
                 db,encrypted,recipientPrivate,pinnedSenderPublic,
                 pinnedSenderId,pinnedSenderGeneration,currentAccount,

@@ -1,6 +1,11 @@
 package com.jruiz.nexo.connect.vault;
 
 import android.database.Cursor;
+import android.content.Context;
+import androidx.test.platform.app.InstrumentationRegistry;
+import com.google.crypto.tink.signature.SignatureConfig;
+import com.google.crypto.tink.signature.SignatureKeyTemplates;
+import com.google.crypto.tink.signature.Ed25519PublicKey;
 import android.database.sqlite.SQLiteDatabase;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -70,6 +75,83 @@ public class NexoConnectInboxCoordinatorTest {
                     UUID.fromString(SENDER),1,ID,1,1780000000000L);
         }
     }
+    private static final class TrustedFixture {
+        final Fixture f=new Fixture();
+        final Context app=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        final UUID account=UUID.randomUUID();
+        final AndroidPeerTrustStore pins;
+        final KeysetHandle signing;
+        final AndroidPeerTrustStore.PeerPin rawPin;
+        final String qr;
+        TrustedFixture() throws Exception {
+            pins=new AndroidPeerTrustStore(app,account);
+            SignatureConfig.register();
+            signing=KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
+            byte[] raw=((Ed25519PublicKey)signing.getPublicKeysetHandle()
+                    .getAt(0).getKey()).getPublicKeyBytes().toByteArray();
+            byte[] hpke=new byte[32];
+            new java.security.SecureRandom().nextBytes(hpke);
+            rawPin=new AndroidPeerTrustStore.PeerPin(
+                    UUID.fromString(SENDER),1,raw,hpke,true);
+            qr=AndroidPeerTrustStore.encodeQr(rawPin);
+        }
+        void approve()throws Exception{
+            pins.saveQrConfirmed(qr,rawPin.signingFingerprint(),
+                    rawPin.encryptionFingerprint(),true);
+        }
+        NexoConnectInboxCoordinator.ImportOutcome receive(
+                SQLiteDatabase db,KeysetHandle candidate,boolean consent)throws Exception{
+            return f.coordinator.importApprovedFromTrust(db,ID,consent,
+                    null,candidate,pins,UUID.fromString(SENDER),account,1,
+                    1780000000000L);
+        }
+    }
+
+    @Test public void trustedPeerQrAllowsImportAfterConsent() throws Exception {
+        TrustedFixture f=new TrustedFixture();
+        f.approve();
+        try(SQLiteDatabase db=db()){
+            NexoConnectInboxCoordinator.ImportOutcome result=f.receive(
+                db,f.signing.getPublicKeysetHandle(),true);
+            assertTrue(result.acknowledged);
+            assertEquals(1,rows(db));
+        }
+    }
+    @Test public void absentOrRevokedQrPinBlocksBeforeNetworkAndAck()throws Exception {
+        TrustedFixture f=new TrustedFixture();
+        try(SQLiteDatabase db=db()){
+            try{f.receive(db,f.signing.getPublicKeysetHandle(),true);
+                fail("Accepted without QR trust");}
+            catch(SecurityException expected){}
+            assertEquals(0,f.f.net.opened);
+            f.approve();
+            assertTrue(f.pins.revoke(UUID.fromString(SENDER)));
+            try{f.receive(db,f.signing.getPublicKeysetHandle(),true);
+                fail("Accepted revoked QR");}
+            catch(SecurityException expected){}
+            assertEquals(0,f.f.net.opened);
+            assertEquals(0,f.f.net.acks);
+            assertEquals(0,rows(db));
+        }
+    }
+    @Test public void fakeSigningKeyAndWrongStoreOwnerFailBeforeNetwork()throws Exception {
+        TrustedFixture f=new TrustedFixture();
+        f.approve();
+        KeysetHandle outsider=KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
+        try(SQLiteDatabase db=db()){
+            try{f.receive(db,outsider.getPublicKeysetHandle(),true);
+                fail("Unpinned signing key accepted");}
+            catch(java.security.GeneralSecurityException expected){}
+            try{f.f.coordinator.importApprovedFromTrust(db,ID,true,null,
+                    f.signing.getPublicKeysetHandle(),f.pins,
+                    UUID.fromString(SENDER),UUID.randomUUID(),1,1780000000000L);
+                fail("Cross-account QR store accepted");}
+            catch(SecurityException expected){}
+            assertEquals(0,f.f.net.opened);
+            assertEquals(0,rows(db));
+        }
+    }
+
     @Test public void noConsentMeansNoDownloadOrImportOrAck()throws Exception{
         Fixture f=new Fixture();
         try(SQLiteDatabase db=db()){

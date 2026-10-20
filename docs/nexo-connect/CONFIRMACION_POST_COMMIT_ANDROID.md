@@ -9,3 +9,9 @@ Si falla la red tras el COMMIT, la ficha ya está guardada y queda un recibo `ac
 No hay lazo automático ni reintentos rápidos. El método de reintento opera sobre un máximo de 100 recibos y se interrumpe en el primer fallo de red. Las pruebas instrumentadas con dobles controlados comprueban orden COMMIT/ACK, denegación sin consentimiento, rollback/clave inválida, reintento offline sin duplicados y estado terminal conflictivo.
 
 **Aún falta:** integrar la pantalla de consentimiento, persistir el PIN de contactos, configurar cuenta real con dos teléfonos de prueba, servicio de red activo y notificaciones, y resolver estados terminales en UI. No activar en Nexo estable ni desplegar a Supabase todavía.
+
+## Persistencia QR conectada a la importación
+
+El método **público** `importApprovedFromTrust` resuelve el `senderId`, la generación y la clave pública Ed25519 frente a `AndroidPeerTrustStore`, cifrado en Keystore y asociado a la cuenta de la sesión. Si el contacto no existe, está revocado, pertenece a otra cuenta o la clave Tink no coincide exactamente, la operación se bloquea **antes de consultar la red**. Tras descargar el sobre, se vuelve a comprobar el pin local antes de entrar en la importación. El antiguo método `importApproved` queda solo con visibilidad de paquete para pruebas del laboratorio; el integrador Android deberá usar la nueva ruta pública.
+
+No se garantiza todavía serialización interproceso frente a revocación simultánea durante una escritura SQLite; el futuro coordinador UI debe serializar desvinculaciones y recepciones. Pruebas instrumentadas añadidas para QR válido, ausente, revocado, suplantado y cambio de cuenta.
