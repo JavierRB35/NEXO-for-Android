@@ -5100,19 +5100,20 @@ function normalizeSaveButtons(root=document){
     const explicit=saveIds.test(id)||contextual||button.hasAttribute('data-note-close-save');
     if(!explicit)return;
     const visibleText=String(button.textContent||'').trim();
-    // Un control solo-icono no admite una etiqueta visible sin cambiar su geometría.
-    if(!visibleText&&button.classList.contains('icon-button'))return;
     const label=visibleText||String(button.getAttribute('aria-label')||'Guardar').trim()||'Guardar';
+    // Revisar pauta abre una validación; todavía NO guarda el tratamiento.
     if(id==='saveCaptureBtn'&&label==='Revisar pauta')return;
+    // No transformar acciones de exportación ni controles en estados de espera.
     if(!/^(guardar|confirmar tratamiento|crear y vincular)/i.test(label)&&!button.classList.contains('nexo-unified-save'))return;
     const finalLabel=contextual?'Guardar y volver':label;
     const icon=button.querySelector('use[href="#nx-icon-save"]');
-    const caption=button.querySelector('.nexo-action-label');
-    if(icon&&caption?.textContent===finalLabel&&button.classList.contains('nexo-unified-save'))return;
+    // Tras quitar el texto, el MutationObserver puede invocar esto de nuevo.
+    // Mantener el mismo nodo evita re-renderizados, pérdida de foco y bucles.
+    if(icon&&!visibleText&&button.classList.contains('nexo-unified-save'))return;
     button.setAttribute('aria-label',finalLabel);
     button.setAttribute('title',finalLabel);
     button.classList.add('nexo-unified-save');
-    button.innerHTML=uiIcon('save')+'<span class="nexo-action-label">'+esc(finalLabel)+'</span>';
+    button.innerHTML=uiIcon('save');
   });
 }
 /** Criterio único: icono semántico a la izquierda y texto legible.
