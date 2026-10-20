@@ -322,6 +322,21 @@
     </div>
   </section>
 
+  <section class="settings-accordion" data-settings-accordion="updates">
+    <button class="settings-accordion__summary" type="button" data-settings-section="updates" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-download"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Actualizaciones</strong><small>Comprobar versiones de Nexo</small></span>
+      <svg class="ui-icon settings-accordion__chevron"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded">
+        <p id="updateStatusSettings" class="small muted" role="status">Todavía no se han buscado actualizaciones.</p>
+        <button id="checkUpdatesSettings" class="secondary-button" type="button">Buscar actualizaciones</button>
+        <p class="small muted">La instalación de una APK requiere tu confirmación en Android.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="settings-accordion" data-settings-accordion="weather">
     <button class="settings-accordion__summary" type="button" data-settings-section="weather" aria-expanded="false">
       <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-sun"></use></svg></span>
@@ -467,6 +482,13 @@
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>
     <p class="about-intro">Organiza tu agenda, notas, documentos, grabaciones y otra información personal desde un único lugar.</p>
+  </section>
+
+  <section class="about-card">
+    <h2>Actualizaciones de Nexo</h2>
+    <p id="updateStatusAbout" class="small muted" role="status">Todavía no se han buscado actualizaciones.</p>
+    <button id="checkUpdatesAbout" class="secondary-button" type="button">Buscar actualizaciones</button>
+    <p class="small muted">Solo APK oficiales firmadas y verificadas. Tus datos permanecen en el dispositivo.</p>
   </section>
 
   <section class="about-card">
