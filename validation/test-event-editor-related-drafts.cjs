@@ -85,8 +85,11 @@ const buttons=[
  classList:{contains:k=>o.classList.has(k),add:k=>o.classList.add(k)},querySelector:()=>null}));
 iconCtx.normalizeSaveButtons({querySelectorAll:q=>{assert.equal(q,'button');return buttons;}});
 assert(buttons[0].innerHTML.includes('#nx-icon-save'));
-assert(buttons[0].innerHTML.includes('Guardar documento'),'El texto visible del botón Guardar debe conservarse');
+assert(!buttons[0].innerHTML.includes('Guardar documento'),'Guardar es exclusivamente un disquete');
+assert(buttons[0].classList.contains('nexo-unified-save'));
+assert.equal(buttons[0].attributes.title,'Guardar documento');
 assert(buttons[1].innerHTML.includes('#nx-icon-save'));
+assert(!buttons[1].innerHTML.includes('Confirmar tratamiento'),'La accesibilidad conserva la etiqueta, no se ve el texto');
 assert.equal(buttons[2].innerHTML,'','Revisar pauta no es Guardar');
 assert.equal(buttons[3].innerHTML,'','Exportar audio/archivo no es Guardar del CRUD');
 assert.equal(buttons[0].attributes['aria-label'],'Guardar documento');
