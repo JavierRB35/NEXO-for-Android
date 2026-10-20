@@ -5097,7 +5097,7 @@ function normalizeSaveButtons(root=document){
   root.querySelectorAll('button').forEach(button=>{
     const id=String(button.id||'');
     const contextual=button.hasAttribute('data-related-save');
-    const explicit=saveIds.test(id)||contextual||button.hasAttribute('data-note-close-save');
+    const explicit=saveIds.test(id)||id==='parkingKeep'||contextual||button.hasAttribute('data-note-close-save');
     if(!explicit)return;
     const visibleText=String(button.textContent||'').trim();
     const label=visibleText||String(button.getAttribute('aria-label')||'Guardar').trim()||'Guardar';
