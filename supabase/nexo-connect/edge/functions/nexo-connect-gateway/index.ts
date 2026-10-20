@@ -98,6 +98,16 @@ const gateway=createGateway({
       p_recipient_generation:recipientGeneration,p_entity_type:entityType,
       p_context:bytesToBytea(context),p_ciphertext:bytesToBytea(ciphertext),
       p_signature:bytesToBytea(signature)
+    }),
+  listInbox:async({actorId,deviceId,generation,limit,afterId})=>
+    rpc("nexo_connect_inbox",{
+      p_actor:actorId,p_device:deviceId,p_generation:generation,
+      p_limit:limit,p_after:afterId
+    }),
+  openDelivery:async({actorId,deviceId,generation,deliveryId})=>
+    rpc("nexo_connect_open_delivery",{
+      p_actor:actorId,p_device:deviceId,p_generation:generation,
+      p_delivery:deliveryId
     })
 });
 Deno.serve(gateway);

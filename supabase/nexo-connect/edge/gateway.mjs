@@ -6,7 +6,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ACTIONS=new Set([
   "contact/invite","contact/accept","contact/permissions",
   "contact/unlink","key/verify","delivery/send",
-  "delivery/resolve","delivery/request-resend"
+  "delivery/resolve","delivery/request-resend",
+  "delivery/inbox","delivery/open"
 ]);
 const MAX_BODY=2048;
 const MAX_INLINE_SEND_BODY=768*1024;
@@ -44,7 +45,7 @@ function validDevice(device,userId) {
     &&Number.isSafeInteger(device.generation)&&device.generation>0);
 }
 export function createGateway({
-  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,resolveDelivery,sendDelivery,clock=()=>Date.now()
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,resolveDelivery,sendDelivery,listInbox,openDelivery,clock=()=>Date.now()
 }) {
   if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,clock]
       .every(x=>typeof x==="function"))
@@ -53,11 +54,14 @@ export function createGateway({
     throw new TypeError("Invalid delivery resolution dependency");
   if (sendDelivery!==undefined&&typeof sendDelivery!=="function")
     throw new TypeError("Invalid delivery sender dependency");
+  for(const fn of [listInbox,openDelivery])
+    if(fn!==undefined&&typeof fn!=="function")
+      throw new TypeError("Invalid inbox dependency");
   return async request=>{
     try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
       const path=normalizePath(new URL(request.url).pathname);
-      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink","/delivery/resolve","/delivery/send"].includes(path))
+      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink","/delivery/resolve","/delivery/send","/delivery/inbox","/delivery/open"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!bearer.startsWith("Bearer ")||
@@ -107,6 +111,8 @@ export function createGateway({
       const unlinking=path==="/contact/unlink";
       const resolving=path==="/delivery/resolve";
       const sending=path==="/delivery/send";
+      const listing=path==="/delivery/inbox";
+      const opening=path==="/delivery/open";
       if(creating){
         if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
           ||!isHex64(data.tokenSha256)
@@ -134,6 +140,17 @@ export function createGateway({
         if(Object.keys(data).sort().join(",")!=="deliveryId,target"
           ||!UUID.test(data.deliveryId)
           ||!["accepted","rejected","cancelled"].includes(data.target))
+          return reply(400,{error:"invalid-request"});
+      }else if(listing){
+        const keys=Object.keys(data).sort().join(",");
+        if(keys!=="limit"&&keys!=="afterId,limit")
+          return reply(400,{error:"invalid-request"});
+        if(!Number.isSafeInteger(data.limit)||data.limit<1||data.limit>20||
+          (data.afterId!==undefined&&!UUID.test(data.afterId)))
+          return reply(400,{error:"invalid-request"});
+      }else if(opening){
+        if(Object.keys(data).sort().join(",")!=="deliveryId"||
+          !UUID.test(data.deliveryId))
           return reply(400,{error:"invalid-request"});
       }else if(sending){
         if(Object.keys(data).sort().join(",")!==
@@ -202,6 +219,32 @@ export function createGateway({
           generation:device.generation,peerId:data.peerId
         });
         return reply(200,{peerId:data.peerId,unlinked:true});
+      }
+      if(listing){
+        if(typeof listInbox!=="function")throw Error("Inbox not configured");
+        const page=await listInbox({
+          actorId:user.id,deviceId:device.device_id,generation:device.generation,
+          limit:data.limit,afterId:data.afterId??null
+        });
+        if(!Array.isArray(page)||page.length>data.limit)
+          throw Error("Invalid inbox response");
+        return reply(200,{items:page});
+      }
+      if(opening){
+        if(typeof openDelivery!=="function")throw Error("Open not configured");
+        const sealed=await openDelivery({
+          actorId:user.id,deviceId:device.device_id,
+          generation:device.generation,deliveryId:data.deliveryId
+        });
+        if(!sealed||typeof sealed!=="object"||
+          sealed.deliveryId!==data.deliveryId||
+          typeof sealed.contextHex!=="string"||
+          typeof sealed.ciphertextHex!=="string"||
+          typeof sealed.signatureHex!=="string")
+          throw Error("Invalid open response");
+        // Ciphertext is opaque and must be verified against a locally pinned
+        // sender signing key before an Android client considers importing it.
+        return reply(200,sealed);
       }
       if(sending){
         if(typeof sendDelivery!=="function")throw Error("Send not configured");

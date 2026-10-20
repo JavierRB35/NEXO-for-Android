@@ -8,7 +8,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const ACTIONS = Object.freeze([
   "contact/invite", "contact/accept", "contact/permissions",
   "contact/unlink", "key/verify", "delivery/send",
-  "delivery/resolve", "delivery/request-resend"
+  "delivery/resolve", "delivery/request-resend",
+  "delivery/inbox", "delivery/open"
 ]);
 const MAX_BODY = 524288;
 const MAX_SEND_BODY = 768 * 1024;

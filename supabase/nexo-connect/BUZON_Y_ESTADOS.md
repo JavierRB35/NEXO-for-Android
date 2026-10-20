@@ -56,3 +56,9 @@ La RPC `public.nexo_connect_send_delivery` queda reservada a `service_role`, ver
 ## Corrección de la caducidad firmada (migración 0015, sin desplegar)
 
 Un trigger de INSERT compara el `issuedAt` y `expiresAt` **firmados** de NXC1 con el reloj de la base y guarda `expires_at` usando la caducidad exacta del sobre, no el valor fijo de 30 días suministrado por el RPC histórico. Rechaza TTL negativo, vencido, fuera de la ventana de firma, superior a 30 días o fecha fuera de rango. El gateway debe seguir verificando primero la firma Ed25519 y el usuario/huella/grupos autorizados.
+
+## Buzón restringido con firma de dispositivo (migración 0016, SIN desplegar)
+
+`POST /delivery/inbox` acepta únicamente `limit` (1–20) y `afterId` opcional (cursor de una entrega propia), y devuelve metadatos de entregas pendientes, ordenadas por fecha/ID, sin plaintext. `POST /delivery/open` acepta `deliveryId` y devuelve **un único** sobre cifrado por solicitud (`contextHex`, `ciphertextHex`, `signatureHex`, huella SHA-256 y contexto) si pertenece al destinatario, a su generación vigente, no ha caducado y sigue pendiente. JWT, nonce de un uso específico y firma Ed25519 del móvil se verifican antes de ejecutar RPC de `service_role`; ni `anon` ni `authenticated` tienen permiso directo de ejecutar las funciones.
+
+La respuesta NO contiene una clave pública que Android pueda confiar automáticamente. Antes de llamar a `NexoConnectAtomicImporter` sigue siendo imprescindible cotejar huella Ed25519 con el PIN local creado por QR, verificar sobre/contexto y descifrar con HPKE en Android. Para privacidad y recursos no se devuelven múltiples ciphertext de golpe. No se ha conectado este endpoint a ninguna pantalla; no es un servicio de producción.
