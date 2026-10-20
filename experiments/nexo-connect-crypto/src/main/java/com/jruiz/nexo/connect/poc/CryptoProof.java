@@ -9,6 +9,7 @@ import com.google.crypto.tink.RegistryConfiguration;
 import com.google.crypto.tink.hybrid.HybridConfig;
 import com.google.crypto.tink.hybrid.HpkeParameters;
 import com.google.crypto.tink.signature.SignatureConfig;
+import com.google.crypto.tink.signature.Ed25519PublicKey;
 import com.google.crypto.tink.signature.SignatureKeyTemplates;
 
 import java.io.ByteArrayOutputStream;
@@ -44,7 +45,18 @@ public final class CryptoProof {
 
     public static KeysetHandle newSenderSigningKeys() throws GeneralSecurityException {
         SignatureConfig.register();
-        return KeysetHandle.generateNew(SignatureKeyTemplates.ED25519);
+        return KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
+    }
+
+    /** Formato raw Ed25519 de 32 bytes para verificación interoperable en Edge. */
+    public static byte[] rawSigningPublicKey(KeysetHandle signingPrivate)
+            throws GeneralSecurityException {
+        Object key = signingPrivate.getPublicKeysetHandle().getAt(0).getKey();
+        if (!(key instanceof Ed25519PublicKey))
+            throw new GeneralSecurityException("Clave de firma inesperada");
+        byte[] raw = ((Ed25519PublicKey)key).getPublicKeyBytes().toByteArray();
+        if (raw.length != 32) throw new GeneralSecurityException("Ed25519 public key length");
+        return raw;
     }
 
     /** Se comparte solamente el handle público, nunca el privado. */
