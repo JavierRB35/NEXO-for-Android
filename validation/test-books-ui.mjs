@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {JSDOM} from 'jsdom';
 
 const path='app/src/main/assets/books.js';
-const dom=new JSDOM('<main><div id="panelContent"></div><div id="modalBody"></div></main>',{
+const dom=new JSDOM('<main><div id="panelContent"></div><div id="modal" class="modal"><div class="modal-sheet"><div id="modalBody"></div></div></div></main>',{
   url:'https://nexo.local/',runScripts:'outside-only',pretendToBeVisual:true
 });
 const {window}=dom,doc=window.document;
@@ -40,8 +40,15 @@ window.esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'
 window.escAttr=window.esc;
 window.uiIcon=name=>`<svg data-icon="${name}"></svg>`;
 window.toast=s=>{lastError=s;};
-window.openModal=(title,html)=>{doc.querySelector('#modalBody').innerHTML=html;};
-window.closeModal=()=>{doc.querySelector('#modalBody').innerHTML='';return true;};
+window.openModal=(title,html)=>{
+  doc.querySelector('.modal-sheet > .record-form-actions--compact')?.remove();
+  doc.querySelector('#modalBody').innerHTML=html;
+};
+window.closeModal=()=>{
+  doc.querySelector('#modalBody').innerHTML='';
+  doc.querySelector('.modal-sheet > .record-form-actions--compact')?.remove();
+  return true;
+};
 window.confirmGeneric=(title,body,fn)=>{confirmCount++;fn();};
 window.startManagedDictation=(target,opts)=>{voice={target,opts};};
 window.requestAnimationFrame=fn=>{fn();return 1;};
@@ -124,11 +131,14 @@ assert.equal(doc.querySelector('#bookStatus').value,'finished');
 assert.equal(doc.querySelector('#bookFavorite'),null,'No checkbox ni corazón en formulario de edición');
 assert.equal(doc.querySelectorAll('[data-book-edit-rating]').length,0,'Las estrellas no están en edición');
 assert.equal(doc.querySelector('#bookStartDate').value,'2023-11-01');
-assert.equal(doc.querySelector('.book-editor').firstElementChild.classList.contains('book-editor-toolbar'),true,'Guardar y cancelar en cabecera de editor');
-assert.equal(doc.querySelectorAll('#bookSave').length,1,'Guardar solo arriba');
-assert(doc.querySelector('#bookSave .ui-icon')||doc.querySelector('#bookSave svg'),'Icono de disquete como en Notas');
-assert.equal(doc.querySelectorAll('.book-editor .modal-actions').length,0,'Sin botones ocultos tras la descripción');
-assert.equal(doc.querySelector('#bookCancel').closest('.book-editor-toolbar')!==null,true);
+assert.equal(doc.querySelector('.book-editor').firstElementChild.classList.contains('book-editor-toolbar'),true,'Cabecera solo informativa');
+assert.equal(doc.querySelectorAll('#bookSave').length,1,'Una única acción de guardar');
+assert.equal(doc.querySelector('.modal-sheet>.book-editor-actions #bookSave')!==null,true,'Guardar está en el pie fijo, no encima del formulario');
+assert.equal(doc.querySelector('.modal-sheet>.book-editor-actions #bookCancel')!==null,true,'Cancelar comparte el pie del editor');
+assert.equal(doc.querySelector('#bookSave').classList.contains('primary-button'),true,'Mismo botón principal que en eventos');
+assert.equal(doc.querySelector('#bookSave .nexo-action-label').textContent,'Guardar libro','El texto está visible y no depende de aria-label');
+assert.equal(doc.querySelector('#bookSave svg').getAttribute('data-icon'),'save','Icono de disquete');
+assert.equal(doc.querySelectorAll('.book-editor .modal-actions').length,0,'Sin botonera duplicada al final del formulario');
 doc.querySelector('#bookStatus').value='reading';
 doc.querySelector('#bookStatus').dispatchEvent(new window.Event('change',{bubbles:true}));
 assert.equal(doc.querySelector('#bookProgress').value,'99');
