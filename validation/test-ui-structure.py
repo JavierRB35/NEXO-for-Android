@@ -72,8 +72,19 @@ assert 'data-panel="appointments"' not in home
 tools_start = html.index('<section class="screen" data-screen="tools"')
 tools_end = html.index('<section class="screen" data-screen="save"', tools_start)
 tools = html[tools_start:tools_end]
-for panel in ["notes","recordings","lists","documents","journal","quotes","medications","places","parking","history","backup"]:
+for panel in ["notes","recordings","lists","documents","journal","quotes","medications","places","parking"]:
     assert f'data-panel="{panel}"' in tools, f"Falta herramienta: {panel}"
+
+# Historial y Copia de seguridad se gestionan exclusivamente desde la rueda de Ajustes.
+settings_start = html.index('<section class="screen" data-screen="more"')
+settings_end = html.index('<section class="screen about-screen"', settings_start)
+settings = html[settings_start:settings_end]
+assert 'data-settings-accordion="security"' in settings
+for panel in ["history","backup"]:
+    entry = f'data-panel="{panel}"'
+    assert entry in settings, f"Falta acceso de seguridad en Ajustes: {panel}"
+    assert entry not in tools, f"Acceso de seguridad duplicado en Herramientas: {panel}"
+    assert html.count(entry) == 1, f"Acceso de seguridad duplicado: {panel}"
 
 nav_start = html.index('<nav class="bottom-nav"')
 nav_end = html.index('</nav>', nav_start)
