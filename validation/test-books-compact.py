@@ -21,5 +21,5 @@ for needed in ("data-books-filter", "'all'", "function openDetails(id)", "bookDe
     assert needed in books, f"Falta lógica de biblioteca: {needed}"
 for needed in (".books-status-filters", ".book-card-main", ".book-detail-summary", ".book-detail-actions"):
     assert needed in css, f"Falta estilo de biblioteca: {needed}"
-assert "3.7.47" in (root / "app/build.gradle").read_text()
+assert "3.7.48" in (root / "app/build.gradle").read_text()
 print("OK: Libros: cuatro categorías e iconos, filtros, tarjetas compactas y ficha detallada")
