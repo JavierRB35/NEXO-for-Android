@@ -1,8 +1,10 @@
-# Nexo 3.7.47
+# Nexo 3.7.48
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.47**, `versionCode 140`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
+Esta versión corresponde a **Nexo 3.7.48**, `versionCode 141`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
+
+**Nuevo en 3.7.48:** Al abrir Nexo y terminar la pantalla inicial se buscan actualizaciones nuevas y, si las hay, aparece una pregunta «Actualizar / Más tarde». La apertura posterior puede volver a mostrarla; sin instalación silenciosa ni diálogos duplicados al cambiar de actividad.
 
 **Nuevo en 3.7.47:** El apartado «Datos y seguridad» pasa de Herramientas a Ajustes (rueda dentada) e incluye Historial y Copia de seguridad, sin duplicar accesos ni cambiar su funcionamiento.
 
