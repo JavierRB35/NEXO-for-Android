@@ -18,6 +18,8 @@ concurrency:
 jobs:
   build-release:
     name: Validate and build signed Release APK
+    outputs:
+      version_name: ${{ steps.version.outputs.version_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -189,3 +191,12 @@ jobs:
           else
             gh release create "${RELEASE_TAG}" "${FINAL_APK}" "${FINAL_APK}.sha256" --target "${GITHUB_SHA}" --title "Nexo ${VERSION_NAME}" --generate-notes
           fi
+
+  publish-public-update:
+    name: Publish Nexo signed update
+    needs: build-release
+    if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-release]'))
+    uses: ./.github/workflows/publish-public-updates.yml
+    with:
+      tag: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', needs.build-release.outputs.version_name) }}
+    secrets: inherit
