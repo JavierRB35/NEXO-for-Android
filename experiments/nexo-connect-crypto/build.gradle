@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+}
+
+dependencies {
+    // Prueba de laboratorio: NO añadir esta dependencia a la app principal aún.
+    implementation 'com.google.crypto.tink:tink:1.18.0'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnit()
+    maxHeapSize = '768m'
+    maxParallelForks = 1
+    testLogging { events 'passed', 'failed', 'skipped' }
+}
