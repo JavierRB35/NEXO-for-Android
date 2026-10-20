@@ -79,6 +79,30 @@ public class NexoConnectSignedGatewayClientTest {
             if(failSigned)return new NexoConnectSignedGatewayClient.TransportResponse(503,null);
             if(statusOnAction==403)return new NexoConnectSignedGatewayClient.TransportResponse(403,null);
             JSONObject request=new JSONObject(new String(bytes,StandardCharsets.UTF_8));
+            if(action.equals("contact/invite"))
+                return NexoConnectSignedGatewayClient.TransportResponse.json(201,
+                        new JSONObject().put("inviteId",
+                                "77777777-7777-4777-8777-777777777777")
+                            .put("expiresInSeconds",request.getInt("expiresInSeconds")));
+            if(action.equals("contact/accept"))
+                return NexoConnectSignedGatewayClient.TransportResponse.json(200,
+                        new JSONObject().put("linked",true)
+                                .put("requestId","88888888-8888-4888-8888-888888888888")
+                                .put("creatorId",request.getString("creatorId"))
+                                .put("reciprocalKeyVerificationRequired",true));
+            if(action.equals("key/verify"))
+                return NexoConnectSignedGatewayClient.TransportResponse.json(200,
+                        new JSONObject().put("verified",true)
+                                .put("peerId",request.getString("peerId"))
+                                .put("generation",request.getInt("peerGeneration")));
+            if(action.equals("contact/permissions"))
+                return NexoConnectSignedGatewayClient.TransportResponse.json(200,
+                        new JSONObject().put("peerId",request.getString("peerId"))
+                                .put("receivingAllowed",request.getBoolean("allowReceive")));
+            if(action.equals("contact/unlink"))
+                return NexoConnectSignedGatewayClient.TransportResponse.json(200,
+                        new JSONObject().put("unlinked",true)
+                                .put("peerId",request.getString("peerId")));
             if(action.equals("delivery/inbox"))
                 return NexoConnectSignedGatewayClient.TransportResponse.json(200,
                         new JSONObject().put("items",new JSONArray()
@@ -212,6 +236,98 @@ public class NexoConnectSignedGatewayClientTest {
                 "jwt",ACCOUNT,PHONE,1,new Fixture().identity);fail("Other host allowed");}
         catch(IllegalArgumentException expected){}
     }
+
+    private static AndroidPeerTrustStore.PeerPin publicIdentity(
+            Fixture fixture,UUID owner)throws Exception {
+        byte[] signing=((com.google.crypto.tink.signature.Ed25519PublicKey)
+                fixture.identity.getPublicKeysetHandle().getAt(0).getKey())
+                .getPublicKeyBytes().toByteArray();
+        byte[] enc=new byte[32];
+        new java.security.SecureRandom().nextBytes(enc);
+        return new AndroidPeerTrustStore.PeerPin(owner,1,signing,enc,true);
+    }
+    @Test public void creatorSignsOnlyHashOfRandomInvitationSecret()throws Exception{
+        Fixture creator=new Fixture();
+        AndroidPeerTrustStore.PeerPin self=publicIdentity(creator,ACCOUNT);
+        NexoConnectSignedGatewayClient.InvitationCreated voucher=
+                creator.client.createInvitation(self,3600);
+        assertEquals(3600,voucher.expiresInSeconds);
+        assertEquals("77777777-7777-4777-8777-777777777777",
+                voucher.inviteId.toString());
+        NexoConnectInvitationQr decoded=NexoConnectInvitationQr.parse(voucher.qrPayload);
+        assertEquals(ACCOUNT,decoded.creatorAccount());
+        assertEquals(1,decoded.creatorGeneration());
+        assertEquals(self.signingFingerprint(),decoded.signingFingerprint());
+        assertEquals(2,creator.fake.actions.size());
+        assertEquals("contact/invite",creator.fake.actions.get(1));
+        assertNotEquals(voucher.qrPayload,creator.fake.actions.get(1));
+        // A second issue is independent, and cannot reuse the first QR token.
+        NexoConnectSignedGatewayClient.InvitationCreated second=
+                creator.client.createInvitation(self,3600);
+        assertNotEquals(voucher.qrPayload,second.qrPayload);
+        assertFalse(second.qrPayload.contains("privateKey"));
+    }
+    @Test public void acceptRequiresPinnedPeerBeforeAnySignedNetworkCall()
+            throws Exception{
+        Fixture creator=new Fixture();
+        AndroidPeerTrustStore.PeerPin identity=publicIdentity(creator,ACCOUNT);
+        byte[] token=new byte[32];
+        new java.security.SecureRandom().nextBytes(token);
+        NexoConnectInvitationQr qr=NexoConnectInvitationQr.create(identity,token);
+        // Simulate B's independent QR verification with a separate owner UUID.
+        UUID b=UUID.fromString("99999999-9999-4999-8999-999999999999");
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .getTargetContext();
+        AndroidPeerTrustStore bStore=new AndroidPeerTrustStore(
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                    .getTargetContext(),b);
+        KeysetHandle bKey=KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
+        FakeTransport bNet=new FakeTransport(bKey);
+        NexoConnectSignedGatewayClient bClient=new NexoConnectSignedGatewayClient(
+                b,PHONE,1,"secret.jwt","publishable",bKey,bNet,()->NOW);
+        try{
+            bClient.acceptVerifiedInvitation(qr.encode(),bStore,true);
+            fail("Accepted without independent QR pin");
+        }catch(GeneralSecurityException expected){}
+        assertTrue(bNet.actions.isEmpty());
+        bStore.saveQrConfirmed(qr.publicPeerQr(),identity.signingFingerprint(),
+                identity.encryptionFingerprint(),true);
+        assertEquals("88888888-8888-4888-8888-888888888888",
+                bClient.acceptVerifiedInvitation(qr.encode(),bStore,true).toString());
+        assertEquals("contact/accept",bNet.actions.get(1));
+        try{
+            bClient.acceptVerifiedInvitation(qr.encode(),bStore,false);
+            fail("Accepted without permission");
+        }catch(SecurityException expected){}
+        assertEquals(2,bNet.actions.size());
+    }
+    @Test public void reciprocalQrVerificationAndRemoteUnlinkUseSignedProof()
+            throws Exception{
+        Fixture f=new Fixture();
+        AndroidPeerTrustStore store=new AndroidPeerTrustStore(
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                        .getTargetContext(),ACCOUNT);
+        UUID peer=UUID.fromString("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        byte[] sign=new byte[32],enc=new byte[32];
+        new java.security.SecureRandom().nextBytes(sign);
+        new java.security.SecureRandom().nextBytes(enc);
+        AndroidPeerTrustStore.PeerPin peerPin=new AndroidPeerTrustStore.PeerPin(
+                peer,1,sign,enc,true);
+        store.saveQrConfirmed(AndroidPeerTrustStore.encodeQr(peerPin),
+                peerPin.signingFingerprint(),peerPin.encryptionFingerprint(),true);
+        f.client.verifyStoredPeer(store,peer);
+        assertEquals("key/verify",f.fake.actions.get(1));
+        f.client.setReceiving(store,peer,false);
+        f.client.setReceiving(store,peer,true);
+        f.client.unlinkRemotelyAndLocally(store,peer,true);
+        assertNull(store.findActive(peer));
+        assertEquals("contact/unlink",f.fake.actions.get(7));
+        try{
+            f.client.setReceiving(store,peer,true);
+            fail("Enabled an unverified revoked contact");
+        }catch(SecurityException expected){}
+    }
+
     @Test public void rejectsTamperedResponseId() throws Exception {
         Fixture f=new Fixture();
         f.fake.statusOnAction=403;

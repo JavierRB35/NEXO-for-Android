@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -101,6 +102,156 @@ public final class NexoConnectSignedGatewayClient {
                         .getPublicKeyBytes().toByteArray());
         this.transport=transport;
         this.clock=clock;
+    }
+
+
+    /**
+     * INVITATION CREATOR, signed phone proof. Cryptographically secure 32-byte
+     * secret appears only inside the QR passed between phones. Server stores
+     * SHA-256(secret), not the token. The caller must show QR privately and
+     * must be the registered owner of ownPublic.
+     */
+    public InvitationCreated createInvitation(AndroidPeerTrustStore.PeerPin ownPublic,
+            int expiresInSeconds)throws Exception {
+        if(ownPublic==null||!ownPublic.active||
+                !accountId.equals(ownPublic.peerId)||
+                generation!=ownPublic.generation||
+                !MessageDigest.isEqual(localSigningFingerprint,
+                    MessageDigest.getInstance("SHA-256").digest(ownPublic.signingPublicRaw())))
+            throw new GeneralSecurityException("Unverified local invitation identity");
+        if(expiresInSeconds<300||expiresInSeconds>86400)
+            throw new IllegalArgumentException("Invalid invitation lifetime");
+        byte[] secret=new byte[32];
+        new SecureRandom().nextBytes(secret);
+        try {
+            NexoConnectInvitationQr invite=NexoConnectInvitationQr.create(
+                    ownPublic,secret);
+            JSONObject response=execute("contact/invite",new JSONObject()
+                    .put("tokenSha256",hex(invite.tokenSha256()))
+                    .put("expiresInSeconds",expiresInSeconds));
+            String id=response.optString("inviteId","");
+            if(!isUuid(id)||
+                    response.optInt("expiresInSeconds",-1)!=expiresInSeconds)
+                throw new GeneralSecurityException("Invalid signed invite response");
+            return new InvitationCreated(UUID.fromString(id),invite.encode(),
+                    expiresInSeconds);
+        }finally{java.util.Arrays.fill(secret,(byte)0);}
+    }
+
+    /**
+     * Recipient accepts ONLY after PIN was persisted from the separately
+     * human-confirmed public peer QR. No silent trust of an invite QR!
+     */
+    public UUID acceptVerifiedInvitation(String invitationQr,
+            AndroidPeerTrustStore trustStore, boolean explicitConsent)
+            throws Exception {
+        if(!explicitConsent)
+            throw new SecurityException("Contact acceptance requires consent");
+        checkStoreOwner(trustStore);
+        NexoConnectInvitationQr invitation=NexoConnectInvitationQr.parse(invitationQr);
+        if(accountId.equals(invitation.creatorAccount()))
+            throw new GeneralSecurityException("Self invitation forbidden");
+        AndroidPeerTrustStore.PeerPin pinned=trustStore.findActive(
+                invitation.creatorAccount());
+        if(!invitation.matchesPinnedPeer(pinned))
+            throw new GeneralSecurityException("Invitation differs from locally verified peer");
+        JSONObject answer=execute("contact/accept",new JSONObject()
+                .put("creatorId",invitation.creatorAccount().toString())
+                .put("creatorGeneration",invitation.creatorGeneration())
+                .put("creatorSigningFingerprint",invitation.signingFingerprint())
+                .put("creatorEncryptionFingerprint",invitation.encryptionFingerprint())
+                .put("tokenSha256",hex(invitation.tokenSha256())));
+        if(!answer.optBoolean("linked",false)||
+                !accountId.equals(trustStore.ownerAccountId())||
+                !invitation.creatorAccount().toString().equals(
+                    answer.optString("creatorId",""))||
+                !answer.optBoolean("reciprocalKeyVerificationRequired",false)||
+                !isUuid(answer.optString("requestId","")))
+            throw new GeneralSecurityException("Invalid contact acceptance response");
+        // New generation/revocation DURING network operation invalidates success.
+        if(!invitation.matchesPinnedPeer(
+                trustStore.findActive(invitation.creatorAccount())))
+            throw new SecurityException("Peer trust changed while accepting");
+        return UUID.fromString(answer.getString("requestId"));
+    }
+
+    /**
+     * Sending direction approval MUST take peer fingerprints from local,
+     * independent QR verification, never from the server.
+     */
+    public void verifyStoredPeer(AndroidPeerTrustStore trustStore,UUID peer)
+            throws Exception {
+        checkStoreOwner(trustStore);
+        if(peer==null||peer.equals(accountId))
+            throw new IllegalArgumentException("Invalid peer");
+        AndroidPeerTrustStore.PeerPin pin=trustStore.findActive(peer);
+        if(pin==null)throw new SecurityException("QR identity not verified");
+        JSONObject response=execute("key/verify",new JSONObject()
+                .put("peerId",peer.toString())
+                .put("peerGeneration",pin.generation)
+                .put("peerSigningFingerprint",pin.signingFingerprint())
+                .put("peerEncryptionFingerprint",pin.encryptionFingerprint()));
+        if(!response.optBoolean("verified",false)||
+                !peer.toString().equals(response.optString("peerId",""))||
+                response.optInt("generation",-1)!=pin.generation)
+            throw new GeneralSecurityException("Invalid peer verification response");
+        AndroidPeerTrustStore.PeerPin after=trustStore.findActive(peer);
+        if(after==null||pin.generation!=after.generation||
+                !MessageDigest.isEqual(pin.signingPublicRaw(),after.signingPublicRaw())||
+                !MessageDigest.isEqual(pin.encryptionPublicRaw(),after.encryptionPublicRaw()))
+            throw new SecurityException("Peer verification revoked during request");
+    }
+
+    public void setReceiving(AndroidPeerTrustStore trustStore,UUID peer,boolean enabled)
+            throws Exception {
+        checkStoreOwner(trustStore);
+        if(peer==null||peer.equals(accountId))
+            throw new IllegalArgumentException("Invalid contact");
+        // Never enable delivery from a contact without a trusted local key.
+        if(enabled&&trustStore.findActive(peer)==null)
+            throw new SecurityException("Unverified peer cannot be enabled");
+        JSONObject answer=execute("contact/permissions",new JSONObject()
+                .put("peerId",peer.toString()).put("allowReceive",enabled));
+        if(!peer.toString().equals(answer.optString("peerId",""))||
+                answer.optBoolean("receivingAllowed",!enabled)!=enabled)
+            throw new GeneralSecurityException("Invalid permission response");
+    }
+
+    /**
+     * Remote unlink FIRST (service validates JWT/Ed25519/generation), local
+     * revocation SECOND. Never claim full unlink if local Keystore fails.
+     * If remote unlink succeeds but local write fails, the SERVER still blocks
+     * traffic and UI must show a reconciliation error.
+     */
+    public void unlinkRemotelyAndLocally(AndroidPeerTrustStore trustStore,UUID peer,
+            boolean explicitConsent)throws Exception {
+        if(!explicitConsent)
+            throw new SecurityException("Explicit remote unlink approval required");
+        checkStoreOwner(trustStore);
+        if(peer==null||peer.equals(accountId))
+            throw new IllegalArgumentException("Invalid contact");
+        JSONObject answer=execute("contact/unlink",new JSONObject()
+                .put("peerId",peer.toString()));
+        if(!answer.optBoolean("unlinked",false)||
+                !peer.toString().equals(answer.optString("peerId","")))
+            throw new GeneralSecurityException("Invalid unlink response");
+        trustStore.revoke(peer);
+    }
+
+    private void checkStoreOwner(AndroidPeerTrustStore trustStore)
+            throws GeneralSecurityException {
+        if(trustStore==null||!accountId.equals(trustStore.ownerAccountId()))
+            throw new GeneralSecurityException("QR trust belongs to other account");
+    }
+
+    public static final class InvitationCreated {
+        public final UUID inviteId;
+        public final String qrPayload;
+        public final int expiresInSeconds;
+        private InvitationCreated(UUID inviteId,String qrPayload,int expiresInSeconds){
+            this.inviteId=inviteId;this.qrPayload=qrPayload;
+            this.expiresInSeconds=expiresInSeconds;
+        }
     }
 
     /** Only metadata, up to 20 pending deliveries. No plaintext. */

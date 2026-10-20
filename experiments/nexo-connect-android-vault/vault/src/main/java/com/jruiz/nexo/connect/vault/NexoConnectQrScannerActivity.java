@@ -26,6 +26,7 @@ import java.util.UUID;
  * This scanner never sends QR bytes to Supabase or other servers.
  */
 public final class NexoConnectQrScannerActivity extends Activity {
+    public static final String RESULT_INVITATION_QR = "nexo_connect_verified_invitation";
     public static final String RESULT_PEER_ID = "nexo_connect_verified_peer_id";
     public static final String RESULT_PEER_GENERATION = "nexo_connect_verified_generation";
     private static final String EXTRA_ACCOUNT = "nexo_connect_local_session_account";
@@ -94,13 +95,29 @@ public final class NexoConnectQrScannerActivity extends Activity {
         }
         try {
             String raw=scanned.getContents();
-            requireScannedPeerQr(raw,localAccount);
+            final NexoConnectInvitationQr invitation;
+            final String peerQr;
+            if(raw.contains("\"nexo-connect-invite\"")){
+                invitation=NexoConnectInvitationQr.parse(raw);
+                peerQr=invitation.publicPeerQr();
+            }else{
+                invitation=null;
+                peerQr=raw;
+            }
+            requireScannedPeerQr(peerQr,localAccount);
             final QrTrustConfirmationView verification=new QrTrustConfirmationView(
-                    this,raw,store,new QrTrustConfirmationView.Listener(){
+                    this,peerQr,store,new QrTrustConfirmationView.Listener(){
                 @Override public void onVerified(AndroidPeerTrustStore.PeerPin pin){
                     // This means LOCAL pin only; NOT proof of a server relationship.
                     Intent result=new Intent().putExtra(RESULT_PEER_ID,pin.peerId.toString())
                             .putExtra(RESULT_PEER_GENERATION,pin.generation);
+                    // Invitation secret is returned only to the internal
+                    // authenticated flow AFTER local QR trust is saved.
+                    // This does not automatically call contact/accept.
+                    if(invitation!=null){
+                        try{result.putExtra(RESULT_INVITATION_QR,invitation.encode());}
+                        catch(Exception ex){setResult(RESULT_CANCELED);finish();return;}
+                    }
                     setResult(RESULT_OK,result);
                     finish();
                 }
