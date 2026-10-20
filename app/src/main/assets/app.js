@@ -4255,6 +4255,8 @@ function finishStartupSplash(){
   }
   state.startupHomeDashboard=null;
   requestAnimationFrame(updateFloatingActions);
+  // Preguntar por nuevas versiones cuando la portada ya ha desaparecido.
+  setTimeout(()=>NexoNative.onStartupReadyForUpdates?.(),350);
 }
 
 function maybeFinishStartupSplash(){
@@ -4320,6 +4322,8 @@ function beginStartupSequence(startScreen){
   navigate(startScreen,{root:true});
   if(startScreen==='calendar')requestAnimationFrame(()=>{if(state.screen==='calendar')renderCalendar();});
   maybeFinishStartupSplash();
+  // Seguridad si en alguna instalación la pantalla de portada está desactivada.
+  if(!state.startupSplashActive && !$('#startupSplash')) NexoNative.onStartupReadyForUpdates?.();
 }
 
 function init(){
