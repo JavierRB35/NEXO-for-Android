@@ -1,0 +1,45 @@
+name: Nexo Connect · Phase 0 crypto proof
+
+on:
+  push:
+    branches:
+      - 'experiment/nexo-connect-*'
+    paths:
+      - 'experiments/nexo-connect-crypto/**'
+      - '.github/workflows/nexo-connect-phase0.yml'
+  pull_request:
+    paths:
+      - 'experiments/nexo-connect-crypto/**'
+      - '.github/workflows/nexo-connect-phase0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jdk17-crypto-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Run isolated cryptographic tests
+        env:
+          JAVA_OPTS: -Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
+        run: gradle -p experiments/nexo-connect-crypto test --no-daemon --max-workers=1 --stacktrace
+      - name: Upload unit-test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexo-connect-phase0-test-reports
+          path: experiments/nexo-connect-crypto/build/test-results/test/
+          if-no-files-found: warn
+          retention-days: 14
