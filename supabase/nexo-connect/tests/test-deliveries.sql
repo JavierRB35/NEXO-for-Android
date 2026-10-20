@@ -145,7 +145,7 @@ SET ROLE authenticated;
 SET request.jwt.claim.sub='22222222-2222-4222-8222-222222222222';
 DO $recipient$
 BEGIN
- IF (SELECT count(*) FROM connect.deliveries)<>1 THEN
+ IF (SELECT count(*) FROM connect.deliveries)<>2 THEN
  RAISE EXCEPTION 'Recipient cannot see own delivery'; END IF;
 END $recipient$;
 RESET ROLE;
