@@ -52,3 +52,7 @@ almacenamiento de documentos, anti-replay, FCM, UI y pruebas end-to-end.
 La RPC `public.nexo_connect_send_delivery` queda reservada a `service_role`, verifica el dispositivo, generación de ambos móviles, vínculo y permiso de recepción dentro de una transacción con locks, y delega idempotencia + huellas de claves verificadas a `connect.api_send_delivery`. No se permite sustituir el receptor ni sus claves desde la solicitud.
 
 **Pendientes bloqueantes:** comprobar interoperabilidad con Tink en dos teléfonos Android reales, verificar la caducidad del contexto en el cliente receptor, integrar descarga Inbox y escritor SQLite por los siete tipos, limitar cuotas y limpieza, robustecer DoS/reintentos y solucionar la discrepancia entre TTL firmado en NXC1 y retención máxima de 30 días que asigna actualmente la RPC SQL. **NO DESPLEGAR** aún ni activar en Nexo.
+
+## Corrección de la caducidad firmada (migración 0015, sin desplegar)
+
+Un trigger de INSERT compara el `issuedAt` y `expiresAt` **firmados** de NXC1 con el reloj de la base y guarda `expires_at` usando la caducidad exacta del sobre, no el valor fijo de 30 días suministrado por el RPC histórico. Rechaza TTL negativo, vencido, fuera de la ventana de firma, superior a 30 días o fecha fuera de rango. El gateway debe seguir verificando primero la firma Ed25519 y el usuario/huella/grupos autorizados.
