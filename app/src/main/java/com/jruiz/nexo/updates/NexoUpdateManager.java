@@ -357,6 +357,8 @@ public final class NexoUpdateManager {
     public void onResume() {
         if (waitingForInstallPermission && Build.VERSION.SDK_INT >= 26 &&
                 activity.getPackageManager().canRequestPackageInstalls()) {
+            // Al volver desde permisos, priorizar el instalador sin otro aviso de versión.
+            lastForegroundCheckElapsed = SystemClock.elapsedRealtime();
             installDownloaded();
         }
     }
