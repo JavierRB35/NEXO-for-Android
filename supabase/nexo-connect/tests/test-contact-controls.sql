@@ -36,7 +36,10 @@ SELECT public.nexo_connect_receive_permission(
  '66666666-6666-4666-8666-666666666666',
  '67676767-6767-4767-8767-676767676767',1,
  '11111111-1111-4111-8111-111111111111',true);
--- Populate only TEST ciphertext via service_role. This is not a real delivery.
+-- Test-fixture INSERT is performed as the PostgreSQL migration owner.
+-- service_role deliberately has NO direct INSERT privilege on connect.deliveries.
+RESET ROLE;
+-- Only synthetic ciphertext bytes are inserted; not a real delivery.
 INSERT INTO connect.deliveries(
  id,client_request_id,sender_id,recipient_id,sender_generation,
  recipient_generation,entity_type,context,ciphertext,ciphertext_sha256,
@@ -53,6 +56,7 @@ VALUES(
 INSERT INTO connect.delivery_events(delivery_id,actor_id,new_status)
 VALUES('70707070-7070-4070-8070-707070707070',
        '11111111-1111-4111-8111-111111111111','pending');
+SET ROLE service_role;
 DO $unknown_phone$
 BEGIN
  BEGIN
