@@ -245,7 +245,7 @@ public final class NexoUpdateManager {
         emit("downloading", "Descargando y verificando Nexo " + release.versionName + "…", release);
         new Thread(() -> {
             File target = apkFile();
-            File partial = new File(target.getParentFile(), "nexo-update.apk.part");
+            File partial = new File(target.getParentFile(), "nexo-update.partial.apk");
             HttpURLConnection con = null;
             try {
                 if (!isInstalledSignatureOfficial(activity)) throw new IllegalStateException("La firma instalada no es oficial.");
