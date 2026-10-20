@@ -22,6 +22,7 @@ const dom=new JSDOM(`<html><body>
 <button id="documentSave" class="primary-button">Guardar documento</button>
 <button id="saveEditBtn" class="primary-button">Guardar</button>
 <button id="medSave" class="primary-button">Confirmar tratamiento</button>
+<button id="parkingKeep" class="primary-button">Guardar</button>
 <button id="saveCaptureBtn" class="primary-button">Guardar en Nexo</button>
 <button id="relatedSave" class="primary-button" data-related-save>Crear y vincular</button>
 <button id="downloadFile">Guardar archivo en Descargas</button>
@@ -30,7 +31,7 @@ const {document}=dom.window;
 const ctx={document,uiIcon:name=>'<svg class="ui-icon"><use href="#nx-icon-'+name+'"></use></svg>',esc:v=>String(v)};
 vm.createContext(ctx);
 vm.runInContext(extract('normalizeSaveButtons'),ctx);
-const ids=['bookSave','documentSave','saveEditBtn','medSave','saveCaptureBtn','relatedSave'];
+const ids=['bookSave','documentSave','saveEditBtn','medSave','parkingKeep','saveCaptureBtn','relatedSave'];
 ctx.normalizeSaveButtons();
 for(const id of ids){
   const b=document.getElementById(id);
