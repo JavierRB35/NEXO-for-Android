@@ -99,6 +99,34 @@ BEGIN
  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
 END $pause$;
 
+-- A delivery with elapsed TTL is finalized as expired atomically without
+-- rolling back the UPDATE through an exception.
+SELECT connect.api_set_receive_permission(
+ '22222222-2222-4222-8222-222222222222',
+ '11111111-1111-4111-8111-111111111111', true);
+SELECT connect.api_send_delivery(
+ 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+ 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd',
+ '11111111-1111-4111-8111-111111111111',
+ '22222222-2222-4222-8222-222222222222',
+ 1,1,'list',decode(repeat('ee',80),'hex'),decode(repeat('df',64),'hex'));
+RESET ROLE;
+UPDATE connect.deliveries SET created_at=now()-interval '31 days',
+ expires_at=now()-interval '1 day'
+WHERE id='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+SET ROLE service_role;
+SELECT connect.api_resolve_delivery(
+ '22222222-2222-4222-8222-222222222222',
+ 'cccccccc-cccc-4ccc-8ccc-cccccccccccc','accepted');
+DO $expiry$
+BEGIN
+ IF (SELECT status FROM connect.deliveries
+     WHERE id='cccccccc-cccc-4ccc-8ccc-cccccccccccc')<>'expired'
+ OR (SELECT ciphertext FROM connect.deliveries
+     WHERE id='cccccccc-cccc-4ccc-8ccc-cccccccccccc') IS NOT NULL
+ THEN RAISE EXCEPTION 'Expiry not committed'; END IF;
+END $expiry$;
+
 -- Deleting contact revokes visibility as defined in contact RLS (message history
 -- between parties remains visible to parties for tracking; not to other users).
 RESET ROLE;
