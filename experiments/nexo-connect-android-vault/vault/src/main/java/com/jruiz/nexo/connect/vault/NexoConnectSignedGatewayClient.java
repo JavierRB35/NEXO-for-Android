@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -53,6 +54,7 @@ public final class NexoConnectSignedGatewayClient {
     private final String accessToken;
     private final String publishableKey;
     private final PublicKeySign signer;
+    private final byte[] localSigningFingerprint;
     private final Transport transport;
     private final Clock clock;
 
@@ -94,6 +96,9 @@ public final class NexoConnectSignedGatewayClient {
         this.publishableKey=publishableKey;
         this.signer=localSigningPrivate.getPrimitive(
                 RegistryConfiguration.get(),PublicKeySign.class);
+        this.localSigningFingerprint=MessageDigest.getInstance("SHA-256").digest(
+                ((Ed25519PublicKey)publicHandle.getAt(0).getKey())
+                        .getPublicKeyBytes().toByteArray());
         this.transport=transport;
         this.clock=clock;
     }
@@ -127,7 +132,7 @@ public final class NexoConnectSignedGatewayClient {
      * This method performs NO local database write or implicit ACK retry.
      */
     public String resolve(UUID deliveryId,String target) throws Exception {
-        if(deliveryId==null||!(target.equals("accepted")||
+        if(deliveryId==null||target==null||!(target.equals("accepted")||
                 target.equals("rejected")||target.equals("cancelled")))
             throw new IllegalArgumentException("Invalid resolution");
         JSONObject result=execute("delivery/resolve",new JSONObject()
@@ -147,8 +152,7 @@ public final class NexoConnectSignedGatewayClient {
      * Backend rejects any invalid E2EE signature, context or peer trust.
      */
     public UUID send(JSONObject sealedEnvelope) throws Exception {
-        if(sealedEnvelope==null)
-            throw new IllegalArgumentException("Missing encrypted envelope");
+        validateLocalSealedEnvelope(sealedEnvelope);
         JSONObject answer=execute("delivery/send",sealedEnvelope);
         String expected=sealedEnvelope.optString("deliveryId","");
         if(!expected.matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -162,6 +166,78 @@ public final class NexoConnectSignedGatewayClient {
      * Two POSTs: fetch action-specific one-use challenge, then sign bytes of
      * the exact JSON body sent. No automatic retry of an uncertain POST.
      */
+
+    /**
+     * Prevent accidentally posting plaintext or unstructured JSON as a
+     * delivery. Server independently checks Ed25519 signature, QR approvals,
+     * recipient encryption fingerprint, permissions and idempotency.
+     */
+    private void validateLocalSealedEnvelope(JSONObject data) throws Exception {
+        if(data==null || data.length()!=8)
+            throw new GeneralSecurityException("Only sealed delivery fields allowed");
+        for(String field:new String[]{"deliveryId","clientRequestId","recipientId",
+                "recipientGeneration","entityType","context","ciphertext","signature"})
+            if(!data.has(field)||data.isNull(field))
+                throw new GeneralSecurityException("Incomplete encrypted envelope");
+        String delivery=data.optString("deliveryId","");
+        String request=data.optString("clientRequestId","");
+        String recipient=data.optString("recipientId","");
+        String entity=data.optString("entityType","");
+        if(!isUuid(delivery)||!isUuid(request)||!isUuid(recipient)||
+                recipient.equals(accountId.toString()))
+            throw new GeneralSecurityException("Invalid envelope routing");
+        int code=0;
+        String[] types={"appointment","note","list","journal","book","movie","document"};
+        for(int i=0;i<types.length;i++)if(types[i].equals(entity))code=i+1;
+        if(code==0)throw new GeneralSecurityException("Unknown encrypted entity");
+        Object rawGeneration=data.opt("recipientGeneration");
+        if(!(rawGeneration instanceof Number))
+            throw new GeneralSecurityException("Invalid peer generation");
+        long peerGen=((Number)rawGeneration).longValue();
+        if(peerGen<=0||peerGen>Integer.MAX_VALUE||
+                ((Number)rawGeneration).doubleValue()!=peerGen)
+            throw new GeneralSecurityException("Invalid peer generation");
+
+        byte[] context=base64Url(data.optString("context",""),142,142);
+        byte[] cipher=base64Url(data.optString("ciphertext",""),1,512*1024);
+        base64Url(data.optString("signature",""),64,64);
+        ByteBuffer v=ByteBuffer.wrap(context);
+        if(v.getInt(0)!=0x4e584331||context[4]!=1||
+                !new UUID(v.getLong(5),v.getLong(13)).toString().equals(delivery)||
+                !new UUID(v.getLong(21),v.getLong(29)).equals(accountId)||
+                !new UUID(v.getLong(37),v.getLong(45)).toString().equals(recipient)||
+                (context[53]&255)!=code || v.getInt(54)!=generation ||
+                v.getInt(58)!=peerGen ||
+                !MessageDigest.isEqual(localSigningFingerprint,
+                        java.util.Arrays.copyOfRange(context,78,110)))
+            throw new GeneralSecurityException("Unsigned or mismatched context");
+        long issued=v.getLong(62),expires=v.getLong(70),now=clock.millis();
+        if(issued<=0||expires<=now||expires<=issued||
+                expires-issued>30L*24*60*60*1000||
+                Math.abs(issued-now)>5L*60*1000)
+            throw new GeneralSecurityException("Invalid or stale expiry");
+        // Byte arrays above are opaque; ciphertext MUST remain encrypted.
+        // Ed25519 over the full envelope is verified by the backend.
+    }
+
+    private static byte[] base64Url(String text,int min,int max)
+            throws GeneralSecurityException {
+        if(text==null||text.isEmpty()||
+                text.length()>(max*4L/3+4)||!text.matches("[A-Za-z0-9_-]+"))
+            throw new GeneralSecurityException("Invalid canonical binary encoding");
+        try{
+            byte[] decoded=android.util.Base64.decode(text,
+                    android.util.Base64.URL_SAFE|android.util.Base64.NO_WRAP|
+                    android.util.Base64.NO_PADDING);
+            if(decoded.length<min||decoded.length>max||
+                    !encodeBase64Url(decoded).equals(text))
+                throw new GeneralSecurityException("Invalid binary length or encoding");
+            return decoded;
+        }catch(IllegalArgumentException ex){
+            throw new GeneralSecurityException("Invalid binary encoding",ex);
+        }
+    }
+
     private JSONObject execute(String action,JSONObject payload) throws Exception {
         if(!allowed(action) || payload==null)
             throw new IllegalArgumentException("Unsupported signed action");

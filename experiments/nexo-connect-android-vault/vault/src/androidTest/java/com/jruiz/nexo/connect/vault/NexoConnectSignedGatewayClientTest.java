@@ -145,11 +145,63 @@ public class NexoConnectSignedGatewayClientTest {
         catch(IllegalArgumentException expected){}
         assertTrue(f.fake.actions.isEmpty());
     }
-    @Test public void sendRequiresEncryptedEnvelopeIdAndServerConfirmation()throws Exception {
+    private static JSONObject sealed(Fixture f)throws Exception {
+        UUID receiver=UUID.fromString("55555555-5555-4555-8555-555555555555");
+        byte[] senderRaw=((com.google.crypto.tink.signature.Ed25519PublicKey)
+                f.identity.getPublicKeysetHandle().getAt(0).getKey())
+                .getPublicKeyBytes().toByteArray();
+        java.io.ByteArrayOutputStream buffer=new java.io.ByteArrayOutputStream();
+        java.io.DataOutputStream out=new java.io.DataOutputStream(buffer);
+        out.writeInt(0x4e584331);out.writeByte(1);
+        out.writeLong(DELIVERY.getMostSignificantBits());
+        out.writeLong(DELIVERY.getLeastSignificantBits());
+        out.writeLong(ACCOUNT.getMostSignificantBits());
+        out.writeLong(ACCOUNT.getLeastSignificantBits());
+        out.writeLong(receiver.getMostSignificantBits());
+        out.writeLong(receiver.getLeastSignificantBits());
+        out.writeByte(2);out.writeInt(1);out.writeInt(1);
+        out.writeLong(NOW);out.writeLong(NOW+60000);
+        out.write(MessageDigest.getInstance("SHA-256").digest(senderRaw));
+        out.write(new byte[32]);
+        out.flush();
+        byte[] context=buffer.toByteArray();assertEquals(142,context.length);
+        return new JSONObject()
+                .put("deliveryId",DELIVERY.toString())
+                .put("clientRequestId","66666666-6666-4666-8666-666666666666")
+                .put("recipientId",receiver.toString())
+                .put("recipientGeneration",1)
+                .put("entityType","note")
+                .put("context",android.util.Base64.encodeToString(context,
+                        android.util.Base64.URL_SAFE|
+                        android.util.Base64.NO_WRAP|android.util.Base64.NO_PADDING))
+                .put("ciphertext",android.util.Base64.encodeToString(
+                        new byte[]{4,5,6,7},android.util.Base64.URL_SAFE|
+                        android.util.Base64.NO_WRAP|android.util.Base64.NO_PADDING))
+                .put("signature",android.util.Base64.encodeToString(
+                        new byte[64],android.util.Base64.URL_SAFE|
+                        android.util.Base64.NO_WRAP|android.util.Base64.NO_PADDING));
+    }
+
+    @Test public void sendRejectsRawJsonBeforeAnyNetworkCall()throws Exception {
         Fixture f=new Fixture();
-        JSONObject sealed=new JSONObject().put("deliveryId",DELIVERY.toString());
+        try{f.client.send(new JSONObject().put("deliveryId",DELIVERY.toString()));
+            fail("Incomplete payload was forwarded to Supabase");}
+        catch(GeneralSecurityException expected){}
+        assertTrue(f.fake.actions.isEmpty());
+    }
+    @Test public void sendRequiresSealedRoutingAndServerConfirmation()throws Exception {
+        Fixture f=new Fixture();
+        JSONObject sealed=sealed(f);
         assertEquals(DELIVERY,f.client.send(sealed));
         assertEquals(2,f.fake.actions.size());
+    }
+    @Test public void changedSenderOrContextDoesNotContactServer()throws Exception{
+        Fixture f=new Fixture();
+        JSONObject packet=sealed(f);
+        packet.put("recipientId","77777777-7777-4777-8777-777777777777");
+        try{f.client.send(packet);fail("Swapped recipient accepted");}
+        catch(GeneralSecurityException expected){}
+        assertTrue(f.fake.actions.isEmpty());
     }
     @Test public void rejectNonHttpsProjectOrigins()throws Exception {
         try{new NexoConnectSignedGatewayClient("http://example.org","public",

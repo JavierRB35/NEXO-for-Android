@@ -10,3 +10,7 @@ Nueva clase `NexoConnectSignedGatewayClient` incorporada en `experiments/nexo-co
 - Las pruebas instrumentadas utilizan transporte falso y verifican las firmas Ed25519 de las peticiones, el orden challenge/operación, tamaño de página, redirecciones/orígenes, rechazo y ausencia de doble POST.
 - Falta todavía integración con usuario OTP/enrollment, pinning persistente del contacto por QR, interfaz de Nexo, proveedor HTTP real de prueba con dos cuentas, y acuse después del COMMIT. Los ensayos de transporte falso no prueban Supabase desplegado.
 - No modificar `main`, no desplegar Edge ni migraciones, no publicar APK parcial.
+
+## Rechazo local antes de enviar
+
+El método `send` comprueba que el JSON contiene **exactamente los ocho campos de un sobre cifrado**, que los binarios son base64url canónico con tamaño limitado, que la cabecera NXC1 vincula el envío con el UUID del remitente/recipiente, generaciones, tipo, fecha y **huella del firmante local**. Esto bloquea el envío involuntario de una ficha JSON en claro. El backend sigue siendo el responsable de verificar la firma Ed25519 E2EE completa y los permisos contra los contactos comprobados. Pruebas negativas añadidas que demuestran que el rechazo ocurre **antes de una llamada de red**.
