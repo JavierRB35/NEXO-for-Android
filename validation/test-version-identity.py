@@ -10,8 +10,8 @@ importer=(root/'app/src/main/java/com/jruiz/nexo/migration/NexoFamiliaImporter.j
 seed=root/'app/src/main/assets/nexo_familia_seed_v1.json'
 
 assert "applicationId 'com.jruiz.nexo'" in gradle
-assert "versionCode 136" in gradle
-assert "versionName '3.7.43'" in gradle
+assert "versionCode 137" in gradle
+assert "versionName '3.7.44'" in gradle
 assert 'v3.7.43' in html
 assert 'APP_NAME="Nexo_3_7_43"' in script
 assert 'assembleRelease' in script and 'apksigner' in script
