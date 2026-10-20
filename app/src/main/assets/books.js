@@ -328,7 +328,7 @@ window.NexoBooks = (() => {
       <p class="book-form-error hidden" id="bookError" role="alert"></p>
       <div class="record-form-actions--compact book-editor-actions" role="group" aria-label="Acciones del editor de libros">
         <button id="bookCancel" class="secondary-button" type="button">${uiIcon('close')}<span>Cancelar</span></button>
-        <button id="bookSave" class="primary-button" type="button">${uiIcon('save')}<span class="nexo-action-label">Guardar libro</span></button>
+        <button id="bookSave" class="primary-button nexo-unified-save" type="button" title="Guardar libro" aria-label="Guardar libro">${uiIcon('save')}</button>
       </div>
     </div>`);
     // El pie comparte la estructura desacoplada del scroll de los editores de eventos.
