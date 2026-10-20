@@ -1,14 +1,8 @@
 name: Nexo Connect · Phase 0 crypto proof
 
+# PR-only execution avoids duplicate push+pull_request jobs cancelling each other.
+# Manual workflow_dispatch remains available when no PR is open.
 on:
-  push:
-    branches:
-      - 'experiment/nexo-connect-*'
-    paths:
-      - 'experiments/nexo-connect-crypto/**'
-      - '.github/workflows/nexo-connect-phase0.yml'
-      - 'experiments/nexo-connect-android-vault/**'
-      - 'supabase/nexo-connect/**'
   pull_request:
     paths:
       - 'experiments/nexo-connect-crypto/**'
