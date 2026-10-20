@@ -299,6 +299,11 @@ public class MainActivity extends Activity {
 
     private void handleIncomingIntent(Intent intent) {
         if (intent == null) return;
+        if (intent.getBooleanExtra("nexo_check_updates", false)) {
+            intent.removeExtra("nexo_check_updates");
+            if (updateManager != null) updateManager.check(true);
+            return;
+        }
         String action = intent.getAction();
         if (NexoNotificationListener.ACTION_REVIEW.equals(action)) {
             pendingInboxCaptureId = intent.getLongExtra("captureId", 0L);
