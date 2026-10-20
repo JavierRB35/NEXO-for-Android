@@ -1,0 +1,137 @@
+package com.jruiz.nexo.connect.vault;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
+
+import java.security.GeneralSecurityException;
+import java.util.UUID;
+
+/**
+ * LAB: internal camera QR scanner -> independent SHA-256 verification UI.
+ *
+ * No contact becomes trusted from camera input alone. A trusted session owner
+ * is supplied ONLY by an internal authenticated caller, never from a web link.
+ * The Activity is android:exported=false in the isolated module manifest.
+ *
+ * ZXing embedded manages the CAMERA runtime permission within CaptureActivity.
+ * This scanner never sends QR bytes to Supabase or other servers.
+ */
+public final class NexoConnectQrScannerActivity extends Activity {
+    public static final String RESULT_PEER_ID = "nexo_connect_verified_peer_id";
+    public static final String RESULT_PEER_GENERATION = "nexo_connect_verified_generation";
+    private static final String EXTRA_ACCOUNT = "nexo_connect_local_session_account";
+    private static final int MAX_QR_UTF16 = 1024;
+    private UUID localAccount;
+    private AndroidPeerTrustStore store;
+    private LinearLayout screen;
+    private boolean scannerLaunched;
+
+    /** Called by a trusted, INTERNAL Nexo account flow after JWT+device check. */
+    public static Intent forAuthenticatedAccount(Context from,UUID verifiedOwner){
+        if(from==null||verifiedOwner==null)
+            throw new IllegalArgumentException("Verified Nexo session required");
+        return new Intent(from,NexoConnectQrScannerActivity.class)
+                .putExtra(EXTRA_ACCOUNT,verifiedOwner.toString());
+    }
+
+    @Override protected void onCreate(Bundle state) {
+        super.onCreate(state);
+        try {
+            String owner=getIntent()==null?null:getIntent().getStringExtra(EXTRA_ACCOUNT);
+            if(owner==null||!owner.matches(
+                    "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
+                throw new GeneralSecurityException("Missing verified account");
+            localAccount=UUID.fromString(owner);
+            store=new AndroidPeerTrustStore(this,localAccount);
+        }catch(Exception e){
+            setResult(RESULT_CANCELED);
+            finish();
+            return;
+        }
+        screen=new LinearLayout(this);
+        screen.setOrientation(LinearLayout.VERTICAL);
+        int dp=(int)(18*getResources().getDisplayMetrics().density);
+        screen.setPadding(dp,dp,dp,dp);
+        setContentView(screen);
+        title("Nexo Connect · Verificar QR");
+        title("Escanea el QR del contacto. Después tendrás que cotejar ambas "+
+                "huellas SHA-256 por un canal de confianza distinto del QR.");
+        Button scan=new Button(this);
+        scan.setText("Abrir cámara y escanear QR");
+        screen.addView(scan);
+        scan.setOnClickListener(v->startScan());
+        if(state==null)startScan();
+    }
+
+    private void startScan() {
+        if(scannerLaunched||isFinishing())return;
+        scannerLaunched=true;
+        // This is an embedded Activity and works without a separate QR app.
+        IntentIntegrator integrator=new IntentIntegrator(this);
+        integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE);
+        integrator.setPrompt("Coloca el código QR Nexo dentro del recuadro");
+        integrator.setBeepEnabled(false);
+        integrator.setOrientationLocked(false);
+        integrator.initiateScan();
+    }
+
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        IntentResult scanned=IntentIntegrator.parseActivityResult(requestCode,resultCode,data);
+        if(scanned==null){super.onActivityResult(requestCode,resultCode,data);return;}
+        scannerLaunched=false;
+        if(scanned.getContents()==null){
+            title("Escaneo cancelado. Puedes intentarlo de nuevo.");
+            return;
+        }
+        try {
+            String raw=scanned.getContents();
+            requireScannedPeerQr(raw,localAccount);
+            final QrTrustConfirmationView verification=new QrTrustConfirmationView(
+                    this,raw,store,new QrTrustConfirmationView.Listener(){
+                @Override public void onVerified(AndroidPeerTrustStore.PeerPin pin){
+                    // This means LOCAL pin only; NOT proof of a server relationship.
+                    Intent result=new Intent().putExtra(RESULT_PEER_ID,pin.peerId.toString())
+                            .putExtra(RESULT_PEER_GENERATION,pin.generation);
+                    setResult(RESULT_OK,result);
+                    finish();
+                }
+                @Override public void onFailure(String reason){
+                    // QrTrustConfirmationView reports the error visibly and
+                    // keeps user on verification without silently trusting.
+                }
+            });
+            // UI must continue to require independent full hashes and consent.
+            setContentView(verification);
+        }catch(Exception invalid){
+            title("QR inválido o no pertenece al protocolo Nexo Connect.");
+        }
+    }
+
+    /** Only strictly parsed PUBLIC peer QR values reach the confirmation UI. */
+    public static AndroidPeerTrustStore.PeerPin requireScannedPeerQr(
+            String raw,UUID loggedInAccount)throws Exception {
+        if(raw==null||raw.length()>MAX_QR_UTF16||loggedInAccount==null)
+            throw new GeneralSecurityException("Invalid camera payload");
+        AndroidPeerTrustStore.PeerPin pin=AndroidPeerTrustStore.parseQr(raw);
+        if(pin.peerId.equals(loggedInAccount))
+            throw new GeneralSecurityException("Cannot pair with yourself");
+        return pin;
+    }
+
+    private void title(String value){
+        TextView label=new TextView(this);
+        label.setText(value);
+        label.setTextSize(17);
+        label.setPadding(0,0,0,20);
+        screen.addView(label);
+    }
+}

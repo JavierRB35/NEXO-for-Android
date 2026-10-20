@@ -1,0 +1,11 @@
+# Nexo Connect — cámara QR y QR público propio (sólo módulo experimental)
+
+Se incorpora la dependencia fijada `com.journeyapps:zxing-android-embedded:4.3.0` (**ZXing Embedded**, sin servicio Google Play ni necesidad de instalar otro escáner). El módulo mantiene Gradle 8.9, AGP 8.7.3, JDK 17 y Android SDK34; Android minSdk26 es compatible.
+
+**Escáner:** `NexoConnectQrScannerActivity` es `android:exported=false`, no aparece en el launcher, se abre únicamente desde un flujo Nexo interno que debe haber verificado cuenta JWT, ID de móvil y generación. Su cámara usa la Activity de ZXing Embedded con permiso CAMERA y solicitud del permiso en tiempo de ejecución gestionados por esa biblioteca. Limita el texto escaneado a 1024 caracteres y exige `AndroidPeerTrustStore.parseQr` completo; rechaza formatos ajenos y la propia identidad. Nunca da confianza automática: abre `QrTrustConfirmationView`, que solicita las **dos huellas SHA-256 completas obtenidas por otro canal** y consentimiento explícito; solo tras cifrar y guardar la confianza local devuelve ID/generación a la Activity que la inició.
+
+**Código QR propio:** `NexoConnectOwnQrView` genera un QR sin red empleando únicamente los 32 bytes públicos de Ed25519/HPKE de los keysets Tink correspondientes a la identidad previamente validada del usuario. Muestra ambas huellas completas de forma legible para comprobación presencial. No contiene claves privadas ni contraseñas. No emite invitaciones ni crea contactos en Supabase; es una vista programática sin entrada de menú.
+
+**Prueba instrumentada:** construye un QR con las claves Tink de laboratorio, lo convierte a Bitmap, lo decodifica con el motor ZXing real, compara los bytes públicos y verifica ausencia de secretos y bloqueo por formato inválido/self-pairing. Esta prueba NO demuestra que la cámara física ni la detección de códigos funcionen en un teléfono real; eso requiere prueba de extremo a extremo.
+
+**Sigue faltando:** pantalla integrada de acceso/sesión OTP, invitar/aceptar de forma bidireccional mediante métodos firmados del servidor, presentar QR en UI de ajustes, políticas de revocación remota, protección contra captura de pantalla y pruebas reales de cámara en dos teléfonos. El servicio Supabase está sin desplegar y la PR sigue en borrador. No activar esto en Nexo estable.
