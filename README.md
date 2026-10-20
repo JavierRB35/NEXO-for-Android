@@ -1,10 +1,12 @@
-# Nexo 3.7.44
+# Nexo 3.7.45
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.44**, `versionCode 137`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
+Esta versión corresponde a **Nexo 3.7.45**, `versionCode 138`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **32**.
 
-**Nuevo en 3.7.44:** botones inferiores uniformes, micrófono situado por encima de Guardar y fecha española compacta bajo la marca. 
+**Nuevo en 3.7.45:** Guardar pasa a ser exclusivamente un icono de disquete en todos los editores, con etiqueta accesible; Libros y Películas comparten pie de acciones fijo y uniforme, sin textos cortados ni botones desproporcionados. Se mantienen los handlers originales, los datos y la firma Release.
+
+**En 3.7.44:** botones inferiores uniformes, micrófono situado por encima de Guardar y fecha española compacta bajo la marca. 
 
 **En 3.7.43:** corrección de la visibilidad persistente de las barras de acciones en alta y edición, incluso tras enfocar un campo. En 3.7.43: fecha local completa bajo la marca Nexo, captura libre prioritaria, vínculos al final y acciones fijas en el pie del alta y del editor de eventos normales/recurrentes, con iconos y etiquetas coherentes. Sin cambios en la base de datos ni en la lógica del guardado.
 
