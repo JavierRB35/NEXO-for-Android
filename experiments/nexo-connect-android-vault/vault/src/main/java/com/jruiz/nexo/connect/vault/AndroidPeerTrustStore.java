@@ -275,7 +275,8 @@ public final class AndroidPeerTrustStore {
         if(qr==null||qr.length()<25||qr.length()>1024)
             throw new GeneralSecurityException("Invalid QR length");
         JSONObject obj=new JSONObject(qr);
-        if(obj.length()!=5||!"nexo-connect-peer".equals(obj.optString("format",""))||
+        // Schema fields: format, version, peerId, generation, signingKey, encryptionKey.
+        if(obj.length()!=6||!"nexo-connect-peer".equals(obj.optString("format",""))||
                 obj.optInt("version",-1)!=VERSION ||
                 !obj.has("peerId")||!obj.has("generation")||
                 !obj.has("signingKey")||!obj.has("encryptionKey"))

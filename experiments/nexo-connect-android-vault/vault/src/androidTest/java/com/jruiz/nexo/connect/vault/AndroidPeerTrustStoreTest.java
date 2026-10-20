@@ -121,6 +121,19 @@ public class AndroidPeerTrustStoreTest {
         assertNull(other.findActive(PEER));
         assertFalse(other.localFileForTest().equals(original.localFileForTest()));
     }
+    @Test public void exportedQrRoundTripsExactlySixPublicFields() throws Exception {
+        PinFixture f=new PinFixture(PEER,7);
+        JSONObject json=new JSONObject(f.qr);
+        assertEquals(6,json.length());
+        assertFalse(json.has("privateKey"));
+        AndroidPeerTrustStore.PeerPin decoded=AndroidPeerTrustStore.parseQr(f.qr);
+        assertEquals(PEER,decoded.peerId);
+        assertEquals(7,decoded.generation);
+        assertArrayEquals(f.pin.signingPublicRaw(),decoded.signingPublicRaw());
+        assertArrayEquals(f.pin.encryptionPublicRaw(),decoded.encryptionPublicRaw());
+        assertEquals(f.pin.signingFingerprint(),decoded.signingFingerprint());
+        assertEquals(f.pin.encryptionFingerprint(),decoded.encryptionFingerprint());
+    }
     @Test public void malformedOrInjectedQrNeverStored()throws Exception {
         AndroidPeerTrustStore store=fresh();
         PinFixture f=new PinFixture(PEER,1);
