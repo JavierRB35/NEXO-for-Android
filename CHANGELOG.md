@@ -1,3 +1,11 @@
+## Nexo 3.7.45 — Guardar solo como disquete en toda Nexo
+- Se elimina el texto visible de todos los botones CRUD de guardado; se preservan el icono de disquete, el aria-label y el title para accesibilidad.
+- Libros y Películas/series utilizan el mismo pie de acciones inferior fijo, con Cancelar y Guardar compactos; sin desbordes de texto.
+- Los estilos globales evitan botones Guardar sobredimensionados en el resto de editores y mantienen las cuatro columnas del alta de citas.
+- Se conserva «Revisar pauta» como acción de revisión (no de guardado), y las exportaciones no se alteran.
+- Prueba de idempotencia: no aparecen iconos duplicados ni bucles del observador tras normalizar.
+- Mantiene datos SQLite, clave Release y baseline AndroidIDE 34 / JDK17 / Gradle8.9 / AGP8.7.3. versionCode 138.
+
 ## Nexo 3.7.44 — Cabecera compacta y acciones despejadas
 - Cabecera: fecha abreviada en español (por ejemplo, «mar, 20 oct 2026»), justo bajo Nexo y sin crear una segunda fila del encabezado.
 - Nueva cita: Adjuntar, Vincular, Limpiar y Guardar tienen la misma altura. Guardar elimina el margen superior heredado que lo desalineaba.
