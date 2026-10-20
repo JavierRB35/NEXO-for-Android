@@ -605,6 +605,14 @@ function renderAbout(){
   set('#aboutAbi',info.abi||'ARM64');
   set('#aboutDevice',info.device);
   set('#aboutAndroidSdk',info.androidSdk);
+  renderUpdateStatus(NexoNative.getUpdateStatus());
+}
+function renderUpdateStatus(raw){
+  const info=parseNative(raw,{});
+  const msg=String(info.message||'Pulsa para consultar la última versión publicada.');
+  ['#updateStatusAbout','#updateStatusSettings'].forEach(id=>{const el=$(id);if(el)el.textContent=msg;});
+  const busy=info.state==='checking'||info.state==='downloading';
+  ['#checkUpdatesAbout','#checkUpdatesSettings'].forEach(id=>{const button=$(id);if(button)button.disabled=busy;});
 }
 function copyAboutDiagnostics(){
   const info=getAboutInfo();
@@ -2745,6 +2753,7 @@ function renderMore(){
   renderTranscriptionQualitySettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
+  renderUpdateStatus(NexoNative.getUpdateStatus());
 }
 
 function renderCommunicationCaptureSettings(){
@@ -4030,6 +4039,7 @@ function renderMedicationsPanel(){
 }
 
 window.NexoUI={
+  onUpdateStatusChanged(raw){renderUpdateStatus(raw);},
   onPlaceLocation(raw){onPlaceLocationResult(raw);},
   onPlaceLocationError(message){onPlaceLocationError(message);},
   onHeaderWeather(raw){
@@ -4346,6 +4356,7 @@ function init(){
   $('#brandInfoBtn')?.addEventListener('click',()=>navigate('about'));
   $('#aboutBackBtn')?.addEventListener('click',()=>navigateBack());
   $('#aboutCopyDiagnostics')?.addEventListener('click',copyAboutDiagnostics);
+  ['#checkUpdatesAbout','#checkUpdatesSettings'].forEach(id=>$(id)?.addEventListener('click',()=>NexoNative.checkForUpdates()));
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
