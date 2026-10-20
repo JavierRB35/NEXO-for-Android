@@ -1,3 +1,9 @@
+## Nexo 3.7.44 — Cabecera compacta y acciones despejadas
+- Cabecera: fecha abreviada en español (por ejemplo, «mar, 20 oct 2026»), justo bajo Nexo y sin crear una segunda fila del encabezado.
+- Nueva cita: Adjuntar, Vincular, Limpiar y Guardar tienen la misma altura. Guardar elimina el margen superior heredado que lo desalineaba.
+- El micrófono flotante permanece disponible sobre la barra de acciones, a distancia calculada según el alto real, y nunca tapa Guardar.
+- Conserva applicationId com.jruiz.nexo, firma Release, base de datos 32 y entorno JDK17/SDK34/Gradle8.9/AGP8.7.3; versionCode 137.
+
 ## Nexo 3.7.43 — Corrección de barras inferiores en alta y edición
 - La barra de Nueva cita ya no desaparece porque un campo conserve el foco con el teclado cerrado.
 - El teclado se detecta por la reducción real del área visible.

@@ -393,6 +393,9 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
 
 
 function updateFloatingActions(){
+  // Anclar el micrófono POR ENCIMA de la barra de guardado y no sobre sus botones.
+  const captureBar=$('.screen[data-screen="save"].active .capture-crud-toolbar');
+  if(captureBar?.offsetHeight)document.documentElement.style.setProperty('--nexo-capture-bar-height',Math.ceil(captureBar.getBoundingClientRect().height)+'px');
   const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
   if(!voice||!add)return;
   const panel=state.screen==='panel'?state.lastPanel:'';
@@ -4461,7 +4464,10 @@ const router=new NexoRouter({screen:'today'});
 function uiIcon(name){return `<svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-${name}"></use></svg>`;}
 function refreshHeaderDate(){
   const target=$('#headerTodayDate');if(!target)return;
-  const formatted=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
+  const now=new Date();
+  const weekdays=['dom','lun','mar','mié','jue','vie','sáb'];
+  const months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const formatted=weekdays[now.getDay()]+', '+now.getDate()+' '+months[now.getMonth()]+' '+now.getFullYear();
   if(target.textContent!==formatted)target.textContent=formatted;
 }
 function navigateBack(){
@@ -5167,6 +5173,8 @@ function installFixedActionBarViewport(){
   const refresh=()=>{
     const nav=$('.bottom-nav');
     if(nav)document.documentElement.style.setProperty('--nexo-bottom-nav-height',Math.ceil(nav.getBoundingClientRect().height)+'px');
+    const captureBar=$('.screen[data-screen="save"].active .capture-crud-toolbar');
+    if(captureBar?.offsetHeight)document.documentElement.style.setProperty('--nexo-capture-bar-height',Math.ceil(captureBar.getBoundingClientRect().height)+'px');
     const el=document.activeElement;
     const writing=!!el?.matches?.('textarea,input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),[contenteditable="true"]');
     const visibleHeight=Math.min(window.innerHeight||Infinity,viewport?.height||Infinity);

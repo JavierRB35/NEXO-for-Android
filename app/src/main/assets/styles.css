@@ -3427,13 +3427,16 @@ body.startup-loading #app{visibility:hidden}
 
 /* Nexo 3.7.43 · Acciones inferiores fiables incluso si queda el foco en un campo.
    Consolidamos las tres propuestas 3.7.42: una sola definición sin cascadas contradictorias. */
-.topbar:has(.header-today-date){flex-wrap:wrap;row-gap:0}
-.header-today-date{
-  flex:0 0 100%;width:100%;padding:1px 3px 5px 42px;
-  min-height:22px;font-size:.76rem;font-weight:750;line-height:1.35;
-  color:#456357;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+/* La fecha va debajo de Nexo dentro del mismo botón de marca, nunca en otra fila. */
+.topbar:has(.header-today-date){flex-wrap:nowrap}
+.brand-info-button .brand-copy{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-width:0}
+.brand-info-button .brand-main{display:flex;align-items:baseline;gap:7px;white-space:nowrap;min-width:0}
+.brand-info-button .header-today-date{
+  display:block;width:100%;margin:0;padding:0;
+  color:#456357;font-size:.70rem;font-weight:750;line-height:1.3;
+  letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-@media(max-width:370px){.header-today-date{padding-left:38px;font-size:.72rem}}
+@media(max-width:370px){.brand-info-button .header-today-date{font-size:.65rem}}
 
 .screen[data-screen="save"]{padding-bottom:160px}
 .screen[data-screen="save"] .capture-mode-row{padding-top:12px;padding-bottom:11px}
@@ -3461,13 +3464,13 @@ body.startup-loading #app{visibility:hidden}
 }
 .screen[data-screen="save"] .capture-crud-toolbar button{
   display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;min-height:58px;max-width:100%;width:100%;min-width:0;
-  padding:6px 3px;font-size:.75rem;line-height:1.15;white-space:normal;text-align:center;
+  gap:3px;height:70px;min-height:70px;max-height:70px;max-width:100%;width:100%;min-width:0;
+  margin:0;align-self:stretch;padding:6px 3px;font-size:.75rem;line-height:1.15;white-space:normal;text-align:center;
   font-weight:750;border-radius:12px
 }
 .screen[data-screen="save"] .capture-crud-toolbar button.hidden{display:none!important}
 .screen[data-screen="save"] #saveCaptureBtn{
-  grid-row:auto;grid-column:auto;min-width:0;min-height:58px;font-size:.75rem
+  grid-row:auto;grid-column:auto;min-width:0;min-height:70px;margin:0;font-size:.75rem
 }
 .screen[data-screen="save"] #saveCaptureBtn .nexo-action-label{font-size:inherit;line-height:inherit}
 .screen[data-screen="save"] .capture-crud-toolbar button>.ui-icon{
@@ -3480,8 +3483,14 @@ body.startup-loading #app{visibility:hidden}
 .screen[data-screen="save"] .capture-crud-toolbar .ghost-button{
   background:#f2f4f2;border:1px solid #dce4df;color:#42554c
 }
+/* La voz sigue disponible, pero nunca tapa Guardar: se coloca sobre el pie fijo. */
+body:has(.screen[data-screen="save"].active) .floating-actions{
+  bottom:calc(var(--nexo-bottom-nav-height,76px) + var(--nexo-capture-bar-height,90px) + 12px);
+  z-index:31
+}
 /* No usar :focus como indicador de teclado. Un foco puede persistir tras cerrar el IME. */
 body.nexo-keyboard-visible .screen[data-screen="save"] .capture-crud-toolbar{display:none}
+body.nexo-keyboard-visible:has(.screen[data-screen="save"].active) .floating-actions{display:none}
 
 /* Edición: separar físicamente el pie de #modalBody evita que se vaya con su scroll. */
 .modal-sheet:has(> .record-form-actions--compact){
