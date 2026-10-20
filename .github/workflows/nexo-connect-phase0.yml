@@ -17,6 +17,10 @@ on:
       - 'supabase/nexo-connect/**'
   workflow_dispatch:
 
+concurrency:
+  group: nexo-connect-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
