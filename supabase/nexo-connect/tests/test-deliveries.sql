@@ -8,6 +8,44 @@ UPDATE connect.receive_permissions SET allow_receive=true
  WHERE receiver_id='22222222-2222-4222-8222-222222222222'
  AND sender_id='11111111-1111-4111-8111-111111111111';
 
+-- CI-only fixture: assembles exactly the NXC1 context that the sending
+-- Android client will sign. This helper is NOT part of production migrations.
+CREATE FUNCTION connect.test_send_delivery(
+  p_id uuid,p_request uuid,p_sender uuid,p_recipient uuid,
+  p_sender_generation bigint,p_recipient_generation bigint,
+  p_type text,p_cipher bytea,p_signature bytea
+) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $f$
+DECLARE ctx bytea;
+DECLARE code integer;
+DECLARE sender_fp bytea;
+DECLARE recipient_fp bytea;
+DECLARE issued bigint;
+BEGIN
+ code:=CASE p_type
+   WHEN 'appointment' THEN 1 WHEN 'note' THEN 2 WHEN 'list' THEN 3
+   WHEN 'journal' THEN 4 WHEN 'book' THEN 5 WHEN 'movie' THEN 6
+   WHEN 'document' THEN 7 ELSE 0 END;
+ SELECT signing_fingerprint INTO sender_fp FROM connect.devices WHERE user_id=p_sender;
+ SELECT encryption_fingerprint INTO recipient_fp FROM connect.devices WHERE user_id=p_recipient;
+ issued:=(extract(epoch FROM now())*1000)::bigint;
+ ctx:=decode('4e58433101'||
+    replace(p_id::text,'-','')||
+    replace(p_sender::text,'-','')||
+    replace(p_recipient::text,'-','')||
+    lpad(to_hex(code),2,'0')||
+    lpad(to_hex(p_sender_generation),8,'0')||
+    lpad(to_hex(p_recipient_generation),8,'0')||
+    lpad(to_hex(issued),16,'0')||
+    lpad(to_hex(issued+86400000),16,'0')||
+    encode(sender_fp,'hex')||encode(recipient_fp,'hex'),'hex');
+ RETURN connect.api_send_delivery(
+    p_id,p_request,p_sender,p_recipient,
+    p_sender_generation,p_recipient_generation,p_type,
+    ctx,p_cipher,p_signature);
+END $f$;
+
 SET ROLE service_role;
 SELECT connect.api_approve_peer_key(
   '11111111-1111-4111-8111-111111111111',
@@ -17,7 +55,7 @@ SELECT connect.api_approve_peer_key(
 DO $cannot_send_unverified$
 BEGIN
   BEGIN
-    PERFORM connect.api_send_delivery(
+    PERFORM connect.test_send_delivery(
       '91111111-1111-4111-8111-111111111111',
       '91111111-1111-4111-8111-222222222222',
       '22222222-2222-4222-8222-222222222222',
@@ -27,8 +65,24 @@ BEGIN
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
 END $cannot_send_unverified$;
 
+-- Tampering with canonical context must fail even if other fields look valid.
+DO $badctx$
+BEGIN
+ BEGIN
+  PERFORM connect.api_send_delivery(
+   'd1111111-1111-4111-8111-111111111111',
+   'd2222222-2222-4222-8222-222222222222',
+   '11111111-1111-4111-8111-111111111111',
+   '22222222-2222-4222-8222-222222222222',
+   1,1,'note',decode(repeat('00',142),'hex'),
+   decode('ffff','hex'),decode(repeat('bc',64),'hex'));
+  RAISE EXCEPTION 'Context mutation accepted';
+ EXCEPTION WHEN invalid_parameter_value THEN NULL;
+ END;
+END $badctx$;
+
 -- A->B permitido, with fingerprint verified by A.
-SELECT connect.api_send_delivery(
+SELECT connect.test_send_delivery(
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
  'abababab-abab-4bab-8bab-abababababab',
  '11111111-1111-4111-8111-111111111111',
@@ -36,7 +90,7 @@ SELECT connect.api_send_delivery(
  1,1,'note',decode(repeat('ab',200),'hex'),decode(repeat('bc',64),'hex')) AS sent \gset
 
 -- Same request is idempotent and produces no second record.
-SELECT connect.api_send_delivery(
+SELECT connect.test_send_delivery(
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
  'abababab-abab-4bab-8bab-abababababab',
  '11111111-1111-4111-8111-111111111111',
@@ -50,7 +104,7 @@ BEGIN
  OR (SELECT count(*) FROM connect.delivery_events WHERE delivery_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')<>1
  THEN RAISE EXCEPTION 'Idempotency failed'; END IF;
  BEGIN
-  PERFORM connect.api_send_delivery(
+  PERFORM connect.test_send_delivery(
    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','abababab-abab-4bab-8bab-abababababab',
    '11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222',
    1,1,'note',decode(repeat('ac',200),'hex'),decode(repeat('bc',64),'hex'));
@@ -91,7 +145,7 @@ SELECT connect.api_set_receive_permission(
 DO $pause$
 BEGIN
  BEGIN
- PERFORM connect.api_send_delivery(
+ PERFORM connect.test_send_delivery(
  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','bcbcbcbc-bcbc-4cbc-8cbc-bcbcbcbcbcbc',
  '11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222',
  1,1,'document',decode(repeat('ff',40),'hex'),decode(repeat('ba',64),'hex'));
@@ -104,7 +158,7 @@ END $pause$;
 SELECT connect.api_set_receive_permission(
  '22222222-2222-4222-8222-222222222222',
  '11111111-1111-4111-8111-111111111111', true);
-SELECT connect.api_send_delivery(
+SELECT connect.test_send_delivery(
  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
  'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd',
  '11111111-1111-4111-8111-111111111111',

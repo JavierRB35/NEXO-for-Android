@@ -22,6 +22,7 @@ CREATE TABLE connect.deliveries (
   recipient_generation bigint NOT NULL CHECK(recipient_generation>0),
   entity_type text NOT NULL CHECK(entity_type IN
     ('appointment','note','list','journal','book','movie','document')),
+  context bytea NOT NULL CHECK (octet_length(context)=142),
   ciphertext bytea,
   ciphertext_sha256 bytea NOT NULL CHECK(octet_length(ciphertext_sha256)=32),
   signature bytea NOT NULL CHECK(octet_length(signature) BETWEEN 64 AND 128),
@@ -114,7 +115,7 @@ $fn$;
 CREATE FUNCTION connect.api_send_delivery(
   p_id uuid,p_client_request_id uuid,p_sender uuid,p_recipient uuid,
   p_sender_generation bigint,p_recipient_generation bigint,
-  p_entity_type text,p_ciphertext bytea,p_signature bytea
+  p_entity_type text,p_context bytea,p_ciphertext bytea,p_signature bytea
 ) RETURNS uuid
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $fn$
@@ -123,10 +124,35 @@ DECLARE hash bytea;
 BEGIN
   IF p_id IS NULL OR p_client_request_id IS NULL
     OR p_sender IS NULL OR p_recipient IS NULL OR p_sender=p_recipient
+    OR p_context IS NULL OR octet_length(p_context)<>142
+    OR substring(p_context FROM 1 FOR 5)<>decode('4e58433101','hex')
     OR p_ciphertext IS NULL OR octet_length(p_ciphertext) NOT BETWEEN 1 AND 524288
     OR p_signature IS NULL OR octet_length(p_signature) NOT BETWEEN 64 AND 128
     OR p_entity_type NOT IN ('appointment','note','list','journal','book','movie','document')
   THEN RAISE EXCEPTION 'Invalid delivery payload' USING ERRCODE='22023'; END IF;
+  -- All routing metadata MUST be bound to the exact canonical context.
+  -- Edge MUST also verify signature + embedded issuance/expiry timestamps.
+  IF substring(p_context FROM 6 FOR 16)<>decode(replace(p_id::text,'-',''),'hex')
+    OR substring(p_context FROM 22 FOR 16)<>decode(replace(p_sender::text,'-',''),'hex')
+    OR substring(p_context FROM 38 FOR 16)<>decode(replace(p_recipient::text,'-',''),'hex')
+    OR get_byte(p_context,53)<>CASE p_entity_type
+      WHEN 'appointment' THEN 1 WHEN 'note' THEN 2
+      WHEN 'list' THEN 3 WHEN 'journal' THEN 4
+      WHEN 'book' THEN 5 WHEN 'movie' THEN 6
+      WHEN 'document' THEN 7 ELSE 0 END
+    OR (get_byte(p_context,54)*16777216+get_byte(p_context,55)*65536+
+        get_byte(p_context,56)*256+get_byte(p_context,57))<>p_sender_generation
+    OR (get_byte(p_context,58)*16777216+get_byte(p_context,59)*65536+
+        get_byte(p_context,60)*256+get_byte(p_context,61))<>p_recipient_generation
+  THEN RAISE EXCEPTION 'Canonical routing context mismatch' USING ERRCODE='22023';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM connect.devices s, connect.devices r
+    WHERE s.user_id=p_sender AND r.user_id=p_recipient
+      AND substring(p_context FROM 79 FOR 32)=s.signing_fingerprint
+      AND substring(p_context FROM 111 FOR 32)=r.encryption_fingerprint
+  ) THEN RAISE EXCEPTION 'Canonical key fingerprints mismatch'
+      USING ERRCODE='22023'; END IF;
   hash := public.digest(p_ciphertext,'sha256');
   PERFORM pg_catalog.pg_advisory_xact_lock(
       pg_catalog.hashtextextended('nexo-delivery:'||p_sender::text||':'||p_recipient::text||':'||p_client_request_id::text,0));
@@ -134,6 +160,7 @@ BEGIN
     WHERE sender_id=p_sender AND recipient_id=p_recipient AND client_request_id=p_client_request_id;
   IF FOUND THEN
     IF old_rec.id IS DISTINCT FROM p_id
+      OR old_rec.context IS DISTINCT FROM p_context
       OR old_rec.ciphertext_sha256 IS DISTINCT FROM hash
       OR old_rec.signature IS DISTINCT FROM p_signature
       OR old_rec.entity_type IS DISTINCT FROM p_entity_type
@@ -167,10 +194,10 @@ BEGIN
   END IF;
   INSERT INTO connect.deliveries(id,client_request_id,sender_id,recipient_id,
     sender_generation,recipient_generation,entity_type,
-    ciphertext,ciphertext_sha256,signature,expires_at)
+    context,ciphertext,ciphertext_sha256,signature,expires_at)
    VALUES(p_id,p_client_request_id,p_sender,p_recipient,
     p_sender_generation,p_recipient_generation,p_entity_type,
-    p_ciphertext,hash,p_signature,now()+interval '30 days');
+    p_context,p_ciphertext,hash,p_signature,now()+interval '30 days');
   INSERT INTO connect.delivery_events(delivery_id,actor_id,new_status)
    VALUES(p_id,p_sender,'pending');
   RETURN p_id;
@@ -248,7 +275,7 @@ GRANT SELECT ON connect.profiles,connect.devices,connect.contacts,
   TO authenticated;
 REVOKE ALL ON FUNCTION connect.api_approve_peer_key(uuid,uuid,bigint,bytea,bytea)
   FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION connect.api_send_delivery(uuid,uuid,uuid,uuid,bigint,bigint,text,bytea,bytea)
+REVOKE ALL ON FUNCTION connect.api_send_delivery(uuid,uuid,uuid,uuid,bigint,bigint,text,bytea,bytea,bytea)
   FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION connect.api_resolve_delivery(uuid,uuid,text)
   FROM PUBLIC,anon,authenticated;
