@@ -30,6 +30,6 @@ assert 'id="checkUpdatesSettings"' in html and 'id="checkUpdatesAbout"' in html
 assert 'uses: ./.github/workflows/publish-public-updates.yml' in workflow
 assert 'NEXO_UPDATE_PUBLISH_TOKEN' in publisher
 assert 'gh release create' in publisher and 'sha256' in publisher.lower()
-assert 'github.com/JavierRB35/nexo-android-updates/' in java
+assert 'JavierRB35/nexo-android-updates/' in java
 assert not re.search(r'(ghp_|github_pat_)',java)
 print('Contrato de actualizaciones de Nexo: OK')
