@@ -5102,7 +5102,13 @@ function normalizeSaveButtons(root=document){
     const visibleText=String(button.textContent||'').trim();
     const label=visibleText||String(button.getAttribute('aria-label')||'Guardar').trim()||'Guardar';
     // Revisar pauta abre una validación; todavía NO guarda el tratamiento.
-    if(id==='saveCaptureBtn'&&label==='Revisar pauta')return;
+    if(id==='saveCaptureBtn'&&label==='Revisar pauta'){
+      // Es una revisión previa, no un guardado: conservar texto y ancho normales.
+      button.classList.remove('nexo-unified-save');
+      button.setAttribute('aria-label',label);
+      button.setAttribute('title',label);
+      return;
+    }
     // No transformar acciones de exportación ni controles en estados de espera.
     if(!/^(guardar|confirmar tratamiento|crear y vincular)/i.test(label)&&!button.classList.contains('nexo-unified-save'))return;
     const finalLabel=contextual?'Guardar y volver':label;
