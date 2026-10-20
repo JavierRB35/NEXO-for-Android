@@ -56,6 +56,7 @@ public final class NexoUpdateJob extends JobService {
                 }
                 Intent open = new Intent(this, MainActivity.class);
                 open.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                open.putExtra("nexo_check_updates", true);
                 PendingIntent pending = PendingIntent.getActivity(this, 0, open,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 Notification.Builder builder = Build.VERSION.SDK_INT >= 26
