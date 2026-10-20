@@ -23,6 +23,14 @@ public class CryptoProofTest {
                 .getBytes(StandardCharsets.UTF_8);
     }
 
+    @Test public void signatureAndPublicKeyUseStandardRawEd25519() throws Exception {
+        byte[] pub = CryptoProof.rawSigningPublicKey(sender);
+        assertEquals(32, pub.length);
+        CryptoProof.SealedMessage msg = CryptoProof.seal(sender,
+            CryptoProof.publicKeys(recipient), new byte[]{1,2,3}, context);
+        assertEquals(64, msg.signature().length);
+    }
+
     @Test public void encryptedNoteRoundtrip() throws Exception {
         byte[] plain = "Nota confidencial: prueba Nexo Connect".getBytes(StandardCharsets.UTF_8);
         CryptoProof.SealedMessage sealed = CryptoProof.seal(
