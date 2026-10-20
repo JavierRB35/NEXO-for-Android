@@ -19,6 +19,7 @@ function fixture(){
   issueChallenge:async d=>{calls.challenge++;
     assert.deepEqual(d,{userId:UID,deviceId:DEVICE,generation:2,action:"delivery/send"});
     return NONCE;},
+  verifyPeer:async()=>{throw Error("Key verify not expected in fixture")},
   acceptInvite:async()=>{throw Error("Acceptance unsupported in fixture")},
   consumeChallenge:async()=>{throw Error("Not enabled in these tests")},
   createInvite:async()=>{throw Error("Not enabled in these tests")}

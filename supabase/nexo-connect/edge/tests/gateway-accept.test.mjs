@@ -33,6 +33,7 @@ async function fixture(){
     consumed=true;return true;
   },
   createInvite:async()=>{throw Error("Invite not expected")},
+  verifyPeer:async()=>{throw Error("Key verify not expected in fixture")},
   acceptInvite:async data=>{
     calls.accept++;assert.equal(data.recipientId,USER);
     assert.equal(data.creatorId,CREATOR);

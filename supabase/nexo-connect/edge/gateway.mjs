@@ -42,7 +42,7 @@ function validDevice(device,userId) {
     &&Number.isSafeInteger(device.generation)&&device.generation>0);
 }
 export function createGateway({
-  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,clock=()=>Date.now()
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,clock=()=>Date.now()
 }) {
   if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,clock]
       .every(x=>typeof x==="function"))
@@ -51,7 +51,7 @@ export function createGateway({
     try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
       const path=normalizePath(new URL(request.url).pathname);
-      if(!["/status","/challenge","/contact/invite","/contact/accept"].includes(path))
+      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!bearer.startsWith("Bearer ")||
@@ -95,11 +95,20 @@ export function createGateway({
       // Both contact operations require a signed, one-use phone proof.
       // QR verification is additionally enforced by a locked DB transaction.
       const creating=path==="/contact/invite";
+      const verifying=path==="/key/verify";
       if(creating){
         if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
           ||!isHex64(data.tokenSha256)
           ||!Number.isSafeInteger(data.expiresInSeconds)
           ||data.expiresInSeconds<300||data.expiresInSeconds>86400)
+          return reply(400,{error:"invalid-request"});
+      }else if(verifying){
+        if(Object.keys(data).sort().join(",")!==
+            "peerEncryptionFingerprint,peerGeneration,peerId,peerSigningFingerprint"
+          ||!UUID.test(data.peerId)||data.peerId===user.id
+          ||!Number.isSafeInteger(data.peerGeneration)||data.peerGeneration<=0
+          ||!isHex64(data.peerSigningFingerprint)
+          ||!isHex64(data.peerEncryptionFingerprint))
           return reply(400,{error:"invalid-request"});
       }else{
         if(Object.keys(data).sort().join(",")!==
@@ -136,6 +145,17 @@ export function createGateway({
           throw Error("Invalid invite creation response");
         // Server stores ONLY token hash, not the clear QR token.
         return reply(201,{inviteId,expiresInSeconds:data.expiresInSeconds});
+      }
+      if(verifying){
+        await verifyPeer({
+          ownerId:user.id,ownerDeviceId:device.device_id,
+          ownerGeneration:device.generation,
+          peerId:data.peerId,peerGeneration:data.peerGeneration,
+          peerSigningFingerprint:data.peerSigningFingerprint,
+          peerEncryptionFingerprint:data.peerEncryptionFingerprint
+        });
+        return reply(200,{verified:true,peerId:data.peerId,
+          generation:data.peerGeneration});
       }
       const requestId=await acceptInvite({
         recipientId:user.id,recipientDeviceId:device.device_id,
