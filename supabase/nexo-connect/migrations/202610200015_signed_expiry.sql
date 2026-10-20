@@ -12,7 +12,7 @@ DECLARE
  i integer;
 BEGIN
  IF NEW.context IS NULL OR pg_catalog.octet_length(NEW.context)<>142
-  OR pg_catalog.substring(NEW.context FROM 1 FOR 5)
+  OR substring(NEW.context FROM 1 FOR 5)
      <>pg_catalog.decode('4e58433101','hex') THEN
   RAISE EXCEPTION 'Invalid signed delivery context' USING ERRCODE='22023';
  END IF;
@@ -28,8 +28,8 @@ BEGIN
   OR signed_expires_ms NOT BETWEEN 1 AND 253402300799999
   OR signed_expires_ms <= signed_issued_ms
   OR signed_expires_ms-signed_issued_ms > 2592000000
-  OR signed_expires_ms <= pg_catalog.extract(epoch FROM pg_catalog.now())*1000
-  OR pg_catalog.abs(signed_issued_ms - pg_catalog.extract(epoch FROM pg_catalog.now())*1000)
+  OR signed_expires_ms <= extract(epoch FROM pg_catalog.now())*1000
+  OR pg_catalog.abs(signed_issued_ms - extract(epoch FROM pg_catalog.now())*1000)
     > 300000
  THEN
   RAISE EXCEPTION 'Invalid or expired signed TTL' USING ERRCODE='22023';

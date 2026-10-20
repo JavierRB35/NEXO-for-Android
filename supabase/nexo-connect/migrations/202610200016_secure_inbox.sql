@@ -62,7 +62,7 @@ BEGIN
    'deliveryId',d.id,'senderId',d.sender_id,'senderGeneration',d.sender_generation,
    'recipientGeneration',d.recipient_generation,
    'entityType',d.entity_type,
-   'expiresAtMs',(pg_catalog.floor(pg_catalog.extract(epoch FROM d.expires_at)*1000))::bigint
+   'expiresAtMs',(pg_catalog.floor(extract(epoch FROM d.expires_at)*1000))::bigint
  ) ORDER BY d.created_at,d.id),'[]'::jsonb) INTO page
  FROM (
   SELECT id,sender_id,sender_generation,recipient_generation,entity_type,
@@ -104,7 +104,7 @@ BEGIN
    'senderGeneration',envelope.sender_generation,
    'recipientGeneration',envelope.recipient_generation,
    'entityType',envelope.entity_type,
-   'expiresAtMs',(pg_catalog.floor(pg_catalog.extract(epoch FROM envelope.expires_at)*1000))::bigint,
+   'expiresAtMs',(pg_catalog.floor(extract(epoch FROM envelope.expires_at)*1000))::bigint,
    'contextHex',pg_catalog.encode(envelope.context,'hex'),
    'ciphertextHex',pg_catalog.encode(envelope.ciphertext,'hex'),
    'ciphertextSha256Hex',pg_catalog.encode(envelope.ciphertext_sha256,'hex'),

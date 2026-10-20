@@ -15,7 +15,7 @@ DECLARE
 BEGIN
  SELECT signing_fingerprint INTO sign_fp FROM connect.devices WHERE user_id=sender;
  SELECT encryption_fingerprint INTO enc_fp FROM connect.devices WHERE user_id=receiver;
- issued := pg_catalog.floor(pg_catalog.extract(epoch FROM pg_catalog.now())*1000)::bigint;
+ issued := pg_catalog.floor(extract(epoch FROM pg_catalog.now())*1000)::bigint;
  expiry := issued + 3600000;
  ctx := pg_catalog.decode('4e58433101'||replace(delivery::text,'-','')||
   replace(sender::text,'-','')||replace(receiver::text,'-','')||'02'||
@@ -28,7 +28,7 @@ BEGIN
    'note',ctx,decode(repeat('ab',80),'hex'),decode(repeat('cd',64),'hex'));
  IF actual<>delivery THEN RAISE EXCEPTION 'Delivery ID mismatch'; END IF;
  SELECT expires_at INTO persisted FROM connect.deliveries WHERE id=delivery;
- IF pg_catalog.abs(pg_catalog.extract(epoch FROM persisted)*1000-expiry)>2 THEN
+ IF pg_catalog.abs(extract(epoch FROM persisted)*1000-expiry)>2 THEN
   RAISE EXCEPTION 'Signed one-hour expiry ignored'; END IF;
  IF persisted>pg_catalog.now()+interval '2 hours' THEN
   RAISE EXCEPTION 'Fixed 30-day expiry was retained'; END IF;
