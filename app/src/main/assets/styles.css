@@ -3591,3 +3591,13 @@ button.nexo-unified-save>.ui-icon{
   height:70px!important;min-height:70px!important;max-height:70px!important;
   margin:0!important;align-self:stretch!important
 }
+
+
+/* Herramientas de protección de datos: acceso compacto solo desde Ajustes. */
+.settings-security-actions{display:grid;gap:10px}
+.settings-security-action{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-height:58px;padding:10px 13px;text-align:left;white-space:normal}
+.settings-security-action>.ui-icon{width:22px;height:22px;flex:0 0 22px}
+.settings-security-action__text{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.settings-security-action__text strong{font-weight:700}
+.settings-security-action__text small{display:block;font-size:.82rem;line-height:1.3;font-weight:400;opacity:.78}
+.settings-security-action .settings-security-action__arrow{width:16px;height:16px;flex-basis:16px;opacity:.65}
