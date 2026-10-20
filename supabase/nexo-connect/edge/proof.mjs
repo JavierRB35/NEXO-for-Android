@@ -10,8 +10,8 @@ const ACTIONS = Object.freeze([
   "contact/unlink", "key/verify", "delivery/send",
   "delivery/resolve", "delivery/request-resend"
 ]);
-// Signed inline delivery is base64url encoded; 512 KiB cipher can expand to 700 KiB JSON.
-const MAX_BODY = 768 * 1024;
+const MAX_BODY = 524288;
+const MAX_SEND_BODY = 768 * 1024;
 const CLOCK_SKEW_MS = 90000;
 const te = new TextEncoder();
 
@@ -25,8 +25,8 @@ function numberHeader(value) {
   if (!Number.isSafeInteger(n)) throw Error("unsafe-number");
   return n;
 }
-function toBytes(value) {
-  if (!(value instanceof Uint8Array) || value.byteLength > MAX_BODY)
+function toBytes(value,limit=MAX_BODY) {
+  if (!(value instanceof Uint8Array) || value.byteLength > limit)
     throw Error("invalid-body");
   return value;
 }
@@ -44,7 +44,7 @@ export async function buildDeviceCanonicalRequest({
       !path.startsWith("/nexo-connect/") ||
       !ACTIONS.includes(path.substring("/nexo-connect/".length)))
     throw Error("invalid-route");
-  const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",toBytes(body)));
+  const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",toBytes(body,path==="/nexo-connect/delivery/send"?MAX_SEND_BODY:MAX_BODY)));
   const canonical=[
     "NEXO-CONNECT-PROOF-V1",method,path,userId,deviceId,
     String(generation),challengeId,String(issuedAt),encodeHex(digest),""
