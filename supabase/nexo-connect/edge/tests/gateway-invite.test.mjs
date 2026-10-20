@@ -70,7 +70,9 @@ async function fixture(){
 test("valid OTP session, signature, unused nonce yields one invite",async()=>{
  const f=await fixture();
  const req=await f.signed();
+ assert.equal(req.headers.get("authorization"),"Bearer verified","Request lost Authorization header");
  const res=await f.handle(req);
+ assert.equal(f.calls.auth,1,"Auth validator was never invoked");
  assert.equal(res.status,201);
  assert.deepEqual(await res.json(),{inviteId:INVITE,expiresInSeconds:3600});
  assert.deepEqual(f.calls,{auth:1,consume:1,create:1});
