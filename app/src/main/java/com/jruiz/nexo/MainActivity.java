@@ -63,6 +63,8 @@ import com.jruiz.nexo.input.GmailWatchScheduler;
 import com.jruiz.nexo.migration.NexoFamiliaImporter;
 import com.jruiz.nexo.migration.NexoFamiliaCloudSync;
 import com.jruiz.nexo.weather.HeaderWeather;
+import com.jruiz.nexo.updates.NexoUpdateManager;
+import com.jruiz.nexo.updates.NexoUpdateJob;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -134,6 +136,7 @@ public class MainActivity extends Activity {
     private boolean firstResumeAfterCreate = true;
     private NexoFamiliaCloudSync familiaCloudSync;
     private HeaderWeather headerWeather;
+    private NexoUpdateManager updateManager;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -152,12 +155,20 @@ public class MainActivity extends Activity {
         try { db.repairNexoFamiliaVehicleReservationMarkers(); } catch (Exception ignored) {}
         // La antigua instantánea incluida queda solo como compatibilidad manual.
         // La agenda de Nexo Familia se sincroniza ahora directamente con Supabase.
+        updateManager = new NexoUpdateManager(this, data -> {
+            if (pageReady) jsCallbackJson("onUpdateStatusChanged", data);
+        });
+        NexoUpdateJob.schedule(this);
         setupWebView();
         handleIncomingIntent(getIntent());
     }
 
     @Override protected void onResume() {
         super.onResume();
+        if (updateManager != null) {
+            updateManager.onResume();
+            updateManager.check(false);
+        }
         if (db != null) {
             try {
                 db.reconcileTemporalStatuses();
@@ -268,6 +279,7 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 pageReady = true;
+                if (updateManager != null) jsCallbackJson("onUpdateStatusChanged", updateManager.getStatus());
                 deliverIncomingIfReady();
                 deliverInboxReviewIfReady();
                 if (headerWeather != null) headerWeather.refresh(true);
@@ -2000,6 +2012,8 @@ public class MainActivity extends Activity {
             getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putString("display_mode", m).apply();
         }
         @JavascriptInterface public String getAppVersion() { return BuildConfig.VERSION_NAME; }
+        @JavascriptInterface public String getUpdateStatus() { return updateManager == null ? "{}" : updateManager.getStatus().toString(); }
+        @JavascriptInterface public void checkForUpdates() { if (updateManager != null) updateManager.check(true); }
         @JavascriptInterface public String getAboutInfo() {
             JSONObject o = new JSONObject();
             try {
