@@ -53,7 +53,8 @@ export function createGateway({
       if(!["/status","/challenge","/contact/invite"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
-      if(!bearer||!/^Bearer [^\s]+$/.test(bearer))
+      if(!bearer||!bearer.startsWith("Bearer ")||
+          bearer.slice(7).length===0||/\s/.test(bearer.slice(7)))
         return reply(401,{error:"unauthorized"});
       // Do not rely on decoded JWT claims: actual Supabase getUser verification.
       const user=await authenticate(bearer.slice(7));
