@@ -137,6 +137,7 @@ public class MainActivity extends Activity {
     private NexoFamiliaCloudSync familiaCloudSync;
     private HeaderWeather headerWeather;
     private NexoUpdateManager updateManager;
+    private boolean updatesStartupReady;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -167,7 +168,9 @@ public class MainActivity extends Activity {
         super.onResume();
         if (updateManager != null) {
             updateManager.onResume();
-            updateManager.check(false);
+            // Primer arranque: esperar a que desaparezca la splash antes de preguntar.
+            // Siguientes aperturas: comprobar de nuevo al volver al primer plano.
+            if (updatesStartupReady) updateManager.checkOnOpen();
         }
         if (db != null) {
             try {
@@ -2019,6 +2022,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String getAppVersion() { return BuildConfig.VERSION_NAME; }
         @JavascriptInterface public String getUpdateStatus() { return updateManager == null ? "{}" : updateManager.getStatus().toString(); }
         @JavascriptInterface public void checkForUpdates() { if (updateManager != null) updateManager.check(true); }
+        @JavascriptInterface public void onStartupReadyForUpdates() {
+            runOnUiThread(() -> {
+                if (updatesStartupReady || isFinishing() || isDestroyed()) return;
+                updatesStartupReady = true;
+                if (updateManager != null) updateManager.checkOnOpen();
+            });
+        }
         @JavascriptInterface public String getAboutInfo() {
             JSONObject o = new JSONObject();
             try {

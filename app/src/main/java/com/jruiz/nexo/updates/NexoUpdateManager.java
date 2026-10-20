@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 
 import com.jruiz.nexo.BuildConfig;
@@ -41,6 +42,8 @@ public final class NexoUpdateManager {
             "595799E351233418F05BC5053E42B3AFF439D677FFBB0F59A1D92E29D15FEC48";
     private static final String PREFS = "nexo_updates";
     private static final long CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
+    // No repetir la pregunta cuando se vuelve brevemente desde el instalador u otra pantalla.
+    private static final long FOREGROUND_DEDUP_MS = 60L * 1000;
     private static final long MAX_APK_BYTES = 250L * 1024 * 1024;
     private final Activity activity;
     private final Consumer<JSONObject> listener;
@@ -50,6 +53,8 @@ public final class NexoUpdateManager {
     private volatile String status = "{\"state\":\"idle\",\"message\":\"Todavía no se han buscado actualizaciones.\"}";
     private volatile Release latest;
     private boolean waitingForInstallPermission;
+    private boolean updatePromptVisible;
+    private long lastForegroundCheckElapsed;
 
     public NexoUpdateManager(Activity activity, Consumer<JSONObject> listener) {
         this.activity = activity;
@@ -82,12 +87,28 @@ public final class NexoUpdateManager {
         return activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
+    /** Consulta el canal en cada apertura real, sin el filtro de 24 horas. */
+    public void checkOnOpen() {
+        if (activity.isFinishing() || activity.isDestroyed() || waitingForInstallPermission ||
+                updatePromptVisible || downloading.get() || checking.get()) return;
+        long elapsed = SystemClock.elapsedRealtime();
+        if (lastForegroundCheckElapsed > 0 && elapsed >= lastForegroundCheckElapsed &&
+                elapsed - lastForegroundCheckElapsed < FOREGROUND_DEDUP_MS) return;
+        lastForegroundCheckElapsed = elapsed;
+        check(false, true);
+    }
+
+    /** Conserva la opción manual y los límites de la comprobación automática periódica. */
     public void check(boolean manual) {
+        check(manual, false);
+    }
+
+    private void check(boolean manual, boolean onOpen) {
         if (downloading.get()) return;
         if (!checking.compareAndSet(false, true)) return;
         long now = System.currentTimeMillis();
         long last = prefs().getLong("last_successful_check", 0);
-        if (!manual && last > 0 && now >= last && now - last < CHECK_INTERVAL_MS) {
+        if (!manual && !onOpen && last > 0 && now >= last && now - last < CHECK_INTERVAL_MS) {
             checking.set(false);
             return;
         }
@@ -107,17 +128,25 @@ public final class NexoUpdateManager {
                 } else {
                     emit("available", "Nueva versión " + remote.versionName + " disponible.", remote);
                     int alerted = prefs().getInt("last_alerted_code", 0);
-                    if (manual || alerted != remote.versionCode) {
-                        prefs().edit().putInt("last_alerted_code", remote.versionCode).apply();
+                    if (manual || onOpen || alerted != remote.versionCode) {
                         main.post(() -> {
-                            if (activity.isFinishing() || activity.isDestroyed()) return;
-                            new AlertDialog.Builder(activity)
-                                    .setTitle("Actualización de Nexo")
-                                    .setMessage("Disponible Nexo " + remote.versionName + ".\n\n"
-                                            + remote.notes + "\n\nLa instalación requiere tu confirmación.")
-                                    .setNegativeButton("Más tarde", (dialog, which) -> {})
-                                    .setPositiveButton("Actualizar", (dialog, which) -> download(remote))
-                                    .show();
+                            // No interrumpir si Nexo ya no está visible o hay otro aviso abierto.
+                            if (activity.isFinishing() || activity.isDestroyed() ||
+                                    !activity.hasWindowFocus() || updatePromptVisible || downloading.get()) return;
+                            updatePromptVisible = true;
+                            try {
+                                new AlertDialog.Builder(activity)
+                                        .setTitle("Actualización de Nexo")
+                                        .setMessage("Disponible Nexo " + remote.versionName + ".\n\n"
+                                                + remote.notes + "\n\n¿Quieres actualizar ahora?")
+                                        .setNegativeButton("Más tarde", (dialog, which) -> {})
+                                        .setPositiveButton("Actualizar", (dialog, which) -> download(remote))
+                                        .setOnDismissListener(dialog -> updatePromptVisible = false)
+                                        .show();
+                                prefs().edit().putInt("last_alerted_code", remote.versionCode).apply();
+                            } catch (Exception error) {
+                                updatePromptVisible = false;
+                            }
                         });
                     }
                 }
@@ -328,6 +357,8 @@ public final class NexoUpdateManager {
     public void onResume() {
         if (waitingForInstallPermission && Build.VERSION.SDK_INT >= 26 &&
                 activity.getPackageManager().canRequestPackageInstalls()) {
+            // Al volver desde permisos, priorizar el instalador sin otro aviso de versión.
+            lastForegroundCheckElapsed = SystemClock.elapsedRealtime();
             installDownloaded();
         }
     }
