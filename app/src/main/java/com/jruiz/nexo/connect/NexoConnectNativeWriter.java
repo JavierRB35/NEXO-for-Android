@@ -209,7 +209,7 @@ public final class NexoConnectNativeWriter implements NexoConnectAtomicImporter.
         long id=insert(db,"lists",v);
         long now=System.currentTimeMillis();
         for(int i=0;i<entries.length();i++){
-            JSONObject row=entries.getJSONObject(i);
+            JSONObject row=entries.optJSONObject(i);
             ContentValues item=new ContentValues();
             item.put("list_id",id);
             item.put("text",text(row,"text").trim());
