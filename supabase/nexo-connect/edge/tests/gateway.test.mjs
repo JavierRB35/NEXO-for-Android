@@ -15,10 +15,12 @@ function fixture(){
  const handle=createGateway({
   authenticate:async token=>{calls.auth++;return token==="valid-session"?{id:UID}:null},
   getDevice:async user=>{calls.device++;assert.equal(user,UID);
-    return {device_id:DEVICE,generation:2}},
+    return {user_id:UID,device_id:DEVICE,generation:2}},
   issueChallenge:async d=>{calls.challenge++;
     assert.deepEqual(d,{userId:UID,deviceId:DEVICE,generation:2,action:"delivery/send"});
-    return NONCE;}
+    return NONCE;},
+  consumeChallenge:async()=>{throw Error("Not enabled in these tests")},
+  createInvite:async()=>{throw Error("Not enabled in these tests")}
  });
  return {handle,calls};
 }
