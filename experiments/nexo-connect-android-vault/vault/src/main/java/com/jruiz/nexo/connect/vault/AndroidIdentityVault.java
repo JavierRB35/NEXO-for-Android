@@ -138,7 +138,8 @@ public final class AndroidIdentityVault {
     /** Eliminación local explícita después de desvinculación. No borra datos remotos. */
     public synchronized void destroy() throws GeneralSecurityException {
         // La eliminación de material cifrado precede a la revocación de la clave.
-        if (!stored.delete() && exists()) {
+        stored.delete();
+        if (exists()) {
             throw new GeneralSecurityException("No se pudo eliminar almacén cifrado");
         }
         KeyStore keys = KeyStore.getInstance("AndroidKeyStore");
