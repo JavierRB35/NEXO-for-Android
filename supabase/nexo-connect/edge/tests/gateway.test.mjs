@@ -34,6 +34,7 @@ test("verified JWT before any privileged database lookup",async()=>{
 });
 test("status returns only registered device from verified backend",async()=>{
  const f=fixture();const r=await f.handle(req("status"));
+ assert.equal(f.calls.auth,1,"Auth validator was never invoked");
  assert.equal(r.status,200);
  assert.deepEqual(await r.json(),{registered:true,deviceId:DEVICE,generation:2});
  assert.equal(f.calls.challenge,0);
