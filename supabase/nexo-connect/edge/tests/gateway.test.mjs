@@ -19,6 +19,8 @@ function fixture(){
   issueChallenge:async d=>{calls.challenge++;
     assert.deepEqual(d,{userId:UID,deviceId:DEVICE,generation:2,action:"delivery/send"});
     return NONCE;},
+  setReceivePermission:async()=>{throw Error("Unexpected contact permission")},
+  unlinkContact:async()=>{throw Error("Unexpected unlink")},
   verifyPeer:async()=>{throw Error("Key verify not expected in fixture")},
   acceptInvite:async()=>{throw Error("Acceptance unsupported in fixture")},
   consumeChallenge:async()=>{throw Error("Not enabled in these tests")},

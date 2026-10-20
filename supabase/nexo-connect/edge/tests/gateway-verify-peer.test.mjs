@@ -29,6 +29,8 @@ async function fixture(){
   },
   createInvite:async()=>{throw Error("Unexpected invite")},
   acceptInvite:async()=>{throw Error("Unexpected acceptance")},
+  setReceivePermission:async()=>{throw Error("Unexpected contact permission")},
+  unlinkContact:async()=>{throw Error("Unexpected unlink")},
   verifyPeer:async args=>{
     verified++;
     assert.deepEqual(args,{ownerId:OWNER,ownerDeviceId:PHONE,ownerGeneration:1,

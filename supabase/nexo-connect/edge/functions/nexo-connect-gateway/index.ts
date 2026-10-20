@@ -69,6 +69,15 @@ const gateway=createGateway({
       p_peer:peerId,p_peer_generation:peerGeneration,
       p_signing_fp:hexToBytea(peerSigningFingerprint),
       p_encryption_fp:hexToBytea(peerEncryptionFingerprint)
+    }),
+  setReceivePermission:async({userId,deviceId,generation,peerId,allowReceive})=>
+    rpc("nexo_connect_receive_permission",{
+      p_actor:userId,p_device:deviceId,p_generation:generation,
+      p_peer:peerId,p_allow:allowReceive
+    }),
+  unlinkContact:async({userId,deviceId,generation,peerId})=>
+    rpc("nexo_connect_unlink_contact",{
+      p_actor:userId,p_device:deviceId,p_generation:generation,p_peer:peerId
     })
 });
 Deno.serve(gateway);

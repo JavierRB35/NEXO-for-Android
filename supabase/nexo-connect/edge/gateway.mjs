@@ -42,16 +42,16 @@ function validDevice(device,userId) {
     &&Number.isSafeInteger(device.generation)&&device.generation>0);
 }
 export function createGateway({
-  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,clock=()=>Date.now()
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,clock=()=>Date.now()
 }) {
-  if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,clock]
+  if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,clock]
       .every(x=>typeof x==="function"))
     throw new TypeError("Missing trusted backend dependencies");
   return async request=>{
     try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
       const path=normalizePath(new URL(request.url).pathname);
-      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify"].includes(path))
+      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!bearer.startsWith("Bearer ")||
@@ -96,6 +96,8 @@ export function createGateway({
       // QR verification is additionally enforced by a locked DB transaction.
       const creating=path==="/contact/invite";
       const verifying=path==="/key/verify";
+      const permitting=path==="/contact/permissions";
+      const unlinking=path==="/contact/unlink";
       if(creating){
         if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
           ||!isHex64(data.tokenSha256)
@@ -109,6 +111,15 @@ export function createGateway({
           ||!Number.isSafeInteger(data.peerGeneration)||data.peerGeneration<=0
           ||!isHex64(data.peerSigningFingerprint)
           ||!isHex64(data.peerEncryptionFingerprint))
+          return reply(400,{error:"invalid-request"});
+      }else if(permitting){
+        if(Object.keys(data).sort().join(",")!=="allowReceive,peerId"
+          ||!UUID.test(data.peerId)||data.peerId===user.id
+          ||typeof data.allowReceive!=="boolean")
+          return reply(400,{error:"invalid-request"});
+      }else if(unlinking){
+        if(Object.keys(data).sort().join(",")!=="peerId"
+          ||!UUID.test(data.peerId)||data.peerId===user.id)
           return reply(400,{error:"invalid-request"});
       }else{
         if(Object.keys(data).sort().join(",")!==
@@ -156,6 +167,21 @@ export function createGateway({
         });
         return reply(200,{verified:true,peerId:data.peerId,
           generation:data.peerGeneration});
+      }
+      if(permitting){
+        await setReceivePermission({
+          userId:user.id,deviceId:device.device_id,
+          generation:device.generation,peerId:data.peerId,
+          allowReceive:data.allowReceive
+        });
+        return reply(200,{peerId:data.peerId,receivingAllowed:data.allowReceive});
+      }
+      if(unlinking){
+        await unlinkContact({
+          userId:user.id,deviceId:device.device_id,
+          generation:device.generation,peerId:data.peerId
+        });
+        return reply(200,{peerId:data.peerId,unlinked:true});
       }
       const requestId=await acceptInvite({
         recipientId:user.id,recipientDeviceId:device.device_id,

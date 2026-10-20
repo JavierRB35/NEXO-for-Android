@@ -33,6 +33,8 @@ async function fixture(){
     consumed=true;return true;
   },
   createInvite:async()=>{throw Error("Invite not expected")},
+  setReceivePermission:async()=>{throw Error("Unexpected contact permission")},
+  unlinkContact:async()=>{throw Error("Unexpected unlink")},
   verifyPeer:async()=>{throw Error("Key verify not expected in fixture")},
   acceptInvite:async data=>{
     calls.accept++;assert.equal(data.recipientId,USER);
