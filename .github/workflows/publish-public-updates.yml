@@ -94,7 +94,12 @@ jobs:
           [ -n "$GH_TOKEN" ] || { echo "Falta secret NEXO_UPDATE_PUBLISH_TOKEN"; exit 1; }
           PUBLIC="JavierRB35/nexo-android-updates"
           [ "$(gh api "repos/$PUBLIC" --jq '.private')" = false ] || { echo "Crea primero el repo público"; exit 1; }
-          PREVIOUS_SHA="$(gh api "repos/$PUBLIC/contents/latest.json" --jq '.sha' 2>/dev/null || true)"
+          # La primera publicación todavía no tiene latest.json; una respuesta 404 no
+          # debe interpretarse como una versión previa (ni el valor "null").
+          PREVIOUS_SHA=""
+          if gh api "repos/$PUBLIC/contents/latest.json" --jq '.sha // empty' > dist/previous.sha 2>/dev/null; then
+            PREVIOUS_SHA="$(head -n 1 dist/previous.sha)"
+          fi
           if [ -n "$PREVIOUS_SHA" ]; then
             gh api "repos/$PUBLIC/contents/latest.json" --jq '.content' | base64 --decode > dist/previous.json
             python3 - <<'PY'
