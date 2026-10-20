@@ -81,6 +81,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-identity-contacts-rls.sql
           psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200002_contact_api.sql
           psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-contact-api.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200003_deliveries.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-deliveries.sql
 
   android-keystore-compile:
     name: Compile isolated Android vault with SDK 34
