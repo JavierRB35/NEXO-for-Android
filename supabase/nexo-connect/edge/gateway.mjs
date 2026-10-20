@@ -42,16 +42,16 @@ function validDevice(device,userId) {
     &&Number.isSafeInteger(device.generation)&&device.generation>0);
 }
 export function createGateway({
-  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,clock=()=>Date.now()
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,clock=()=>Date.now()
 }) {
-  if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,clock]
+  if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,clock]
       .every(x=>typeof x==="function"))
     throw new TypeError("Missing trusted backend dependencies");
   return async request=>{
     try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
       const path=normalizePath(new URL(request.url).pathname);
-      if(!["/status","/challenge","/contact/invite"].includes(path))
+      if(!["/status","/challenge","/contact/invite","/contact/accept"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!bearer.startsWith("Bearer ")||
@@ -92,13 +92,25 @@ export function createGateway({
         if(typeof nonce!=="string"||!UUID.test(nonce))throw Error("Invalid challenge");
         return reply(200,{challengeId:nonce,expiresInSeconds:120});
       }
-      // Only mutation currently offered: CREATE CONTACT INVITATION.
-      // All future routes must independently pass signed, one-use proof.
-      if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
-        ||!isHex64(data.tokenSha256)
-        ||!Number.isSafeInteger(data.expiresInSeconds)
-        ||data.expiresInSeconds<300||data.expiresInSeconds>86400)
-        return reply(400,{error:"invalid-request"});
+      // Both contact operations require a signed, one-use phone proof.
+      // QR verification is additionally enforced by a locked DB transaction.
+      const creating=path==="/contact/invite";
+      if(creating){
+        if(Object.keys(data).sort().join(",")!=="expiresInSeconds,tokenSha256"
+          ||!isHex64(data.tokenSha256)
+          ||!Number.isSafeInteger(data.expiresInSeconds)
+          ||data.expiresInSeconds<300||data.expiresInSeconds>86400)
+          return reply(400,{error:"invalid-request"});
+      }else{
+        if(Object.keys(data).sort().join(",")!==
+            "creatorEncryptionFingerprint,creatorGeneration,creatorId,creatorSigningFingerprint,tokenSha256"
+          ||!UUID.test(data.creatorId)||data.creatorId===user.id
+          ||!Number.isSafeInteger(data.creatorGeneration)||data.creatorGeneration<=0
+          ||!isHex64(data.creatorSigningFingerprint)
+          ||!isHex64(data.creatorEncryptionFingerprint)
+          ||!isHex64(data.tokenSha256))
+          return reply(400,{error:"invalid-request"});
+      }
       if(!validDevice(device,user.id))
         return reply(403,{error:"device-revoked"});
       const key=device.signing_public_key;
@@ -107,7 +119,7 @@ export function createGateway({
       try {
         await verifyDeviceProof({
           headers:request.headers,userId:user.id,method:"POST",
-          path:"/nexo-connect/contact/invite",body:bytes,
+          path:"/nexo-connect"+path,body:bytes,
           activeDevice:device,nowMillis:clock(),
           consumeChallenge:async({userId,deviceId,generation,challengeId,action})=>
             consumeChallenge({userId,deviceId,generation,challengeId,action})
@@ -115,14 +127,28 @@ export function createGateway({
       }catch(error){
         return reply(403,{error:"invalid-device-proof"});
       }
-      const inviteId=await createInvite({
-        userId:user.id,tokenSha256:data.tokenSha256,
-        expiresInSeconds:data.expiresInSeconds
+      if(creating){
+        const inviteId=await createInvite({
+          userId:user.id,tokenSha256:data.tokenSha256,
+          expiresInSeconds:data.expiresInSeconds
+        });
+        if(typeof inviteId!=="string"||!UUID.test(inviteId))
+          throw Error("Invalid invite creation response");
+        // Server stores ONLY token hash, not the clear QR token.
+        return reply(201,{inviteId,expiresInSeconds:data.expiresInSeconds});
+      }
+      const requestId=await acceptInvite({
+        recipientId:user.id,recipientDeviceId:device.device_id,
+        recipientGeneration:device.generation,
+        creatorId:data.creatorId,creatorGeneration:data.creatorGeneration,
+        creatorSigningFingerprint:data.creatorSigningFingerprint,
+        creatorEncryptionFingerprint:data.creatorEncryptionFingerprint,
+        tokenSha256:data.tokenSha256
       });
-      if(typeof inviteId!=="string"||!UUID.test(inviteId))
-        throw Error("Invalid invite creation response");
-      // Server stores ONLY the token hash, not the clear QR token.
-      return reply(201,{inviteId,expiresInSeconds:data.expiresInSeconds});
+      if(typeof requestId!=="string"||!UUID.test(requestId))
+        throw Error("Invalid acceptance result");
+      return reply(200,{linked:true,requestId,creatorId:data.creatorId,
+        reciprocalKeyVerificationRequired:true});
     }catch(error) {
       return reply(503,{error:"temporarily-unavailable"});
     }

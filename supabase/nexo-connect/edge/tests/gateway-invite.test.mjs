@@ -26,6 +26,7 @@ async function fixture(){
     return {user_id:UID,device_id:DEVICE,generation:2,signing_public_key:raw};
   },
   issueChallenge:async()=>NONCE,
+  acceptInvite:async()=>{throw Error("Acceptance unsupported in fixture")},
   consumeChallenge:async details=>{
     calls.consume++;
     assert.deepEqual(details,{

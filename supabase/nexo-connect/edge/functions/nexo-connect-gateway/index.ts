@@ -51,6 +51,16 @@ const gateway=createGateway({
   createInvite:async({userId,tokenSha256,expiresInSeconds})=>
     rpc("nexo_connect_create_invite",{
       p_user:userId,p_token_sha256:hexToBytea(tokenSha256),p_seconds:expiresInSeconds
+    }),
+  acceptInvite:async({recipientId,recipientDeviceId,recipientGeneration,
+                      creatorId,creatorGeneration,creatorSigningFingerprint,
+                      creatorEncryptionFingerprint,tokenSha256})=>
+    rpc("nexo_connect_accept_invite",{
+      p_recipient:recipientId,p_recipient_device:recipientDeviceId,
+      p_recipient_generation:recipientGeneration,p_creator:creatorId,
+      p_creator_generation:creatorGeneration,p_token_hash:hexToBytea(tokenSha256),
+      p_creator_signing_fp:hexToBytea(creatorSigningFingerprint),
+      p_creator_encryption_fp:hexToBytea(creatorEncryptionFingerprint)
     })
 });
 Deno.serve(gateway);
