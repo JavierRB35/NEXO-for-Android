@@ -87,6 +87,8 @@ public class QrTrustConfirmationViewTest {
     @Test public void manuallyEnteredFullFingerprintsAndConsentSaveViaKeystore()
             throws Exception {
         Fixture f=new Fixture(context);
+        final String signerFingerprint=f.pin.signingFingerprint();
+        final String encryptionFingerprint=f.pin.encryptionFingerprint();
         final AtomicReference<QrTrustConfirmationView> holder=new AtomicReference<>();
         final AtomicReference<Exception> error=new AtomicReference<>();
         final CountDownLatch saved=new CountDownLatch(1);
@@ -106,8 +108,8 @@ public class QrTrustConfirmationViewTest {
         });
         QrTrustConfirmationView view=holder.get();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
-            view.signingInputForTest().setText(f.pin.signingFingerprint());
-            view.encryptionInputForTest().setText(f.pin.encryptionFingerprint());
+            view.signingInputForTest().setText(signerFingerprint);
+            view.encryptionInputForTest().setText(encryptionFingerprint);
             assertFalse(view.buttonForTest().isEnabled());
             view.channelCheckForTest().setChecked(true);
             view.consentCheckForTest().setChecked(true);
@@ -125,6 +127,7 @@ public class QrTrustConfirmationViewTest {
 
     @Test public void mismatchedManualFingerprintDoesNotWriteTrust() throws Exception{
         Fixture f=new Fixture(context);
+        final String encryptionFingerprint=f.pin.encryptionFingerprint();
         final AtomicReference<QrTrustConfirmationView> holder=new AtomicReference<>();
         final CountDownLatch failed=new CountDownLatch(1);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
@@ -143,7 +146,7 @@ public class QrTrustConfirmationViewTest {
         QrTrustConfirmationView view=holder.get();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
             view.signingInputForTest().setText("00".repeat(32));
-            view.encryptionInputForTest().setText(f.pin.encryptionFingerprint());
+            view.encryptionInputForTest().setText(encryptionFingerprint);
             view.channelCheckForTest().setChecked(true);
             view.consentCheckForTest().setChecked(true);
             assertTrue(view.buttonForTest().isEnabled());
