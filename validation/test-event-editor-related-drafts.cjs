@@ -82,7 +82,7 @@ const buttons=[
  {id:'saveCaptureBtn',textContent:'Revisar pauta',attributes:{},innerHTML:'',classList:new Set()},
  {id:'downloadFile',textContent:'Guardar archivo en Descargas',attributes:{},innerHTML:'',classList:new Set()}
 ].map(o=>({...o,hasAttribute:k=>k in o.attributes,getAttribute:k=>o.attributes[k]||'',setAttribute(k,v){this.attributes[k]=v;},
- classList:{contains:k=>o.classList.has(k),add:k=>o.classList.add(k)},querySelector:()=>null}));
+ classList:{contains:k=>o.classList.has(k),add:k=>o.classList.add(k),remove:k=>o.classList.delete(k)},querySelector:()=>null}));
 iconCtx.normalizeSaveButtons({querySelectorAll:q=>{assert.equal(q,'button');return buttons;}});
 assert(buttons[0].innerHTML.includes('#nx-icon-save'));
 assert(!buttons[0].innerHTML.includes('Guardar documento'),'Guardar es exclusivamente un disquete');
