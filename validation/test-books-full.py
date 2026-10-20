@@ -78,9 +78,10 @@ assert "bookDetailShare" in books and "NexoNative.sharePlainText(live.title" in 
 assert "icon-action icon-action--danger" in books
 assert "book-editor-toolbar" in books
 assert 'class="record-form-actions--compact book-editor-actions"' in books
-assert 'id="bookSave" class="primary-button"' in books
+assert 'id="bookSave" class="primary-button nexo-unified-save"' in books
 assert 'id="bookCancel" class="secondary-button"' in books
-assert 'class="nexo-action-label">Guardar libro</span>' in books
+assert 'aria-label="Guardar libro"' in books
+assert 'class="nexo-action-label">Guardar libro</span>' not in books
 assert "appendChild(document.querySelector('.book-editor-actions'))" in books
 assert ".modal-sheet>.book-editor-actions>button" in css
 assert 'class="book-card-rating"' in books and "book-card-star" in books
