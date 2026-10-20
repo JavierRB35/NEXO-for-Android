@@ -85,6 +85,11 @@ test("reject malformed signature, zero length, unknown path, huge body",async()=
   const headers=new Headers(f.headers);headers.set("x-nexo-signature","*");
   await assert.rejects(verifyDeviceProof({...base(f),headers}),/bad-signature/);
   await assert.rejects(verifyDeviceProof({...base(f),path:"/nexo-connect/key/delete"}),/invalid-route/);
-  await assert.rejects(verifyDeviceProof({...base(f),body:new Uint8Array(524289)}),/invalid-body/);
+  // Small requests retain their previous cap. Only signed inline delivery
+  // requests need the larger limit for 512 KiB base64url ciphertext.
+  await assert.rejects(verifyDeviceProof({...base(f),
+    path:"/nexo-connect/contact/invite",body:new Uint8Array(524289)}),/invalid-body/);
+  await assert.rejects(verifyDeviceProof({...base(f),
+    body:new Uint8Array(768*1024+1)}),/invalid-body/);
   assert.equal(f.claims(),0);
 });
