@@ -11,3 +11,9 @@ Al confirmar, ejecuta el almacenamiento AES-256-GCM/Android Keystore en un hilo 
 **Pendiente para una aplicación utilizable:** integración real del escáner/cámara, mostrar la huella del propio móvil al interlocutor por un canal confiable, conectar el consentimiento con la doble autorización de `contact/accept` y `key/verify` en Supabase, pantallas de lista/desvincular, protección de la sesión y pruebas con dos móviles. Una persona podría copiar las huellas desde el QR sin verificar independientemente; la UI y el cifrado no pueden impedir ese engaño. Se requiere prueba presencial/identidad humana, no basta con marcar las casillas. Tampoco existe garantía anti-rollback contra restauración maliciosa de blobs cifrados en un dispositivo rooteado.
 
 **Estado:** PR experimental sin fusionar; no desplegar migraciones ni instalar APK parcial.
+
+## Gestión de contactos del dispositivo (sin desvinculación remota)
+
+`AndroidPeerTrustStore.listActive()` devuelve un listado de pins activos sin permitir modificar la colección devuelta. `QrTrustedContactsView` muestra cuenta, generación y huellas de cada pin; para revocar la confianza **solo local** exige dos acciones: pulsar «Revocar confianza local» y, después de marcar la advertencia sobre Supabase, confirmar. Todas las operaciones AES/Keystore y fichero se realizan en hilo de trabajo. Una revocación local bloquea futuras importaciones por `importApprovedFromTrust` y no puede sustituir el `/contact/unlink` firmado del servidor.
+
+También se corrigió la respuesta asíncrona de `QrTrustConfirmationView`: el guardado ahora notifica a través del `Handler` del hilo principal aunque la vista todavía no esté adherida a una ventana. Esto permite ejecutar las pruebas instrumentadas de la vista y facilita incrustarla posteriormente en la pantalla Nexo.

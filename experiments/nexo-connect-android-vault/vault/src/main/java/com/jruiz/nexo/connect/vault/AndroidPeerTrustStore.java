@@ -24,6 +24,9 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -107,6 +110,19 @@ public final class AndroidPeerTrustStore {
         synchronized(LOCK) {
             PeerPin result=read().get(peerId);
             return result!=null&&result.active?result:null;
+        }
+    }
+
+    /** Active local QR pins only. A returned snapshot is NOT proof of
+     *  continued authorization: callers must recheck at use time.
+     */
+    public List<PeerPin> listActive() throws Exception {
+        synchronized(LOCK) {
+            ArrayList<PeerPin> active=new ArrayList<>();
+            for(PeerPin pin:read().values()) {
+                if(pin.active)active.add(pin);
+            }
+            return Collections.unmodifiableList(active);
         }
     }
 

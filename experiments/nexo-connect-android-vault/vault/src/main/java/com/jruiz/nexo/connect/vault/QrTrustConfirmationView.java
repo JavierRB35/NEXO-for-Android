@@ -1,6 +1,8 @@
 package com.jruiz.nexo.connect.vault;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -143,7 +145,7 @@ public final class QrTrustConfirmationView extends ScrollView {
             }catch(Exception ex){problem=ex;}
             final AndroidPeerTrustStore.PeerPin saved=result;
             final Exception failure=problem;
-            post(()->{
+            new Handler(Looper.getMainLooper()).post(()->{
                 inFlight=false;
                 if(failure==null){
                     finished=true;
@@ -179,7 +181,7 @@ public final class QrTrustConfirmationView extends ScrollView {
         if(raw==null||raw.length()>96)
             throw new GeneralSecurityException("Invalid fingerprint length");
         String cleaned=raw.toLowerCase(Locale.ROOT)
-                .replace(" ","").replace("\\n","")
+                .replace(" ","").replace("\n","")
                 .replace(":","").replace("-","");
         if(!cleaned.matches("[0-9a-f]{64}"))
             throw new GeneralSecurityException("Invalid SHA-256 fingerprint");

@@ -104,6 +104,24 @@ public class AndroidPeerTrustStoreTest {
                 renewed.pin.encryptionFingerprint(),true);
         assertEquals(2,store.findActive(PEER).generation);
     }
+    @Test public void activeListingExcludesRevokedAndHasStableSnapshot() throws Exception {
+        AndroidPeerTrustStore store=fresh();
+        PinFixture a=new PinFixture(PEER,1);
+        PinFixture b=new PinFixture(OTHER,2);
+        store.saveQrConfirmed(a.qr,a.pin.signingFingerprint(),
+                a.pin.encryptionFingerprint(),true);
+        store.saveQrConfirmed(b.qr,b.pin.signingFingerprint(),
+                b.pin.encryptionFingerprint(),true);
+        java.util.List<AndroidPeerTrustStore.PeerPin> snapshot=store.listActive();
+        assertEquals(2,snapshot.size());
+        assertTrue(store.revoke(PEER));
+        java.util.List<AndroidPeerTrustStore.PeerPin> after=store.listActive();
+        assertEquals(1,after.size());
+        assertEquals(OTHER,after.get(0).peerId);
+        assertEquals(2,snapshot.size());
+        try{after.clear();fail("Mutable trust snapshot");}
+        catch(UnsupportedOperationException expected){}
+    }
     @Test public void tamperedStorageFailsClosed()throws Exception {
         AndroidPeerTrustStore store=fresh();
         PinFixture f=new PinFixture(PEER,1);
