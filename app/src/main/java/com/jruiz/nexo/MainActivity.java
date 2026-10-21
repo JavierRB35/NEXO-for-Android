@@ -2040,7 +2040,7 @@ public class MainActivity extends Activity {
                 try {
                     Intent intent = new Intent(Intent.ACTION_MAIN);
                     intent.setClassName(getPackageName(),
-                        "com.jruiz.nexo.connect.vault.NexoConnectPilotActivity");
+                        "com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity");
                     // No intent extras, even inside our app.
                     startActivity(intent);
                 } catch (ActivityNotFoundException | SecurityException failure) {

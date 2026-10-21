@@ -3,7 +3,7 @@
          source code are excluded automatically from all RELEASE variants. -->
     <application>
         <activity
-            android:name="com.jruiz.nexo.connect.vault.NexoConnectPilotActivity"
+            android:name="com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
     </application>

@@ -35,7 +35,7 @@ import java.util.UUID;
  *
  * Session/JWT is memory-only. Re-open app -> request a fresh email OTP.
  */
-public final class NexoConnectPilotActivity extends Activity {
+public class NexoConnectPilotActivity extends Activity {
     private static final String ORIGIN="https://fwvmoqrsqtpvpbyfclld.supabase.co";
     // Supabase PUBLIC publishable key, NEVER a service_role secret.
     private static final String PUBLIC_KEY="sb_publishable_rsDUyUEyuXcjkyKsSxZFUg_RezHhNUk";
@@ -90,7 +90,7 @@ public final class NexoConnectPilotActivity extends Activity {
         v.setText(text);v.setTextSize(font);v.setTextIsSelectable(true);
         v.setPadding(0,dp(7),0,dp(7));column.addView(v);return v;
     }
-    private Button button(String text,Runnable action){
+    protected final Button button(String text,Runnable action){
         Button b=new Button(this);b.setText(text);b.setAllCaps(false);
         column.addView(b,new LinearLayout.LayoutParams(-1,-2));
         b.setOnClickListener(v->{if(!busy)action.run();});
@@ -287,6 +287,9 @@ public final class NexoConnectPilotActivity extends Activity {
         button("3a. Importar QR de imagen (sin cámara)",this::openImageQr);
         button("4. Contactos verificados",this::showContacts);
         button("5. Enviar nota cifrada",this::chooseRecipient);
+        // The standalone pilot has no host data access. A DEBUG-only Nexo
+        // subclass may add a read-only, explicit user-selected local note.
+        addHostActions();
         button("6. Bandeja de entrada",this::showInbox);
         button("7. Notas recibidas",this::showReceivedNotes);
         button("8. Reintentar SOLO confirmaciones pendientes",this::retryAcks);
@@ -412,21 +415,54 @@ public final class NexoConnectPilotActivity extends Activity {
             }
         }catch(Exception ex){showError("No se pudo leer el almacén QR");}
     }
-    private void chooseRecipient(){
+    /**
+     * Hook for optional host-app actions. The standalone pilot leaves it empty.
+     * Opening the screen never reads Nexo data or sends network requests.
+     */
+    protected void addHostActions(){}
+
+    /**
+     * Host notes are staged ONLY IN MEMORY. This method is invoked after a
+     * user manually selects an already saved note. The recipient must still
+     * be explicitly chosen, the composed text reviewed, and the single send
+     * confirmed; neither host content nor private keys are placed in Intents.
+     */
+    protected final void offerHostNote(String title,String body){
+        if(stage!=READY){showSetup();return;}
+        String safeTitle=title==null?"":title.trim();
+        String safeBody=body==null?"":body;
+        if(safeTitle.isEmpty()||safeTitle.length()>250||safeBody.length()>20000){
+            showError("La nota supera el limite de texto del piloto (250 caracteres de titulo, 20000 de texto). No se ha enviado nada.");
+            return;
+        }
+        chooseRecipient(safeTitle,safeBody);
+    }
+
+    private void chooseRecipient(){chooseRecipient("","");}
+    private void chooseRecipient(String proposedTitle,String proposedBody){
         try{
             List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
             if(peers.isEmpty()){showError("Escanea y verifica antes el QR del contacto");return;}
             String[] names=new String[peers.size()];
             for(int i=0;i<peers.size();i++)names[i]=peers.get(i).peerId.toString();
             new AlertDialog.Builder(this).setTitle("Destinatario verificado")
-                .setItems(names,(d,which)->showCompose(peers.get(which)))
+                .setItems(names,(d,which)->showCompose(peers.get(which),
+                        proposedTitle,proposedBody))
                 .setNegativeButton("Cancelar",null).show();
         }catch(Exception ex){showError("No se pudieron cargar los contactos");}
     }
     private void showCompose(AndroidPeerTrustStore.PeerPin peer){
+        showCompose(peer,"","");
+    }
+    private void showCompose(AndroidPeerTrustStore.PeerPin peer,
+            String proposedTitle,String proposedBody){
         screen("Enviar NOTA cifrada",true);
         label("Destinatario fijado por QR: "+peer.peerId,14);
         EditText title=input("Título",false),body=input("Mensaje",false);
+        title.setText(proposedTitle);
+        body.setText(proposedBody);
+        if(!proposedTitle.isEmpty()||!proposedBody.isEmpty())
+            label("Nota guardada en Nexo: revisa el titulo y el texto antes de confirmar. No se incluiran adjuntos.",13);
         button("Confirmar y enviar UNA vez",()->{
             String t=title.getText().toString().trim(),b=body.getText().toString();
             if(t.isEmpty()||t.length()>250||b.length()>20000){
