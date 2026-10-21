@@ -39,7 +39,7 @@ def read_uleb128(data: bytes, pos: int):
 
 
 def defined_classes(dex: bytes):
-    if not dex.startswith(b"dex\\n") or len(dex) < 112:
+    if not dex.startswith(b"dex\n") or len(dex) < 112:
         raise ValueError("Invalid DEX header")
     if u32(dex, 32) != len(dex):
         raise ValueError("DEX file size mismatch")
@@ -60,7 +60,7 @@ def defined_classes(dex: bytes):
             raise ValueError("Bad DEX type index")
         string_data_off = u32(dex, string_off + 4 * string_index)
         _, text_offset = read_uleb128(dex, string_data_off)
-        terminator = dex.find(b"\\x00", text_offset)
+        terminator = dex.find(b"\x00", text_offset)
         if terminator < 0:
             raise ValueError("Truncated DEX descriptor")
         yield dex[text_offset:terminator].decode("ascii", "strict")
