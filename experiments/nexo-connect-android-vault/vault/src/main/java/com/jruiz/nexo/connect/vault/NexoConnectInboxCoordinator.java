@@ -32,7 +32,7 @@ public final class NexoConnectInboxCoordinator {
                 return client.resolve(id,"accepted");
             }
         };
-        importer=NexoConnectInboxProcessor::receiveAndImport;
+        importer=NexoConnectInboxProcessor::receiveAndImportProtected;
     }
 
     /** Package-private test seam: never expose bypass verification in app APIs. */
