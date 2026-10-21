@@ -13,7 +13,6 @@ import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -41,7 +40,6 @@ public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImport
     private static final int IV_BYTES = 12;
     private static final int TAG_BYTES = 16;
     private static final int MAX_BLOB_BYTES = 512 * 1024;
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final UUID accountId;
     private final UUID deliveryId;
@@ -123,13 +121,17 @@ public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImport
         byte[] clear = plain.getBytes(StandardCharsets.UTF_8);
         byte[] ciphertext = null;
         byte[] combined = null;
-        byte[] iv = new byte[IV_BYTES];
+        byte[] iv = null;
         try {
             if(clear.length == 0 || clear.length > MAX_BLOB_BYTES - 64)
                 throw new GeneralSecurityException("Note exceeds sealed storage limit");
-            RANDOM.nextBytes(iv);
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-            c.init(Cipher.ENCRYPT_MODE, getOrCreateKey(), new GCMParameterSpec(128, iv));
+            // AndroidKeyStore requires a provider-generated random IV when
+            // randomized encryption is enabled. NEVER supply a caller IV.
+            c.init(Cipher.ENCRYPT_MODE, getOrCreateKey());
+            iv = c.getIV();
+            if(iv == null || iv.length != IV_BYTES)
+                throw new GeneralSecurityException("Unexpected Keystore GCM nonce");
             c.updateAAD(aad());
             ciphertext = c.doFinal(clear);
             combined = new byte[iv.length + ciphertext.length];
@@ -138,7 +140,7 @@ public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImport
             return PREFIX + encode(combined);
         } finally {
             Arrays.fill(clear, (byte) 0);
-            Arrays.fill(iv, (byte) 0);
+            if(iv != null) Arrays.fill(iv, (byte) 0);
             if(ciphertext != null) Arrays.fill(ciphertext, (byte) 0);
             if(combined != null) Arrays.fill(combined, (byte) 0);
         }
