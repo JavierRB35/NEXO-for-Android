@@ -1,6 +1,7 @@
 package com.jruiz.nexo.connect.vault;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Base64;
@@ -17,9 +18,11 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 import java.util.Map;
 import java.security.MessageDigest;
 import java.util.UUID;
@@ -59,6 +62,21 @@ public class NexoConnectTwoAccountExchangeTest {
                 "note_title_manual INTEGER NOT NULL DEFAULT 0,"+
                 "created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)");
         return db;
+    }
+    private static String imageQrRoundtrip(String value)throws Exception {
+        // Same PNG producer as pilot, same pixel/Zxing reader as the new
+        // ACTION_OPEN_DOCUMENT path. No camera, files, server or image logger.
+        Bitmap image=NexoConnectOwnQrView.encodeQrBitmap(value,1024);
+        byte[] png;
+        try{
+            ByteArrayOutputStream output=new ByteArrayOutputStream();
+            assertTrue(image.compress(Bitmap.CompressFormat.PNG,100,output));
+            png=output.toByteArray();
+        }finally{image.recycle();}
+        String result=NexoConnectQrImageDecoder.decodeImageBytes(png);
+        java.util.Arrays.fill(png,(byte)0);
+        assertEquals(value,result);
+        return result;
     }
     private static int rows(SQLiteDatabase db){
         try(Cursor c=db.rawQuery("SELECT COUNT(*) FROM items",null)){
@@ -106,7 +124,8 @@ public class NexoConnectTwoAccountExchangeTest {
         final KeysetHandle receiverPublic,senderPublic;
         final FakeGateway network=new FakeGateway();
         final NexoConnectInboxCoordinator coordinator;
-        Fixture()throws Exception{
+        Fixture()throws Exception{this(false);}
+        Fixture(boolean useRealQrPng)throws Exception{
             sender=NexoConnectLocalPhoneIdentity.openOrCreate(APP,a);
             receiver=NexoConnectLocalPhoneIdentity.openOrCreate(APP,b);
             sendPins=new AndroidPeerTrustStore(APP,a);
@@ -121,6 +140,40 @@ public class NexoConnectTwoAccountExchangeTest {
             // a person on the other device, not programmatically prefilled.
             String aQr=AndroidPeerTrustStore.encodeQr(publicA);
             String bQr=AndroidPeerTrustStore.encodeQr(publicB);
+            if(useRealQrPng){
+                byte[] secret=new byte[32];
+                new SecureRandom().nextBytes(secret);
+                // A's private INVITATION image is decoded and parsed, its
+                // public identity must be independently verified before pin.
+                final String invitation;
+                try{
+                    invitation=NexoConnectInvitationQr.create(publicA,secret).encode();
+                }finally{java.util.Arrays.fill(secret,(byte)0);}
+                String fromImage=imageQrRoundtrip(invitation);
+                NexoConnectInvitationQr decoded=NexoConnectInvitationQr.parse(fromImage);
+                assertEquals(a,decoded.creatorAccount());
+                assertEquals(1,decoded.creatorGeneration());
+                aQr=decoded.publicPeerQr();
+                bQr=imageQrRoundtrip(bQr);
+                AndroidPeerTrustStore.PeerPin parsedA=
+                    NexoConnectQrScannerActivity.requireScannedPeerQr(aQr,b);
+                AndroidPeerTrustStore.PeerPin parsedB=
+                    NexoConnectQrScannerActivity.requireScannedPeerQr(bQr,a);
+                assertNull(receivePins.findActive(a));
+                assertNull(sendPins.findActive(b));
+                try{
+                    QrTrustConfirmationView.requireHumanVerification(parsedA,
+                        publicA.signingFingerprint(),publicA.encryptionFingerprint(),
+                        false,true);
+                    fail("QR image alone must not establish identity");
+                }catch(GeneralSecurityException expected){}
+                QrTrustConfirmationView.requireHumanVerification(parsedA,
+                    publicA.signingFingerprint(),publicA.encryptionFingerprint(),
+                    true,true);
+                QrTrustConfirmationView.requireHumanVerification(parsedB,
+                    publicB.signingFingerprint(),publicB.encryptionFingerprint(),
+                    true,true);
+            }
             receivePins.saveQrConfirmed(aQr,publicA.signingFingerprint(),
                     publicA.encryptionFingerprint(),true);
             sendPins.saveQrConfirmed(bQr,publicB.signingFingerprint(),
@@ -207,6 +260,44 @@ public class NexoConnectTwoAccountExchangeTest {
                     new JSONObject().put("deliveryId",
                             fixture.network.sealed.getString("deliveryId"))
                             .put("status","pending"));
+        }
+    }
+
+    /**
+     * One continuous Android-side flow: invitation PNG -> ZXing decode ->
+     * strict QR parser -> explicit independent fingerprint approval ->
+     * Keystore trust -> signed fake HTTP challenge/send -> genuine Tink
+     * HPKE NXC1 payload -> pinned-key verification -> local SQLite COMMIT ->
+     * acknowledged receipt. Server transport is the ONLY mock; no network,
+     * camera, OTP or real user accounts are involved. This test must not be
+     * mistaken for a human two-phone integration test.
+     */
+    @Test public void qrImageThroughE2eeReceiptRequiresNoCamera()
+            throws Exception {
+        try(Fixture f=new Fixture(true);SQLiteDatabase db=db()){
+            assertNotNull(f.receivePins.findActive(f.a));
+            assertNotNull(f.sendPins.findActive(f.b));
+            FakeSignedServer transport=new FakeSignedServer(f);
+            NexoConnectSignedGatewayClient signed=
+                new NexoConnectSignedGatewayClient(f.a,f.sender.deviceId(),1,
+                    "test.jwt","publishable",f.sender.signingPrivate(),
+                    transport,()->NOW);
+            UUID receipt=signed.sendApproved(f.sender,f.sendPins,f.b,
+                    f.receiverPublic,f.id,UUID.randomUUID(),"note",
+                    new JSONObject().put("title","Desde imagen QR")
+                        .put("body","Cifrado real sin cámara ni navegador"),
+                    null,NOW+60000,true);
+            assertEquals(f.id,receipt);
+            assertEquals(1,transport.challengeCalls);
+            assertEquals(1,transport.sendCalls);
+            assertFalse(f.network.sealed.toString().contains(
+                "Cifrado real sin cámara ni navegador"));
+            NexoConnectInboxCoordinator.ImportOutcome copied=f.importOnce(db,true);
+            assertTrue(copied.acknowledged);
+            assertEquals("Desde imagen QR",receivedTitle(db));
+            assertEquals(1,rows(db));
+            assertEquals(1,f.network.acks);
+            assertTrue(NexoConnectAtomicImporter.pendingAcknowledgements(db,10).isEmpty());
         }
     }
 
