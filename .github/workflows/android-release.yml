@@ -1,9 +1,11 @@
 name: Nexo Android · APK Release
 
+# Local-first: routine feature/experimental pushes should not build the full
+# signed Nexo APK. Preserve main and official v* tag release triggers.
 on:
   push:
     branches:
-      - '**'
+      - main
     tags:
       - 'v*'
   workflow_dispatch:

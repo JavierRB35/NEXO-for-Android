@@ -1,12 +1,13 @@
 name: Nexo Connect experimental APK
+# Local-first: never compile/publish a pilot APK for every push.
 on:
-  push:
-    branches:
-      - experiment/nexo-connect-phase0-crypto
-    paths:
-      - 'experiments/nexo-connect-android-vault/**'
-      - '.github/workflows/nexo-connect-pilot-apk.yml'
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Also publish a public lab prerelease APK?'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -40,7 +41,7 @@ jobs:
           retention-days: 30
 
       - name: Publish DIRECT APK lab prerelease (never mark as latest)
-        if: github.event_name == 'push'
+        if: ${{ inputs.publish_release }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: nexo-connect-pilot-${{ github.sha }}

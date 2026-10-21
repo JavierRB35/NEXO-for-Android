@@ -21,6 +21,9 @@ on:
 
 jobs:
   validate-package:
+    # Experimental Nexo Connect PR is validated locally on Windows.
+    # Skipping this job avoids billed runners while preserving main and other PRs.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'experiment/nexo-connect-phase0-crypto' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
