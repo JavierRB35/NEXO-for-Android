@@ -20,6 +20,7 @@ public class NexoConnectEmailOtpClientTest {
         ArrayList<String> operations=new ArrayList<>();
         int fail=0;
         boolean wrongEmail;
+        String refreshCredential="mock-rotating-refresh-credential";
         @Override public NexoConnectEmailOtpClient.Result call(String method,
                 String path,byte[] body,Map<String,String> headers)throws Exception{
             operations.add(method+" "+path);
@@ -35,11 +36,14 @@ public class NexoConnectEmailOtpClientTest {
                 JSONObject request=new JSONObject(new String(body,StandardCharsets.UTF_8));
                 assertEquals("123456",request.getString("token"));
                 assertEquals("email",request.getString("type"));
-                return NexoConnectEmailOtpClient.Result.json(200,new JSONObject()
+                JSONObject token=new JSONObject()
                         .put("access_token","verified.jwt.mock")
                         .put("token_type","bearer").put("expires_in",3600)
                         .put("user",new JSONObject().put("id",
-                                "99999999-9999-4999-8999-999999999999")));
+                                "99999999-9999-4999-8999-999999999999"));
+                if(refreshCredential!=null)
+                    token.put("refresh_token",refreshCredential);
+                return NexoConnectEmailOtpClient.Result.json(200,token);
             }
             if(path.equals("/auth/v1/user")){
                 assertEquals("GET",method);
@@ -71,6 +75,23 @@ public class NexoConnectEmailOtpClientTest {
         try{client.verifyEmailCode(EMAIL,"1234");fail("Short OTP");}
         catch(GeneralSecurityException expected){}
         assertTrue(stub.operations.isEmpty());
+    }
+    @Test public void missingOrMalformedRefreshFailsClosedBeforeUserLookup()
+            throws Exception {
+        for(String refresh:new String[]{null,"short"}){
+            Stub stub=new Stub();
+            stub.refreshCredential=refresh;
+            NexoConnectEmailOtpClient client=new NexoConnectEmailOtpClient(
+                    stub,"public-test",()->NOW);
+            try {
+                client.verifyEmailCode(EMAIL,"123456");
+                fail("Missing or malformed refresh credential accepted");
+            } catch(GeneralSecurityException expected) {
+                assertEquals("Invalid refresh credential",expected.getMessage());
+            }
+            assertEquals(1,stub.operations.size());
+            assertEquals("POST /auth/v1/verify",stub.operations.get(0));
+        }
     }
     @Test public void switchedAccountAndExpiredBearerRejected() throws Exception {
         NexoConnectEmailOtpClient client=new NexoConnectEmailOtpClient(

@@ -20,6 +20,7 @@ public class NexoConnectDeviceRecoveryClientTest {
             if(path.equals("/auth/v1/verify"))
                 return NexoConnectEmailOtpClient.Result.json(200,
                     new JSONObject().put("access_token","sample.jwt.token")
+                        .put("refresh_token","mock-rotating-refresh-credential")
                         .put("token_type","bearer").put("expires_in",3600));
             if(path.equals("/auth/v1/user"))
                 return NexoConnectEmailOtpClient.Result.json(200,
