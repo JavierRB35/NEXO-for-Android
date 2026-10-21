@@ -3,7 +3,7 @@ package com.jruiz.nexo.connect.vault;
 import com.google.crypto.tink.InsecureSecretKeyAccess;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.TinkProtoKeysetFormat;
-import com.google.crypto.tink.shaded.protobuf.ByteString;
+import com.google.protobuf.ByteString;
 import com.google.crypto.tink.proto.KeyData;
 import com.google.crypto.tink.proto.Keyset;
 import com.google.crypto.tink.proto.KeyStatusType;
