@@ -48,4 +48,4 @@ jobs:
           set -euo pipefail
           cp experiments/nexo-connect-android-vault/pilot/build/outputs/apk/debug/pilot-debug.apk NexoConnectPruebas.apk
           sha256sum NexoConnectPruebas.apk
-          gh release create "$TAG" NexoConnectPruebas.apk --target "$GITHUB_SHA" --prerelease --latest=false --title "Nexo Connect Pruebas 0.1.0 · LAB (APK)" --notes "APK DEBUG EXCLUSIVAMENTE DE LABORATORIO, compilada con Java 17 / SDK 34 desde la rama experimental. No modifica Nexo estable. Usa cuentas distintas y no envíes datos reales. No está certificada ni validada entre dos móviles reales. El proyecto Nexo Connect de Supabase es independiente de Nexo Familia."
+          gh release create "$TAG" NexoConnectPruebas.apk --target "$GITHUB_SHA" --prerelease --latest=false --title "Nexo Connect Pruebas 0.1.1 · LAB QR (APK)" --notes "APK DEBUG EXCLUSIVAMENTE DE LABORATORIO, compilada con Java 17 / SDK 34 desde la rama experimental. No modifica Nexo estable. Usa cuentas distintas y no envíes datos reales. No está certificada ni validada entre dos móviles reales. El proyecto Nexo Connect de Supabase es independiente de Nexo Familia."
