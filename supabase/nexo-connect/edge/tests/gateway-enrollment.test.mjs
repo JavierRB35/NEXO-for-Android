@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {webcrypto} from "node:crypto";
 import {createGateway} from "../gateway.mjs";
-import {buildEnrollmentCanonical} from "../enrollment.mjs";
+import {buildEnrollmentCanonical} from "../enrollment-proof.mjs";
 
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 const USER="11111111-1111-4111-8111-111111111111";

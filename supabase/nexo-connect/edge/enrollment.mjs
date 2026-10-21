@@ -1,107 +1,111 @@
 /**
- * Nexo Connect: NEW DEVICE enrollment proof. This protocol is separate from
- * the signed proof of an already enrolled device.
- *
- * A JWT alone is never sufficient: require a freshly consumed email OTP for
- * the same verified Supabase Auth user AND an Ed25519 proof of possession of
- * the NEW device's public signing key. Only the backend can call the RPC.
- *
- * The email OTP is the one-time anti-replay resource. Do not automatically
- * retry after an uncertain RPC result; request a new OTP if needed.
+ * LEGACY ISOLATED TEST GATEWAY — not deployed or imported by index.ts.
+ * Active enrollment uses enrollment-proof.mjs + gateway.mjs.
+ */
+/**
+ * Secure device enrollment server-side core, detached from Deno and Supabase.
+ * A bearer JWT ALONE NEVER authorizes phone replacement. A freshly redeemed
+ * one-time email code must resolve to THE SAME authenticated user.
  */
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const EMAIL=/^[^\s@]{1,64}@[^\s@]{1,190}$/;
-const CANONICAL_DOMAIN="NEXO-CONNECT-ENROLL-V1";
-const ENROLL_PATH="/nexo-connect/device/enroll";
-const encoder=new TextEncoder();
-
-export function decodeCanonicalPublicKey(value){
-  if(typeof value!=="string" || !/^[A-Za-z0-9_-]{43}$/.test(value))
-    throw Error("invalid-public-key-encoding");
-  const raw=atob(value.replace(/-/g,"+").replace(/_/g,"/")+"=");
-  if(raw.length!==32)throw Error("invalid-public-key-length");
-  const bytes=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
-  let binary="";
-  for(const b of bytes)binary+=String.fromCharCode(b);
-  if(btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"")!==value)
-    throw Error("noncanonical-key");
-  return bytes;
+const hex32=x=>typeof x==="string"&&/^[a-f0-9]{64}$/.test(x);
+const MAX_BYTES=2048;
+const SKEW=90000;
+const te=new TextEncoder();
+const json=(status,body)=>new Response(JSON.stringify(body),{status,
+  headers:{"content-type":"application/json","cache-control":"no-store",
+           "x-content-type-options":"nosniff"}});
+function route(url){
+  const path=new URL(url).pathname;
+  return path==="/device/enroll"||
+         path==="/nexo-connect-enroll/device/enroll"||
+         path==="/functions/v1/nexo-connect-enroll/device/enroll";
 }
-const b64Signature=value=>{
-  if(typeof value!=="string"||!/^[A-Za-z0-9_-]{86}$/.test(value))
-    throw Error("invalid-enroll-signature");
-  const raw=atob(value.replace(/-/g,"+").replace(/_/g,"/")+"==");
-  if(raw.length!==64)throw Error("invalid-enroll-signature");
-  return Uint8Array.from(raw,ch=>ch.charCodeAt(0));
-};
-const encodeHex=bytes=>[...bytes].map(b=>b.toString(16).padStart(2,"0")).join("");
-
-export async function buildEnrollmentCanonical({userId,issuedAt,body}){
-  if(!UUID.test(userId)||!Number.isSafeInteger(issuedAt)||issuedAt<=0||
-    !(body instanceof Uint8Array)||body.byteLength===0||body.byteLength>2048)
-    throw Error("invalid-enrollment-canonical");
-  const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",body));
-  return encoder.encode([
-    CANONICAL_DOMAIN,"POST",ENROLL_PATH,userId,String(issuedAt),encodeHex(digest),""
-  ].join("\n"));
+async function boundedJson(request){
+  const reader=request.body?.getReader();
+  if(!reader)throw Error("empty-body");
+  let total=0;const chunks=[];
+  try{for(;;){const {done,value}=await reader.read();if(done)break;
+    total+=value.length;if(total>MAX_BYTES)throw RangeError("too-large");
+    chunks.push(value);
+  }}finally{reader.releaseLock();}
+  const bytes=new Uint8Array(total);let i=0;
+  for(const x of chunks){bytes.set(x,i);i+=x.length;}
+  return JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes));
 }
-
-/** Verify BEFORE consuming OTP, so invalid public-key signatures do not burn it. */
-export async function verifyEnrollmentRequest({userId,data,body,headers,nowMillis}){
-  if(!headers||typeof headers.get!=="function"||
-      !data||typeof data!=="object"||Array.isArray(data)||
+export function canonicalEnrollment({userId,deviceId,mode,signingKeyHex,encryptionKeyHex,issuedAt}){
+ if(!UUID.test(userId)||!UUID.test(deviceId)||!["register","replace"].includes(mode)||
+    !hex32(signingKeyHex)||!hex32(encryptionKeyHex)||
+    !Number.isSafeInteger(issuedAt)||issuedAt<=0)
+   throw Error("invalid-enrollment-context");
+ return te.encode(["NEXO-CONNECT-DEVICE-ENROLL-V1",userId,deviceId,mode,
+                    signingKeyHex,encryptionKeyHex,String(issuedAt),""].join("\n"));
+}
+function b64url(x){
+ if(typeof x!=="string"||!/^[A-Za-z0-9_-]{86}$/.test(x))throw Error("invalid-signature");
+ let padded=x.replace(/-/g,"+").replace(/_/g,"/");
+ padded=padded.padEnd(88,"=");
+ const bytes=Uint8Array.from(atob(padded),c=>c.charCodeAt(0));
+ if(bytes.length!==64)throw Error("invalid-signature");
+ return bytes;
+}
+function parseHex(s){return Uint8Array.from(s.match(/.{2}/g),b=>parseInt(b,16));}
+export async function verifyNewDeviceKey(userId,data,now){
+ const signed=canonicalEnrollment({...data,userId});
+ if(Math.abs(now-data.issuedAt)>SKEW)throw Error("expired-attestation");
+ const publicKey=await crypto.subtle.importKey("raw",parseHex(data.signingKeyHex),
+   {name:"Ed25519"},false,["verify"]);
+ if(!await crypto.subtle.verify("Ed25519",publicKey,b64url(data.proofSignature),signed))
+   throw Error("invalid-attestation");
+ return true;
+}
+export function createEnrollmentGateway({authenticate,verifyFreshOtp,enroll,clock=()=>Date.now()}){
+ if(![authenticate,verifyFreshOtp,enroll,clock].every(x=>typeof x==="function"))
+   throw Error("Missing trusted dependencies");
+ return async request=>{
+   if(request.method!=="POST")return json(405,{error:"method-not-allowed"});
+   if(!route(request.url))return json(404,{error:"not-found"});
+   const bearer=request.headers.get("authorization");
+   if(!bearer||!bearer.startsWith("Bearer ")||bearer.length<=7||
+      /\s/.test(bearer.slice(7)))return json(401,{error:"unauthorized"});
+   // Verify session BEFORE consuming body or performing privileged operations.
+   let user;
+   try{user=await authenticate(bearer.slice(7));}catch{return json(401,{error:"unauthorized"});}
+   if(!user||!UUID.test(user.id)||typeof user.email!=="string"||!user.email.includes("@"))
+     return json(401,{error:"unauthorized"});
+   let data;
+   try{
+     const len=request.headers.get("content-length");
+     if(len!==null&&(!/^\d+$/.test(len)||Number(len)>MAX_BYTES))throw RangeError();
+     data=await boundedJson(request);
+   }catch(e){return json(e instanceof RangeError?413:400,{error:"invalid-body"});}
+   if(!data||typeof data!=="object"||Array.isArray(data)||
       Object.keys(data).sort().join(",")!==
-        "deviceId,encryptionKey,otp,replace,signingKey"||
-      !UUID.test(userId)||!UUID.test(data.deviceId)||
-      typeof data.replace!=="boolean"||typeof data.otp!=="string"||
-      !/^[0-9]{6,8}$/.test(data.otp))
-    throw Error("invalid-enrollment-input");
-  const sign=decodeCanonicalPublicKey(data.signingKey);
-  const encrypt=decodeCanonicalPublicKey(data.encryptionKey);
-  const rawTime=headers.get("x-nexo-issued-at");
-  if(typeof rawTime!=="string"||!/^[1-9][0-9]{0,15}$/.test(rawTime))
-    throw Error("invalid-enrollment-timestamp");
-  const issuedAt=Number(rawTime);
-  if(!Number.isSafeInteger(nowMillis)||!Number.isSafeInteger(issuedAt)||
-      Math.abs(nowMillis-issuedAt)>90000)
-    throw Error("expired-enrollment-proof");
-  const signed=await buildEnrollmentCanonical({userId,issuedAt,body});
-  const signature=b64Signature(headers.get("x-nexo-enroll-signature"));
-  const publicKey=await crypto.subtle.importKey(
-      "raw",sign,{name:"Ed25519"},false,["verify"]);
-  if(!await crypto.subtle.verify("Ed25519",publicKey,signature,signed))
-    throw Error("invalid-enrollment-signature");
-  return Object.freeze({
-    deviceId:data.deviceId,replace:data.replace,signingRaw:sign,
-    encryptionRaw:encrypt,otp:data.otp
-  });
-}
-
-/**
- * Both verifiers must be backend-controlled. Supabase Auth verification must
- * consume the code using verifyOtp(email, token, type="email"), check the
- * resulting user ID + email against the bearer-authenticated account and
- * discard the returned new session; no client can supply user/email fields.
- */
-export async function completeEnrollment({
-    user,parsed,verifyFreshOtp,enrollDevice
-}){
-  if(!user||!UUID.test(user.id)||typeof user.email!=="string"||
-      !EMAIL.test(user.email)||!user.emailConfirmed||
-      typeof verifyFreshOtp!=="function"||typeof enrollDevice!=="function")
-    throw Error("unverified-enrollment-identity");
-  const otpVerified=await verifyFreshOtp({
-    userId:user.id,email:user.email,otp:parsed.otp
-  });
-  if(otpVerified!==true)throw Error("otp-not-fresh-or-invalid");
-  // NEVER pass OTP or a new Auth session to service_role RPC.
-  const generation=await enrollDevice({
-    userId:user.id,deviceId:parsed.deviceId,replace:parsed.replace,
-    signingRaw:parsed.signingRaw,encryptionRaw:parsed.encryptionRaw
-  });
-  const g=Number(generation);
-  if(!Number.isSafeInteger(g)||g<=0)
-    throw Error("bad-enrollment-result");
-  return {deviceId:parsed.deviceId,generation:g,
-    replacement:parsed.replace};
+       "deviceId,encryptionKeyHex,issuedAt,mode,otp,proofSignature,signingKeyHex"
+      ||!UUID.test(data.deviceId)||!hex32(data.signingKeyHex)||!hex32(data.encryptionKeyHex)
+      ||!["register","replace"].includes(data.mode)||
+      typeof data.otp!=="string"||!/^\d{6}$/.test(data.otp)||
+      !Number.isSafeInteger(data.issuedAt))
+      return json(400,{error:"invalid-enrollment"});
+   try{await verifyNewDeviceKey(user.id,data,clock());}
+   catch{return json(403,{error:"invalid-key-proof"});}
+   // VerifyOtp MUST call Supabase Auth.verifyOtp({email:user.email,type:"email",token:data.otp})
+   // on a new no-persist Auth client, and verify returned user.id and email.
+   let fresh;
+   try{fresh=await verifyFreshOtp({email:user.email,otp:data.otp});}
+   catch{return json(403,{error:"otp-not-verified"});}
+   if(!fresh||fresh.id!==user.id||typeof fresh.email!=="string"||
+      fresh.email.toLowerCase()!==user.email.toLowerCase())
+       return json(403,{error:"otp-not-verified"});
+   // OTP is one-use; the SQL transaction is the only authority on generation.
+   try{
+     const generation=await enroll({userId:user.id,deviceId:data.deviceId,
+       signingKeyHex:data.signingKeyHex,encryptionKeyHex:data.encryptionKeyHex,
+       replace:data.mode==="replace"});
+     if(!Number.isSafeInteger(Number(generation))||Number(generation)<1)
+       throw Error("invalid-generation");
+     return json(201,{registered:true,deviceId:data.deviceId,generation:Number(generation),
+       contactsNeedReverification:data.mode==="replace"});
+   }catch{return json(409,{error:"device-enrollment-rejected"});}
+ };
 }

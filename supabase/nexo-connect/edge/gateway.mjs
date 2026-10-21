@@ -2,7 +2,7 @@
 // Signed invite requests use bytes EXACTLY as transmitted, preventing altered JSON.
 import {verifyDeviceProof} from "./proof.mjs";
 import {validateSignedEnvelope} from "./delivery.mjs";
-import {verifyEnrollmentRequest,completeEnrollment} from "./enrollment.mjs";
+import {verifyEnrollmentRequest,completeEnrollment} from "./enrollment-proof.mjs";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ACTIONS=new Set([
   "contact/invite","contact/accept","contact/permissions",

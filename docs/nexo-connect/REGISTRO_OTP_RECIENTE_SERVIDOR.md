@@ -29,3 +29,5 @@ de verifyOtp y RPC. No hubo despliegue. Hay pendientes de producto:
 límite de intentos OTP del proveedor Auth, auditoría de logs sin secretos,
 pruebas reales de dos móviles, diseño UI de reemplazo y recuperación.
 NO utilizar proyecto Supabase de Nexo Familia ni activar en producción.
+
+Compatibilidad: se restaura el módulo antiguo `edge/enrollment.mjs` exclusivamente para sus pruebas históricas. El gateway activo importa `enrollment-proof.mjs` y mantiene el contrato OTP + firma sobre los bytes de la solicitud. Nunca desplegar el gateway histórico por separado.
