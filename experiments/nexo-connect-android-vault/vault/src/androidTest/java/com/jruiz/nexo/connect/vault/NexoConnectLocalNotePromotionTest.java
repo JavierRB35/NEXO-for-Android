@@ -174,6 +174,53 @@ public final class NexoConnectLocalNotePromotionTest {
         }
     }
 
+    @Test public void targetWriteFailureRollsBackPromotionReceipt()throws Exception{
+        try(Fixture f=new Fixture();
+            SQLiteDatabase broken=SQLiteDatabase.create(null)){
+            f.store("No escribir","Evita commit parcial");
+            // Target has no items table. The encrypted source must remain,
+            // and even the CREATE TABLE for the promotion receipt rolls back.
+            try{
+                NexoConnectLocalNotePromotion.copyApproved(
+                        f.source,broken,f.owner,f.delivery,f.trust,true);
+                fail("Writer silently succeeded without native notes table");
+            }catch(android.database.sqlite.SQLiteException expected){}
+            try(Cursor c=broken.rawQuery(
+                    "SELECT count(*) FROM sqlite_master "+
+                    "WHERE name='nexo_connect_native_note_promotions'",null)){
+                assertTrue(c.moveToFirst());
+                assertEquals(0,c.getInt(0));
+            }
+            assertEquals(1,count(f.source,"items"));
+        }
+    }
+
+    @Test public void legacyPlaintextRecordIsNeverListedOrPromoted()throws Exception{
+        try(Fixture f=new Fixture()){
+            // A manually forged/legacy pilot record is not a nxc2: AEAD blob.
+            long id;
+            f.source.execSQL("INSERT INTO items(title,body,source,created_at,updated_at) "+
+                    "VALUES('Legacy','plaintext','nexo-connect',1,1)");
+            try(Cursor c=f.source.rawQuery("SELECT last_insert_rowid()",null)){
+                assertTrue(c.moveToFirst()); id=c.getLong(0);
+            }
+            f.source.execSQL("CREATE TABLE nexo_connect_import_receipts("+
+                    "delivery_id TEXT PRIMARY KEY,sender_id TEXT,"+
+                    "entity_type TEXT,local_id INTEGER,acked INTEGER,imported_at INTEGER)");
+            f.source.execSQL("INSERT INTO nexo_connect_import_receipts("+
+                    "delivery_id,sender_id,entity_type,local_id,acked,imported_at) "+
+                    "VALUES(?,?, 'note',?,0,1)",new Object[]{
+                            f.delivery.toString(),SENDER.toString(),id});
+            assertTrue(NexoConnectLocalNotePromotion.list(f.source,20).isEmpty());
+            try{
+                NexoConnectLocalNotePromotion.copyApproved(
+                        f.source,f.target,f.owner,f.delivery,f.trust,true);
+                fail("Plaintext legacy record accepted");
+            }catch(SecurityException expected){}
+            assertEquals(0,count(f.target,"items"));
+        }
+    }
+
     @Test public void removedCopyNeverComesBackAutomatically()throws Exception{
         try(Fixture f=new Fixture()){
             f.store("Importada","Texto");
