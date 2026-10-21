@@ -125,8 +125,8 @@ public class NexoConnectTwoAccountExchangeTest {
                     publicA.encryptionFingerprint(),true);
             sendPins.saveQrConfirmed(bQr,publicB.signingFingerprint(),
                     publicB.encryptionFingerprint(),true);
-            receiverPublic=receiver.hpkePrivate().getPublicKeysetHandle();
-            senderPublic=sender.signingPrivate().getPublicKeysetHandle();
+            receiverPublic=NexoConnectPinnedKeysets.recipientEncryption(sendPins.findActive(b));
+            senderPublic=NexoConnectPinnedKeysets.senderVerification(receivePins.findActive(a));
             network.sender=sender;network.recipient=receiver;network.id=id;
             coordinator=new NexoConnectInboxCoordinator(
                     network,NexoConnectInboxProcessor::receiveAndImport);
