@@ -1,0 +1,179 @@
+package com.jruiz.nexo.connect.vault;
+
+import android.database.sqlite.SQLiteDatabase;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import android.util.Base64;
+
+import com.jruiz.nexo.connect.NexoConnectAtomicImporter;
+import com.jruiz.nexo.connect.NexoConnectNativeWriter;
+
+import org.json.JSONObject;
+
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.UUID;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+
+/**
+ * EXPERIMENTAL PILOT ONLY. Encrypts the entire verified note (including title)
+ * BEFORE the transactional SQLite INSERT. Never commits plaintext note text.
+ *
+ * Android Keystore AES-256-GCM key is non-exportable; authenticated associated
+ * data binds ciphertext to this account and this unique delivery receipt.
+ * The prefix is a storage FORMAT MARKER, not proof of authentication: callers
+ * must decrypt and authenticate before displaying any contents.
+ *
+ * Legacy pilot notes remain readable but are NOT retroactively encrypted;
+ * migrating pre-existing plaintext SQLite/WAL securely needs a separate plan.
+ * Fail closed on non-note entities until protected writers exist for them.
+ */
+public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImporter.EntityWriter {
+    private static final String ALIAS = "nexo_connect_pilot_notes_aes256gcm_v1";
+    private static final String PREFIX = "nxc2:";
+    private static final int IV_BYTES = 12;
+    private static final int TAG_BYTES = 16;
+    private static final int MAX_BLOB_BYTES = 512 * 1024;
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private final UUID accountId;
+    private final UUID deliveryId;
+
+    public NexoConnectSealedNoteStore(UUID accountId, UUID deliveryId) {
+        if(accountId == null || deliveryId == null)
+            throw new IllegalArgumentException("Authenticated note owner/receipt required");
+        this.accountId = accountId;
+        this.deliveryId = deliveryId;
+    }
+
+    public static boolean isSealed(String value) {
+        return value != null && value.startsWith(PREFIX);
+    }
+
+    @Override public long insertNew(SQLiteDatabase db, String entity, JSONObject note)
+            throws Exception {
+        if(db == null || !db.isOpen() || !db.inTransaction())
+            throw new GeneralSecurityException("Atomic receipt transaction required");
+        if(!"note".equals(entity) || note == null)
+            throw new GeneralSecurityException("Encrypted import unsupported for this entity");
+        String title = note.optString("title", "").trim();
+        String body = note.optString("body", "");
+        if(title.isEmpty() || title.length() > 250 || body.length() > 240000)
+            throw new GeneralSecurityException("Invalid note contents");
+
+        // Keep the entire original validated note in one authenticated envelope.
+        // Never write its original title, body, tags or category to SQLite.
+        String encrypted = seal(note.toString());
+        JSONObject surrogate = new JSONObject()
+                .put("title", "Nota cifrada")
+                .put("body", encrypted)
+                .put("category", "Notas");
+        return NexoConnectNativeWriter.INSTANCE.insertNew(db, "note", surrogate);
+    }
+
+    public JSONObject read(String value) throws Exception {
+        if(!isSealed(value) || value.length() > MAX_BLOB_BYTES * 2)
+            throw new GeneralSecurityException("Not a sealed Nexo note");
+        byte[] sealed;
+        String encoded = value.substring(PREFIX.length());
+        try {
+            sealed = Base64.decode(encoded, Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
+        } catch(IllegalArgumentException error) {
+            throw new GeneralSecurityException("Invalid sealed note encoding", error);
+        }
+        if(sealed.length < IV_BYTES + TAG_BYTES + 1 ||
+                sealed.length > MAX_BLOB_BYTES ||
+                !encode(sealed).equals(encoded)) {
+            Arrays.fill(sealed, (byte) 0);
+            throw new GeneralSecurityException("Invalid sealed note length or encoding");
+        }
+        byte[] iv = Arrays.copyOfRange(sealed, 0, IV_BYTES);
+        byte[] ciphertext = Arrays.copyOfRange(sealed, IV_BYTES, sealed.length);
+        byte[] clear = null;
+        try {
+            SecretKey key = findKey();
+            if(key == null)
+                throw new GeneralSecurityException("Note key missing from Android Keystore");
+            Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+            c.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));
+            c.updateAAD(aad());
+            clear = c.doFinal(ciphertext);
+            JSONObject result = new JSONObject(new String(clear, StandardCharsets.UTF_8));
+            String title = result.optString("title", "").trim();
+            if(title.isEmpty() || title.length() > 250 ||
+                    result.optString("body", "").length() > 240000)
+                throw new GeneralSecurityException("Invalid decrypted note");
+            return result;
+        } finally {
+            Arrays.fill(iv, (byte) 0);
+            Arrays.fill(sealed, (byte) 0);
+            Arrays.fill(ciphertext, (byte) 0);
+            if(clear != null) Arrays.fill(clear, (byte) 0);
+        }
+    }
+
+    private String seal(String plain) throws Exception {
+        byte[] clear = plain.getBytes(StandardCharsets.UTF_8);
+        byte[] ciphertext = null;
+        byte[] combined = null;
+        byte[] iv = new byte[IV_BYTES];
+        try {
+            if(clear.length == 0 || clear.length > MAX_BLOB_BYTES - 64)
+                throw new GeneralSecurityException("Note exceeds sealed storage limit");
+            RANDOM.nextBytes(iv);
+            Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+            c.init(Cipher.ENCRYPT_MODE, getOrCreateKey(), new GCMParameterSpec(128, iv));
+            c.updateAAD(aad());
+            ciphertext = c.doFinal(clear);
+            combined = new byte[iv.length + ciphertext.length];
+            System.arraycopy(iv, 0, combined, 0, iv.length);
+            System.arraycopy(ciphertext, 0, combined, iv.length, ciphertext.length);
+            return PREFIX + encode(combined);
+        } finally {
+            Arrays.fill(clear, (byte) 0);
+            Arrays.fill(iv, (byte) 0);
+            if(ciphertext != null) Arrays.fill(ciphertext, (byte) 0);
+            if(combined != null) Arrays.fill(combined, (byte) 0);
+        }
+    }
+
+    private byte[] aad() {
+        return ("nexo-connect/pilot-note/v1/" + accountId + "/" + deliveryId)
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String encode(byte[] bytes) {
+        return Base64.encodeToString(bytes,
+                Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
+    }
+
+    private static SecretKey findKey() throws Exception {
+        KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
+        ks.load(null);
+        java.security.Key raw = ks.getKey(ALIAS, null);
+        return raw instanceof SecretKey ? (SecretKey) raw : null;
+    }
+
+    private static synchronized SecretKey getOrCreateKey() throws Exception {
+        SecretKey existing = findKey();
+        if(existing != null) return existing;
+        KeyGenerator generator = KeyGenerator.getInstance(
+                KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+        generator.init(new KeyGenParameterSpec.Builder(ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                .setKeySize(256)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setRandomizedEncryptionRequired(true)
+                .setUserAuthenticationRequired(false)
+                .build());
+        return generator.generateKey();
+    }
+}
