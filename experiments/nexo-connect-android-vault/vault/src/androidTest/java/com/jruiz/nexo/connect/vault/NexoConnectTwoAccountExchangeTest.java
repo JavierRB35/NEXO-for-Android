@@ -9,6 +9,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.PublicKeyVerify;
+import com.google.crypto.tink.RegistryConfiguration;
 import com.jruiz.nexo.connect.NexoConnectAtomicImporter;
 
 import org.json.JSONObject;
@@ -16,7 +18,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.util.Map;
 import java.security.MessageDigest;
 import java.util.UUID;
 
@@ -149,6 +153,113 @@ public class NexoConnectTwoAccountExchangeTest {
         }
     }
 
+
+    /** Mock ONLY remote challenge and delivery persistence, not signatures. */
+    private static final class FakeSignedServer implements
+            NexoConnectSignedGatewayClient.Transport {
+        final Fixture fixture;
+        final PublicKeyVerify verify;
+        final UUID challenge=UUID.randomUUID();
+        boolean issued,spent;
+        int challengeCalls,sendCalls;
+        FakeSignedServer(Fixture fixture)throws Exception{
+            this.fixture=fixture;
+            this.verify=fixture.sender.signingPrivate().getPublicKeysetHandle()
+                    .getPrimitive(RegistryConfiguration.get(),PublicKeyVerify.class);
+        }
+        @Override public NexoConnectSignedGatewayClient.TransportResponse post(
+                String path,byte[] content,Map<String,String> headers)throws Exception{
+            String action=path.replace("/functions/v1/nexo-connect-gateway/","");
+            assertEquals("Bearer test.jwt",headers.get("Authorization"));
+            assertEquals("publishable",headers.get("apikey"));
+            if(action.equals("challenge")){
+                challengeCalls++;
+                JSONObject request=new JSONObject(new String(content,StandardCharsets.UTF_8));
+                assertEquals("delivery/send",request.getString("action"));
+                assertEquals(fixture.sender.deviceId().toString(),
+                        request.getString("deviceId"));
+                assertEquals(1,request.getInt("generation"));
+                issued=true;spent=false;
+                return NexoConnectSignedGatewayClient.TransportResponse.json(200,
+                        new JSONObject().put("challengeId",challenge.toString())
+                                .put("expiresInSeconds",120));
+            }
+            assertEquals("delivery/send",action);
+            assertTrue("Must first request one-use challenge",issued);
+            assertFalse("Challenge replay",spent);
+            spent=true;sendCalls++;
+            assertEquals(challenge.toString(),headers.get("x-nexo-challenge"));
+            assertEquals(fixture.sender.deviceId().toString(),
+                    headers.get("x-nexo-device"));
+            assertEquals("1",headers.get("x-nexo-generation"));
+            String issuedTime=headers.get("x-nexo-issued-at");
+            assertEquals(Long.toString(NOW),issuedTime);
+            byte[] digest=MessageDigest.getInstance("SHA-256").digest(content);
+            String canonical="NEXO-CONNECT-PROOF-V1\nPOST\n"+
+                    "/nexo-connect/delivery/send\n"+fixture.a+"\n"+
+                    fixture.sender.deviceId()+"\n1\n"+challenge+"\n"+issuedTime+
+                    "\n"+hex(digest)+"\n";
+            byte[] signature=decode(headers.get("x-nexo-signature"));
+            verify.verify(signature,canonical.getBytes(StandardCharsets.UTF_8));
+            fixture.network.sealed=new JSONObject(
+                    new String(content,StandardCharsets.UTF_8));
+            return NexoConnectSignedGatewayClient.TransportResponse.json(201,
+                    new JSONObject().put("deliveryId",
+                            fixture.network.sealed.getString("deliveryId"))
+                            .put("status","pending"));
+        }
+    }
+
+    @Test public void signedHttpSendFromAReachesBAndImportsRealEncryptedNote()
+            throws Exception {
+        try(Fixture f=new Fixture();SQLiteDatabase db=db()){
+            FakeSignedServer transport=new FakeSignedServer(f);
+            NexoConnectSignedGatewayClient client=
+                    new NexoConnectSignedGatewayClient(f.a,f.sender.deviceId(),1,
+                            "test.jwt","publishable",f.sender.signingPrivate(),
+                            transport,()->NOW);
+            assertEquals(f.id,client.sendApproved(f.sender,f.sendPins,f.b,
+                    f.receiverPublic,f.id,UUID.randomUUID(),"note",
+                    new JSONObject().put("title","Nota entregada A a B")
+                            .put("body","Texto que no debe viajar en claro"),
+                    null,NOW+60000,true));
+            assertEquals(1,transport.challengeCalls);
+            assertEquals(1,transport.sendCalls);
+            assertFalse(f.network.sealed.toString().contains(
+                    "Texto que no debe viajar en claro"));
+            assertEquals(1,rowsAfterImport(f,db));
+            assertEquals("Nota entregada A a B",receivedTitle(db));
+            assertEquals(1,f.network.acks);
+        }
+    }
+
+    private static int rowsAfterImport(Fixture f,SQLiteDatabase db)throws Exception {
+        NexoConnectInboxCoordinator.ImportOutcome received=f.importOnce(db,true);
+        assertTrue(received.acknowledged);
+        assertFalse(received.alreadyImported);
+        return rows(db);
+    }
+
+    @Test public void revokedReceiverBlocksSignedRequestBeforeChallenge()throws Exception{
+        try(Fixture f=new Fixture()){
+            FakeSignedServer transport=new FakeSignedServer(f);
+            NexoConnectSignedGatewayClient client=
+                    new NexoConnectSignedGatewayClient(f.a,f.sender.deviceId(),1,
+                            "test.jwt","publishable",f.sender.signingPrivate(),
+                            transport,()->NOW);
+            assertTrue(f.sendPins.revoke(f.b));
+            try{
+                client.sendApproved(f.sender,f.sendPins,f.b,f.receiverPublic,
+                        f.id,UUID.randomUUID(),"note",
+                        new JSONObject().put("title","No enviar"),null,
+                        NOW+60000,true);
+                fail("Revoked peer reached gateway");
+            }catch(SecurityException expected){}
+            assertEquals(0,transport.challengeCalls);
+            assertEquals(0,transport.sendCalls);
+        }
+    }
+
     @Test public void twoIndependentAccountsSealDecryptImportAndAckOnlyAfterCommit()
             throws Exception {
         try(Fixture f=new Fixture();SQLiteDatabase db=db()){
@@ -208,8 +319,10 @@ public class NexoConnectTwoAccountExchangeTest {
     @Test public void forgedRecipientPublicKeyAndMutatedCiphertextNeverImport()
             throws Exception {
         try(Fixture f=new Fixture();SQLiteDatabase db=db()){
+            UUID impostorId=UUID.randomUUID();
             KeysetHandle impostor=NexoConnectLocalPhoneIdentity.openOrCreate(
-                    APP,UUID.randomUUID()).hpkePrivate().getPublicKeysetHandle();
+                    APP,impostorId).hpkePrivate().getPublicKeysetHandle();
+            new AndroidIdentityVault(APP,impostorId).destroy();
             try{NexoConnectSealedDelivery.sealApproved(f.sender,1,f.sendPins,
                     f.b,impostor,f.id,UUID.randomUUID(),"note",
                     new JSONObject().put("title","No"),null,
@@ -218,7 +331,8 @@ public class NexoConnectTwoAccountExchangeTest {
             catch(GeneralSecurityException expected){}
             f.seal();
             String old=f.network.sealed.getString("signature");
-            f.network.sealed.put("signature",old.replace(old.substring(0,1),"A"));
+            f.network.sealed.put("signature",
+                    (old.startsWith("A")?"B":"A")+old.substring(1));
             try{f.importOnce(db,true);fail("Forged signature imported");}
             catch(Exception expected){}
             assertEquals(0,rows(db));

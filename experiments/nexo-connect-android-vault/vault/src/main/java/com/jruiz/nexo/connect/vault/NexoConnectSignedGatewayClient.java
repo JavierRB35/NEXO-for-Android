@@ -302,6 +302,41 @@ public final class NexoConnectSignedGatewayClient {
      * authentic Tink NXC1 envelope for this sender and pinned recipient.
      * Backend rejects any invalid E2EE signature, context or peer trust.
      */
+    /**
+     * Safe high-level sender: local identity + registered phone/account must
+     * exactly match the client signer before a one-use signed POST can occur.
+     * First HPKE-seal for QR-pinned recipient, then send with the existing
+     * challenge/Ed25519 transport. The caller chooses a fresh delivery ID,
+     * a fresh idempotency ID, expiration and explicitly approves this send.
+     *
+     * No automatic retransmission on uncertain HTTP responses.
+     */
+    public UUID sendApproved(NexoConnectLocalPhoneIdentity localIdentity,
+            AndroidPeerTrustStore localPins, UUID recipientAccount,
+            KeysetHandle recipientHpkePublic, UUID deliveryId,
+            UUID clientRequestId, String entityType, JSONObject safeSource,
+            JSONArray listEntries, long expiresAtMs, boolean userApproved)
+            throws Exception {
+        if(localIdentity==null||
+                !accountId.equals(localIdentity.accountId())||
+                !phoneId.equals(localIdentity.deviceId()))
+            throw new GeneralSecurityException("Sender session not bound to local phone");
+        KeysetHandle claimedSigner=localIdentity.signingPrivate().getPublicKeysetHandle();
+        if(claimedSigner.size()!=1||
+                !(claimedSigner.getAt(0).getKey() instanceof Ed25519PublicKey))
+            throw new GeneralSecurityException("Local signing identity invalid");
+        byte[] raw=((Ed25519PublicKey)claimedSigner.getAt(0).getKey())
+                .getPublicKeyBytes().toByteArray();
+        if(!MessageDigest.isEqual(localSigningFingerprint,
+                MessageDigest.getInstance("SHA-256").digest(raw)))
+            throw new GeneralSecurityException("Signed transport and local identity differ");
+        JSONObject sealed=NexoConnectSealedDelivery.sealApproved(
+                localIdentity,generation,localPins,recipientAccount,
+                recipientHpkePublic,deliveryId,clientRequestId,entityType,
+                safeSource,listEntries,clock.millis(),expiresAtMs,userApproved);
+        return send(sealed);
+    }
+
     public UUID send(JSONObject sealedEnvelope) throws Exception {
         validateLocalSealedEnvelope(sealedEnvelope);
         JSONObject answer=execute("delivery/send",sealedEnvelope);
