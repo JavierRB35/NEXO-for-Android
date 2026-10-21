@@ -492,12 +492,35 @@ public final class NexoConnectPilotActivity extends Activity {
     }
     private void showReceivedNotes(){
         try(SQLiteDatabase db=openPrivateDatabase();
-            Cursor c=db.rawQuery("SELECT title,body FROM items ORDER BY id DESC LIMIT 100",null)){
+            Cursor c=db.rawQuery("SELECT id,title,body FROM items ORDER BY id DESC LIMIT 100",null)){
             screen("Notas recibidas (copia privada)",true);
             if(c.getCount()==0)label("No se han importado notas.",14);
             while(c.moveToNext()){
-                label("■ "+c.getString(0),17);
-                label(c.getString(1),15);
+                long localId=c.getLong(0);
+                String storedTitle=c.getString(1),storedBody=c.getString(2);
+                if(NexoConnectSealedNoteStore.isSealed(storedBody)){
+                    try(Cursor receipt=db.rawQuery(
+                        "SELECT delivery_id FROM nexo_connect_import_receipts "+
+                        "WHERE local_id=? AND entity_type='note'",
+                        new String[]{String.valueOf(localId)})){
+                        if(!receipt.moveToFirst())
+                            throw new SecurityException("Missing signed import receipt");
+                        UUID id=UUID.fromString(receipt.getString(0));
+                        JSONObject note=new NexoConnectSealedNoteStore(
+                            identity.accountId(),id).read(storedBody);
+                        label("■ "+note.getString("title"),17);
+                        label(note.optString("body",""),15);
+                    }catch(Exception invalidNote){
+                        label("■ Nota protegida inaccesible (clave o datos no válidos)",14);
+                        // Never fall back to displaying unverified ciphertext.
+                    }
+                }else{
+                    // Historical copies from earlier LAB APKs were already
+                    // committed in plaintext; do not delete, hide or migrate
+                    // their data without an explicit recovery/migration plan.
+                    label("■ "+storedTitle,17);
+                    label(storedBody,15);
+                }
             }
         }catch(Exception ex){showError("No se pudo consultar el almacenamiento");}
     }
