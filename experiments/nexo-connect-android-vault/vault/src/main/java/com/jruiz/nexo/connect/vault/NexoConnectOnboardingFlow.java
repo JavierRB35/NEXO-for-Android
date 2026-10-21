@@ -1,5 +1,6 @@
 package com.jruiz.nexo.connect.vault;
 
+import android.content.Context;
 import com.google.crypto.tink.KeysetHandle;
 import java.security.GeneralSecurityException;
 import java.util.UUID;
@@ -85,6 +86,59 @@ public final class NexoConnectOnboardingFlow {
                                 active,verified.accountId,newDevice,
                                 signingPrivate,hpkePrivate);
                 return client.enroll(deviceOtp,replacement,approved);
+            }
+        };
+    }
+
+    /**
+     * Safe default for an account not yet known before OTP login:
+     * only AFTER /auth/v1/user validates accountId, create-or-restore
+     * the Ed25519+HPKE keysets in Android Keystore and keep them unchanged
+     * across uncertain network results or app restarts.
+     */
+    public static Backend liveBackend(Context context,String origin,String publicKey)
+            throws Exception {
+        if(context==null)throw new GeneralSecurityException("Android context missing");
+        NexoConnectEmailOtpClient auth=new NexoConnectEmailOtpClient(origin,publicKey);
+        return new Backend(){
+            private NexoConnectEmailOtpClient.VerifiedSession current;
+            private NexoConnectLocalPhoneIdentity identity;
+            @Override public void sendEmailOtp(String email,boolean createAccount)
+                    throws Exception {
+                auth.sendEmailCode(email,createAccount);
+            }
+            @Override public VerifiedAccount verifyLoginOtp(String email,String code)
+                    throws Exception {
+                NexoConnectEmailOtpClient.VerifiedSession verified=
+                        auth.verifyEmailCode(email,code);
+                NexoConnectLocalPhoneIdentity local=
+                        NexoConnectLocalPhoneIdentity.openOrCreate(
+                                context,verified.accountId);
+                current=verified;identity=local;
+                return new VerifiedAccount(verified.accountId,verified.email);
+            }
+            @Override public int enrollDevice(VerifiedAccount verified,String freshCode,
+                    boolean replacement,boolean approved)throws Exception {
+                verifyActive(verified);
+                return new NexoConnectDeviceEnrollmentClient(
+                        origin,publicKey,current,verified.accountId,
+                        identity.deviceId(),identity.signingPrivate(),
+                        identity.hpkePrivate()).enroll(freshCode,replacement,approved);
+            }
+            @Override public NexoConnectDeviceRecoveryClient.Outcome reconcile(
+                    VerifiedAccount verified)throws Exception {
+                verifyActive(verified);
+                return new NexoConnectDeviceRecoveryClient(
+                        origin,publicKey,current,verified.accountId,
+                        identity.deviceId(),identity.signingPrivate()).checkOnce();
+            }
+            private void verifyActive(VerifiedAccount claimed)
+                    throws GeneralSecurityException {
+                if(claimed==null||current==null||identity==null||
+                        !claimed.accountId.equals(current.accountId)||
+                        !claimed.accountId.equals(identity.accountId()))
+                    throw new GeneralSecurityException("Unverified local identity");
+                current.accessTokenFor(claimed.accountId,System.currentTimeMillis());
             }
         };
     }
