@@ -72,11 +72,12 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                 .setPositiveButton("Entendido", null).show();
             return;
         }
+        // Android's AlertDialog list and message share the dialog's content
+        // area. Use a LIST ONLY here; a simultaneous setMessage can hide it.
         new AlertDialog.Builder(this)
-            .setTitle(previewOnly ? "Elegir nota de Nexo · vista local" : "Elegir nota guardada")
-            .setMessage(previewOnly
-                    ? "Prueba sin cuenta: selecciona una nota para verla en este teléfono. No se enviará nada."
-                    : "Solo se prepararán el título y el texto. No se incluyen archivos ni adjuntos.")
+            .setTitle(previewOnly
+                    ? "Elegir nota · vista local, sin envío"
+                    : "Elegir nota · revisar antes de enviar")
             .setItems(titles.toArray(new String[0]), (dialog, index) ->
                     reviewSavedNote(ids.get(index), previewOnly))
             .setNegativeButton("Cancelar", null).show();
