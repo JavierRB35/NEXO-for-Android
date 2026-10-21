@@ -70,6 +70,30 @@ public final class NexoConnectInboxProcessor {
             UUID pinnedSenderAccount, int pinnedSenderGeneration,
             UUID recipientAccount, int recipientGeneration, long nowMillis)
             throws Exception {
+        return receiveInternal(db, serverEnvelope, recipientPrivate, pinnedSenderPublic,
+                pinnedSenderAccount, pinnedSenderGeneration, recipientAccount,
+                recipientGeneration, nowMillis, false);
+    }
+
+    /** Real pilot inbox: no plaintext note ever reaches SQLite. */
+    public static NexoConnectAtomicImporter.Result receiveAndImportProtected(
+            SQLiteDatabase db, JSONObject serverEnvelope,
+            KeysetHandle recipientPrivate, KeysetHandle pinnedSenderPublic,
+            UUID pinnedSenderAccount, int pinnedSenderGeneration,
+            UUID recipientAccount, int recipientGeneration, long nowMillis)
+            throws Exception {
+        return receiveInternal(db, serverEnvelope, recipientPrivate, pinnedSenderPublic,
+                pinnedSenderAccount, pinnedSenderGeneration, recipientAccount,
+                recipientGeneration, nowMillis, true);
+    }
+
+    private static NexoConnectAtomicImporter.Result receiveInternal(
+            SQLiteDatabase db, JSONObject serverEnvelope,
+            KeysetHandle recipientPrivate, KeysetHandle pinnedSenderPublic,
+            UUID pinnedSenderAccount, int pinnedSenderGeneration,
+            UUID recipientAccount, int recipientGeneration, long nowMillis,
+            boolean protectedStorage)
+            throws Exception {
         if (db == null || serverEnvelope == null || recipientPrivate == null ||
                 pinnedSenderPublic == null || recipientAccount == null ||
                 recipientGeneration <= 0 || nowMillis <= 0)
@@ -161,7 +185,9 @@ public final class NexoConnectInboxProcessor {
         try {
             return NexoConnectAtomicImporter.importVerified(
                     db,deliveryId.toString(),senderId.toString(),entity,
-                    plaintext,NexoConnectNativeWriter.INSTANCE);
+                    plaintext,protectedStorage
+                            ? new NexoConnectSealedNoteStore(recipientAccount, deliveryId)
+                            : NexoConnectNativeWriter.INSTANCE);
         } finally {
             Arrays.fill(plaintext,(byte)0);
         }
