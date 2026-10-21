@@ -13,6 +13,7 @@ java {
 dependencies {
     // Prueba de laboratorio: NO añadir esta dependencia a la app principal aún.
     implementation 'com.google.crypto.tink:tink:1.18.0'
+    implementation 'com.google.code.gson:gson:2.12.1'
     testImplementation 'junit:junit:4.13.2'
 }
 
@@ -21,4 +22,26 @@ tasks.withType(Test).configureEach {
     maxHeapSize = '768m'
     maxParallelForks = 1
     testLogging { events 'passed', 'failed', 'skipped' }
+}
+
+/**
+ * Explicit opt-in only: never executes network OTPs during build/test.
+ * The JVM retains Tink private signing/HPKE material in memory until the
+ * network E2EE roundtrip completes; CLI verifies pinned LAB account UUIDs.
+ */
+tasks.register('e2eeLab', JavaExec) {
+    group = 'verification'
+    description = 'HTTPS two-account E2EE experiment (4 fresh OTP; explicit authorization)'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.jruiz.nexo.connect.poc.LiveE2EEConsole'
+    standardInput = System.in
+    args '--live'
+}
+
+tasks.register('e2eeOffline', JavaExec) {
+    group = 'verification'
+    description = 'Offline Tink HPKE and NXC1 self-test; no network, OTP or camera'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.jruiz.nexo.connect.poc.LiveE2EEConsole'
+    args '--selftest'
 }
