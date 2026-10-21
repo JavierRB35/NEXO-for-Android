@@ -23,6 +23,9 @@ dependencies {
     implementation 'com.google.crypto.tink:tink:1.18.0'
     // Self-contained camera scanner; no external scanner app or Play Services required.
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+    // ZXing CaptureManager calls ContextCompat at runtime. Without AndroidX Core
+    // the scanner crashes with NoClassDefFoundError before showing the camera.
+    implementation 'androidx.core:core:1.13.1'
     androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
