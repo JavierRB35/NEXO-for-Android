@@ -352,6 +352,21 @@
     </div>
   </section>
 
+  <section class="settings-accordion hidden" id="nexoConnectExperimentSection" data-settings-accordion="nexoConnect">
+    <button class="settings-accordion__summary" type="button" data-settings-section="nexoConnect" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-shield"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Nexo Connect · experimental</strong><small>Intercambio cifrado · solo versión de desarrollo</small></span>
+      <svg class="ui-icon settings-accordion__chevron" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded">
+        <p class="small muted">El piloto se ejecuta por separado y utiliza Supabase LAB. No accede a las notas, documentos, cuentas o claves de Nexo principal.</p>
+        <button class="secondary-button" id="nexoConnectPilotOpen" type="button">Abrir Nexo Connect Pruebas</button>
+        <p class="small muted">La integración E2EE nativa de producción continúa en desarrollo. No se transfieren datos entre las dos aplicaciones.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="settings-accordion" data-settings-accordion="weather">
     <button class="settings-accordion__summary" type="button" data-settings-section="weather" aria-expanded="false">
       <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-sun"></use></svg></span>

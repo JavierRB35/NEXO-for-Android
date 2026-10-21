@@ -2753,6 +2753,12 @@ function renderMore(){
   renderTranscriptionQualitySettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
+  const labEntry=$('#nexoConnectExperimentSection');
+  if(labEntry){
+    let enabled=false;
+    try{enabled=NexoNative.isNexoConnectExperimentEnabled()===true;}catch(_){}
+    labEntry.classList.toggle('hidden',!enabled);
+  }
   renderUpdateStatus(NexoNative.getUpdateStatus());
 }
 
@@ -4364,6 +4370,12 @@ function init(){
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
+  $('#nexoConnectPilotOpen')?.addEventListener('click',()=>{
+    try{
+      if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;
+      NexoNative.openNexoConnectPilot();
+    }catch(_){toast('No se pudo abrir Nexo Connect Pruebas');}
+  });
   $('#peopleAddBtn')?.addEventListener('click',()=>openPersonEditor());
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);

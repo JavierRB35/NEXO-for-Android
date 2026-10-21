@@ -40,3 +40,21 @@ La fase de laboratorio **HTTPS E2EE de extremo a extremo** con dos cuentas efím
 - No fusionar la PR #65 ni trasladar claves o credenciales del laboratorio a producción sin revisión separada.
 
 Compatibilidad conocida: Java 17, SDK 34, Gradle 8.9 y AGP 8.7.3.
+
+## Puerta de entrada en Nexo completo (experimental)
+
+**Solo en el build DEBUG de la rama experimental** se añade `Ajustes → Nexo Connect · experimental → Abrir Nexo Connect Pruebas`. El enlace abre explícitamente el APK independiente `com.jruiz.nexo.connect.pilot`, si está instalado. En la APK RELEASE, la sección permanece oculta y el puente bloquea el lanzamiento. El control **no** copia ni expone contenidos, cuentas, claves o sesiones de Nexo principal al piloto.
+
+Es una integración de navegación, **NO la incorporación de E2EE a la base de datos principal**, ni sustituye un ensayo HTTPS real entre dos instancias Android. El piloto sigue con claves y base de datos independientes.
+
+Desde PowerShell en `experiments/nexo-connect-android-vault` se pueden pasar las pruebas y compilar las dos APK localmente:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run-local-tests.ps1 -IncludeNexoMain
+```
+Omitir los tests del emulador: añadir `-SkipEmulator`. Ninguna variante usa GitHub Actions.
+
+### Integración E2EE pendiente
+- Sustituir configuración LAB por perfil de producción y diseño de autenticación, sin reutilizar claves entre paquetes.
+- Integrar en la interfaz nativa de Nexo consentimiento por destinatario, envío de notas y listas, bandeja de entrada y recepción verificada con inserción SQLite atómica.
+- Manejar revocaciones, reenvíos inciertos sin bucles, fallos de ACK, cambios de teléfono, recuperación y accesibilidad.
+- Ensayo HTTPS real desde **dos Android** y revisión independiente de seguridad antes de unir PR #65. Los 102 tests por AVD prueban componentes locales, no este escenario completo.

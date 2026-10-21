@@ -2,7 +2,7 @@
 # Run from experiments/nexo-connect-android-vault with:
 # powershell -NoProfile -ExecutionPolicy Bypass -File .\run-local-tests.ps1
 # Prerequisites: Android Studio/SDK 34, JDK 17 and an already booted AVD.
-param([switch]$SkipEmulator)
+param([switch]$SkipEmulator, [switch]$IncludeNexoMain)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -32,6 +32,13 @@ if (-not $SkipEmulator) {
     Invoke-GradleStep 'Ejecutar TODAS las pruebas en los AVD conectados' $androidProject @(':vault:connectedDebugAndroidTest')
 } else {
     Write-Host 'Pruebas instrumentadas omitidas a peticion (SkipEmulator).' -ForegroundColor Yellow
+}
+if ($IncludeNexoMain) {
+    # Optional complete Nexo DEBUG build; does not install/merge the APK.
+    Invoke-GradleStep 'Compilar Nexo completo (DEBUG)' $repoRoot @(':app:assembleDebug')
+    $mainApk = Join-Path $repoRoot 'app\build\outputs\apk\debug\app-debug.apk'
+    if (-not (Test-Path $mainApk)) { throw 'Falta la APK debug de Nexo principal.' }
+    Write-Host "APK Nexo debug: $mainApk"
 }
 $apk = Join-Path $androidProject 'pilot\build\outputs\apk\debug\pilot-debug.apk'
 if (-not (Test-Path $apk)) {

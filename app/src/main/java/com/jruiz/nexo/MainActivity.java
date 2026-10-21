@@ -2020,6 +2020,31 @@ public class MainActivity extends Activity {
             getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putString("display_mode", m).apply();
         }
         @JavascriptInterface public String getAppVersion() { return BuildConfig.VERSION_NAME; }
+        /**
+         * Debug-only companion launcher: no note, token, key, account, URL or
+         * database contents cross from Nexo main to the standalone LAB pilot.
+         * Deliberately inaccessible in a release build.
+         */
+        @JavascriptInterface public boolean isNexoConnectExperimentEnabled() {
+            return BuildConfig.DEBUG;
+        }
+        @JavascriptInterface public void openNexoConnectPilot() {
+            if (!BuildConfig.DEBUG) return;
+            runOnUiThread(() -> {
+                try {
+                    Intent launch = new Intent(Intent.ACTION_MAIN);
+                    launch.setComponent(new ComponentName(
+                        "com.jruiz.nexo.connect.pilot",
+                        "com.jruiz.nexo.connect.vault.NexoConnectPilotActivity"));
+                    // User gesture only, no intent extras and no trust transfer.
+                    startActivity(launch);
+                } catch (ActivityNotFoundException | SecurityException error) {
+                    Toast.makeText(MainActivity.this,
+                        "Instala primero Nexo Connect Pruebas (APK laboratorio).",
+                        Toast.LENGTH_LONG).show();
+                }
+            });
+        }
         @JavascriptInterface public String getUpdateStatus() { return updateManager == null ? "{}" : updateManager.getStatus().toString(); }
         @JavascriptInterface public void checkForUpdates() { if (updateManager != null) updateManager.check(true); }
         @JavascriptInterface public void onStartupReadyForUpdates() {
