@@ -284,6 +284,7 @@ public final class NexoConnectPilotActivity extends Activity {
         button("1. Mostrar mi QR público",this::showOwnQr);
         button("2. Crear invitación QR (caduca en 1 hora)",this::showInvite);
         button("3. Escanear QR de otro teléfono",this::openScanner);
+        button("3a. Importar QR de imagen (sin cámara)",this::openImageQr);
         button("4. Contactos verificados",this::showContacts);
         button("5. Enviar nota cifrada",this::chooseRecipient);
         button("6. Bandeja de entrada",this::showInbox);
@@ -305,6 +306,25 @@ public final class NexoConnectPilotActivity extends Activity {
             Log.e("NexoConnectQr","No se pudo iniciar la actividad del escáner",ex);
             showError("Error abriendo el lector QR ("+
                     ex.getClass().getSimpleName()+"). Consulta el registro del sistema.");
+        }
+    }
+
+    /**
+     * Alternative to scanning with the emulator camera. A selected image is
+     * decoded locally; it is NOT proof of identity on its own. The existing
+     * independent dual-SHA-256 verification UI is mandatory before pinning.
+     */
+    private void openImageQr(){
+        try{
+            Intent intent=NexoConnectQrScannerActivity.forVerifiedQrImage(
+                    this,identity.accountId());
+            if(intent.resolveActivity(getPackageManager())==null){
+                showError("No está disponible el importador QR en esta instalación.");
+                return;
+            }
+            startActivityForResult(intent,QR_SCAN);
+        }catch(RuntimeException|LinkageError ex){
+            showError("No se pudo abrir la selección de imagen QR.");
         }
     }
 
