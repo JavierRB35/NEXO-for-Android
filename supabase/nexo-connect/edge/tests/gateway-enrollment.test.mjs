@@ -39,7 +39,7 @@ async function fixture(){
      calls.rpc++;
      assert.equal(args.userId,USER);
      assert.equal(args.deviceId,DEVICE);
-     assert.deepEqual(args.signingRaw,Buffer.from(sign,"base64url"));
+     assert.deepEqual([...args.signingRaw],[...Buffer.from(sign,"base64url")]);
      assert.equal(args.encryptionRaw.length,32);
      return args.replace?2:1;
    },
