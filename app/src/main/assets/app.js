@@ -4370,6 +4370,12 @@ function init(){
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
+  $('#nexoConnectEmbeddedOpen')?.addEventListener('click',()=>{
+    try{
+      if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;
+      NexoNative.openNexoConnectEmbedded();
+    }catch(_){toast('No se pudo abrir Connect integrado');}
+  });
   $('#nexoConnectPilotOpen')?.addEventListener('click',()=>{
     try{
       if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;

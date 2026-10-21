@@ -73,3 +73,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-local-tests.ps1 -MainO
 ```
 
 Esta instrucción genera solo un APK de depuración de Nexo y no lo instala ni fusiona la PR. La primera descarga necesita conexión a GitHub Releases, no a Actions.
+
+## Nexo integrado: primera ejecución en el mismo APK (solo DEBUG)
+
+La aplicación principal incluye ahora `:connectVault` como dependencia **debug-only**, recuperando el código de cifrado E2EE original del experimento. El código fuente de las clases `com.jruiz.nexo.connect.*` se compila una sola vez dentro de la biblioteca para evitar clases dex duplicadas. Los archivos UI del piloto se reutilizan como `src/debug/java`, y un `app/src/debug/AndroidManifest.xml` registra una Activity **no exportada**. La configuración original Gradle 8.9/AGP 8.7.3/SDK34 y la aplicación estable permanecen intactas.
+
+En la build de depuración: **Ajustes → Nexo Connect · experimental → Abrir Connect integrado (LAB)**. Esta opción abre una Activity **dentro de `com.jruiz.nexo`**, no en el paquete del piloto `com.jruiz.nexo.connect.pilot`. El botón anterior se conserva para abrir las dos cuentas experimentales ya verificadas en el piloto independiente, sin borrar su información.
+
+**Advertencia de identidad:** claves privadas con Android Keystore, cuentas y sesión cifrada pertenecen a cada paquete. Nexo integrado **no** importa automáticamente ni puede copiar las claves de la app piloto. Iniciar el flujo integrado requiere autorización/verificación nueva del dispositivo para el mismo correo/cuenta; no genera una cuenta ni contactos en la apertura de la pantalla. No se debe tratar ese flujo como una migración ya terminada.
+
+**Limitaciones:** piloto experimental con endpoint Supabase LAB. No enviar datos personales reales. No hay todavía integración entre notas/listas SQLite de Nexo y la entrada/salida del motor E2EE, ni prueba de tráfico HTTPS real entre dos instancias Android con esa APK. Compilar primero con `run-local-tests.ps1 -MainOnly` (biblioteca Sherpa verificada), instalar **solo en emulador**, comprobar que se abre la nueva pantalla y que el piloto externo continúa intacto. Mantener PR #65 draft, sin merge ni publicación.

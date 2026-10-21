@@ -2028,6 +2028,28 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean isNexoConnectExperimentEnabled() {
             return BuildConfig.DEBUG;
         }
+        /**
+         * In-app LAB UI: debug-only, a separate Android Activity in Nexo.
+         * The old independent pilot's non-exportable Android Keystore keys and
+         * encrypted sessions CANNOT be copied into this package.
+         * No identity creation or network operations happen by opening it.
+         */
+        @JavascriptInterface public void openNexoConnectEmbedded() {
+            if (!BuildConfig.DEBUG) return;
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_MAIN);
+                    intent.setClassName(getPackageName(),
+                        "com.jruiz.nexo.connect.vault.NexoConnectPilotActivity");
+                    // No intent extras, even inside our app.
+                    startActivity(intent);
+                } catch (ActivityNotFoundException | SecurityException failure) {
+                    Toast.makeText(MainActivity.this,
+                        "Nexo Connect integrado no esta disponible en esta compilacion.",
+                        Toast.LENGTH_LONG).show();
+                }
+            });
+        }
         @JavascriptInterface public void openNexoConnectPilot() {
             if (!BuildConfig.DEBUG) return;
             runOnUiThread(() -> {

@@ -360,9 +360,11 @@
     </button>
     <div class="settings-accordion__body hidden">
       <div class="settings-card settings-card--embedded">
-        <p class="small muted">El piloto se ejecuta por separado y utiliza Supabase LAB. No accede a las notas, documentos, cuentas o claves de Nexo principal.</p>
-        <button class="secondary-button" id="nexoConnectPilotOpen" type="button">Abrir Nexo Connect Pruebas</button>
-        <p class="small muted">La integración E2EE nativa de producción continúa en desarrollo. No se transfieren datos entre las dos aplicaciones.</p>
+        <p class="small muted">Nexo Connect integrado utiliza el motor cifrado experimental dentro de Nexo, sin instalar otra aplicación. Funciona solo con Supabase LAB y no está listo para enviar datos personales reales.</p>
+        <button class="primary-button" id="nexoConnectEmbeddedOpen" type="button">Abrir Connect integrado (LAB)</button>
+        <p class="small muted">Importante: el piloto anterior tiene claves Android protegidas que no se pueden copiar a Nexo. Para utilizar Connect integrado será necesario verificar de nuevo el correo y autorizar esta instalación como dispositivo diferente. No se crea una cuenta nueva automáticamente.</p>
+        <button class="secondary-button" id="nexoConnectPilotOpen" type="button">Abrir piloto independiente (mantiene sus cuentas)</button>
+        <p class="small muted">La transferencia de notas y listas propias de Nexo al cifrado, la recepción automática y la validación HTTPS real Android a Android siguen pendientes.</p>
       </div>
     </div>
   </section>
