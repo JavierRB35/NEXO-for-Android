@@ -15,13 +15,13 @@ import java.util.UUID;
 import javax.net.ssl.HttpsURLConnection;
 
 /**
- * Isolated passwordless email OTP client. The resulting session is MEMORY ONLY.
+ * Isolated passwordless email OTP client. Access JWT stays memory-only.\n * Rotating refresh tokens may be saved via the Android Keystore session vault.
  * IMPORTANT: normal Supabase Auth OTP login is NOT enough to authorize a
  * replacement device. Server must separately demand RECENT OTP proof.
  */
 public final class NexoConnectEmailOtpClient {
     private static final int MAX_RESPONSE=32768;
-    private static final int MAX_REQUEST=2048;
+    private static final int MAX_REQUEST=8192;
     private final Transport transport;
     private final String publicKey;
     private final Clock clock;
@@ -60,12 +60,37 @@ public final class NexoConnectEmailOtpClient {
                 .put("token",code).put("type","email");
         JSONObject tokenResponse=expectSuccess(transport.call("POST","/auth/v1/verify",
                 request.toString().getBytes(StandardCharsets.UTF_8),headers(null)),true);
+        return validateSession(tokenResponse,normalized,null);
+    }
+
+    /**
+     * Uses a previously OTP-verified refresh token. No new email is sent.
+     * The calling activity must immediately persist the rotated credential.
+     * /auth/v1/user, not JWT claims, binds the expected account identity.
+     */
+    public VerifiedSession refreshSession(String refreshToken,UUID expectedAccount,
+            String expectedEmail)throws Exception {
+        if(expectedAccount==null)
+            throw new GeneralSecurityException("Missing saved account");
+        String email=normalizeEmail(expectedEmail);
+        requireRefresh(refreshToken);
+        JSONObject request=new JSONObject().put("refresh_token",refreshToken);
+        JSONObject response=expectSuccess(transport.call("POST",
+                "/auth/v1/token?grant_type=refresh_token",
+                request.toString().getBytes(StandardCharsets.UTF_8),headers(null)),true);
+        return validateSession(response,email,expectedAccount);
+    }
+
+    private VerifiedSession validateSession(JSONObject tokenResponse,
+            String normalized,UUID expectedAccount)throws Exception {
         String jwt=tokenResponse.optString("access_token","");
+        String refresh=tokenResponse.optString("refresh_token","");
         String kind=tokenResponse.optString("token_type","");
         Object ttlValue=tokenResponse.opt("expires_in");
         if(jwt.length()<8||jwt.length()>16384||containsWhitespace(jwt)||
                 !"bearer".equalsIgnoreCase(kind)||!(ttlValue instanceof Number))
             throw new GeneralSecurityException("Invalid session");
+        requireRefresh(refresh);
         long ttl=((Number)ttlValue).longValue();
         if(ttl<30||ttl>172800||((Number)ttlValue).doubleValue()!=ttl)
             throw new GeneralSecurityException("Invalid expiry");
@@ -73,13 +98,20 @@ public final class NexoConnectEmailOtpClient {
                 null,headers(jwt)),true);
         String verifiedId=confirmed.optString("id","");
         if(!isUuid(verifiedId)||!normalized.equalsIgnoreCase(
-                confirmed.optString("email","")))
+                confirmed.optString("email",""))||
+                (expectedAccount!=null&&!expectedAccount.toString().equals(verifiedId)))
             throw new GeneralSecurityException("Auth account not verified");
         long now=clock.millis();
         if(now<=0||now>Long.MAX_VALUE-ttl*1000)
             throw new GeneralSecurityException("Invalid clock");
         return new VerifiedSession(UUID.fromString(verifiedId),normalized,jwt,
-                now+ttl*1000);
+                now+ttl*1000,refresh);
+    }
+
+    private static void requireRefresh(String refresh)throws GeneralSecurityException {
+        if(refresh==null||refresh.length()<8||refresh.length()>4096||
+                containsWhitespace(refresh))
+            throw new GeneralSecurityException("Invalid refresh credential");
     }
 
     private Map<String,String> headers(String jwt){
@@ -126,12 +158,12 @@ public final class NexoConnectEmailOtpClient {
         public final UUID accountId;
         public final String email;
         public final long expiresAtMillis;
-        private final String bearer;
-        private VerifiedSession(UUID accountId,String email,String bearer,long expires){
+        private final String bearer,refresh;
+        private VerifiedSession(UUID accountId,String email,String bearer,long expires,\n                String refresh){
             this.accountId=accountId;this.email=email;
-            this.bearer=bearer;this.expiresAtMillis=expires;
+            this.bearer=bearer;this.expiresAtMillis=expires;this.refresh=refresh;
         }
-        public String accessTokenFor(UUID expectedAccount,long now)
+        public String refreshTokenFor(UUID expectedAccount)\n                throws GeneralSecurityException {\n            if(expectedAccount==null||!expectedAccount.equals(accountId))\n                throw new GeneralSecurityException("Wrong session account");\n            return refresh;\n        }\n        public String accessTokenFor(UUID expectedAccount,long now)
                 throws GeneralSecurityException {
             if(expectedAccount==null||!expectedAccount.equals(accountId)||
                     now<=0||expiresAtMillis-now<=30000)
@@ -181,7 +213,8 @@ public final class NexoConnectEmailOtpClient {
                 Map<String,String> headers)throws Exception{
             if(!("POST".equals(method)||"GET".equals(method))||
                 !("/auth/v1/otp".equals(path)||
-                  "/auth/v1/verify".equals(path)||"/auth/v1/user".equals(path))||
+                  "/auth/v1/verify".equals(path)||"/auth/v1/user".equals(path)||
+                  "/auth/v1/token?grant_type=refresh_token".equals(path))||
                 ("GET".equals(method))!=(body==null)||
                 (body!=null&&body.length>MAX_REQUEST))
                 throw new GeneralSecurityException("Forbidden Auth request");
