@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.util.Log;
 import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
@@ -44,6 +45,7 @@ public final class NexoConnectPilotActivity extends Activity {
     private boolean busy,replace;
     private String accountEmail="",lastMessage="";
     private NexoConnectEmailOtpClient otp;
+    private NexoConnectSessionVault sessionVault;
     private NexoConnectEmailOtpClient.VerifiedSession session;
     private NexoConnectLocalPhoneIdentity identity;
     private AndroidPeerTrustStore trusted;
@@ -52,7 +54,14 @@ public final class NexoConnectPilotActivity extends Activity {
 
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
-        try{otp=new NexoConnectEmailOtpClient(ORIGIN,PUBLIC_KEY);}
+        try{
+            otp=new NexoConnectEmailOtpClient(ORIGIN,PUBLIC_KEY);
+            sessionVault=new NexoConnectSessionVault(this);
+            if(sessionVault.exists()){
+                try{accountEmail=sessionVault.restore().email;}
+                catch(Exception e){lastMessage="No se puede recuperar la sesión anterior; utiliza un nuevo OTP.";}
+            }
+        }
         catch(Exception ex){new AlertDialog.Builder(this)
                 .setMessage("Configuración de laboratorio inválida")
                 .setPositiveButton("Cerrar",(d,w)->finish()).show();return;}
@@ -143,6 +152,45 @@ public final class NexoConnectPilotActivity extends Activity {
             CheckBox create=new CheckBox(this);
             create.setText("Crear cuenta nueva con este correo");
             column.addView(create);
+            if(sessionVault.exists()){
+                label("Este teléfono tiene una sesión protegida. Entrar no envía correos.",14);
+                button("Entrar",()->{
+                    String address=email.getText().toString().trim();
+                    runWork(()->{
+                        NexoConnectSessionVault.Saved saved=sessionVault.restore();
+                        if(!saved.email.equalsIgnoreCase(address))
+                            throw new SecurityException("El correo no coincide con este teléfono");
+                        NexoConnectEmailOtpClient.VerifiedSession restored=
+                                otp.refreshSession(saved.refreshToken,saved.accountId,saved.email);
+                        // Refresh tokens rotate. Save the NEW token before other work.
+                        sessionVault.save(restored);
+                        NexoConnectLocalPhoneIdentity local=
+                                NexoConnectLocalPhoneIdentity.openOrCreate(
+                                        getApplicationContext(),restored.accountId);
+                        NexoConnectDeviceRecoveryClient.Outcome status=
+                                new NexoConnectDeviceRecoveryClient(ORIGIN,PUBLIC_KEY,
+                                        restored,restored.accountId,local.deviceId(),
+                                        local.signingPrivate()).checkOnce();
+                        if(status.state!=NexoConnectDeviceRecoveryClient.State.OWN_DEVICE_CONFIRMED)
+                            throw new SecurityException("El teléfono debe volver a verificarse");
+                        return new Object[]{restored,local,status};
+                    },value->{
+                        Object[] out=(Object[])value;
+                        session=(NexoConnectEmailOtpClient.VerifiedSession)out[0];
+                        identity=(NexoConnectLocalPhoneIdentity)out[1];
+                        generation=((NexoConnectDeviceRecoveryClient.Outcome)out[2]).generation;
+                        accountEmail=session.email;
+                        activate();
+                    });
+                });
+                button("Volver a verificar por correo (solo si falla Entrar)",()->{
+                    // Explicit fallback: only wipes the encrypted session, not identity keys.
+                    sessionVault.clear();
+                    stage=EMAIL;
+                    showSetup();
+                });
+                return;
+            }
             button("1. Solicitar código de acceso",()->{
                 String address=email.getText().toString().trim();
                 runWork(()->{otp.sendEmailCode(address,create.isChecked());
@@ -158,6 +206,9 @@ public final class NexoConnectPilotActivity extends Activity {
                 runWork(()->{
                     NexoConnectEmailOtpClient.VerifiedSession verified=
                             otp.verifyEmailCode(accountEmail,entered);
+                    // Persist only a rotated refresh credential in Android Keystore.
+                    // A later launch must still prove the SAME registered phone.
+                    sessionVault.save(verified);
                     NexoConnectLocalPhoneIdentity local=
                             NexoConnectLocalPhoneIdentity.openOrCreate(
                                     getApplicationContext(),verified.accountId);
@@ -232,17 +283,31 @@ public final class NexoConnectPilotActivity extends Activity {
         if(!lastMessage.isEmpty())label(lastMessage,13);
         button("1. Mostrar mi QR público",this::showOwnQr);
         button("2. Crear invitación QR (caduca en 1 hora)",this::showInvite);
-        button("3. Escanear QR de otro teléfono",()->startActivityForResult(
-                NexoConnectQrScannerActivity.forAuthenticatedAccount(
-                        this,identity.accountId()),QR_SCAN));
+        button("3. Escanear QR de otro teléfono",this::openScanner);
         button("4. Contactos verificados",this::showContacts);
         button("5. Enviar nota cifrada",this::chooseRecipient);
         button("6. Bandeja de entrada",this::showInbox);
         button("7. Notas recibidas",this::showReceivedNotes);
         button("8. Reintentar SOLO confirmaciones pendientes",this::retryAcks);
-        label("La sesión se guarda solamente en memoria. Si se cierra "+
-              "la aplicación, vuelve a solicitar un primer OTP.",13);
+        label("El acceso JWT se mantiene en memoria. La sesión renovable se protege "+
+              "con Android Keystore y al entrar se comprueba de nuevo este dispositivo.",13);
     }
+    private void openScanner(){
+        try{
+            Intent intent=NexoConnectQrScannerActivity.forAuthenticatedAccount(
+                    this,identity.accountId());
+            if(intent.resolveActivity(getPackageManager())==null){
+                showError("El lector QR no está incluido en esta instalación.");
+                return;
+            }
+            startActivityForResult(intent,QR_SCAN);
+        }catch(RuntimeException|LinkageError ex){
+            Log.e("NexoConnectQr","No se pudo iniciar la actividad del escáner",ex);
+            showError("Error abriendo el lector QR ("+
+                    ex.getClass().getSimpleName()+"). Consulta el registro del sistema.");
+        }
+    }
+
     private void showOwnQr(){
         try{
             LinearLayout group=screen("Mi código de identidad",true);
