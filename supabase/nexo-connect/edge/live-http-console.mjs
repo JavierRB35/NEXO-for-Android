@@ -239,14 +239,14 @@ async function run(){
     // Login strictly SEQUENTIALLY: aliases share a Gmail inbox.
     // Verify OTP A before ever requesting OTP B, avoiding confusion.
     const sentA=await sendOtp(emails[0],true);
-    process.stdout.write("OTP de INICIO enviado SOLO para A: "+emails[0]+"\\n");
+    process.stdout.write("OTP de INICIO enviado SOLO para A: "+emails[0]+"\n");
     const codeA=(await rl.question(
       "Introduce el OTP del mensaje dirigido exactamente a A: ")).trim();
     insist(/^[0-9]{6,8}$/.test(codeA),"Invalid login OTP A");
     a=await login(emails[0],codeA);log("Auth JWT válido de A");
 
     const sentB=await sendOtp(emails[1],true);
-    process.stdout.write("OTP de INICIO enviado SOLO para B: "+emails[1]+"\\n");
+    process.stdout.write("OTP de INICIO enviado SOLO para B: "+emails[1]+"\n");
     const codeB=(await rl.question(
       "Introduce el OTP del mensaje dirigido exactamente a B: ")).trim();
     insist(/^[0-9]{6,8}$/.test(codeB),"Invalid login OTP B");
