@@ -3,6 +3,7 @@ package com.jruiz.nexo.connect.vault;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -31,11 +32,14 @@ public final class NexoConnectQrScannerActivity extends Activity {
     public static final String RESULT_PEER_ID = "nexo_connect_verified_peer_id";
     public static final String RESULT_PEER_GENERATION = "nexo_connect_verified_generation";
     private static final String EXTRA_ACCOUNT = "nexo_connect_local_session_account";
+    private static final String EXTRA_IMAGE_FIRST = "nexo_connect_import_image_first";
+    private static final int IMAGE_PICKER = 72;
     private static final int MAX_QR_UTF16 = 1024;
     private UUID localAccount;
     private AndroidPeerTrustStore store;
     private LinearLayout screen;
     private boolean scannerLaunched;
+    private boolean imagePickerLaunched;
 
     /** Called by a trusted, INTERNAL Nexo account flow after JWT+device check. */
     public static Intent forAuthenticatedAccount(Context from,UUID verifiedOwner){
@@ -43,6 +47,12 @@ public final class NexoConnectQrScannerActivity extends Activity {
             throw new IllegalArgumentException("Verified Nexo session required");
         return new Intent(from,NexoConnectQrScannerActivity.class)
                 .putExtra(EXTRA_ACCOUNT,verifiedOwner.toString());
+    }
+
+    /** Camera-free route with the same human fingerprint check as ZXing camera. */
+    public static Intent forVerifiedQrImage(Context from,UUID verifiedOwner){
+        return forAuthenticatedAccount(from,verifiedOwner)
+                .putExtra(EXTRA_IMAGE_FIRST,true);
     }
 
     @Override protected void onCreate(Bundle state) {
@@ -71,7 +81,15 @@ public final class NexoConnectQrScannerActivity extends Activity {
         scan.setText("Abrir cámara y escanear QR");
         screen.addView(scan);
         scan.setOnClickListener(v->startScan());
-        if(state==null)startScan();
+        Button file=new Button(this);
+        file.setText("Importar una imagen QR (sin cámara)");
+        screen.addView(file);
+        file.setOnClickListener(v->startImagePicker());
+        if(state==null){
+            if(getIntent().getBooleanExtra(EXTRA_IMAGE_FIRST,false))
+                startImagePicker();
+            else startScan();
+        }
     }
 
     private void startScan() {
@@ -95,7 +113,55 @@ public final class NexoConnectQrScannerActivity extends Activity {
         }
     }
 
+    private void startImagePicker(){
+        if(imagePickerLaunched||scannerLaunched||isFinishing())return;
+        imagePickerLaunched=true;
+        try {
+            Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            picker.setType("image/*");
+            picker.addCategory(Intent.CATEGORY_OPENABLE);
+            picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivityForResult(picker,IMAGE_PICKER);
+        }catch(RuntimeException problem){
+            imagePickerLaunched=false;
+            title("No se puede abrir el selector de imágenes.");
+        }
+    }
+
+    private void receiveSelectedImage(int resultCode,Intent data){
+        imagePickerLaunched=false;
+        if(resultCode!=RESULT_OK||data==null||data.getData()==null){
+            title("Importación cancelada. No se ha guardado ningún contacto.");
+            return;
+        }
+        final Uri selected=data.getData();
+        // Untrusted image reading and QR decoding stay strictly off the UI thread.
+        new Thread(()->{
+            String decoded=null;
+            try {
+                decoded=NexoConnectQrImageDecoder.readSelectedImage(
+                        getApplicationContext(),selected);
+            }catch(Exception ignored){
+                // Never reveal file details or raw invitation tokens in logs/UI.
+            }
+            final String qr=decoded;
+            runOnUiThread(()->{
+                if(isFinishing()||isDestroyed())return;
+                if(qr==null){
+                    title("La imagen no contiene un QR Nexo válido o es demasiado grande.");
+                    return;
+                }
+                showUntrustedQr(qr);
+            });
+        },"nexo-qr-image-decode").start();
+    }
+
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        if(requestCode==IMAGE_PICKER){
+            receiveSelectedImage(resultCode,data);
+            return;
+        }
+
         IntentResult scanned=IntentIntegrator.parseActivityResult(requestCode,resultCode,data);
         if(scanned==null){super.onActivityResult(requestCode,resultCode,data);return;}
         scannerLaunched=false;
@@ -103,8 +169,12 @@ public final class NexoConnectQrScannerActivity extends Activity {
             title("Escaneo cancelado. Puedes intentarlo de nuevo.");
             return;
         }
+        showUntrustedQr(scanned.getContents());
+    }
+
+    /** Shared path: both file and camera require independent full fingerprints. */
+    private void showUntrustedQr(String raw){
         try {
-            String raw=scanned.getContents();
             final NexoConnectInvitationQr invitation;
             final String peerQr;
             if(raw.contains("\"nexo-connect-invite\"")){
