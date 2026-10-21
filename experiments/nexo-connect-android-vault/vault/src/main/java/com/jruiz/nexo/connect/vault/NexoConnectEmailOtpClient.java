@@ -15,7 +15,8 @@ import java.util.UUID;
 import javax.net.ssl.HttpsURLConnection;
 
 /**
- * Isolated passwordless email OTP client. Access JWT stays memory-only.\n * Rotating refresh tokens may be saved via the Android Keystore session vault.
+ * Isolated passwordless email OTP client. Access JWT stays memory-only.
+ * Rotating refresh tokens may be saved via the Android Keystore session vault.
  * IMPORTANT: normal Supabase Auth OTP login is NOT enough to authorize a
  * replacement device. Server must separately demand RECENT OTP proof.
  */
@@ -159,11 +160,18 @@ public final class NexoConnectEmailOtpClient {
         public final String email;
         public final long expiresAtMillis;
         private final String bearer,refresh;
-        private VerifiedSession(UUID accountId,String email,String bearer,long expires,\n                String refresh){
+        private VerifiedSession(UUID accountId,String email,String bearer,long expires,
+                String refresh){
             this.accountId=accountId;this.email=email;
             this.bearer=bearer;this.expiresAtMillis=expires;this.refresh=refresh;
         }
-        public String refreshTokenFor(UUID expectedAccount)\n                throws GeneralSecurityException {\n            if(expectedAccount==null||!expectedAccount.equals(accountId))\n                throw new GeneralSecurityException("Wrong session account");\n            return refresh;\n        }\n        public String accessTokenFor(UUID expectedAccount,long now)
+        public String refreshTokenFor(UUID expectedAccount)
+                throws GeneralSecurityException {
+            if(expectedAccount==null||!expectedAccount.equals(accountId))
+                throw new GeneralSecurityException("Wrong session account");
+            return refresh;
+        }
+        public String accessTokenFor(UUID expectedAccount,long now)
                 throws GeneralSecurityException {
             if(expectedAccount==null||!expectedAccount.equals(accountId)||
                     now<=0||expiresAtMillis-now<=30000)
