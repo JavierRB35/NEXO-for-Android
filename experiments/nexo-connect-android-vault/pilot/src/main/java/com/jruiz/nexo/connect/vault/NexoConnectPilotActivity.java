@@ -431,6 +431,17 @@ public class NexoConnectPilotActivity extends Activity {
     protected void addHostActions(){}
 
     /**
+     * An authenticated account identifier (not a bearer credential).
+     * Never return the JWT or private keysets to host UI or WebView.
+     */
+    protected final UUID authenticatedAccountId(){
+        if(stage!=READY || identity==null || session==null ||
+                !session.accountId.equals(identity.accountId()))
+            throw new SecurityException("Nexo Connect device is not verified");
+        return identity.accountId();
+    }
+
+    /**
      * Host notes are staged ONLY IN MEMORY. This method is invoked after a
      * user manually selects an already saved note. The recipient must still
      * be explicitly chosen, the composed text reviewed, and the single send

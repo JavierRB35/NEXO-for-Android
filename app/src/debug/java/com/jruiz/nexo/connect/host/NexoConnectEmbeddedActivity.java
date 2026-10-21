@@ -1,6 +1,13 @@
 package com.jruiz.nexo.connect.host;
 
 import android.app.AlertDialog;
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+
+import com.jruiz.nexo.connect.vault.AndroidPeerTrustStore;
+import com.jruiz.nexo.connect.vault.NexoConnectLocalNotePromotion;
+
+import java.util.UUID;
 
 import com.jruiz.nexo.BuildConfig;
 import com.jruiz.nexo.data.DatabaseHelper;
@@ -36,7 +43,118 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
         if (BuildConfig.DEBUG) {
             button("5a. Enviar nota guardada en Nexo",
                     () -> pickSavedNote(false));
+            button("6a. Copiar nota cifrada recibida a Notas de Nexo",
+                    this::chooseReceivedNote);
         }
+    }
+
+    private boolean copyingReceived;
+
+    private SQLiteDatabase privateConnectDatabase(){
+        return openOrCreateDatabase("nexo-connect-pilot.db", Context.MODE_PRIVATE,null);
+    }
+
+    private void chooseReceivedNote(){
+        if(!BuildConfig.DEBUG)return;
+        UUID owner;
+        try{owner=authenticatedAccountId();}
+        catch(SecurityException invalid){
+            showPickerError("Verifica tu cuenta de Connect para consultar la bandeja cifrada.");
+            return;
+        }
+        try(SQLiteDatabase privateDb=privateConnectDatabase()){
+            List<NexoConnectLocalNotePromotion.Received> received=
+                    NexoConnectLocalNotePromotion.list(privateDb,100);
+            if(received.isEmpty()){
+                showPickerError("Todavia no hay notas cifradas verificadas en este dispositivo. "+
+                        "Recibe una nota desde la bandeja de Connect antes de copiarla.");
+                return;
+            }
+            String[] labels=new String[received.size()];
+            for(int i=0;i<received.size();i++){
+                NexoConnectLocalNotePromotion.Received entry=received.get(i);
+                labels[i]="Recibida · "+entry.deliveryId.toString().substring(0,8)+
+                        " · remitente "+entry.senderId.toString().substring(0,8);
+            }
+            new AlertDialog.Builder(this)
+                .setTitle("Notas cifradas recibidas")
+                .setItems(labels,(dialog,which)->reviewReceivedNote(owner,
+                        received.get(which).deliveryId))
+                .setNegativeButton("Cancelar",null).show();
+        }catch(Exception failure){
+            showPickerError("No se pudo consultar la bandeja cifrada local.");
+        }
+    }
+
+    private void reviewReceivedNote(UUID owner,UUID delivery){
+        if(!BuildConfig.DEBUG)return;
+        try(SQLiteDatabase privateDb=privateConnectDatabase()){
+            AndroidPeerTrustStore trust=new AndroidPeerTrustStore(this,owner);
+            NexoConnectLocalNotePromotion.VerifiedNote received=
+                    NexoConnectLocalNotePromotion.read(privateDb,owner,delivery,trust);
+            String text=received.body;
+            if(text.length()>1600)text=text.substring(0,1600)+
+                    "\n\n[Vista previa limitada a 1600 caracteres]";
+            new AlertDialog.Builder(this)
+                .setTitle("Nota cifrada autenticada")
+                .setMessage("Remitente QR verificado: "+received.source.senderId+
+                        "\n\nTitulo: "+received.title+
+                        "\n\n"+text+
+                        "\n\nIMPORTANTE: si copias esta nota al bloc normal de Nexo, "+
+                        "la copia se guardara como las demas notas locales "+
+                        "(sin el cifrado adicional de Connect). "+
+                        "El original cifrado permanecera intacto.")
+                .setNegativeButton("Cancelar",null)
+                .setPositiveButton("Copiar a Notas de Nexo",
+                        (dialog,which)->copyReceivedNote(owner,delivery))
+                .show();
+        }catch(Exception failure){
+            showPickerError("No se puede autenticar la nota recibida o el contacto esta revocado.");
+        }
+    }
+
+    private void copyReceivedNote(UUID owner,UUID delivery){
+        if(!BuildConfig.DEBUG||copyingReceived)return;
+        try{
+            if(!owner.equals(authenticatedAccountId()))
+                throw new SecurityException("La cuenta verificada ha cambiado");
+        }catch(Exception invalid){
+            showPickerError("Vuelve a verificar la cuenta de Connect.");
+            return;
+        }
+        copyingReceived=true;
+        // Do the native SQLite transaction outside the UI thread. The
+        // receiving server is never contacted or acknowledged by this action.
+        new Thread(()->{
+            NexoConnectLocalNotePromotion.Result result=null;
+            try(SQLiteDatabase source=privateConnectDatabase();
+                DatabaseHelper nexo=new DatabaseHelper(this)){
+                AndroidPeerTrustStore trust=new AndroidPeerTrustStore(this,owner);
+                result=NexoConnectLocalNotePromotion.copyApproved(source,
+                        nexo.getWritableDatabase(),owner,delivery,trust,true);
+            }catch(Exception failure){
+                runOnUiThread(()->{
+                    copyingReceived=false;
+                    if(!isFinishing()&&!isDestroyed())
+                        showPickerError("No se pudo copiar: comprueba la identidad "+
+                                "verificada, el almacenamiento o si ya eliminaste la copia.");
+                });
+                return;
+            }
+            final NexoConnectLocalNotePromotion.Result completed=result;
+            runOnUiThread(()->{
+                copyingReceived=false;
+                if(isFinishing()||isDestroyed())return;
+                new AlertDialog.Builder(this)
+                    .setTitle(completed.alreadyCopied
+                            ? "La nota ya estaba copiada"
+                            : "Nota añadida a Nexo")
+                    .setMessage("Puedes encontrarla en Notas de Nexo. "+
+                            "El original cifrado y las confirmaciones "+
+                            "del servidor no se han modificado.")
+                    .setPositiveButton("Entendido",null).show();
+            });
+        },"nexo-connect-native-note-copy").start();
     }
 
     private void pickSavedNote(boolean previewOnly) {

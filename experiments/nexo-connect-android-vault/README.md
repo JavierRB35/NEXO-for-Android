@@ -103,3 +103,13 @@ Desde `Ajustes → Nexo Connect · experimental → Abrir Connect integrado (LAB
 En una sesión LAB ya autorizada sigue existiendo `5a. Enviar nota guardada en Nexo`: ese camino separado exige contacto verificado, revisión de mensaje y confirmación antes del único intento de envío cifrado. La prueba sin cuenta **no valida cifrado ni intercambio HTTPS**.
 
 Compilar localmente con `run-local-tests.ps1 -MainOnly` y actualizar únicamente `emulator-5554`; no realizar enrolamientos para esta prueba. La PR permanece en borrador.
+
+## Promoción manual segura de una nota recibida al bloc nativo (DEBUG, fase siguiente)
+
+En **Connect integrado (LAB)**, tras iniciar sesión con un dispositivo autorizado, se muestra **6a. Copiar nota cifrada recibida a Notas de Nexo**. La nueva clase `NexoConnectLocalNotePromotion` no realiza solicitudes ni confirmaciones al servidor. Lee solamente recibos locales con `entity_type=note`, filas marcadas `source=nexo-connect` y cuerpo cifrado `nxc2:`; los elementos piloto históricos en texto claro quedan excluidos.
+
+Al seleccionar la entrega se revalida que el remitente sigue fijado y activo en el almacén QR para la **cuenta actualmente autenticada**, se descifra el contenido exclusivamente usando AES-GCM Keystore ligado a esa cuenta+ID de entrega y se aplica de nuevo la allowlist de notas. El usuario ve un extracto y una advertencia importante: la copia al bloc de Nexo se guardará como una **nota local normal, sin el cifrado adicional de Connect**. Solo pulsando **Copiar a Notas de Nexo** se crea la copia.
+
+La clase vuelve a verificar toda la entrada al copiar. En la base **destino** se insertan la nueva nota nativa y un registro exclusivo `nexo_connect_native_note_promotions` dentro de **una misma transacción SQLite**. El `delivery_id` es único; repetir la operación no crea duplicados y detecta cambios sospechosos en remitente, cuenta o contenido. Si la nota copiada fue eliminada, no se resucita automáticamente. La base privada de Connect queda intacta; no se genera ningún ACK nuevo ni reenvío.
+
+**Precaución:** la transacción solo cubre la base destino; la base cifrada fuente se lee pero no se modifica. El usuario sigue sin necesitar nuevas cuentas ni verificaciones para la prueba local de lectura ya validada. Esta nueva acción 6a requiere una cuenta **ya autorizada** y una nota cifrada **ya recibida**; no está habilitada en `Inicio seguro` ni se ha probado aún el transporte Android↔Android real.
