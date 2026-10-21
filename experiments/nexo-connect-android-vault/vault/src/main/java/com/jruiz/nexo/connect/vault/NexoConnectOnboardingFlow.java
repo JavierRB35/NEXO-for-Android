@@ -22,6 +22,11 @@ public final class NexoConnectOnboardingFlow {
         VerifiedAccount verifyLoginOtp(String email,String code)throws Exception;
         int enrollDevice(VerifiedAccount verified,String freshDeviceOtp,
                 boolean replacement,boolean approved)throws Exception;
+        /** Explicit, server-backed reconciliation; default FAILS CLOSED. */
+        default NexoConnectDeviceRecoveryClient.Outcome reconcile(
+                VerifiedAccount verified)throws Exception{
+            throw new GeneralSecurityException("Device recovery unavailable");
+        }
     }
     public static final class VerifiedAccount {
         public final UUID accountId;
@@ -61,6 +66,15 @@ public final class NexoConnectOnboardingFlow {
                 verifiedSession=session;
                 return new VerifiedAccount(session.accountId,session.email);
             }
+            @Override public NexoConnectDeviceRecoveryClient.Outcome reconcile(
+                    VerifiedAccount verified)throws Exception {
+                if(verifiedSession==null||
+                        !verifiedSession.accountId.equals(verified.accountId))
+                    throw new GeneralSecurityException("Recovery account mismatch");
+                return new NexoConnectDeviceRecoveryClient(
+                        origin,publicKey,verifiedSession,verified.accountId,
+                        newDevice,signingPrivate).checkOnce();
+            }
             @Override public int enrollDevice(VerifiedAccount verified,String deviceOtp,
                     boolean replacement,boolean approved)throws Exception {
                 NexoConnectEmailOtpClient.VerifiedSession active=verifiedSession;
@@ -92,6 +106,42 @@ public final class NexoConnectOnboardingFlow {
     }
     public synchronized int generation(){return generation;}
     public synchronized boolean replacement(){return replace;}
+    private NexoConnectDeviceRecoveryClient.State lastRecovery;
+    public synchronized NexoConnectDeviceRecoveryClient.State lastRecovery(){
+        return lastRecovery;
+    }
+
+    /**
+     * After an uncertain device-enrollment POST: check server status and
+     * Ed25519 proof, without sending an OTP again. User initiates manually.
+     */
+    public synchronized NexoConnectDeviceRecoveryClient.State reconcile()
+            throws Exception {
+        requireStage(Stage.RECOVER_FROM_UNKNOWN_RESULT);
+        NexoConnectDeviceRecoveryClient.Outcome result=backend.reconcile(account);
+        if(result==null||result.state==null)
+            throw new GeneralSecurityException("Unknown remote status");
+        lastRecovery=result.state;
+        switch(result.state){
+            case OWN_DEVICE_CONFIRMED:
+                if(result.generation<=0||(replace&&result.generation<2)||
+                        (!replace&&result.generation!=1))
+                    throw new GeneralSecurityException("Recovery generation mismatch");
+                generation=result.generation;
+                stage=Stage.COMPLETE;
+                break;
+            case NO_REGISTERED_DEVICE:
+            case ANOTHER_DEVICE:
+                // Never retry the old second OTP. User must explicitly
+                // request a NEW code and choose replacement again.
+                generation=0;
+                stage=Stage.REQUEST_DEVICE_CODE;
+                break;
+            default:
+                // Inconclusive: stay blocked to avoid duplicate enrollment.
+        }
+        return result.state;
+    }
 
     /** Auth sends first OTP; account creation must be an explicit user choice. */
     public synchronized void requestLogin(String email,boolean createAccount)

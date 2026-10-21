@@ -14,6 +14,9 @@ public class NexoConnectOnboardingFlowTest {
         int mailCalls,verifyCalls,enrollCalls;
         boolean rejectEnrollment;
         boolean replacementObserved;
+        NexoConnectDeviceRecoveryClient.State recoveryState=
+                NexoConnectDeviceRecoveryClient.State.INCONCLUSIVE;
+        int recoveryGeneration,recoveryCalls;
         @Override public void sendEmailOtp(String email,boolean createAccount){
             assertEquals("user@example.org",email);
             mailCalls++;
@@ -24,6 +27,13 @@ public class NexoConnectOnboardingFlowTest {
             assertEquals("111111",otp);
             verifyCalls++;
             return new NexoConnectOnboardingFlow.VerifiedAccount(ACCOUNT,email);
+        }
+        @Override public NexoConnectDeviceRecoveryClient.Outcome reconcile(
+                NexoConnectOnboardingFlow.VerifiedAccount user)throws Exception{
+            assertEquals(ACCOUNT,user.accountId);
+            recoveryCalls++;
+            return NexoConnectDeviceRecoveryClient.testOutcome(
+                    recoveryState,recoveryGeneration);
         }
         @Override public int enrollDevice(
                 NexoConnectOnboardingFlow.VerifiedAccount user,String second,
@@ -85,6 +95,48 @@ public class NexoConnectOnboardingFlowTest {
         try{flow.requestLogin("user@example.org",false);fail("Repeated request");}
         catch(IllegalStateException expected){}
         assertEquals(1,fake.mailCalls);
+    }
+
+    @Test public void uncertainEnrollmentCanBeConfirmedOnlyByRemoteSignedProof()
+            throws Exception{
+        Fake fake=new Fake();fake.rejectEnrollment=true;
+        NexoConnectOnboardingFlow flow=new NexoConnectOnboardingFlow(fake);
+        flow.requestLogin("user@example.org",false);
+        flow.verifyLogin("111111");flow.requestDeviceCode(true);
+        try{flow.confirmDevice("222222",true);fail("Unexpected response");}
+        catch(java.io.IOException expected){}
+        assertEquals(NexoConnectOnboardingFlow.Stage.RECOVER_FROM_UNKNOWN_RESULT,
+                flow.stage());
+        assertEquals(NexoConnectDeviceRecoveryClient.State.INCONCLUSIVE,
+                flow.reconcile());
+        assertEquals(NexoConnectOnboardingFlow.Stage.RECOVER_FROM_UNKNOWN_RESULT,
+                flow.stage());
+        fake.recoveryState=NexoConnectDeviceRecoveryClient.State.OWN_DEVICE_CONFIRMED;
+        fake.recoveryGeneration=2;
+        assertEquals(fake.recoveryState,flow.reconcile());
+        assertEquals(NexoConnectOnboardingFlow.Stage.COMPLETE,flow.stage());
+        assertEquals(2,flow.generation());
+        assertEquals(1,fake.enrollCalls);
+        assertEquals(2,fake.recoveryCalls);
+    }
+    @Test public void absentOrReplacedPhoneNeedsFreshOtpNeverReplays()throws Exception{
+        for(NexoConnectDeviceRecoveryClient.State state:new NexoConnectDeviceRecoveryClient.State[]{
+                NexoConnectDeviceRecoveryClient.State.NO_REGISTERED_DEVICE,
+                NexoConnectDeviceRecoveryClient.State.ANOTHER_DEVICE}){
+            Fake fake=new Fake();fake.rejectEnrollment=true;
+            NexoConnectOnboardingFlow flow=new NexoConnectOnboardingFlow(fake);
+            flow.requestLogin("user@example.org",false);
+            flow.verifyLogin("111111");flow.requestDeviceCode(false);
+            try{flow.confirmDevice("222222",true);fail("Unexpected response");}
+            catch(java.io.IOException expected){}
+            fake.recoveryState=state;
+            assertEquals(state,flow.reconcile());
+            assertEquals(NexoConnectOnboardingFlow.Stage.REQUEST_DEVICE_CODE,flow.stage());
+            assertEquals(1,fake.enrollCalls);
+            flow.requestDeviceCode(true);
+            assertEquals(3,fake.mailCalls);
+            assertEquals(NexoConnectOnboardingFlow.Stage.ENROLL_DEVICE,flow.stage());
+        }
     }
 
     @Test public void missingSecondCodeDoesNotContactEnrollment()throws Exception{

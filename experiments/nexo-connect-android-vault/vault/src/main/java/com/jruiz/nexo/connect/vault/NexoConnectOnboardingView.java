@@ -82,8 +82,7 @@ public final class NexoConnectOnboardingView extends ScrollView {
     private void advance(){
         if(busy)return;
         final NexoConnectOnboardingFlow.Stage s=flow.stage();
-        if(s==NexoConnectOnboardingFlow.Stage.COMPLETE||
-                s==NexoConnectOnboardingFlow.Stage.RECOVER_FROM_UNKNOWN_RESULT)return;
+        if(s==NexoConnectOnboardingFlow.Stage.COMPLETE)return;
         final String address=email.getText().toString();
         final String submitted=code.getText().toString();
         final boolean newAccount=createAccount.isChecked();
@@ -101,6 +100,7 @@ public final class NexoConnectOnboardingView extends ScrollView {
                     case VERIFY_LOGIN_CODE:flow.verifyLogin(submitted);break;
                     case REQUEST_DEVICE_CODE:flow.requestDeviceCode(replacement);break;
                     case ENROLL_DEVICE:flow.confirmDevice(submitted,approved);break;
+                    case RECOVER_FROM_UNKNOWN_RESULT:flow.reconcile();break;
                     default:throw new IllegalStateException("Invalid enrollment step");
                 }
             }catch(Exception ex){error=ex;}
@@ -116,7 +116,14 @@ public final class NexoConnectOnboardingView extends ScrollView {
                           "estado del móvil y solicita otro código."
                         :"No se ha completado este paso. Comprueba los datos.");
                 } else {
-                    status.setText("Paso completado.");
+                    status.setText(flow.stage()==
+                            NexoConnectOnboardingFlow.Stage.RECOVER_FROM_UNKNOWN_RESULT
+                        ?"El servidor aún no ha confirmado este teléfono. "+
+                          "No se ha reenviado el código."
+                        :flow.stage()==NexoConnectOnboardingFlow.Stage.REQUEST_DEVICE_CODE
+                        ?"Estado consultado. Solicita otro SEGUNDO código y "+
+                          "confirma expresamente si vas a sustituir un teléfono."
+                        :"Paso completado.");
                     if(flow.stage()==NexoConnectOnboardingFlow.Stage.COMPLETE)
                         listener.onDeviceEnrolled(flow.accountId(),flow.generation());
                 }
@@ -139,7 +146,9 @@ public final class NexoConnectOnboardingView extends ScrollView {
         code.setVisibility(verify||enroll?View.VISIBLE:View.GONE);
         replace.setVisibility(ask?View.VISIBLE:View.GONE);
         consent.setVisibility(enroll?View.VISIBLE:View.GONE);
-        next.setEnabled(!busy&&(login||verify||ask||(enroll&&consent.isChecked())));
+        next.setEnabled(!busy&&(login||verify||ask||
+                (enroll&&consent.isChecked())||
+                s==NexoConnectOnboardingFlow.Stage.RECOVER_FROM_UNKNOWN_RESULT));
         if(enroll)consent.setOnCheckedChangeListener((b,checked)->render());
         switch(s){
             case REQUEST_LOGIN_CODE:
@@ -162,9 +171,9 @@ public final class NexoConnectOnboardingView extends ScrollView {
                         flow.generation()+".");
                 next.setText("Finalizado");break;
             default:
-                instructions.setText("Resultado de red incierto. No se volverá "+
-                        "a enviar este código. Es necesaria una conciliación.");
-                next.setText("Revisar estado");break;
+                instructions.setText("Resultado incierto. Consulta el estado "+
+                        "y comprueba la firma del móvil sin reenviar el OTP.");
+                next.setText("Comprobar estado sin reenviar");break;
         }
     }
     private TextView label(String text,int sp){

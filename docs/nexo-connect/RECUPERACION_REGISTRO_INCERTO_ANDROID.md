@@ -15,3 +15,5 @@ La vista y la máquina de estados de alta se conectarán a este componente
 en un commit posterior. Quedan por conectar Tink keysets persistentes,
 prueba de Supabase desplegado y validación con dos teléfonos físicos.
 Rama experimental solamente, sin despliegue ni merge.
+
+Integración completa: `NexoConnectOnboardingFlow.reconcile()` invoca el cliente HTTPS real exclusivamente tras `RECOVER_FROM_UNKNOWN_RESULT` y la vista ofrece «Comprobar estado sin reenviar». Resultado coincidente + firma de teléfono válida cierra el flujo; ausencia/otro teléfono permite solicitar un NUEVO segundo OTP; firma no confirmada conserva bloqueo. Pruebas instrumentadas de máquina de estados validan ambas rutas y que ninguna reimporta ni reenvía automáticamente el código.
