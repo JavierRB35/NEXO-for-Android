@@ -8,7 +8,7 @@ on:
       - '.github/workflows/nexo-connect-pilot-apk.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build-pilot-apk:
     name: Compilar Nexo Connect Pruebas APK
@@ -36,3 +36,14 @@ jobs:
           path: experiments/nexo-connect-android-vault/pilot/build/outputs/apk/debug/pilot-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish DIRECT APK lab prerelease (never mark as latest)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: nexo-connect-pilot-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cp experiments/nexo-connect-android-vault/pilot/build/outputs/apk/debug/pilot-debug.apk NexoConnectPruebas.apk
+          sha256sum NexoConnectPruebas.apk
+          gh release create "$TAG" NexoConnectPruebas.apk --target "$GITHUB_SHA" --prerelease --latest=false --title "Nexo Connect Pruebas 0.1.0 · LAB (APK)" --notes "APK DEBUG EXCLUSIVAMENTE DE LABORATORIO, compilada con Java 17 / SDK 34 desde la rama experimental. No modifica Nexo estable. Usa cuentas distintas y no envíes datos reales. No está certificada ni validada entre dos móviles reales. El proyecto Nexo Connect de Supabase es independiente de Nexo Familia."
