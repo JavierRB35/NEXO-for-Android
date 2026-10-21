@@ -51,8 +51,6 @@ public final class LiveE2EEConsole {
     private static final String ORIGIN="https://"+LAB+".supabase.co";
     private static final String PUBLIC_KEY="sb_publishable_rsDUyUEyuXcjkyKsSxZFUg_RezHhNUk";
     private static final String PREFIX="/functions/v1/nexo-connect-gateway/";
-    private static final String A_EMAIL="cjruizbermudez+nexoconnect-a-ae95f331@gmail.com";
-    private static final String B_EMAIL="cjruizbermudez+nexoconnect-b-ae95f331@gmail.com";
     private static final UUID A_ID=UUID.fromString("f8770874-5a2f-43c3-8d81-d57e1539e625");
     private static final UUID B_ID=UUID.fromString("a02e17b0-2c11-4d13-b390-f8af3376d80f");
     private static final String PROOF_DOMAIN="NEXO-CONNECT-PROOF-V1";
@@ -439,7 +437,7 @@ public final class LiveE2EEConsole {
         pass("revocación real canceló mensaje no entregado y no restauró confianza");
     }
     private static void selfTest()throws Exception{
-        LabUser sender=new LabUser(A_ID,A_EMAIL),recipient=new LabUser(B_ID,B_EMAIL);
+        LabUser sender=new LabUser(A_ID,"lab-a@example.invalid"),recipient=new LabUser(B_ID,"lab-b@example.invalid");
         sender.id=A_ID;recipient.id=B_ID;sender.generation=2;recipient.generation=2;
         createKeys(sender);createKeys(recipient);
         JsonObject data=buildNote("OFFLINE");
@@ -460,9 +458,15 @@ public final class LiveE2EEConsole {
         if(args.length==1&&"--selftest".equals(args[0]))return;
         check(args.length==1&&"--live".equals(args[0]),
             "Solo se acepta --selftest o --live");
-        a=new LabUser(A_ID,A_EMAIL);b=new LabUser(B_ID,B_EMAIL);
+
         System.out.println("\nNEXO LABORATORIO - E2EE REAL SIN CAMARAS NI EMULADORES");
-        System.out.println("Solo cuentas de prueba preexistentes: "+A_EMAIL+" y "+B_EMAIL);
+        System.out.println("Exclusivamente dos usuarios LAB preexistentes: se comprobará su UUID.");
+        String emailA=prompt("Correo/alias LAB A: ").toLowerCase();
+        String emailB=prompt("Correo/alias LAB B: ").toLowerCase();
+        check(emailA.matches("[a-z0-9._%+-]+@[a-z0-9.-]+") &&
+              emailB.matches("[a-z0-9._%+-]+@[a-z0-9.-]+") &&
+              !emailA.equals(emailB),"Alias de laboratorio inválidos");
+        a=new LabUser(A_ID,emailA);b=new LabUser(B_ID,emailB);
         System.out.println("Se REEMPLAZARÁ el dispositivo de cada una con NUEVAS claves");
         System.out.println("y un OTP de registro adicional por cuenta, no se generarán usuarios.");
         System.out.println("Se enviarán notas sintéticas cifradas y se revocará el contacto.");
