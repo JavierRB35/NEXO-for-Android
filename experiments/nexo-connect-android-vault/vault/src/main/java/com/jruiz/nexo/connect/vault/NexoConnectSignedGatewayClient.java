@@ -306,7 +306,7 @@ public final class NexoConnectSignedGatewayClient {
         validateLocalSealedEnvelope(sealedEnvelope);
         JSONObject answer=execute("delivery/send",sealedEnvelope);
         String expected=sealedEnvelope.optString("deliveryId","");
-        if(!expected.matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+        if(!isUuid(expected)
                 ||!expected.equals(answer.optString("deliveryId",""))
                 ||!"pending".equals(answer.optString("status","")))
             throw new GeneralSecurityException("Invalid send confirmation");
