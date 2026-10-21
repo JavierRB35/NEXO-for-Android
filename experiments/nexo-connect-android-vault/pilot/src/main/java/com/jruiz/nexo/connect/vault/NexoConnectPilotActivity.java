@@ -149,9 +149,6 @@ public final class NexoConnectPilotActivity extends Activity {
             email.setInputType(InputType.TYPE_CLASS_TEXT|
                     InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
             email.setText(accountEmail);
-            CheckBox create=new CheckBox(this);
-            create.setText("Crear cuenta nueva con este correo");
-            column.addView(create);
             if(sessionVault.exists()){
                 label("Este teléfono tiene una sesión protegida. Entrar no envía correos.",14);
                 button("Entrar",()->{
@@ -191,6 +188,9 @@ public final class NexoConnectPilotActivity extends Activity {
                 });
                 return;
             }
+            CheckBox create=new CheckBox(this);
+            create.setText("Crear cuenta nueva con este correo");
+            column.addView(create);
             button("1. Solicitar código de acceso",()->{
                 String address=email.getText().toString().trim();
                 runWork(()->{otp.sendEmailCode(address,create.isChecked());
