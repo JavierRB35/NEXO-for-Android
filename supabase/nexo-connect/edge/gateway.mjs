@@ -2,6 +2,7 @@
 // Signed invite requests use bytes EXACTLY as transmitted, preventing altered JSON.
 import {verifyDeviceProof} from "./proof.mjs";
 import {validateSignedEnvelope} from "./delivery.mjs";
+import {verifyEnrollmentRequest,completeEnrollment} from "./enrollment.mjs";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ACTIONS=new Set([
   "contact/invite","contact/accept","contact/permissions",
@@ -45,7 +46,7 @@ function validDevice(device,userId) {
     &&Number.isSafeInteger(device.generation)&&device.generation>0);
 }
 export function createGateway({
-  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,resolveDelivery,sendDelivery,listInbox,openDelivery,clock=()=>Date.now()
+  authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,resolveDelivery,sendDelivery,listInbox,openDelivery,verifyFreshOtp,enrollDevice,clock=()=>Date.now()
 }) {
   if (![authenticate,getDevice,issueChallenge,consumeChallenge,createInvite,acceptInvite,verifyPeer,setReceivePermission,unlinkContact,clock]
       .every(x=>typeof x==="function"))
@@ -61,7 +62,7 @@ export function createGateway({
     try{
       if(request.method!=="POST")return reply(405,{error:"method-not-allowed"});
       const path=normalizePath(new URL(request.url).pathname);
-      if(!["/status","/challenge","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink","/delivery/resolve","/delivery/send","/delivery/inbox","/delivery/open"].includes(path))
+      if(!["/status","/challenge","/device/enroll","/contact/invite","/contact/accept","/key/verify","/contact/permissions","/contact/unlink","/delivery/resolve","/delivery/send","/delivery/inbox","/delivery/open"].includes(path))
         return reply(404,{error:"unknown-action"});
       const bearer=request.headers.get("authorization");
       if(!bearer||!bearer.startsWith("Bearer ")||
@@ -82,6 +83,27 @@ export function createGateway({
       }
       if(!data||typeof data!=="object"||Array.isArray(data))
         return reply(400,{error:"invalid-json"});
+      if(path==="/device/enroll"){
+        if(typeof verifyFreshOtp!=="function"||typeof enrollDevice!=="function")
+          return reply(503,{error:"temporarily-unavailable"});
+        let verified;
+        try {
+          verified=await verifyEnrollmentRequest({
+            userId:user.id,data,body:bytes,headers:request.headers,
+            nowMillis:clock()
+          });
+        }catch(error){return reply(403,{error:"invalid-enrollment-proof"});}
+        try {
+          const enrolled=await completeEnrollment({
+            user,parsed:verified,verifyFreshOtp,enrollDevice
+          });
+          return reply(201,enrolled);
+        }catch(error){
+          // No response may reveal whether a code, user, prior device,
+          // or RPC was responsible. Audit telemetry must not log OTP.
+          return reply(403,{error:"enrollment-denied"});
+        }
+      }
       const device=await getDevice(user.id);
       if(path==="/status"){
         if(Object.keys(data).length)return reply(400,{error:"unexpected-fields"});

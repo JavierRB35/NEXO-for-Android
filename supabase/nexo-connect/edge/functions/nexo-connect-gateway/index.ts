@@ -33,8 +33,28 @@ const gateway=createGateway({
   authenticate:async token=>{
     const {data,error}=await auth.auth.getUser(token);
     if(error||!data?.user)return null;
-    return {id:data.user.id};
+    return {id:data.user.id,email:data.user.email,
+      emailConfirmed:Boolean(data.user.email_confirmed_at)};
   },
+  verifyFreshOtp:async({userId,email,otp})=>{
+    // Use a fresh Auth client per request: verifyOtp mutates Auth session
+    // state. Never reuse an Auth client containing a session from another call.
+    const otpAuth=createClient(url,anon,{
+      auth:{persistSession:false,autoRefreshToken:false}
+    });
+    const {data,error}=await otpAuth.auth.verifyOtp({
+      email,token:otp,type:"email"
+    });
+    return !error&&data?.user?.id===userId&&
+      data?.user?.email?.toLowerCase()===email.toLowerCase()&&
+      Boolean(data?.session?.access_token);
+  },
+  enrollDevice:async({userId,deviceId,replace,signingRaw,encryptionRaw})=>
+    rpc("nexo_connect_enroll_device",{
+      p_user:userId,p_device:deviceId,p_replace:replace,
+      p_signing_raw:bytesToBytea(signingRaw),
+      p_encryption_raw:bytesToBytea(encryptionRaw)
+    }),
   getDevice:async userId=>{
     const data=await rpc("nexo_connect_proof_device",{p_user:userId});
     const device=Array.isArray(data)?data[0]??null:null;
