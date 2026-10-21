@@ -140,10 +140,19 @@ public class NexoConnectPilotActivity extends Activity {
                 }).show();
     }
 
+    /**
+     * Host-specific, pre-authentication UI only. By default no action exists.
+     * Never use this hook to send content, mint identities or access a network.
+     */
+    protected void addHostSetupActions(){}
+
     private void showSetup(){
         screen("Inicio seguro",false);
         label("Necesitas dos CORREOS DISTINTOS, uno en cada móvil. "+
               "El primer código inicia sesión; otro diferente registra el teléfono.",14);
+        // Only the integrated Nexo DEBUG subclass offers read-only previews.
+        // Standalone pilot deliberately does not expose Nexo's SQLite.
+        addHostSetupActions();
         if(stage==EMAIL){
             EditText email=input("Correo de esta cuenta",false);
             email.setInputType(InputType.TYPE_CLASS_TEXT|

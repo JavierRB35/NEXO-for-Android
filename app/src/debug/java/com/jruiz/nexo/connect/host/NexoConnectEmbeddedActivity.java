@@ -21,13 +21,25 @@ import java.util.List;
  * files, no note mutations, and no plaintext Intent extras.
  */
 public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity {
-    @Override protected void addHostActions() {
+    /**
+     * Debug-only local preview available even without an account or verified
+     * contacts. Does not authenticate, encrypt, upload, enroll or send.
+     */
+    @Override protected void addHostSetupActions() {
         if (BuildConfig.DEBUG) {
-            button("5a. Enviar nota guardada en Nexo", this::pickSavedNote);
+            button("Vista previa de notas de Nexo · sin cuenta y sin envío",
+                    () -> pickSavedNote(true));
         }
     }
 
-    private void pickSavedNote() {
+    @Override protected void addHostActions() {
+        if (BuildConfig.DEBUG) {
+            button("5a. Enviar nota guardada en Nexo",
+                    () -> pickSavedNote(false));
+        }
+    }
+
+    private void pickSavedNote(boolean previewOnly) {
         if (!BuildConfig.DEBUG) return;
         final List<Long> ids = new ArrayList<>();
         final List<String> titles = new ArrayList<>();
@@ -61,14 +73,16 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
             return;
         }
         new AlertDialog.Builder(this)
-            .setTitle("Elegir nota guardada")
-            .setMessage("Solo se prepararan el titulo y el texto. No se incluyen archivos, adjuntos ni metadatos privados.")
+            .setTitle(previewOnly ? "Elegir nota de Nexo · vista local" : "Elegir nota guardada")
+            .setMessage(previewOnly
+                    ? "Prueba sin cuenta: selecciona una nota para verla en este teléfono. No se enviará nada."
+                    : "Solo se prepararán el título y el texto. No se incluyen archivos ni adjuntos.")
             .setItems(titles.toArray(new String[0]), (dialog, index) ->
-                    reviewSavedNote(ids.get(index)))
+                    reviewSavedNote(ids.get(index), previewOnly))
             .setNegativeButton("Cancelar", null).show();
     }
 
-    private void reviewSavedNote(long noteId) {
+    private void reviewSavedNote(long noteId, boolean previewOnly) {
         if (!BuildConfig.DEBUG || noteId <= 0) return;
         try (DatabaseHelper db = new DatabaseHelper(this)) {
             // Re-read at selection time so no deleted/edited row is used from
@@ -81,8 +95,27 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
             }
             String title = note.optString("title", "").trim();
             String body = note.optString("body", "");
-            // The base activity checks size, then asks for a QR-pinned peer,
-            // previews the copy, and requires one final explicit confirmation.
+
+            if (previewOnly) {
+                // No network client is instantiated, no encryption/session/OTP
+                // is needed, and there is no button to send from this dialog.
+                final int maxPreview = 2000;
+                String excerpt = body.length() > maxPreview
+                        ? body.substring(0, maxPreview) +
+                            "\n\n[Vista previa limitada a 2000 caracteres]"
+                        : body;
+                new AlertDialog.Builder(this)
+                    .setTitle("Vista previa local · no se envía")
+                    .setMessage("Título:\n" + title + "\n\nTexto:\n" +
+                            excerpt + "\n\nCaracteres del texto: " +
+                            body.length() +
+                            "\n\nEsto solo comprueba la lectura de notas. " +
+                            "No verifica el cifrado ni realiza ninguna conexión.")
+                    .setPositiveButton("Cerrar", null).show();
+                return;
+            }
+            // The base activity checks size, asks for a QR-pinned peer,
+            // shows editable content, and demands final explicit confirmation.
             offerHostNote(title, body);
         } catch (Exception failure) {
             showPickerError("No se pudo abrir la nota elegida.");

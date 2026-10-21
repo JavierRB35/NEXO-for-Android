@@ -93,3 +93,13 @@ Flujo seguro: el usuario abre un selector de hasta 100 notas **ya guardadas** de
 **Limitaciones y revisión pendientes:** este primer envío usa solo título y cuerpo, por lo que no replica metadatos, enlaces, archivos ni bases de datos; requiere configurar la identidad de la instalación integrada y establecer confianza mutua. Las notas recibidas siguen en `nexo-connect-pilot.db` privado hasta validar la importación atómica en la base principal y los ACK tras COMMIT. Esta funcionalidad no está validada en un intercambio HTTPS Android↔Android ni está lista para producción.
 
 Compilar en Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File .\run-local-tests.ps1 -MainOnly`. Una vez generado `app-debug.apk`, instalar únicamente en Pixel_6 con `adb -s emulator-5554 install -r`, preservando el piloto externo.
+
+## Prueba de notas sin cuenta de Nexo Connect integrada
+
+Como la Activity integrada tiene un almacenamiento Android Keystore distinto del APK piloto, la instalación integrada **no posee aún una identidad registrada en Supabase LAB**. Para no pedir al usuario otra cuenta, un nuevo enrolamiento que podría revocar el dispositivo anterior, ni trasladar secretos entre aplicaciones, existe ahora una prueba solo local.
+
+Desde `Ajustes → Nexo Connect · experimental → Abrir Connect integrado (LAB)`, aun en `Inicio seguro`, aparece `Vista previa de notas de Nexo · sin cuenta y sin envío`. La opción usa el mismo selector de notas guardadas de `DatabaseHelper`, lee una nota bajo decisión explícita del usuario y muestra hasta 2000 caracteres de contenido en un cuadro de diálogo con **únicamente «Cerrar»**. No llama a `offerHostNote`, no busca destinatarios ni accede al transporte, autenticación o servidor; no guarda ni envía nada. El hook `addHostSetupActions()` por defecto es vacío y el piloto independiente no muestra este control.
+
+En una sesión LAB ya autorizada sigue existiendo `5a. Enviar nota guardada en Nexo`: ese camino separado exige contacto verificado, revisión de mensaje y confirmación antes del único intento de envío cifrado. La prueba sin cuenta **no valida cifrado ni intercambio HTTPS**.
+
+Compilar localmente con `run-local-tests.ps1 -MainOnly` y actualizar únicamente `emulator-5554`; no realizar enrolamientos para esta prueba. La PR permanece en borrador.
