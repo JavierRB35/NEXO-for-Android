@@ -147,7 +147,27 @@ jobs:
           target: default
           profile: pixel_2
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
-          script: gradle -p experiments/nexo-connect-android-vault :vault:connectedDebugAndroidTest --no-daemon --max-workers=1 --stacktrace
+          script: |
+            set +e
+            # Keep the last logcat events even when AndroidJUnitRunner dies
+            # before producing any JUnit XML (the earlier 0/0 CI failure).
+            adb logcat -c
+            adb shell pm list instrumentation
+            gradle -p experiments/nexo-connect-android-vault :vault:connectedDebugAndroidTest --no-daemon --max-workers=1 --stacktrace --info
+            result=$?
+            adb logcat -d -v threadtime -t 10000 > nexo-connect-emulator-logcat.txt || true
+            exit "$result"
+      - name: Collect Android instrumentation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexo-connect-keystore-emulator-diagnostics
+          path: |
+            nexo-connect-emulator-logcat.txt
+            experiments/nexo-connect-android-vault/vault/build/reports/androidTests/connected/
+            experiments/nexo-connect-android-vault/vault/build/outputs/androidTest-results/
+          if-no-files-found: warn
+          retention-days: 14
 
   device-proof-unit-tests:
     name: Request signatures, anti-replay proof (Node WebCrypto)
