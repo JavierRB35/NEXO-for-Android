@@ -58,3 +58,18 @@ Omitir los tests del emulador: añadir `-SkipEmulator`. Ninguna variante usa Git
 - Integrar en la interfaz nativa de Nexo consentimiento por destinatario, envío de notas y listas, bandeja de entrada y recepción verificada con inserción SQLite atómica.
 - Manejar revocaciones, reenvíos inciertos sin bucles, fallos de ACK, cambios de teléfono, recuperación y accesibilidad.
 - Ensayo HTTPS real desde **dos Android** y revisión independiente de seguridad antes de unir PR #65. Los 102 tests por AVD prueban componentes locales, no este escenario completo.
+
+## Windows: solución al error de biblioteca Sherpa ausente
+
+La APK completa Nexo requiere la dependencia local `app/libs/sherpa-onnx-1.13.7.aar`, ignorada expresamente por Git (`.gitignore`). El instalador Linux `prepare-transcription-runtime.sh` no se ejecutaba al usar `run-local-tests.ps1` en Windows, lo que ocasionaba `checkDebugAarMetadata FAILED`.
+
+El script PowerShell ahora ejecuta `Ensure-SherpaRuntime` **solamente si se compila Nexo principal**. Si falta, descarga una vez la versión v1.13.7 desde la release oficial `k2-fsa/sherpa-onnx`, verifica SHA-256 `c4ef49e309f24fcee5c106b8a279481aaecaabb078cd37b2cd6e9a62cc8a73c8` (mismo pin que el script Linux), y solo entonces la instala en `app/libs`. Rechaza archivos con un hash erróneo. No cambia versiones de JDK, Gradle o Android y **no utiliza GitHub Actions**.
+
+Para reintentar únicamente Nexo principal sin repetir el piloto ni los 102 tests por AVD, en PowerShell desde `experiments/nexo-connect-android-vault`:
+
+```powershell
+git pull --ff-only origin experiment/nexo-connect-phase0-crypto
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run-local-tests.ps1 -MainOnly
+```
+
+Esta instrucción genera solo un APK de depuración de Nexo y no lo instala ni fusiona la PR. La primera descarga necesita conexión a GitHub Releases, no a Actions.
