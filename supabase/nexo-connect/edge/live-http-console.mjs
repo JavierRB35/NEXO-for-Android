@@ -20,6 +20,7 @@
 import {webcrypto, randomUUID} from "node:crypto";
 import {createInterface} from "node:readline/promises";
 import {stdin as input,stdout as output} from "node:process";
+import {pathToFileURL} from "node:url";
 import {buildDeviceCanonicalRequest,encodeBase64Url} from "./proof.mjs";
 import {buildEnrollmentCanonical} from "./enrollment-proof.mjs";
 
@@ -341,7 +342,7 @@ async function run(){
     rl.close();
   }
 }
-const launched=process.argv[1]&&new URL("file://"+process.argv[1].replace(/\\/g,"/")).href===import.meta.url;
+const launched=Boolean(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url);
 if(launched){
   run().catch(error=>{
     // Never include user inputs, JWT or server response bodies in output.
