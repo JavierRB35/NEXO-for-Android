@@ -66,13 +66,13 @@ function Ensure-SherpaRuntime {
 
 if (-not $MainOnly) {
     Invoke-GradleStep 'Test criptografia Java 17 / Google Tink (sin red)' $cryptoProject @('test')
-Invoke-GradleStep 'Compilar APK piloto de Android (SDK 34)' $androidProject @(':pilot:assembleDebug')
-Invoke-GradleStep 'Compilar instrumentacion Android' $androidProject @(':vault:assembleDebugAndroidTest')
-if (-not $SkipEmulator) {
-    Invoke-GradleStep 'Ejecutar TODAS las pruebas en los AVD conectados' $androidProject @(':vault:connectedDebugAndroidTest')
-} else {
-    Write-Host 'Pruebas instrumentadas omitidas a peticion (SkipEmulator).' -ForegroundColor Yellow
-}
+    Invoke-GradleStep 'Compilar APK piloto de Android (SDK 34)' $androidProject @(':pilot:assembleDebug')
+    Invoke-GradleStep 'Compilar instrumentacion Android' $androidProject @(':vault:assembleDebugAndroidTest')
+    if (-not $SkipEmulator) {
+        Invoke-GradleStep 'Ejecutar TODAS las pruebas en los AVD conectados' $androidProject @(':vault:connectedDebugAndroidTest')
+    } else {
+        Write-Host 'Pruebas instrumentadas omitidas a peticion (SkipEmulator).' -ForegroundColor Yellow
+    }
 }
 if ($IncludeNexoMain) {
     Ensure-SherpaRuntime
