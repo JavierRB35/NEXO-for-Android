@@ -13,7 +13,7 @@
  * unlink/revocation. There is NO encrypted note delivery in this version;
  * it must NOT be called a full E2EE message test.
  *
- * WARNING: creates two persistent Auth users and device records in the
+ * WARNING: creates or reuses two Auth users and creates device records in the
  * dedicated LAB project. Unlink is attempted in finally, but account cleanup
  * requires a subsequent, separately authorized admin step. Not a staging DB.
  */
@@ -214,11 +214,11 @@ async function run(){
   try{
     process.stdout.write(
       "\nSOLO LABORATORIO "+PROJECT+"; jamás terminales físicos.\n"+
-      "Se crearán DOS usuarios Auth persistentes y dos registros de dispositivo.\n"+
+      "Se crearán o reutilizarán DOS usuarios Auth de laboratorio y se registrarán dos dispositivos.\n"+
       "El script desconectará el contacto, pero NO borrará usuarios Auth.\n"+
       "Se necesitan CUATRO OTP, dos por cuenta. No enviar códigos ni QR al chat.\n");
     const mode=(await rl.question(
-      "¿Usar una cuenta Gmail con dos alias (+), o dos emails independientes? [G/D]: "
+      "¿Generar dos alias Gmail (G) o introducir dos direcciones/alias (D)? [G/D]: "
     )).trim().toUpperCase();
     insist(mode==="G"||mode==="D","Cancelled");
     let emails;
@@ -226,24 +226,29 @@ async function run(){
       const email=await rl.question("Tu correo Gmail principal (NO contraseña): ");
       emails=getEmails(email,null);
     }else{
-      const ea=await rl.question("Correo NUEVO de laboratorio A: ");
-      const eb=await rl.question("Correo NUEVO de laboratorio B: ");
+      const ea=await rl.question("Correo/alias de laboratorio A (puede existir): ");
+      const eb=await rl.question("Correo/alias de laboratorio B (puede existir): ");
       emails=getEmails(ea,eb,true);
     }
     process.stdout.write("Cuentas de prueba: "+emails.join(" | ")+"\n");
     const confirm=(await rl.question(
-      "Para crear las cuentas de laboratorio escribe PRUEBA: "
+      "Para autorizar OTP y altas de laboratorio escribe PRUEBA: "
     )).trim();
     insist(confirm==="PRUEBA","Cancelled (no network changes)");
 
-    // Request 2 independent OTPs. Never replay an OTP to enroll a device.
+    // Login strictly SEQUENTIALLY: aliases share a Gmail inbox.
+    // Verify OTP A before ever requesting OTP B, avoiding confusion.
     const sentA=await sendOtp(emails[0],true);
-    const sentB=await sendOtp(emails[1],true);
-    process.stdout.write("Enviados OTP de INICIO. Usa el código de cada alias.\n");
-    const codeA=(await rl.question("OTP inicio A: ")).trim();
+    process.stdout.write("OTP de INICIO enviado SOLO para A: "+emails[0]+"\\n");
+    const codeA=(await rl.question(
+      "Introduce el OTP del mensaje dirigido exactamente a A: ")).trim();
     insist(/^[0-9]{6,8}$/.test(codeA),"Invalid login OTP A");
     a=await login(emails[0],codeA);log("Auth JWT válido de A");
-    const codeB=(await rl.question("OTP inicio B: ")).trim();
+
+    const sentB=await sendOtp(emails[1],true);
+    process.stdout.write("OTP de INICIO enviado SOLO para B: "+emails[1]+"\\n");
+    const codeB=(await rl.question(
+      "Introduce el OTP del mensaje dirigido exactamente a B: ")).trim();
     insist(/^[0-9]{6,8}$/.test(codeB),"Invalid login OTP B");
     b=await login(emails[1],codeB);log("Auth JWT válido de B");
     insist(a.id!==b.id,"Auth assigned the same account to both testers");
