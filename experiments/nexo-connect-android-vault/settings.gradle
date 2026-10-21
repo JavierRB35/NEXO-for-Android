@@ -1,9 +1,7 @@
-pluginManagement {
-    repositories { google(); mavenCentral(); gradlePluginPortal() }
-}
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories { google(); mavenCentral() }
 }
-rootProject.name = 'nexo-connect-android-vault'
-include(':vault')
+rootProject.name='NexoConnectPruebas'
+include(':vault', ':pilot')

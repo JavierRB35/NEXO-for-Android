@@ -102,7 +102,7 @@ public final class NexoConnectLocalPhoneIdentity {
                         .setKemId(HpkeParameters.KemId.DHKEM_X25519_HKDF_SHA256)
                         .setKdfId(HpkeParameters.KdfId.HKDF_SHA256)
                         .setAeadId(HpkeParameters.AeadId.AES_256_GCM)
-                        .setVariant(HpkeParameters.Variant.TINK).build());
+                        .setVariant(HpkeParameters.Variant.NO_PREFIX).build());
             byte[] privateSign=TinkProtoKeysetFormat.serializeKeyset(
                     signing,InsecureSecretKeyAccess.get());
             byte[] privateHpke=TinkProtoKeysetFormat.serializeKeyset(
