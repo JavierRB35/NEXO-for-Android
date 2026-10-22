@@ -55,13 +55,13 @@ for required in [
     'id="homeWeekCard"',
     'id="homeCalendarCard"',
     '<small>Agenda</small>',
-    'data-panel="notes"',
-    'data-panel="medications"',
-    'data-panel="lists"',
-    'data-panel="documents"',
     'id="homeUpcomingList"',
 ]:
     assert required in home, f"Falta en Inicio: {required}"
+assert 'Accesos directos' not in home
+assert 'home-section--quick-access' not in home
+assert 'module-grid--family-info' not in home
+assert home.index('id="homeNowTitle"') < home.index('id="homeUpcomingTitle"')
 assert 'id="homeInboxPulseCard"' not in home
 assert '<strong id="homeCalendarMonth">Completa</strong>' not in home
 
