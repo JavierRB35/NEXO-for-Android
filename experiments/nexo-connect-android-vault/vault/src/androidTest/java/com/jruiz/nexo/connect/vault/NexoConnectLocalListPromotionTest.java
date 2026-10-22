@@ -46,7 +46,8 @@ public final class NexoConnectLocalListPromotionTest {
                 "source TEXT NOT NULL DEFAULT 'manual',"+
                 "note_title_manual INTEGER NOT NULL DEFAULT 0,"+
                 "status TEXT NOT NULL DEFAULT 'active',"+
-                "deleted_at INTEGER NOT NULL DEFAULT 0,"+
+                // Match the production pilot inbox: it has no deleted_at column.
+
                 "created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)");
         return db;
     }
