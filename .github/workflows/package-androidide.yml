@@ -86,7 +86,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          STAGE="$RUNNER_TEMP/Nexo_3_7_49_AndroidIDE"
+          STAGE="$RUNNER_TEMP/Nexo_3_7_51_AndroidIDE"
           mkdir -p "$STAGE"
           git archive --format=tar HEAD | tar -x -C "$STAGE"
 
@@ -104,8 +104,8 @@ jobs:
       - name: Upload clean project
         uses: actions/upload-artifact@v4
         with:
-          name: Nexo_3_7_49_AndroidIDE
-          path: ${{ runner.temp }}/Nexo_3_7_49_AndroidIDE/
+          name: Nexo_3_7_51_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_3_7_51_AndroidIDE/
           include-hidden-files: true
           if-no-files-found: error
           compression-level: 6

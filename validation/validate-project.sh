@@ -48,6 +48,7 @@ python validation/test-related-links.py
 node validation/test-list-quick-runtime.cjs
 python validation/test-version-identity.py
 python validation/test-in-app-updates.py
+python validation/test-update-critical-policy.py
 python validation/test-update-prompt-on-open.py
 python validation/test-settings-security-navigation.py
 python validation/test-category-icons.py

@@ -1,3 +1,11 @@
+## Nexo 3.7.51 — Actualizaciones críticas y opcionales
+- El aviso de nueva versión y las notificaciones identifican explícitamente la importancia de la actualización.
+- Las opcionales conservan «Actualizar» y «Más tarde».
+- Las críticas explican el motivo, bloquean la continuación y ofrecen «Actualizar ahora» o «Salir de Nexo». La instalación sigue requiriendo confirmación de Android.
+- `latest.json` recibe `critical` y `criticalReason` desde la política versionada de la APK firmada; se prohíbe reclasificar la misma versión sin incrementar versionCode.
+- Manifiestos anteriores compatibles y tratados como opcionales; se mantienen SHA-256, firma oficial, SQLite 33 y el entorno AndroidIDE.
+- La 3.7.51 se distribuye como **opcional**. Solo los clientes con esta funcionalidad pueden aplicar la obligatoriedad en futuras versiones.
+
 ## Nexo 3.7.50 — Chat integrado y diseño renovado
 
 - Connect y Chat integrados en una sola aplicación. Uso local sin registro; cuenta al conversar o compartir.

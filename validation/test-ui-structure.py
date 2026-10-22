@@ -89,11 +89,12 @@ for panel in ["history","backup"]:
 nav_start = html.index('<nav class="bottom-nav"')
 nav_end = html.index('</nav>', nav_start)
 nav = html[nav_start:nav_end]
-for dest in ["today","calendar","notes","search","inbox","tools"]:
+for dest in ["today","calendar","notes","chat","inbox","tools"]:
     assert f'data-nav="{dest}"' in nav, f"Falta navegación principal: {dest}"
 
-nav_positions = [nav.index(f'data-nav="{dest}"') for dest in ["today","calendar","notes","search","inbox","tools"]]
-assert nav_positions == sorted(nav_positions), "El orden inferior debe ser Inicio, Calendario, Notas, Buscar, Inbox, Herramientas"
+nav_positions = [nav.index(f'data-nav="{dest}"') for dest in ["today","calendar","notes","chat","inbox","tools"]]
+assert nav_positions == sorted(nav_positions), "El orden inferior debe ser Inicio, Calendario, Notas, Chat, Inbox, Tools"
+assert 'id="globalSearchBtn"' in html and 'id="homeSearchInput"' in html, "La búsqueda se conserva fuera de la barra"
 assert "if(b.dataset.nav==='notes')openPanel('notes',{root:true})" in app_js
 assert "else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true})" in app_js
 assert "route.panel==='notes'?'notes':route.panel==='inbox'?'inbox'" in app_js
