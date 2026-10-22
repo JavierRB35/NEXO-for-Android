@@ -341,12 +341,19 @@ public class NexoConnectPilotActivity extends Activity {
         addHostActions();
         button("Bandeja de entrada",this::showInbox);
         if(Build.VERSION.SDK_INT>=33 &&
-                !NexoConnectInboxNoticeJob.permitted(this)){
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=
+                        PackageManager.PERMISSION_GRANTED){
             button("Activar avisos de fichas",()->
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
                         NOTIFICATION_CONSENT));
+        }else if(!NexoConnectInboxNoticeJob.permitted(this)){
+            button("Revisar ajustes de avisos",()->
+                startActivity(new Intent(
+                    android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,
+                            getPackageName())));
         }else{
-            label("Avisos activados: comprobación periódica. Android puede retrasarlos "+
+            label("Avisos permitidos: comprobación periódica. Android puede retrasarlos "+
                     "para ahorrar batería.",12);
         }
         button("Fichas recibidas",this::showReceivedNotes);
