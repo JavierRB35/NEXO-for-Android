@@ -216,6 +216,9 @@ window.NexoBooks = (() => {
         <button id="bookDetailFavorite" type="button" class="book-favorite-toggle ${b.favorite?'active':''}" aria-pressed="${!!b.favorite}" aria-label="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}" title="${b.favorite?'Quitar de favoritos':'Añadir a favoritos'}">${uiIcon('heart')}</button>
       </div>
       <p class="book-detail-date"><strong>Categoría:</strong> ${esc(categoryOf(b)||'Sin categoría')}</p>
+      <section class="book-detail-section"><strong>Argumento / sinopsis</strong>
+        <div class="book-detail-summary">${b.synopsis?esc(b.synopsis):'<span class="muted">Todavía no has añadido un argumento.</span>'}</div>
+      </section>
       ${status==='want'?`<div class="book-detail-start-row"><button type="button" id="bookDetailStart" class="secondary-button">${uiIcon('book-reading')} Empezar lectura</button></div>`:''}
       <div class="book-rating-section book-rating-section--detail"><strong>Mi valoración</strong>
         <div class="book-rating-stars" role="group" aria-label="Valorar este libro de 1 a 5 estrellas">
@@ -248,6 +251,7 @@ window.NexoBooks = (() => {
       if(!live.id){toast('Libro no encontrado.');return;}
       const parts=[live.title,live.author?'Autor: '+live.author:'',
         categoryOf(live)?'Categoría: '+categoryOf(live):'',
+        live.synopsis?'Argumento / sinopsis:\n'+live.synopsis:'',
         labels[live.status]?'Estado: '+labels[live.status]:'',
         live.startDate?'Inicio: '+showDate(live.startDate):'',
         live.finishDate?'Finalización: '+showDate(live.finishDate):'',
@@ -272,6 +276,7 @@ window.NexoBooks = (() => {
       category:document.querySelector('#bookCategorySelect')?.value==='__custom'
         ?(document.querySelector('#bookCategoryCustom')?.value.trim()||'')
         :(document.querySelector('#bookCategorySelect')?.value||''),
+      synopsis:document.querySelector('#bookSynopsis')?.value.trim()||'',
       status:document.querySelector('#bookStatus')?.value||'want',
       progress:number(document.querySelector('#bookProgress')?.value),
       startDate:document.querySelector('#bookStartDate')?.value||'',
@@ -314,6 +319,7 @@ window.NexoBooks = (() => {
       <label>Autor<input id="bookAuthor" type="text" maxlength="180" value="${escAttr(source.author||'')}" placeholder="Nombre del autor" required></label>
       <label>Categoría<select id="bookCategorySelect">${categoryOptions(selectedCategory)}</select></label>
       <label id="bookCategoryCustomRow" class="hidden">Nueva categoría<input id="bookCategoryCustom" type="text" maxlength="80" placeholder="Nombre de la categoría"></label>
+      <label>Argumento / sinopsis <span class="optional">(opcional)</span><textarea id="bookSynopsis" rows="5" maxlength="20000" placeholder="¿De qué trata? Anótalo al añadir el libro para recordarlo después.">${esc(source.synopsis||'')}</textarea></label>
       <label>Estado de lectura<select id="bookStatus">
         ${Object.entries(labels).map(([key,label])=>`<option value="${key}" ${status===key?'selected':''}>${esc(label)}</option>`).join('')}
       </select></label>
