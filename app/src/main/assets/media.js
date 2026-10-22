@@ -265,7 +265,10 @@ window.NexoMedia = (() => {
         live.abandonedDate?'Abandono: '+showDate(live.abandonedDate):'',
         ratingOf(live)?'Valoración: '+ratingOf(live)+'/5':'',
         live.summary?'\n'+live.summary:''].filter(Boolean);
-      NexoNative.sharePlainText(live.title,parts.join('\n'));
+      const normalShare=()=>NexoNative.sharePlainText(live.title,parts.join('\n'));
+      if(typeof openConnectShareChoice==='function')
+        openConnectShareChoice('movies',Number(live.id),normalShare);
+      else normalShare();
     });
     document.querySelector('#bookDetailDelete').addEventListener('click',()=>removeBook(number(b.id)));
     document.querySelector('#bookDetailStart')?.addEventListener('click',()=>startBook(number(b.id)));
