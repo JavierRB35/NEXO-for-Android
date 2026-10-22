@@ -34,6 +34,10 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
      */
     @Override protected void addHostSetupActions() {
         if (BuildConfig.DEBUG) {
+            button("Explorar fichas de Nexo · sin cuenta y sin envío",
+                    () -> chooseShareSection(true));
+            if(hasSelectedShare())
+                button("Ver ficha seleccionada · sin envío",()->readSelectedShare(true));
             button("Vista previa de notas de Nexo · sin cuenta y sin envío",
                     () -> pickSavedNote(true));
         }
@@ -41,11 +45,139 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
 
     @Override protected void addHostActions() {
         if (BuildConfig.DEBUG) {
+            if(hasSelectedShare())
+                button("Compartir ficha seleccionada con un contacto",
+                        () -> readSelectedShare(false));
+            button("Compartir ficha guardada en Nexo",
+                    () -> chooseShareSection(false));
             button("5a. Enviar nota guardada en Nexo",
                     () -> pickSavedNote(false));
             button("6a. Copiar nota cifrada recibida a Notas de Nexo",
                     this::chooseReceivedNote);
         }
+    }
+
+    // A protected internal Intent can carry a *local ID and fixed section
+    // name*, never a plaintext title, body, bearer, key or file path.
+    private boolean hasSelectedShare() {
+        android.content.Intent intent=getIntent();
+        if(intent==null)return false;
+        long id=intent.getLongExtra("nexoShareId",0L);
+        String kind=intent.getStringExtra("nexoShareSection");
+        if(id<=0||kind==null)return false;
+        for(String allowed:NexoConnectHostShare.sectionKinds())
+            if(allowed.equals(kind))return true;
+        return false;
+    }
+
+    private void readSelectedShare(boolean localOnly) {
+        if(!BuildConfig.DEBUG||!hasSelectedShare())return;
+        reviewShare(getIntent().getStringExtra("nexoShareSection"),
+                    getIntent().getLongExtra("nexoShareId",0L),localOnly);
+    }
+
+    private void chooseShareSection(boolean localOnly) {
+        if(!BuildConfig.DEBUG)return;
+        String[] sections=NexoConnectHostShare.sections();
+        String[] kinds=NexoConnectHostShare.sectionKinds();
+        new AlertDialog.Builder(this)
+            .setTitle(localOnly?"Explorar fichas · solo en este móvil":
+                    "¿Qué quieres compartir?")
+            .setItems(sections,(dialog,which)->chooseShareEntry(kinds[which],localOnly))
+            .setNegativeButton("Cancelar",null).show();
+    }
+
+    private void chooseShareEntry(String kind,boolean localOnly){
+        if(!BuildConfig.DEBUG)return;
+        try(DatabaseHelper db=new DatabaseHelper(this)){
+            List<NexoConnectHostShare.Entry> all=NexoConnectHostShare.list(db,kind);
+            if(all.isEmpty()){
+                showPickerError("No hay fichas guardadas en esta sección.");
+                return;
+            }
+            String[] labels=new String[all.size()];
+            for(int i=0;i<all.size();i++){
+                NexoConnectHostShare.Entry entry=all.get(i);
+                labels[i]=entry.title+"  ·  "+friendlyKind(entry.kind);
+            }
+            new AlertDialog.Builder(this)
+                .setTitle("Selecciona una ficha")
+                .setItems(labels,(d,which)->reviewShare(kind,all.get(which).id,localOnly))
+                .setNegativeButton("Cancelar",null).show();
+        }catch(Exception failure){
+            showPickerError("No se pudieron consultar las fichas de Nexo.");
+        }
+    }
+
+    private static String friendlyKind(String kind){
+        switch(kind) {
+            case "event":return "Cita";
+            case "task":return "Tarea";
+            case "reminder":return "Recordatorio";
+            case "expiry":return "Vencimiento";
+            case "note":return "Nota";
+            case "place":return "Lugar";
+            case "restaurant":return "Restaurante";
+            case "document":return "Documento";
+            case "thought":return "Cuaderno";
+            case "quote":return "Frase";
+            case "list":return "Lista";
+            case "book":return "Libro";
+            case "series":return "Serie";
+            case "movie":return "Película";
+            default:return "Ficha";
+        }
+    }
+
+    private void reviewShare(String section,long id,boolean localOnly){
+        if(!BuildConfig.DEBUG||id<=0)return;
+        final NexoConnectHostShare.Draft draft;
+        try(DatabaseHelper db=new DatabaseHelper(this)){
+            draft=NexoConnectHostShare.prepare(db,section,id);
+        }catch(UnsupportedOperationException pending){
+            new AlertDialog.Builder(this)
+                .setTitle("Tipo de ficha en preparación")
+                .setMessage(pending.getMessage()+"\n\n"+
+                    "Mientras tanto puedes utilizar el menú Compartir de Android. "+
+                    "No se ha enviado nada mediante Connect.")
+                .setPositiveButton("Entendido",null).show();
+            return;
+        }catch(Exception invalid){
+            showPickerError("La ficha no está disponible o no se puede "+
+                    "preparar de forma segura.");
+            return;
+        }
+
+        StringBuilder summary=new StringBuilder();
+        summary.append("Tipo: ").append(draft.displayKind)
+                .append("\n\n").append(draft.title);
+        String body=draft.safeData.optString("body",
+                draft.safeData.optString("summary",""));
+        if(!body.isEmpty()){
+            if(body.length()>650)body=body.substring(0,650)+"…";
+            summary.append("\n\n").append(body);
+        }
+        org.json.JSONArray rows=draft.safeData.optJSONArray("entries");
+        if(rows!=null) {
+            summary.append("\n\nElementos incluidos: ").append(rows.length());
+            for(int i=0;i<Math.min(rows.length(),4);i++){
+                JSONObject item=rows.optJSONObject(i);
+                if(item!=null)summary.append("\n• ")
+                    .append(item.optString("text",""));
+            }
+        }
+        summary.append("\n\nSolo se incluirán los campos compatibles. "+
+                "No se enviarán adjuntos, rutas privadas ni contraseñas.");
+        new AlertDialog.Builder(this)
+            .setTitle(localOnly?"Vista previa local · sin envío":"Revisar ficha")
+            .setMessage(summary.toString())
+            .setNegativeButton("Cerrar",null)
+            .setPositiveButton(localOnly?"Entendido":"Elegir destinatario",
+                    (dialog,which)->{
+                        if(!localOnly)
+                            offerHostEntity(draft.entity,draft.safeData);
+                    })
+            .show();
     }
 
     private boolean copyingReceived;
