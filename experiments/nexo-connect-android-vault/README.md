@@ -113,3 +113,40 @@ Al seleccionar la entrega se revalida que el remitente sigue fijado y activo en 
 La clase vuelve a verificar toda la entrada al copiar. En la base **destino** se insertan la nueva nota nativa y un registro exclusivo `nexo_connect_native_note_promotions` dentro de **una misma transacción SQLite**. El `delivery_id` es único; repetir la operación no crea duplicados y detecta cambios sospechosos en remitente, cuenta o contenido. Si la nota copiada fue eliminada, no se resucita automáticamente. La base privada de Connect queda intacta; no se genera ningún ACK nuevo ni reenvío.
 
 **Precaución:** la transacción solo cubre la base destino; la base cifrada fuente se lee pero no se modifica. El usuario sigue sin necesitar nuevas cuentas ni verificaciones para la prueba local de lectura ya validada. Esta nueva acción 6a requiere una cuenta **ya autorizada** y una nota cifrada **ya recibida**; no está habilitada en `Inicio seguro` ni se ha probado aún el transporte Android↔Android real.
+
+
+## 22/10/2026 — Catálogo de compartir desde Nexo, flujo sencillo (LAB DEBUG)
+
+Se ha incorporado un **selector común** de `Compartir → Con un contacto de Nexo (pruebas)`, conservando el botón de compartir por Android en Notas, Listas, Cuaderno/Frases, Agenda, Lugares, Libros y Filmoteca. La función solo aparece en Nexo **DEBUG**. Los libros y películas reutilizan sus pantallas de detalle; también se puede explorar el catálogo nativo desde la actividad integrada, incluso sin iniciar sesión, en modo **vista previa local**.
+
+La Activity `NexoConnectEmbeddedActivity` ahora muestra `Explorar fichas de Nexo · sin cuenta y sin envío` en Inicio seguro, y `Compartir ficha guardada en Nexo` tras verificar sesión. El puente `MainActivity.openNexoConnectShare(section,id)` solo transporta **sección de una lista blanca + ID local** por Intent interno, nunca contenido, tokens, rutas ni claves. La ficha se vuelve a leer exclusivamente dentro del proceso de Nexo tras seleccionarla. `NexoConnectHostShare` aplica **la misma lista blanca** `NexoConnectPayloadCodec` del protocolo. El usuario elige contacto previamente verificado y confirma **cada envío una sola vez**; no hay reintentos automáticos ambiguos.
+
+### Cobertura real y límites
+
+| Contenido Nexo | Preparar y enviar metadatos E2EE | Recepción cifrada privada del piloto | Importación final a la sección nativa |
+| --- | --- | --- | --- |
+| Notas sin adjuntos | Sí, LAB DEBUG con identidad propia verificada | Sí | Solo copia manual de nota, pendiente de validar con identidad integrada |
+| Citas/eventos/tareas simples SIN recurrencia, alarmas ni asistentes | Sí, LAB DEBUG | Sí, bandeja cifrada privada | **Pendiente** de guardar como cita y programar alarmas |
+| Listas con entradas y orden | Sí, LAB DEBUG | Sí, bandeja cifrada privada | **Pendiente** de copiar a Listas de Nexo |
+| Cuaderno y frases | Sí, LAB DEBUG | Sí, bandeja cifrada privada | **Pendiente** de copiar a Cuaderno/Frases |
+| Libros | Sí, LAB DEBUG | Sí, bandeja cifrada privada | **Pendiente** de copiar a Libros |
+| Películas y series | Sí, LAB DEBUG | Sí, bandeja cifrada privada | **Pendiente** de copiar a Filmoteca |
+| Documentos y archivos | **Bloqueado**: hay que cifrar y verificar el binario | No | Pendiente |
+| Lugares/restaurantes y aparcamiento | **Bloqueado**: falta especificación de campos e importación fiel | No | Pendiente |
+| Medicación, grabaciones y otras fichas | **Bloqueado**: sin exportador/importador específico | No | Pendiente |
+
+**Importante:** que una ficha figure en la bandeja privada cifrada NO significa que esté ya incorporada a su sección nativa; no se disfraza de nota normal en Nexo. `NexoConnectSealedNoteStore` guarda actualmente un sobre `nxc2:` con tipo original ligado por AES-GCM/Keystore al par cuenta+recibo y un marcador sin datos en claro en la tabla interna de `items`. Notas recibidas anteriormente siguen teniendo su formato compatible. `showReceivedNotes` comprueba tipo contra `nexo_connect_import_receipts` antes de presentar el contenido. El destino final por tipo necesita una fase posterior de copia bajo consentimiento y recibo atómico.
+
+**Identidades:** las dos identidades que ya han intercambiado notas E2EE por HTTPS siguen perteneciendo al paquete `com.jruiz.nexo.connect.pilot`; el `com.jruiz.nexo` integrado NO puede importar sus claves Keystore. No solicitar un segundo registro sustituyendo dispositivo ni confundir la vista previa del catálogo (sin cuenta) con un envío desde la aplicación integrada. Mantener PR #65 **draft**, sin merge ni publicar APK de producción. Se debe desarrollar una transición de identidad explícita, asistida y segura.
+
+### Pruebas locales recomendadas
+
+Desde `experiments/nexo-connect-android-vault` en el PC, con Pixel_6 y LAB_B arrancados:
+
+```powershell
+git pull --ff-only origin experiment/nexo-connect-phase0-crypto; if ($LASTEXITCODE -eq 0) { powershell -NoProfile -ExecutionPolicy Bypass -File .\run-local-tests.ps1 -IncludeNexoMain }
+```
+
+La prueba `NexoConnectSealedNoteStoreTest` amplía la validación de cifrado para cita, lista, Cuaderno, libro y película (incluyendo recibos/idempotencia, vinculación AES-GCM a cuenta/entrega y rechazo de documentos sin binario cifrado). **Esta nueva revisión aún no se ha compilado ni probado localmente**, por lo que no se da por validada hasta que el usuario comparta el resultado.
+
+No invocar GitHub Actions automáticamente: preferimos el script local del PC; el usuario ha autorizado usarlas si agilizan claramente una futura fase.
