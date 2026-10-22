@@ -941,9 +941,9 @@ public class NexoConnectPilotActivity extends Activity {
                             for(JSONObject entry:sorted)
                                 label("• "+entry.optString("text",""),14);
                         }
-                        if("list".equals(receiptType)) {
+                        if(!receiptType.isEmpty()) {
                             final UUID verifiedDelivery=id;
-                            button("Añadir esta lista a Nexo",
+                            button("Añadir esta ficha a Nexo",
                                     ()->handoffReceivedList(verifiedDelivery));
                         }
                     }catch(Exception invalidNote){
@@ -976,19 +976,19 @@ public class NexoConnectPilotActivity extends Activity {
         }
         try(SQLiteDatabase db=openPrivateDatabase()) {
             // Refuse an old, revoked or tampered source BEFORE showing consent.
-            NexoConnectLocalListPromotion.read(
+            NexoConnectReceivedEntity.read(
                     db,identity.accountId(),delivery,trusted);
         }catch(Exception invalid) {
-            showError("La lista o el remitente ya no están verificados.");
+            showError("La ficha o el remitente ya no están verificados.");
             return;
         }
         new AlertDialog.Builder(this)
             .setTitle("Continuar en Nexo")
-            .setMessage("Se abrirá Nexo para revisar esta lista recibida. "+
+            .setMessage("Se abrirá Nexo para revisar esta ficha recibida. "+
                 "Solo se transferirá una copia verificada entre las dos aplicaciones "+
                 "protegidas por la misma firma, sin claves privadas, archivos ni "+
                 "datos de la ficha en el enlace. Nexo solicitará una segunda "+
-                "confirmación antes de crear una lista normal sin el cifrado "+
+                "confirmación antes de crear una copia en su sección sin el cifrado "+
                 "adicional de Connect.")
             .setNegativeButton("Cancelar",null)
             .setPositiveButton("Continuar",(d,w)->{

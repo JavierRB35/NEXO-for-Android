@@ -89,8 +89,16 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                         "Puedes seguir utilizando Nexo con normalidad.",14);
             }
         }else{
-            label("Consulta tus fichas antes de compartirlas. "+
-                    "No necesitas registrarte para esta vista previa.",14);
+            label("Elige una ficha o abre tu bandeja de Connect. "+
+                    "Se mantiene tu cuenta verificada actual.",14);
+            button("Abrir mi bandeja y personas",()->{
+                try {
+                    Intent open=new Intent();
+                    open.setClassName(NexoConnectBridgeProtocol.PILOT_PACKAGE,
+                        "com.jruiz.nexo.connect.vault.NexoConnectPilotActivity");
+                    startActivity(open);
+                }catch(Exception unavailable){showPickerError("Instala Nexo Connect con la misma firma de Nexo.");}
+            });
             button("Explorar mis fichas",()->chooseShareSection(true));
             button("Ver mis notas",()->pickSavedNote(true));
         }
@@ -271,10 +279,15 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
             .setTitle(localOnly?"Vista previa local · sin envío":"Revisar ficha")
             .setMessage(summary.toString())
             .setNegativeButton("Cerrar",null)
-            .setPositiveButton(localOnly?"Entendido":"Elegir destinatario",
+            .setPositiveButton(localOnly?"Compartir esta ficha":"Elegir destinatario",
                     (dialog,which)->{
-                        if(!localOnly)
-                            offerHostEntity(draft.entity,draft.safeData);
+                        if(!localOnly)offerHostEntity(draft.entity,draft.safeData);
+                        else {
+                            Intent selected=new Intent(this,NexoConnectEmbeddedActivity.class);
+                            selected.putExtra("nexoShareSection",section);
+                            selected.putExtra("nexoShareId",id);
+                            startActivity(selected);
+                        }
                     })
             .show();
     }

@@ -1,4 +1,9 @@
 plugins { id 'com.android.library' }
+// The standalone pilot and host include this library under different Gradle
+// project identities. Separate outputs avoid corrupt incremental class caches.
+if (project.path == ':connectVault') {
+    layout.buildDirectory = file('build/host')
+}
 android {
     namespace 'com.jruiz.nexo.connect.vault'
     compileSdk 34

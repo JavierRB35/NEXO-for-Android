@@ -14,7 +14,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.jruiz.nexo.BuildConfig;
 import com.jruiz.nexo.connect.NexoConnectPayloadCodec;
-import com.jruiz.nexo.connect.NexoConnectPilotListImporter;
+import com.jruiz.nexo.connect.NexoConnectPilotEntityImporter;
 import com.jruiz.nexo.connect.vault.NexoConnectBridgeProtocol;
 import com.jruiz.nexo.data.DatabaseHelper;
 
@@ -32,6 +32,7 @@ import java.util.UUID;
  */
 public final class NexoConnectReceivedListActivity extends Activity {
     private String ticket;
+    private String entity;
     private boolean bindingAttempted,requested,copying;
     private volatile boolean completed;
     private ServiceConnection connection;
@@ -39,7 +40,7 @@ public final class NexoConnectReceivedListActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         TextView label=new TextView(this);
-        label.setText("Preparando lista recibida desde Nexo Connect…");
+        label.setText("Preparando ficha recibida desde Nexo Connect…");
         label.setTextSize(18);
         label.setPadding(28,48,28,28);
         setContentView(label);
@@ -112,14 +113,12 @@ public final class NexoConnectReceivedListActivity extends Activity {
                 throw new SecurityException("Invalid bridge payload");
             JSONObject envelope=NexoConnectPayloadCodec.decodeDecrypted(
                     json.getBytes(StandardCharsets.UTF_8));
-            if(!"list".equals(envelope.optString("entity","")))
-                throw new SecurityException("Wrong entity type");
+            entity=envelope.getString("entity");
             JSONObject raw=envelope.optJSONObject("data");
             if(raw==null)throw new SecurityException("Empty list");
             JSONObject safe=NexoConnectPayloadCodec.sanitize(
-                    "list",raw,raw.optJSONArray("entries"));
-            if(safe.optString("title","").trim().isEmpty() ||
-                    safe.optJSONArray("entries")==null)
+                    entity,raw,raw.optJSONArray("entries"));
+            if(safe.optString("title","").trim().isEmpty())
                 throw new SecurityException("Incomplete list");
             completed=true;
             runOnUiThread(()->review(account,delivery,sender,safe));
@@ -136,11 +135,12 @@ public final class NexoConnectReceivedListActivity extends Activity {
     private void review(UUID account,UUID delivery,UUID sender,JSONObject safe) {
         if(isFinishing()||isDestroyed())return;
         JSONArray entries=safe.optJSONArray("entries");
+        if(entries==null)entries=new JSONArray();
         StringBuilder message=new StringBuilder();
-        message.append("Lista: ").append(safe.optString("title"))
+        message.append("Ficha: ").append(safe.optString("title"))
                 .append("\nRemitente verificado: ")
-                .append(sender.toString().substring(0,8))
-                .append("\n\nElementos: ").append(entries.length());
+                .append(sender.toString().substring(0,8));
+        if("list".equals(entity))message.append("\n\nElementos: ").append(entries.length());
         for(int i=0;i<Math.min(20,entries.length());i++){
             JSONObject item=entries.optJSONObject(i);
             if(item!=null)
@@ -150,12 +150,16 @@ public final class NexoConnectReceivedListActivity extends Activity {
         }
         if(entries.length()>20)
             message.append("\n… y ").append(entries.length()-20).append(" más");
-        message.append("\n\nSe creará una nueva lista local en Nexo. ")
+        String preview=safe.optString("body",safe.optString("summary",""));
+        if(!preview.isEmpty())message.append("\n\n").append(preview.length()>2000?
+                preview.substring(0,2000)+"…":preview);
+        message.append("\n\nDestino: ").append(destination()).append(". ");
+        message.append("Se creará una nueva ficha local en Nexo. ")
                .append("La copia nativa no tendrá el cifrado adicional de ")
                .append("Connect. La ficha cifrada original y las claves ")
                .append("del piloto permanecerán intactas.");
         new AlertDialog.Builder(this)
-                .setTitle("¿Añadir a mis listas de Nexo?")
+                .setTitle("¿Añadir a Nexo?")
                 .setMessage(message.toString())
                 .setCancelable(false)
                 .setNegativeButton("Cancelar",(d,w)->finish())
@@ -168,11 +172,11 @@ public final class NexoConnectReceivedListActivity extends Activity {
         if(copying)return;
         copying=true;
         new Thread(()->{
-            NexoConnectPilotListImporter.Result result;
+            NexoConnectPilotEntityImporter.Result result;
             try(DatabaseHelper helper=new DatabaseHelper(this)) {
                 SQLiteDatabase db=helper.getWritableDatabase();
-                result=NexoConnectPilotListImporter.copyApproved(
-                        db,account,delivery,sender,safe,true);
+                result=NexoConnectPilotEntityImporter.copyApproved(
+                        db,account,delivery,sender,entity,safe,true);
             }catch(Exception failure){
                 runOnUiThread(()->{
                     copying=false;
@@ -185,8 +189,8 @@ public final class NexoConnectReceivedListActivity extends Activity {
                 if(isFinishing()||isDestroyed())return;
                 new AlertDialog.Builder(this)
                     .setTitle(result.alreadyCopied?
-                            "La lista ya estaba en Nexo":"Lista añadida a Nexo")
-                    .setMessage("Puedes encontrar la copia en Listas. "+
+                            "La ficha ya estaba en Nexo":"Ficha añadida a Nexo")
+                    .setMessage("Puedes encontrar la copia en "+destination()+". "+
                             "La ficha cifrada original no ha cambiado.")
                     .setCancelable(false)
                     .setPositiveButton("Entendido",(d,w)->finish()).show();
@@ -194,10 +198,23 @@ public final class NexoConnectReceivedListActivity extends Activity {
         },"nexo-connect-native-receive-copy").start();
     }
 
+    private String destination() {
+        if(entity==null)return "Nexo";
+        switch(entity) {
+            case "note":return "Notas";
+            case "list":return "Listas";
+            case "appointment":return "Agenda";
+            case "journal":return "Cuaderno";
+            case "book":return "Libros";
+            case "movie":return "Filmoteca";
+            default:return "Nexo";
+        }
+    }
+
     private void fail() {
         if(isFinishing()||isDestroyed())return;
         new AlertDialog.Builder(this)
-            .setTitle("No se pudo incorporar la lista")
+            .setTitle("No se pudo incorporar la ficha")
             .setMessage("La operación no ha finalizado. Vuelve al piloto, "+
                     "comprueba que la ficha sigue verificada y selecciónala "+
                     "de nuevo. No se han exportado claves privadas.")

@@ -25,7 +25,7 @@ public class NexoConnectNativeWriterTest {
     private static final String D1="11111111-1111-4111-8111-111111111111";
     private static final String D2="22222222-2222-4222-8222-222222222222";
 
-    private static SQLiteDatabase database() {
+    static SQLiteDatabase database() {
         SQLiteDatabase db=SQLiteDatabase.create(null);
         db.execSQL("CREATE TABLE items (id INTEGER PRIMARY KEY AUTOINCREMENT,"+
                 "type TEXT NOT NULL DEFAULT 'note', title TEXT NOT NULL,"+

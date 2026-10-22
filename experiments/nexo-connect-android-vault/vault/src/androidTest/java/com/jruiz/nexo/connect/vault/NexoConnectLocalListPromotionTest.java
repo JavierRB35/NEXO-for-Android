@@ -126,6 +126,24 @@ public final class NexoConnectLocalListPromotionTest {
         }
     }
 
+    @Test public void genericReaderAuthenticatesTypeAndRejectsRevokedSender()throws Exception {
+        try(Fixture f=new Fixture()) {
+            f.storeList();
+            NexoConnectReceivedEntity received=NexoConnectReceivedEntity.read(f.source,f.owner,f.delivery,f.trust);
+            assertEquals("list",received.entity);
+            assertEquals("Compra de prueba",received.dataCopy().getString("title"));
+            f.source.execSQL("UPDATE nexo_connect_import_receipts SET entity_type='book'");
+            try {NexoConnectReceivedEntity.read(f.source,f.owner,f.delivery,f.trust);fail();}
+            catch(SecurityException expected){}
+            f.source.execSQL("UPDATE nexo_connect_import_receipts SET entity_type='list'");
+            try {NexoConnectReceivedEntity.read(f.source,UUID.randomUUID(),f.delivery,f.trust);fail();}
+            catch(SecurityException expected){}
+            f.trust.revoke(SENDER);
+            try {NexoConnectReceivedEntity.read(f.source,f.owner,f.delivery,f.trust);fail();}
+            catch(SecurityException expected){}
+        }
+    }
+
     @Test public void emptyInboxIsNonMutating()throws Exception {
         try(Fixture f=new Fixture()){
             assertTrue(NexoConnectLocalListPromotion.list(f.source,20).isEmpty());

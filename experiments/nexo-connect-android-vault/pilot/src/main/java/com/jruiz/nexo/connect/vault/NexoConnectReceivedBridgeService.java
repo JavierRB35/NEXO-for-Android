@@ -83,17 +83,17 @@ public final class NexoConnectReceivedBridgeService extends Service {
                         "nexo-connect-pilot.db",Context.MODE_PRIVATE,null)) {
                     AndroidPeerTrustStore trust=
                             new AndroidPeerTrustStore(getApplicationContext(),selection.account);
-                    NexoConnectLocalListPromotion.VerifiedList verified=
-                            NexoConnectLocalListPromotion.read(
+                    NexoConnectReceivedEntity verified=
+                            NexoConnectReceivedEntity.read(
                                     db,selection.account,selection.delivery,trust);
                     byte[] bytes=NexoConnectPayloadCodec.encode(
-                            "list",verified.dataCopy(),null);
+                            verified.entity,verified.dataCopy(),null);
                     if(bytes.length>NexoConnectBridgeProtocol.MAX_METADATA_BYTES)
                         throw new SecurityException("List too large for bridge");
                     reply.writeNoException();
                     reply.writeString(selection.account.toString());
                     reply.writeString(selection.delivery.toString());
-                    reply.writeString(verified.source.senderId.toString());
+                    reply.writeString(verified.sender.toString());
                     reply.writeString(new String(bytes,java.nio.charset.StandardCharsets.UTF_8));
                     java.util.Arrays.fill(bytes,(byte)0);
                 }
