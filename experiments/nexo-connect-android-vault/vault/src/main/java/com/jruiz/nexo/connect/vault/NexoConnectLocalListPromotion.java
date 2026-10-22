@@ -77,7 +77,7 @@ public final class NexoConnectLocalListPromotion {
                 "SELECT r.delivery_id,r.sender_id,r.acked FROM "+SOURCE_LEDGER+" r "+
                 "JOIN items i ON i.id=r.local_id "+
                 "WHERE r.entity_type='list' AND i.type='note' "+
-                "AND i.source='nexo-connect' AND i.deleted_at=0 "+
+                "AND i.source='nexo-connect' "+
                 "AND i.body LIKE 'nxc2:%' "+
                 "ORDER BY r.imported_at DESC,r.delivery_id LIMIT "+limit,null)){
             while(c.moveToNext()){
@@ -103,7 +103,7 @@ public final class NexoConnectLocalListPromotion {
                 "SELECT r.sender_id,r.acked,i.body FROM "+SOURCE_LEDGER+" r "+
                 "JOIN items i ON i.id=r.local_id WHERE r.delivery_id=? "+
                 "AND r.entity_type='list' AND i.type='note' "+
-                "AND i.source='nexo-connect' AND i.deleted_at=0",
+                "AND i.source='nexo-connect'",
                 new String[]{delivery.toString()})){
             if(!c.moveToFirst())throw new SecurityException("List receipt not found");
             UUID sender=uuid(c.getString(0));
