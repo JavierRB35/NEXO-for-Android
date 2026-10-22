@@ -933,7 +933,7 @@ function bindJournalButtons(root=document){
     const id=Number(b.dataset.editJournal),j=parseNative(NexoNative.getJournal(id),{});
     if(j.kind==='quote')openJournalComposer('','quote',id);else openJournalComposer('','',id);
   }));
-  root.querySelectorAll('[data-journal-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoJournal(Number(b.dataset.journalShare));}));
+  root.querySelectorAll('[data-journal-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openConnectShareChoice('journal',Number(b.dataset.journalShare),()=>NexoNative.shareNexoJournal(Number(b.dataset.journalShare)));}));
   root.querySelectorAll('[data-journal-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.journalDelete),j=parseNative(NexoNative.getJournal(id),{});confirmGeneric('Eliminar entrada','Se eliminará “'+(j.title||'esta entrada')+'”.',()=>{if(NexoNative.deleteJournal(id)){toast('Entrada eliminada');renderJournalPanel();renderJournalPrompt(false);}else toast('No se pudo eliminar');},'Eliminar');}));
 }
 function startQuoteEditorVoice(){
@@ -1111,7 +1111,7 @@ function openJournal(id){
   const isQuote=j.kind==='quote';
   const flags=[j.favorite?'<span class="journal-read-flag">★ Favorita</span>':'',!isQuote&&j.revisit?'<span class="journal-read-flag">↺ Para releer</span>':''].filter(Boolean).join('');
   openModal(isQuote?'Frase':'Cuaderno',`<article class="journal-read"><div class="journal-date-badge">${esc(fmtDate(j.createdAt,true))}</div><h3>${esc(j.title||(isQuote?'Frase':'Entrada'))}</h3>${isQuote&&j.summary?`<div class="journal-read-reference">${esc(j.summary)}</div>`:''}${flags?`<div class="journal-read-flags">${flags}</div>`:''}<div class="journal-read-body">${esc(j.body||'')}</div></article><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalEdit" class="primary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg> Editar</button></div>`);
-  $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
+  $('#journalShare').addEventListener('click',()=>openConnectShareChoice('journal',j.id,()=>NexoNative.shareNexoJournal(j.id)));
   $('#journalEdit').addEventListener('click',()=>{closeModal();setTimeout(()=>openJournalComposer('',isQuote?'quote':'',Number(j.id)),60);});
   $('#journalDelete').addEventListener('click',()=>{closeModal();$('#confirmTitle').textContent=isQuote?'Eliminar frase':'Eliminar del Cuaderno';$('#confirmText').textContent='Se eliminará esta entrada. Esta acción no afecta al calendario.';$('#confirmModal').classList.remove('hidden');state.confirmAction=()=>{const ok=NexoNative.deleteJournal(j.id);$('#confirmModal').classList.add('hidden');toast(ok?'Entrada eliminada':'No se pudo eliminar');refreshCurrent();renderJournalPrompt(false);};});
 }
@@ -1208,7 +1208,7 @@ function openNoteReader(id){
   document.body.classList.add('note-reading-open');
   bindRelatedOwners($('#modalBody'));
   $('#noteReaderEdit').addEventListener('click',()=>openNoteComposer(Number(note.id)));
-  $('#noteReaderShare').addEventListener('click',()=>NexoNative.shareNexoItem(Number(note.id),0,false));
+  $('#noteReaderShare').addEventListener('click',()=>openConnectShareChoice('items',Number(note.id),()=>NexoNative.shareNexoItem(Number(note.id),0,false)));
   $('#noteReaderDelete').addEventListener('click',()=>confirmDeleteItem(note));
   const changeSize=step=>{
     const body=$('#noteReaderText');if(!body)return;
@@ -1227,7 +1227,7 @@ function openNoteReader(id){
 function bindNoteButtons(root=document){
   root.querySelectorAll('[data-note-read]').forEach(b=>b.addEventListener('click',()=>openNoteReader(Number(b.dataset.noteRead))));
   root.querySelectorAll('[data-open-note]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openNoteComposer(Number(b.dataset.openNote));}));
-  root.querySelectorAll('[data-note-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoItem(Number(b.dataset.noteShare),0,false);}));
+  root.querySelectorAll('[data-note-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openConnectShareChoice('items',Number(b.dataset.noteShare),()=>NexoNative.shareNexoItem(Number(b.dataset.noteShare),0,false));}));
   root.querySelectorAll('[data-note-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.noteDelete));}));
 }
 
@@ -1465,7 +1465,7 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
   const share=()=>{
     const ed=state.noteEditor;if(!ed)return;
     if(noteHasUnsavedChanges()){toast('Guarda los cambios antes de compartir la nota.');return;}
-    if(ed.id>0)NexoNative.shareNexoItem(ed.id,0,false);
+    if(ed.id>0)openConnectShareChoice('items',ed.id,()=>NexoNative.shareNexoItem(ed.id,0,false));
   };
   const del=()=>{
     const ed=state.noteEditor;if(!ed||ed.id<=0)return;
@@ -2036,10 +2036,42 @@ function bindItemButtons(root=document){
   root.querySelectorAll('[data-go-location]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const place=String(b.dataset.goLocation||'').trim();if(place)NexoNative.openLocationDirections(place);}));
   root.querySelectorAll('[data-postpone-event]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openPostponeSheet(Number(b.dataset.postponeEvent),Number(b.dataset.postponeOccurrence||0),b.dataset.postponeRecurring==='1');}));
 }
+// Experimental in-app E2EE option; never replace the existing Android export.
+function openConnectShareChoice(section,id,shareNormally){
+  let enabled=false;
+  try{enabled=NexoNative.isNexoConnectExperimentEnabled()===true;}catch(_){}
+  if(!enabled||!Number.isSafeInteger(Number(id))||Number(id)<=0){
+    shareNormally();return;
+  }
+  const overlay=document.createElement('div');
+  overlay.className='modal scope-overlay';
+  overlay.innerHTML=`<div class="confirm-sheet scope-sheet">
+    <h2>¿Cómo quieres compartir?</h2>
+    <p class="muted">Puedes compartirlo de forma habitual o preparar una copia cifrada para un contacto verificado de Nexo.</p>
+    <div class="scope-buttons">
+      <button class="primary-button" type="button" data-connect-share>Con un contacto de Nexo (pruebas)</button>
+      <button class="secondary-button" type="button" data-normal-share>Compartir por Android</button>
+      <button class="ghost-button" type="button" data-share-close>Cancelar</button>
+    </div></div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('[data-connect-share]').addEventListener('click',()=>{
+    overlay.remove();NexoNative.openNexoConnectShare(section,Number(id));
+  });
+  overlay.querySelector('[data-normal-share]').addEventListener('click',()=>{
+    overlay.remove();shareNormally();
+  });
+  overlay.querySelector('[data-share-close]').addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
 function openItemShareMenu(id,occurrenceAt,recurring,hasDate){
   const overlay=document.createElement('div');overlay.className='modal scope-overlay';
-  overlay.innerHTML=`<div class="confirm-sheet scope-sheet"><h2>Compartir</h2><p class="muted">Elige el formato según quién vaya a recibirlo.</p><div class="scope-buttons"><button class="primary-button" data-share-format="nexo">Nexo · conservar todos los datos</button>${hasDate?'<button class="secondary-button" data-share-format="ics">Calendario (.ics)</button>':''}<button class="ghost-button" data-share-cancel>Cancelar</button></div></div>`;
+  let connectEnabled=false;
+  try{connectEnabled=NexoNative.isNexoConnectExperimentEnabled()===true;}catch(_){}
+  overlay.innerHTML=`<div class="confirm-sheet scope-sheet"><h2>Compartir</h2><p class="muted">Elige el formato según quién vaya a recibirlo.</p><div class="scope-buttons">${connectEnabled?'<button class="primary-button" data-share-format="connect">Con un contacto de Nexo (pruebas)</button>':''}<button class="secondary-button" data-share-format="nexo">Nexo · archivo para compartir</button>${hasDate?'<button class="secondary-button" data-share-format="ics">Calendario (.ics)</button>':''}<button class="ghost-button" data-share-cancel>Cancelar</button></div></div>`;
   document.body.appendChild(overlay);
+  overlay.querySelector('[data-share-format="connect"]')?.addEventListener('click',()=>{
+    overlay.remove();NexoNative.openNexoConnectShare('items',Number(id));
+  });
   overlay.querySelector('[data-share-format="nexo"]').addEventListener('click',()=>{overlay.remove();shareNexoItem(id,occurrenceAt,recurring);});
   if(overlay.querySelector('[data-share-format="ics"]'))overlay.querySelector('[data-share-format="ics"]').addEventListener('click',()=>{overlay.remove();shareCalendarEvent(id,occurrenceAt,recurring);});
   overlay.querySelector('[data-share-cancel]').addEventListener('click',()=>overlay.remove());overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
@@ -3302,7 +3334,7 @@ function openListCardMenu(id){
     '<button id="listCardDuplicate" type="button" class="secondary-button">⧉ Duplicar</button>'+
     '<button id="listCardDelete" type="button" class="danger-button">'+uiIcon('trash')+' Eliminar lista</button></div>');
   $('#listCardRename').addEventListener('click',()=>openRenameListModal(id));
-  $('#listCardShare').addEventListener('click',()=>{closeModal();NexoNative.shareNexoList(id);});
+  $('#listCardShare').addEventListener('click',()=>{closeModal();openConnectShareChoice('lists',id,()=>NexoNative.shareNexoList(id));});
   $('#listCardDuplicate').addEventListener('click',()=>{
     const newId=Number(NexoNative.duplicateList(id));closeModal();
     if(newId>0){toast('Lista duplicada');openList(newId);}else toast('No se pudo duplicar');
@@ -3337,7 +3369,7 @@ function openList(id,options={}){
     '<button id="shareListBtn" type="button" class="secondary-button">'+uiIcon('share')+' Compartir</button>'+
     '<button id="manageListBtn" type="button" class="secondary-button list-manage-button" aria-label="Más opciones">'+uiIcon('more')+'</button></div>';
   $('#listRenameInline').addEventListener('click',()=>openRenameListModal(id));
-  $('#shareListBtn').addEventListener('click',()=>NexoNative.shareNexoList(id));
+  $('#shareListBtn').addEventListener('click',()=>openConnectShareChoice('lists',id,()=>NexoNative.shareNexoList(id)));
   $('#manageListBtn').addEventListener('click',()=>openListManagement(id));
   const voiceHint=shopping?'Puedes dictar varios productos diciendo «huevos y mantequilla y pan». También puedes decir «quita el azúcar» o «ya he comprado los huevos».':
     'Puedes dictar varios elementos diciendo «pasaporte y cargador y medicamentos».';
@@ -4843,7 +4875,7 @@ function openPlaceDetail(id){
     if(live.id)savePlaceDetailChange(id,{placeRating:Number(live.placeRating)===n?0:n});
   }));
   $('#placeDetailMaps').addEventListener('click',()=>placeMaps(i));
-  $('#placeDetailShare').addEventListener('click',()=>NexoNative.shareNexoItem(id,0,false));
+  $('#placeDetailShare').addEventListener('click',()=>openConnectShareChoice('items',id,()=>NexoNative.shareNexoItem(id,0,false)));
   $('#placeDetailEdit').addEventListener('click',()=>openPlaceEditor(id));
   $('#placeDetailDelete').addEventListener('click',()=>confirmDeleteItem(i));
 }
