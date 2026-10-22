@@ -68,9 +68,19 @@ public final class NexoConnectInboxNoticeJob extends JobService {
 
     /** May be disabled for an emulator; never bypass user notification consent. */
     public static boolean permitted(Context context) {
-        return Build.VERSION.SDK_INT<33 ||
+        if(Build.VERSION.SDK_INT>=33 &&
                 context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                        ==PackageManager.PERMISSION_GRANTED;
+                        !=PackageManager.PERMISSION_GRANTED)return false;
+        NotificationManager manager=(NotificationManager)
+                context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if(manager==null || !manager.areNotificationsEnabled())return false;
+        if(Build.VERSION.SDK_INT>=26) {
+            NotificationChannel channel=manager.getNotificationChannel(CHANNEL);
+            if(channel!=null &&
+                    channel.getImportance()==NotificationManager.IMPORTANCE_NONE)
+                return false;
+        }
+        return true;
     }
 
     @Override public boolean onStartJob(JobParameters params) {
