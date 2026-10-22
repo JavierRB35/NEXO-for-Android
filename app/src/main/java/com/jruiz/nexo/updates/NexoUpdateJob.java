@@ -23,6 +23,7 @@ public final class NexoUpdateJob extends JobService {
     private static final int JOB_ID = 173041;
     private static final int NOTIFICATION_ID = 173042;
     private static final String CHANNEL = "nexo_app_updates";
+    private static final String CRITICAL_CHANNEL = "nexo_app_updates_critical";
 
     public static void schedule(Context context) {
         try {
@@ -44,7 +45,8 @@ public final class NexoUpdateJob extends JobService {
                 if (!NexoUpdateManager.isNewer(release) ||
                         !NexoUpdateManager.isInstalledSignatureOfficial(this)) return;
                 SharedPreferences pref = getSharedPreferences("nexo_updates", MODE_PRIVATE);
-                if (pref.getInt("last_notified_code", 0) == release.versionCode) return;
+                if (pref.getInt("last_notified_code", 0) == release.versionCode &&
+                        pref.getBoolean("last_notified_critical", false) == release.critical) return;
                 if (Build.VERSION.SDK_INT >= 33 &&
                         checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
                 NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -53,6 +55,12 @@ public final class NexoUpdateJob extends JobService {
                     NotificationChannel channel = new NotificationChannel(
                             CHANNEL, "Actualizaciones de Nexo", NotificationManager.IMPORTANCE_DEFAULT);
                     manager.createNotificationChannel(channel);
+                    if (release.critical) {
+                        NotificationChannel criticalChannel = new NotificationChannel(
+                                CRITICAL_CHANNEL, "Actualizaciones críticas de Nexo",
+                                NotificationManager.IMPORTANCE_HIGH);
+                        manager.createNotificationChannel(criticalChannel);
+                    }
                 }
                 Intent open = new Intent(this, MainActivity.class);
                 open.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -60,13 +68,20 @@ public final class NexoUpdateJob extends JobService {
                 PendingIntent pending = PendingIntent.getActivity(this, 0, open,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 Notification.Builder builder = Build.VERSION.SDK_INT >= 26
-                        ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
-                Notification notification = builder.setContentTitle("Nueva versión de Nexo")
-                        .setContentText("Nexo " + release.versionName + " disponible. Toca para actualizar.")
+                        ? new Notification.Builder(this, release.critical ? CRITICAL_CHANNEL : CHANNEL)
+                        : new Notification.Builder(this);
+                String title = release.critical ? "Actualización CRÍTICA de Nexo" : "Actualización opcional de Nexo";
+                String detail = release.critical
+                        ? "Nexo " + release.versionName + " es obligatoria. " + release.criticalReason
+                        : "Nexo " + release.versionName + " disponible. Puedes actualizar cuando quieras.";
+                Notification notification = builder.setContentTitle(title)
+                        .setContentText(detail)
+                        .setStyle(new Notification.BigTextStyle().bigText(detail))
                         .setSmallIcon(com.jruiz.nexo.R.mipmap.ic_launcher)
                         .setContentIntent(pending).setAutoCancel(true).build();
                 manager.notify(NOTIFICATION_ID, notification);
-                pref.edit().putInt("last_notified_code", release.versionCode).apply();
+                pref.edit().putInt("last_notified_code", release.versionCode)
+                        .putBoolean("last_notified_critical", release.critical).apply();
             } catch (Exception ignored) {
                 // Sin conexión o sin canal publicado: reintentar en la próxima ventana de Android.
             } finally {
