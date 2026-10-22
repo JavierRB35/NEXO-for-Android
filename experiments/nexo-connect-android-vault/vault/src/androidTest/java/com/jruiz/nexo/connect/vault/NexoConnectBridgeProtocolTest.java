@@ -48,5 +48,15 @@ public final class NexoConnectBridgeProtocolTest {
         assertTrue(NexoConnectBridgeProtocol.MAX_METADATA_BYTES<=128*1024);
         assertEquals(android.os.IBinder.FIRST_CALL_TRANSACTION,
                 NexoConnectBridgeProtocol.TRANSACTION_PULL);
+        assertTrue(NexoConnectBridgeProtocol.PILOT_RECEIVE_SERVICE.contains(
+                "NexoConnectReceivedBridgeService"));
+        assertTrue(NexoConnectBridgeProtocol.HOST_RECEIVE_ACTIVITY.contains(
+                "NexoConnectReceivedListActivity"));
+        assertEquals(android.os.IBinder.FIRST_CALL_TRANSACTION,
+                NexoConnectBridgeProtocol.TRANSACTION_PULL_RECEIVED);
+        assertNotEquals(NexoConnectBridgeProtocol.BINDER_DESCRIPTOR,
+                NexoConnectBridgeProtocol.RECEIVE_BINDER_DESCRIPTOR);
+        assertNotEquals(NexoConnectBridgeProtocol.EXTRA_TICKET,
+                NexoConnectBridgeProtocol.EXTRA_RECEIVED_TICKET);
     }
 }
