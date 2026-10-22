@@ -13,7 +13,7 @@ gradle=(root/"app/build.gradle").read_text()
 for name in ("start_date", "favorite", "rating"):
     assert f'ALTER TABLE books ADD COLUMN {name} ' in db, "Falta migración: "+name
     assert f'"{name} ' in db, "Falta columna en nuevas instalaciones: "+name
-assert "DB_VERSION = 32" in db
+assert "DB_VERSION = 33" in db
 assert "if (oldVersion < 28)" in db
 assert 'columnExists(db, "books", "favorite")' in db
 assert "startDate" in repository and "finishDate" in repository and "abandonedDate" in repository

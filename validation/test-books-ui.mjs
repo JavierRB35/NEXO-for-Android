@@ -8,8 +8,8 @@ const dom=new JSDOM('<main><div id="panelContent"></div><div id="modal" class="m
 });
 const {window}=dom,doc=window.document;
 let rows=[
-  {id:1,title:'Cien años de soledad',author:'Gabriel García Márquez',status:'finished',progress:100,finishDate:'2024-01-21',startDate:'2023-11-01',abandonedDate:'',summary:'Un clásico\nCon notas completas.',rating:3,favorite:false,updatedAt:50},
-  {id:2,title:'La sombra del viento',author:'Carlos Ruiz Zafón',status:'want',progress:0,startDate:'',finishDate:'',abandonedDate:'',summary:'',rating:0,favorite:false,updatedAt:60},
+  {id:1,title:'Cien años de soledad',author:'Gabriel García Márquez',status:'finished',progress:100,finishDate:'2024-01-21',startDate:'2023-11-01',abandonedDate:'',synopsis:'Una saga familiar\nCon recuerdos.',summary:'Un clásico\nCon notas completas.',rating:3,favorite:false,updatedAt:50},
+  {id:2,title:'La sombra del viento',author:'Carlos Ruiz Zafón',status:'want',progress:0,startDate:'',finishDate:'',abandonedDate:'',synopsis:'Un misterio en Barcelona.',summary:'',rating:0,favorite:false,updatedAt:60},
   {id:3,title:'Breve historia del tiempo',author:'Stephen Hawking',status:'reading',progress:45,startDate:'2024-08-01',finishDate:'',abandonedDate:'',summary:'',rating:0,favorite:false,updatedAt:70},
   {id:4,title:'El extranjero',author:'Albert Camus',status:'abandoned',progress:20,startDate:'2024-12-01',finishDate:'',abandonedDate:'2025-04-07',summary:'Quizá retomar',rating:1,favorite:false,updatedAt:80},
   {id:5,title:'El infinito en un junco',author:'Irene Vallejo',status:'finished',progress:100,startDate:'2026-09-01',finishDate:'2026-10-10',abandonedDate:'',summary:'',rating:5,favorite:true,updatedAt:1},
@@ -94,6 +94,7 @@ assert.deepEqual(bookIds(),[5,1,6],'Fecha de finalización descendente; sin fech
 open(1);
 assert(doc.querySelector('.book-detail'),'La ficha se abre sin entrar al editor');
 assert(doc.querySelector('#modalBody').textContent.includes('Con notas completas.'));
+assert(doc.querySelector('#modalBody').textContent.includes('Una saga familiar'),'Argumento completo visible en detalle');
 assert(doc.querySelector('#modalBody').textContent.includes('21/01/2024'));
 assert(doc.querySelector('#modalBody').textContent.includes('01/11/2023'),'Inicio visible en detalle');
 assert(doc.querySelectorAll('[data-book-detail-rating]').length===5,'Cinco estrellas en la ficha');
@@ -105,6 +106,7 @@ assert(doc.querySelector('.book-detail-quick-actions').compareDocumentPosition(d
 doc.querySelector('#bookDetailShare').click();
 assert.equal(shareResult.title,'Cien años de soledad');
 assert(shareResult.text.includes('Un clásico'),'Compartir incluye el resumen');
+assert(shareResult.text.includes('Una saga familiar'),'Compartir incluye la sinopsis');
 assert.equal(doc.querySelectorAll('#bookDetailEdit').length,1,'Editar es único en ficha');
 assert.equal(doc.querySelector('#bookTitle'),null,'Detalle no es editor');
 
@@ -131,6 +133,7 @@ assert.equal(doc.querySelector('#bookStatus').value,'finished');
 assert.equal(doc.querySelector('#bookFavorite'),null,'No checkbox ni corazón en formulario de edición');
 assert.equal(doc.querySelectorAll('[data-book-edit-rating]').length,0,'Las estrellas no están en edición');
 assert.equal(doc.querySelector('#bookStartDate').value,'2023-11-01');
+assert.equal(doc.querySelector('#bookSynopsis').value,'Una saga familiar\nCon recuerdos.','Sinopsis precargada al editar');
 assert.equal(doc.querySelector('.book-editor').firstElementChild.classList.contains('book-editor-toolbar'),true,'Cabecera solo informativa');
 assert.equal(doc.querySelectorAll('#bookSave').length,1,'Una única acción de guardar');
 assert.equal(doc.querySelector('.modal-sheet>.book-editor-actions #bookSave')!==null,true,'Guardar está en el pie fijo, no encima del formulario');
@@ -151,6 +154,7 @@ const slider=doc.querySelector('#bookProgress');
 slider.value='42';slider.dispatchEvent(new window.Event('input',{bubbles:true}));
 doc.querySelector('#bookAbandonedDate').value='2026-10-15';
 doc.querySelector('#bookSummary').value='Resumen de prueba';
+doc.querySelector('#bookSynopsis').value='Un argumento corregido';
 doc.querySelector('#bookDictate').click();
 assert.equal(voice.target,'book-summary');
 window.NexoBooks.applyVoiceText('Resumen dictado y editable');
@@ -160,6 +164,7 @@ const changed=rows.find(x=>x.id===1);
 assert.equal(changed.status,'abandoned');assert.equal(changed.progress,42);
 assert.equal(changed.abandonedDate,'2026-10-15');
 assert.equal(changed.summary,'Resumen dictado y editable');
+assert.equal(changed.synopsis,'Un argumento corregido','Sinopsis independiente del resumen');
 assert.equal(changed.favorite,true);assert.equal(changed.rating,5);
 assert.equal(doc.querySelector('[data-books-filter="finished"]').getAttribute('aria-pressed'),'true','Editar mantiene el filtro anterior');
 assert.equal(doc.querySelector('#bookDetailFavorite'),null,'Guardar vuelve al listado y no reabre ficha');
@@ -183,8 +188,10 @@ setSearch('');
 setFilter('want');
 open(2);
 assert(doc.querySelector('#bookDetailStart'),'Empezar lectura dentro de la ficha pendiente');
+assert(doc.querySelector('#modalBody').textContent.includes('Un misterio en Barcelona.'),'Sinopsis visible incluso antes de leer');
 doc.querySelector('#bookDetailStart').click();
 assert.equal(rows.find(x=>x.id===2).status,'reading');
+assert.equal(rows.find(x=>x.id===2).synopsis,'Un misterio en Barcelona.','Empezar lectura conserva el argumento');
 assert.match(rows.find(x=>x.id===2).startDate,/^\d{4}-\d{2}-\d{2}$/,'Registra inicio al comenzar');
 assert.equal(doc.querySelector('[data-books-filter="reading"]').getAttribute('aria-pressed'),'true');
 open(2);
@@ -211,6 +218,8 @@ doc.querySelector('#bookStatus').value='want';
 doc.querySelector('#bookStatus').dispatchEvent(new window.Event('change',{bubbles:true}));
 doc.querySelector('#bookTitle').value='Nuevo pendiente';
 doc.querySelector('#bookAuthor').value='Autor de prueba';
+assert(!doc.querySelector('#bookSynopsis').closest('.hidden'),'La sinopsis está disponible en alta pendiente');
+doc.querySelector('#bookSynopsis').value='Una historia para recordar';
 doc.querySelector('#bookSave').click();
 assert.equal(rows.find(x=>x.title==='Nuevo pendiente').status,'want');
 assert.equal(doc.querySelector('[data-books-filter="finished"]').getAttribute('aria-pressed'),'true','El filtro permanece tras añadir un libro fuera de él');
@@ -219,7 +228,9 @@ setFilter('want');
 assert(panel().includes('Nuevo pendiente'),'El libro nuevo existe y aparece en su categoría');
 const newBook=rows.find(x=>x.title==='Nuevo pendiente');
 assert.equal(newBook.rating,0);
+assert.equal(newBook.synopsis,'Una historia para recordar');
 doc.querySelector('[data-book-open="'+newBook.id+'"]').click();
+assert(doc.querySelector('#modalBody').textContent.includes('Una historia para recordar'),'Sinopsis visible en ficha pendiente');
 doc.querySelector('#bookDetailFavorite').click();
 assert.equal(rows.find(x=>x.id===newBook.id).favorite,true,'Corazón guardado desde detalle');
 doc.querySelector('[data-book-detail-rating][data-rating="3"]').click();
