@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.jruiz.nexo.connect.vault.AndroidPeerTrustStore;
 import com.jruiz.nexo.connect.vault.NexoConnectLocalNotePromotion;
+import com.jruiz.nexo.connect.vault.NexoConnectLocalListPromotion;
 
 import java.util.UUID;
 
@@ -54,6 +55,8 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                     () -> pickSavedNote(false));
             button("6a. Copiar nota cifrada recibida a Notas de Nexo",
                     this::chooseReceivedNote);
+            button("Añadir lista cifrada recibida a Listas de Nexo",
+                    this::chooseReceivedList);
         }
     }
 
@@ -287,6 +290,120 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                     .setPositiveButton("Entendido",null).show();
             });
         },"nexo-connect-native-note-copy").start();
+    }
+
+    /**
+     * In a native Nexo session this private inbox uses the same app sandbox;
+     * the standalone pilot's Keystore is intentionally inaccessible here.
+     * Never request an unverified second registration or reuse pilot secrets.
+     */
+    private void chooseReceivedList(){
+        if(!BuildConfig.DEBUG)return;
+        final UUID owner;
+        try{owner=authenticatedAccountId();}
+        catch(SecurityException invalid){
+            showPickerError("Para consultar listas recibidas, entra en tu cuenta "+
+                    "de Connect desde este Nexo.");
+            return;
+        }
+        try(SQLiteDatabase privateDb=privateConnectDatabase()){
+            List<NexoConnectLocalListPromotion.Received> received=
+                    NexoConnectLocalListPromotion.list(privateDb,100);
+            if(received.isEmpty()){
+                showPickerError("Aún no hay listas recibidas en este Nexo. "+
+                        "Cuando alguien te envíe una lista, podrás añadirla aquí.");
+                return;
+            }
+            String[] labels=new String[received.size()];
+            for(int i=0;i<received.size();i++)
+                labels[i]="Lista recibida "+(i+1);
+            new AlertDialog.Builder(this)
+                .setTitle("Listas recibidas")
+                .setItems(labels,(dialog,which)->
+                        reviewReceivedList(owner,received.get(which).deliveryId))
+                .setNegativeButton("Cancelar",null).show();
+        }catch(Exception failure){
+            showPickerError("No se pudo consultar la bandeja de listas.");
+        }
+    }
+
+    private void reviewReceivedList(UUID owner,UUID delivery){
+        if(!BuildConfig.DEBUG)return;
+        try(SQLiteDatabase privateDb=privateConnectDatabase()){
+            if(!owner.equals(authenticatedAccountId()))
+                throw new SecurityException("Account changed");
+            AndroidPeerTrustStore trust=new AndroidPeerTrustStore(this,owner);
+            NexoConnectLocalListPromotion.VerifiedList received=
+                    NexoConnectLocalListPromotion.read(privateDb,owner,delivery,trust);
+            StringBuilder preview=new StringBuilder()
+                .append(received.title)
+                .append("\\n\\nElementos: ").append(received.entries.length());
+            for(int i=0;i<Math.min(20,received.entries.length());i++){
+                JSONObject row=received.entries.optJSONObject(i);
+                if(row!=null)preview.append("\\n")
+                    .append(row.optBoolean("checked",false)?"☑ ":"☐ ")
+                    .append(row.optString("text",""));
+            }
+            if(received.entries.length()>20)
+                preview.append("\\n… y ")
+                       .append(received.entries.length()-20)
+                       .append(" elementos más");
+            preview.append("\\n\\nSe añadirá como nueva lista de Nexo, "+
+                    "con sus elementos, categorías y estados. "+
+                    "La copia normal de Nexo no tendrá el cifrado "+
+                    "adicional de Connect. La lista original cifrada "+
+                    "no se modificará.");
+            new AlertDialog.Builder(this)
+                .setTitle("¿Añadir esta lista a Nexo?")
+                .setMessage(preview.toString())
+                .setNegativeButton("Cancelar",null)
+                .setPositiveButton("Añadir a mis listas",
+                        (dialog,which)->copyReceivedList(owner,delivery))
+                .show();
+        }catch(Exception failure){
+            showPickerError("No se puede abrir la lista de forma segura. "+
+                    "Comprueba que el contacto sigue verificado.");
+        }
+    }
+
+    private void copyReceivedList(UUID owner,UUID delivery){
+        if(!BuildConfig.DEBUG||copyingReceived)return;
+        try{
+            if(!owner.equals(authenticatedAccountId()))
+                throw new SecurityException("Account changed");
+        }catch(Exception failure){
+            showPickerError("Vuelve a entrar en tu cuenta de Connect.");
+            return;
+        }
+        copyingReceived=true;
+        new Thread(()->{
+            final NexoConnectLocalListPromotion.Result result;
+            try(SQLiteDatabase privateDb=privateConnectDatabase();
+                DatabaseHelper nexo=new DatabaseHelper(this)){
+                AndroidPeerTrustStore trust=new AndroidPeerTrustStore(this,owner);
+                result=NexoConnectLocalListPromotion.copyApproved(
+                    privateDb,nexo.getWritableDatabase(),owner,delivery,trust,true);
+            }catch(Exception failure){
+                runOnUiThread(()->{
+                    copyingReceived=false;
+                    if(!isFinishing()&&!isDestroyed())
+                        showPickerError("No se pudo añadir la lista. "+
+                            "No se ha creado una copia incompleta.");
+                });
+                return;
+            }
+            runOnUiThread(()->{
+                copyingReceived=false;
+                if(isFinishing()||isDestroyed())return;
+                new AlertDialog.Builder(this)
+                    .setTitle(result.alreadyCopied
+                            ?"Esta lista ya está en Nexo"
+                            :"Lista añadida")
+                    .setMessage("Encontrarás la lista en la sección Listas de Nexo. "+
+                            "Puedes editarla sin cambiar la copia cifrada recibida.")
+                    .setPositiveButton("Entendido",null).show();
+            });
+        },"nexo-connect-native-list-copy").start();
     }
 
     private void pickSavedNote(boolean previewOnly) {
