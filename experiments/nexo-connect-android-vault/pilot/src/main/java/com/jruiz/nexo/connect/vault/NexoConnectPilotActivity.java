@@ -352,9 +352,25 @@ public class NexoConnectPilotActivity extends Activity {
                     android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,
                             getPackageName())));
+        }else if(!NexoConnectInboxNoticeJob.isScheduled(this)){
+            label("Avisos permitidos, pero revisión automática NO programada.",12);
+            button("Reactivar revisión automática",()->{
+                try{
+                    NexoConnectInboxNoticeJob.schedule(this);
+                    lastMessage=NexoConnectInboxNoticeJob.isScheduled(this)?
+                            "Revisión automática programada.":
+                            "Android no ha programado la revisión.";
+                    showHome();
+                }catch(RuntimeException unavailable){
+                    // Don't expose private environment data on screen.
+                    lastMessage="Android no ha podido programar la revisión ("+
+                            unavailable.getClass().getSimpleName()+").";
+                    showHome();
+                }
+            });
         }else{
-            label("Avisos permitidos: comprobación periódica. Android puede retrasarlos "+
-                    "para ahorrar batería.",12);
+            label("Avisos permitidos y revisión programada. Android puede retrasar "+
+                    "la comprobación para ahorrar batería.",12);
         }
         button("Fichas recibidas",this::showReceivedNotes);
         button("Confirmaciones pendientes",this::retryAcks);
