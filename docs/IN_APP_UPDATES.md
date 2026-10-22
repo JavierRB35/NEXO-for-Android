@@ -39,3 +39,15 @@ apkSize: número real de bytes
 notes: resumen breve de la versión
 
 Estos valores los calcula el workflow a partir de la APK oficial, no son metadatos manuales.
+
+
+## Actualizaciones voluntarias y críticas (a partir de Nexo 3.7.50)
+
+La política de publicación es una decisión explícita para **cada versión**. En el repositorio privado `JavierRB35/NEXO-for-Android`, editar `.github/nexo-update-policy.json` **antes** de compilar y crear la Release firmada:
+
+- **Opcional**: `{"critical": false, "reason": ""}`. El aviso dice «Actualización opcional» y ofrece «Actualizar» y «Más tarde».
+- **Crítica/obligatoria**: `{"critical": true, "reason": "Motivo concreto de seguridad o compatibilidad (10 a 300 caracteres)."}`. El mensaje explica el motivo y muestra «Actualizar ahora» o «Salir de Nexo». No aparece «Más tarde». Android conserva las confirmaciones de instalación; nunca hay instalación automática sin permiso.
+
+El flujo `publish-public-updates.yml` obtiene esos valores de la revisión **inmutable de la Release**, verifica APK, firma y hash, y publica `critical` (booleano) y `criticalReason` (texto) en `latest.json`. No se permite cambiar la criticidad de una versión publicada sin incrementar su `versionCode`. Si faltan campos en un manifiesto antiguo, se considera opcional. Los metadatos inválidos se rechazan.
+
+**Importante:** la obligatoriedad se hace cumplir por el cliente Nexo 3.7.50 o superior cuando detecta el aviso crítico. Las instalaciones anteriores no conocen esta política y podrán seguir mostrando el aviso voluntario. Si la conexión no permite consultar el canal, no se impone un bloqueo remoto; esto evita dejar sin funciones locales a un usuario por una caída de red. En ningún caso se debe modificar `latest.json` manualmente para forzar una actualización ni publicar una APK sin comprobar firma y hash.

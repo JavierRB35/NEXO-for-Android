@@ -1,3 +1,11 @@
+## Nexo 3.7.50 — Actualizaciones críticas y opcionales
+- La ventana y la notificación señalan explícitamente la importancia de cada actualización.
+- Las versiones opcionales permiten «Más tarde» y continuar normalmente.
+- Las críticas explican el motivo y ofrecen «Actualizar ahora» o «Salir de Nexo»; el diálogo no se puede omitir y Android siempre confirma la instalación.
+- El canal público añade `critical` y `criticalReason` desde `.github/nexo-update-policy.json` de cada versión. No se puede cambiar silenciosamente la criticidad de una versión publicada.
+- Manifiestos anteriores compatibles, tratados como opcionales; conservación de la firma oficial, SHA-256, SQLite 33 y AndroidIDE.
+- La 3.7.50 es una actualización opcional. La obligatoriedad solo puede aplicarse con un cliente que ya implemente este protocolo.
+
 ## Nexo 3.7.49 — Argumento / sinopsis en libros y filmoteca
 - Campo de texto libre y opcional en el alta y edición de libros, películas y series, incluso cuando están pendientes.
 - Sinopsis visible íntegra en la ficha y al compartir, con saltos de línea conservados.
