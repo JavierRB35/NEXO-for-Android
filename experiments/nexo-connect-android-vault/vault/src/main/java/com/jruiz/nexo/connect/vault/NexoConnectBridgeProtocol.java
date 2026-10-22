@@ -25,6 +25,19 @@ public final class NexoConnectBridgeProtocol {
             "com.jruiz.nexo.connect.debug.SHARE_BRIDGE_V1";
     public static final int TRANSACTION_PULL=android.os.IBinder.FIRST_CALL_TRANSACTION;
     public static final int MAX_METADATA_BYTES=128*1024;
+    // Reverse LAB bridge: the pilot authenticates and unseals ONE received list.
+    // Only the random ticket is placed in the explicit Intent.
+    public static final String PILOT_RECEIVE_SERVICE=
+            "com.jruiz.nexo.connect.vault.NexoConnectReceivedBridgeService";
+    public static final String HOST_RECEIVE_ACTIVITY=
+            "com.jruiz.nexo.connect.host.NexoConnectReceivedListActivity";
+    public static final String EXTRA_RECEIVED_TICKET=
+            "com.jruiz.nexo.connect.debug.ONE_TIME_RECEIVED_LIST_TICKET";
+    public static final String RECEIVE_BINDER_DESCRIPTOR=
+            "com.jruiz.nexo.connect.debug.RECEIVED_LIST_BRIDGE_V1";
+    public static final int TRANSACTION_PULL_RECEIVED=
+            android.os.IBinder.FIRST_CALL_TRANSACTION;
+
     private NexoConnectBridgeProtocol(){}
 
     public static boolean validTicket(String ticket){
