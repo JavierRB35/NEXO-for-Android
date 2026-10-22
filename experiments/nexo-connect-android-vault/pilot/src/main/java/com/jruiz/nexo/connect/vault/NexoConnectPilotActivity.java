@@ -149,8 +149,8 @@ public class NexoConnectPilotActivity extends Activity {
 
     private void showSetup(){
         screen("Inicio seguro",false);
-        label("Necesitas dos CORREOS DISTINTOS, uno en cada móvil. "+
-              "El primer código inicia sesión; otro diferente registra el teléfono.",14);
+        label("Conecta tu cuenta para compartir fichas con personas autorizadas. "+
+              "En esta prueba, cada emulador representa una cuenta distinta.",14);
         // Only the integrated Nexo DEBUG subclass offers read-only previews.
         // Standalone pilot deliberately does not expose Nexo's SQLite.
         addHostSetupActions();
@@ -287,24 +287,23 @@ public class NexoConnectPilotActivity extends Activity {
     }
     private void showHome(){
         if(stage!=READY){showSetup();return;}
-        screen("Dos móviles · intercambio cifrado",false);
-        label("Cuenta: "+accountEmail,14);
-        label("Dispositivo registrado: generación "+generation,14);
+        screen("Compartir con personas",false);
+        label("Conectado como "+accountEmail,14);
         if(!lastMessage.isEmpty())label(lastMessage,13);
-        button("1. Mostrar mi QR público",this::showOwnQr);
-        button("2. Crear invitación QR (caduca en 1 hora)",this::showInvite);
-        button("3. Escanear QR de otro teléfono",this::openScanner);
-        button("3a. Importar QR de imagen (sin cámara)",this::openImageQr);
-        button("4. Contactos verificados",this::showContacts);
-        button("5. Enviar nota cifrada",this::chooseRecipient);
+        button("Mi código para conectar",this::showOwnQr);
+        button("Invitar a una persona",this::showInvite);
+        button("Escanear invitación",this::openScanner);
+        button("Abrir invitación guardada",this::openImageQr);
+        button("Personas autorizadas",this::showContacts);
+        button("Compartir una nota",this::chooseRecipient);
         // The standalone pilot has no host data access. A DEBUG-only Nexo
         // subclass may add a read-only, explicit user-selected local note.
         addHostActions();
-        button("6. Bandeja de entrada",this::showInbox);
-        button("7. Notas recibidas",this::showReceivedNotes);
-        button("8. Reintentar SOLO confirmaciones pendientes",this::retryAcks);
-        label("El acceso JWT se mantiene en memoria. La sesión renovable se protege "+
-              "con Android Keystore y al entrar se comprueba de nuevo este dispositivo.",13);
+        button("Bandeja de entrada",this::showInbox);
+        button("Fichas recibidas",this::showReceivedNotes);
+        button("Confirmaciones pendientes",this::retryAcks);
+        label("Tus fichas se cifran para el destinatario y las personas "+
+              "autorizadas se verifican antes de compartir.",13);
     }
     private void openScanner(){
         try{
@@ -361,9 +360,9 @@ public class NexoConnectPilotActivity extends Activity {
                 NexoConnectSignedGatewayClient.InvitationCreated invite=
                         (NexoConnectSignedGatewayClient.InvitationCreated)value;
                 screen("Invitación privada",true);
-                label("Muestra este código QR al móvil B. B deberá comparar "+
-                      "las dos huellas SHA-256 completas y aceptar. "+
-                      "Una invitación NO sustituye la verificación de identidad.",14);
+                label("Muestra esta invitación a la persona con la que "+
+                      "quieras conectar. Antes de autorizar, los dos deberéis "+
+                      "comprobar los códigos de seguridad por otro medio.",14);
                 Bitmap qr=NexoConnectOwnQrView.encodeQrBitmap(
                         invite.qrPayload,Math.max(384,
                                 Math.min(getResources().getDisplayMetrics().widthPixels-50,720)));
@@ -409,19 +408,34 @@ public class NexoConnectPilotActivity extends Activity {
     private void showContacts(){
         try{
             List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
-            screen("Contactos QR verificados",true);
-            if(peers.isEmpty()){label("Sin contactos. Empieza con invitación QR.",15);return;}
+            screen("Personas autorizadas",true);
+            if(peers.isEmpty()){
+                label("Todavía no tienes contactos. Puedes enviarles una invitación.",15);
+                return;
+            }
             for(AndroidPeerTrustStore.PeerPin p:peers){
-                label(p.peerId.toString(),15);
-                label("Firma SHA256: "+p.signingFingerprint(),12);
-                label("HPKE SHA256: "+p.encryptionFingerprint(),12);
-                button("Verificar relación con servidor",()->runWork(()->{
+                label("Contacto verificado · "+p.peerId.toString().substring(0,8),16);
+                button("Detalles de seguridad",()->{
+                    try{
+                        new AlertDialog.Builder(this)
+                            .setTitle("Verificación del contacto")
+                            .setMessage("Identificador: "+p.peerId+
+                                    "\n\nFirma SHA-256:\n"+p.signingFingerprint()+
+                                    "\n\nCifrado SHA-256:\n"+p.encryptionFingerprint()+
+                                    "\n\nEstos códigos permiten confirmar "+
+                                    "que estás hablando con la persona correcta.")
+                            .setPositiveButton("Cerrar",null).show();
+                    }catch(Exception error){
+                        showError("No se pudieron mostrar los detalles de seguridad");
+                    }
+                });
+                button("Confirmar vínculo",()->runWork(()->{
                     client.verifyStoredPeer(trusted,p.peerId);return p.peerId;
                 },v->{lastMessage="Verificación bilateral solicitada.";showHome();}));
-                button("Autorizar recibir de este contacto",()->runWork(()->{
+                button("Permitir recepción",()->runWork(()->{
                     client.setReceiving(trusted,p.peerId,true);return p.peerId;
                 },v->{lastMessage="Recepción autorizada para ese contacto.";showHome();}));
-                button("Enviar nota a este contacto",()->showCompose(p));
+                button("Compartir una nota con este contacto",()->showCompose(p));
             }
         }catch(Exception ex){showError("No se pudo leer el almacén QR");}
     }
@@ -551,7 +565,9 @@ public class NexoConnectPilotActivity extends Activity {
             List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
             if(peers.isEmpty()){showError("Escanea y verifica antes el QR del contacto");return;}
             String[] names=new String[peers.size()];
-            for(int i=0;i<peers.size();i++)names[i]=peers.get(i).peerId.toString();
+            for(int i=0;i<peers.size();i++)
+                names[i]="Contacto verificado · "+
+                        peers.get(i).peerId.toString().substring(0,8);
             new AlertDialog.Builder(this).setTitle("Destinatario verificado")
                 .setItems(names,(d,which)->showCompose(peers.get(which),
                         proposedTitle,proposedBody))
@@ -564,7 +580,8 @@ public class NexoConnectPilotActivity extends Activity {
     private void showCompose(AndroidPeerTrustStore.PeerPin peer,
             String proposedTitle,String proposedBody){
         screen("Enviar NOTA cifrada",true);
-        label("Destinatario fijado por QR: "+peer.peerId,14);
+        label("Para: contacto verificado · "+
+                peer.peerId.toString().substring(0,8),14);
         EditText title=input("Título",false),body=input("Mensaje",false);
         title.setText(proposedTitle);
         body.setText(proposedBody);
@@ -576,7 +593,8 @@ public class NexoConnectPilotActivity extends Activity {
                 showError("Escribe un título y un mensaje breve");return;
             }
             new AlertDialog.Builder(this).setTitle("Confirmar envío cifrado")
-                .setMessage("Enviar «"+t+"» a "+peer.peerId+"? "+
+                .setMessage("¿Compartir «"+t+"» con el contacto "+
+                   peer.peerId.toString().substring(0,8)+"? "+
                    "No se reintentará automáticamente si falla Internet.")
                 .setNegativeButton("No",null)
                 .setPositiveButton("Enviar una vez",(d,w)->runWork(()->{
@@ -609,15 +627,16 @@ public class NexoConnectPilotActivity extends Activity {
                 if(info==null)continue;
                 String id=info.optString("deliveryId","");
                 String sender=info.optString("senderId","");
-                label("Remitente: "+sender,14);
-                button("Recibir nota "+id,()->acceptInboxItem(id,sender));
+                label("De: contacto "+sender.substring(0,Math.min(8,sender.length())),14);
+                button("Recibir ficha",()->acceptInboxItem(id,sender));
             }
         });
     }
     private void acceptInboxItem(String delivery,String sender){
         new AlertDialog.Builder(this).setTitle("Descifrar e importar")
-            .setMessage("¿Importar esta ficha de "+sender+
-                "? Se verificará la firma QR del remitente antes de guardarla.")
+            .setMessage("¿Recibir esta ficha del contacto "+
+                sender.substring(0,Math.min(8,sender.length()))+
+                "? Se comprobará su identidad antes de guardarla.")
             .setNegativeButton("Cancelar",null)
             .setPositiveButton("Sí, importar",(d,w)->runWork(()->{
                 UUID peer=UUID.fromString(sender);
@@ -632,8 +651,8 @@ public class NexoConnectPilotActivity extends Activity {
                                 trusted,peer,identity.accountId(),generation,
                                 System.currentTimeMillis());
                     return imported.acknowledged?
-                            "Nota importada; servidor confirmado":
-                            "Nota guardada. Confirmación pendiente; "+
+                            "Ficha recibida y confirmada":
+                            "Ficha guardada. Confirmación pendiente; "+
                             "puedes reintentar SOLO confirmaciones";
                 }
             },value->{lastMessage=(String)value;showHome();})).show();
