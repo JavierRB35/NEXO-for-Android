@@ -9,7 +9,10 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.MultiFormatReader;
+import com.google.zxing.ReaderException;
 import com.google.zxing.RGBLuminanceSource;
+import com.google.zxing.qrcode.QRCodeReader;
+import com.google.zxing.common.GlobalHistogramBinarizer;
 import com.google.zxing.common.HybridBinarizer;
 
 import java.io.ByteArrayOutputStream;
@@ -94,18 +97,49 @@ public final class NexoConnectQrImageDecoder {
                 throw new GeneralSecurityException("Invalid decoded QR bounds");
             int[] pixels=new int[width*height];
             bitmap.getPixels(pixels,0,width,0,0,width,height);
-            BinaryBitmap source=new BinaryBitmap(new HybridBinarizer(
-                    new RGBLuminanceSource(width,height,pixels)));
-            Map<DecodeHintType,Object> hints=new EnumMap<>(DecodeHintType.class);
-            hints.put(DecodeHintType.POSSIBLE_FORMATS,
-                    Collections.singletonList(BarcodeFormat.QR_CODE));
-            hints.put(DecodeHintType.TRY_HARDER,Boolean.TRUE);
-            String text=new MultiFormatReader().decode(source,hints).getText();
+            String text=decodeQrPixels(width,height,pixels);
             if(text==null||text.length()==0||text.length()>MAX_QR_CHARS)
                 throw new GeneralSecurityException("Invalid QR text length");
             return text;
         }finally {
             bitmap.recycle();
         }
+    }
+
+    /**
+     * QR bitmap decoding is sensitive to detector sampling at particular
+     * random key/token module patterns. Try two genuinely different ZXing
+     * binarizers and only then the QR reader's PURE_BARCODE extraction
+     * (appropriate for a single rendered QR on white, not for a photo).
+     *
+     * No retries of HTTP, invitations or user actions are performed here.
+     * All candidates still go through the exact same strict Nexo payload,
+     * fingerprint and consent checks after scanning. Never manufacture text
+     * from a failed decoding operation.
+     */
+    private static String decodeQrPixels(int width,int height,int[] pixels)
+            throws ReaderException {
+        RGBLuminanceSource luminance=new RGBLuminanceSource(width,height,pixels);
+        Map<DecodeHintType,Object> hints=new EnumMap<>(DecodeHintType.class);
+        hints.put(DecodeHintType.POSSIBLE_FORMATS,
+                Collections.singletonList(BarcodeFormat.QR_CODE));
+        hints.put(DecodeHintType.TRY_HARDER,Boolean.TRUE);
+        BinaryBitmap hybrid=new BinaryBitmap(new HybridBinarizer(luminance));
+        try {
+            return new MultiFormatReader().decode(hybrid,hints).getText();
+        } catch(ReaderException failedDetector) {
+            // Histogram thresholding is less sensitive to local sampling
+            // on uniformly white screenshot/PNG backgrounds.
+        }
+        BinaryBitmap histogram=new BinaryBitmap(
+                new GlobalHistogramBinarizer(luminance));
+        try {
+            return new MultiFormatReader().decode(histogram,hints).getText();
+        } catch(ReaderException failedHistogram) {
+            // Only an isolated pure QR qualifies for this last detector.
+        }
+        Map<DecodeHintType,Object> pure=new EnumMap<>(hints);
+        pure.put(DecodeHintType.PURE_BARCODE,Boolean.TRUE);
+        return new QRCodeReader().decode(hybrid,pure).getText();
     }
 }
