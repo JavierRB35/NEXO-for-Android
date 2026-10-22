@@ -33,15 +33,71 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
      * Debug-only local preview available even without an account or verified
      * contacts. Does not authenticate, encrypt, upload, enroll or send.
      */
-    @Override protected void addHostSetupActions() {
-        if (BuildConfig.DEBUG) {
-            button("Explorar fichas de Nexo · sin cuenta y sin envío",
-                    () -> chooseShareSection(true));
-            if(hasSelectedShare())
-                button("Ver ficha seleccionada · sin envío",()->readSelectedShare(true));
-            button("Vista previa de notas de Nexo · sin cuenta y sin envío",
-                    () -> pickSavedNote(true));
+    @Override protected boolean addHostSetupActions() {
+        if(!BuildConfig.DEBUG)return false;
+        // A share from the existing Nexo UI must land on the selected item,
+        // not on account creation or passwordless login. No identity is minted.
+        screen(hasSelectedShare()?"Compartir ficha":"Nexo Connect",false);
+        if(hasSelectedShare()){
+            String section=getIntent().getStringExtra("nexoShareSection");
+            long id=getIntent().getLongExtra("nexoShareId",0L);
+            try(DatabaseHelper db=new DatabaseHelper(this)){
+                NexoConnectHostShare.Draft draft=
+                        NexoConnectHostShare.prepare(db,section,id);
+                label("Ficha seleccionada · "+draft.displayKind,14);
+                label(draft.title,20);
+                String excerpt=draft.safeData.optString("body",
+                        draft.safeData.optString("summary",""));
+                if(!excerpt.isEmpty())
+                    label(excerpt.length()>350?
+                            excerpt.substring(0,350)+"…":excerpt,14);
+                JSONArray entries=draft.safeData.optJSONArray("entries");
+                if(entries!=null){
+                    label("Elementos de la lista: "+entries.length(),14);
+                    for(int i=0;i<Math.min(8,entries.length());i++){
+                        JSONObject item=entries.optJSONObject(i);
+                        if(item!=null)
+                            label((item.optBoolean("checked",false)?"☑ ":"☐ ")+
+                                    item.optString("text",""),14);
+                    }
+                    if(entries.length()>8)
+                        label("Y "+(entries.length()-8)+" elementos más",13);
+                }
+                label("Esta ficha sigue en tu teléfono. No se ha enviado nada.",14);
+                button("Revisar datos de la ficha",()->readSelectedShare(true));
+                button("Elegir destinatario y enviar",()->new AlertDialog.Builder(this)
+                    .setTitle("Conexión segura pendiente")
+                    .setMessage("La identidad y los contactos verificados del "+
+                            "piloto están protegidos en otra aplicación Android. "+
+                            "No pueden utilizarse automáticamente desde Nexo. "+
+                            "No registres otra cuenta ni sustituyas claves: "+
+                            "prepararemos una transición segura antes de "+
+                            "habilitar los envíos desde aquí.")
+                    .setPositiveButton("Entendido",null).show());
+            }catch(UnsupportedOperationException pending){
+                label("Esta ficha todavía no admite el intercambio cifrado.",16);
+                label(pending.getMessage(),14);
+            }catch(Exception invalid){
+                label("No se ha podido preparar esta ficha de forma segura. "+
+                        "Puedes seguir utilizando Nexo con normalidad.",14);
+            }
+        }else{
+            label("Consulta tus fichas antes de compartirlas. "+
+                    "No necesitas registrarte para esta vista previa.",14);
+            button("Explorar mis fichas",()->chooseShareSection(true));
+            button("Ver mis notas",()->pickSavedNote(true));
         }
+        button("Volver a Nexo",this::finish);
+        button("Acceso avanzado · solo laboratorio",()->new AlertDialog.Builder(this)
+                .setTitle("Acceso de laboratorio")
+                .setMessage("Este acceso es independiente del piloto ya "+
+                        "verificado. No crees otra cuenta ni reemplaces "+
+                        "ningún teléfono para continuar las pruebas. "+
+                        "¿Quieres abrir las opciones técnicas de acceso?")
+                .setNegativeButton("Cancelar",null)
+                .setPositiveButton("Abrir acceso", (d,w)->openHostAccountSetup())
+                .show());
+        return true;
     }
 
     @Override protected void addHostActions() {
