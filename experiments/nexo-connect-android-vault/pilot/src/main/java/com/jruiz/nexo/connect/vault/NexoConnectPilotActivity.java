@@ -656,25 +656,46 @@ public class NexoConnectPilotActivity extends Activity {
     private void showReceivedNotes(){
         try(SQLiteDatabase db=openPrivateDatabase();
             Cursor c=db.rawQuery("SELECT id,title,body FROM items ORDER BY id DESC LIMIT 100",null)){
-            screen("Notas recibidas (copia privada)",true);
-            if(c.getCount()==0)label("No se han importado notas.",14);
+            screen("Fichas recibidas (copia privada)",true);
+            if(c.getCount()==0)label("No se han recibido fichas.",14);
             while(c.moveToNext()){
                 long localId=c.getLong(0);
                 String storedTitle=c.getString(1),storedBody=c.getString(2);
                 if(NexoConnectSealedNoteStore.isSealed(storedBody)){
                     try(Cursor receipt=db.rawQuery(
-                        "SELECT delivery_id FROM nexo_connect_import_receipts "+
-                        "WHERE local_id=? AND entity_type='note'",
+                        "SELECT delivery_id,entity_type FROM nexo_connect_import_receipts "+
+                        "WHERE local_id=?",
                         new String[]{String.valueOf(localId)})){
                         if(!receipt.moveToFirst())
                             throw new SecurityException("Missing signed import receipt");
                         UUID id=UUID.fromString(receipt.getString(0));
-                        JSONObject note=new NexoConnectSealedNoteStore(
+                        String receiptType=receipt.getString(1);
+                        JSONObject inner=new NexoConnectSealedNoteStore(
                             identity.accountId(),id).read(storedBody);
-                        label("■ "+note.getString("title"),17);
-                        label(note.optString("body",""),15);
+                        JSONObject data=inner;
+                        if(inner.has(NexoConnectSealedNoteStore.PACKED_ENTITY)) {
+                            if(!receiptType.equals(inner.optString(
+                                    NexoConnectSealedNoteStore.PACKED_ENTITY)))
+                                throw new SecurityException("Receipt entity mismatch");
+                            data=inner.getJSONObject(NexoConnectSealedNoteStore.PACKED_DATA);
+                        }else if(!"note".equals(receiptType)){
+                            throw new SecurityException("Legacy receipt entity mismatch");
+                        }
+                        label("■ "+friendlyEntity(receiptType)+" · "+
+                                data.getString("title"),17);
+                        String preview=data.optString("body",
+                                data.optString("summary",""));
+                        if(!preview.isEmpty())label(preview,15);
+                        JSONArray elements=data.optJSONArray("entries");
+                        if(elements!=null){
+                            label("Elementos: "+elements.length(),14);
+                            for(int j=0;j<elements.length();j++){
+                                JSONObject entry=elements.optJSONObject(j);
+                                if(entry!=null)label("• "+entry.optString("text",""),14);
+                            }
+                        }
                     }catch(Exception invalidNote){
-                        label("■ Nota protegida inaccesible (clave o datos no válidos)",14);
+                        label("■ Ficha protegida inaccesible (clave o datos no válidos)",14);
                         // Never fall back to displaying unverified ciphertext.
                     }
                 }else{
