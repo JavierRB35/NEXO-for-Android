@@ -11,10 +11,7 @@ import com.google.crypto.tink.hybrid.HpkeParameters;
 import com.google.crypto.tink.hybrid.HybridConfig;
 import com.google.crypto.tink.signature.SignatureConfig;
 import com.google.crypto.tink.signature.SignatureKeyTemplates;
-import com.google.zxing.BinaryBitmap;
-import com.google.zxing.MultiFormatReader;
-import com.google.zxing.RGBLuminanceSource;
-import com.google.zxing.common.HybridBinarizer;
+import java.io.ByteArrayOutputStream;
 
 import org.json.JSONObject;
 import org.junit.Test;
@@ -69,12 +66,16 @@ public final class NexoConnectCameraFreePairingTest {
     }
 
     private static String decodeWithZxing(Bitmap bitmap)throws Exception{
-        int width=bitmap.getWidth(),height=bitmap.getHeight();
-        int[] pixels=new int[width*height];
-        bitmap.getPixels(pixels,0,width,0,0,width,height);
-        BinaryBitmap binary=new BinaryBitmap(new HybridBinarizer(
-                new RGBLuminanceSource(width,height,pixels)));
-        return new MultiFormatReader().decode(binary).getText();
+        // Exercise the same PNG -> ZXing path used by the real image picker,
+        // including its detector fallback. This catches errors which only
+        // occur with random invitation keys without relying on camera/AVD.
+        try{
+            ByteArrayOutputStream png=new ByteArrayOutputStream();
+            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,png));
+            return NexoConnectQrImageDecoder.decodeImageBytes(png.toByteArray());
+        }finally{
+            bitmap.recycle();
+        }
     }
 
     @Test public void invitationQrRoundTripsUsingZxingWithoutOpeningAnyCamera()
