@@ -2050,6 +2050,32 @@ public class MainActivity extends Activity {
                 }
             });
         }
+        /**
+         * DEBUG-only, user-initiated share launch. The Intent carries ONLY a
+         * whitelisted section and an opaque local row ID. No note plaintext,
+         * local file path, token or private key is exported by the WebView.
+         */
+        @JavascriptInterface public void openNexoConnectShare(String section,long localId) {
+            if(!BuildConfig.DEBUG || localId<=0 || section==null)return;
+            if(!("items".equals(section)||"lists".equals(section)||
+                    "journal".equals(section)||"books".equals(section)||
+                    "movies".equals(section)))return;
+            final String selected=section;
+            runOnUiThread(()->{
+                try{
+                    Intent intent=new Intent(Intent.ACTION_MAIN);
+                    intent.setClassName(getPackageName(),
+                        "com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity");
+                    intent.putExtra("nexoShareSection",selected);
+                    intent.putExtra("nexoShareId",localId);
+                    startActivity(intent);
+                }catch(ActivityNotFoundException | SecurityException failure){
+                    Toast.makeText(MainActivity.this,
+                        "La función de intercambio aún no está disponible.",
+                        Toast.LENGTH_LONG).show();
+                }
+            });
+        }
         @JavascriptInterface public void openNexoConnectPilot() {
             if (!BuildConfig.DEBUG) return;
             runOnUiThread(() -> {
