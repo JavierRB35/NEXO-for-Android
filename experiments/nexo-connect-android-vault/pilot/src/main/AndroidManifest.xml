@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 14+: JobScheduler network constraints require this permission. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- Consent is requested in the pilot UI, never silently. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Required for the OS to restore the persisted periodic check. -->
