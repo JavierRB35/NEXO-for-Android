@@ -5,7 +5,6 @@ import android.database.sqlite.SQLiteDatabase;
 
 import org.json.JSONObject;
 
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.UUID;
