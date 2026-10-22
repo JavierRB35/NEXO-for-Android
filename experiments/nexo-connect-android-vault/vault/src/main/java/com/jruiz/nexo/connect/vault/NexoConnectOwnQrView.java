@@ -3,6 +3,8 @@ package com.jruiz.nexo.connect.vault;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -54,12 +56,31 @@ public final class NexoConnectOwnQrView extends ScrollView {
         image.setContentDescription("Código QR público de mi identidad Nexo Connect");
         column.addView(image,new LinearLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT));
-        column.addView(text("Cuenta: "+self.peerId,14));
-        column.addView(text("Generación: "+self.generation,14));
-        column.addView(text("Firma Ed25519 · SHA-256: "+groups(self.signingFingerprint()),14));
-        column.addView(text("Cifrado HPKE · SHA-256: "+groups(self.encryptionFingerprint()),14));
-        column.addView(text("No significa que haya un contacto autorizado en "+
-                "el servidor: todavía debe completarse el vínculo bilateral.",14));
+        column.addView(text("Por seguridad, confirma también los códigos "+
+                "de identidad con la otra persona antes de autorizarla.",14));
+        Button details=new Button(context);
+        details.setText("Ver códigos de seguridad");
+        details.setAllCaps(false);
+        column.addView(details);
+        TextView account=text("Identificador: "+self.peerId,14);
+        TextView generation=text("Generación de seguridad: "+self.generation,14);
+        TextView signing=text("Firma SHA-256: "+
+                groups(self.signingFingerprint()),14);
+        TextView encryption=text("Cifrado SHA-256: "+
+                groups(self.encryptionFingerprint()),14);
+        for(TextView detail:new TextView[]{account,generation,signing,encryption}){
+            detail.setVisibility(View.GONE);
+            column.addView(detail);
+        }
+        details.setOnClickListener(v->{
+            boolean visible=account.getVisibility()==View.VISIBLE;
+            for(TextView detail:new TextView[]{account,generation,signing,encryption})
+                detail.setVisibility(visible?View.GONE:View.VISIBLE);
+            details.setText(visible?
+                    "Ver códigos de seguridad":"Ocultar códigos de seguridad");
+        });
+        column.addView(text("El enlace se completa solo después de "+
+                "verificar y aceptar la invitación en ambos teléfonos.",14));
     }
 
     /** Construct QR ONLY from the public halves of the verified local identity. */
