@@ -661,12 +661,22 @@ function navigate(screen, options={}) {
   requestAnimationFrame(()=>{if(router.key(router.current)===target)window.scrollTo(0,moved.scrollY);});
 }
 
+// The badge counts the same pending items as Inbox, including captures.
+function updateInboxBadge(value){
+  const badge=$('#inboxNavBadge'),button=document.querySelector('[data-nav="inbox"]');
+  if(!badge||!button)return;
+  const count=Number.isFinite(Number(value))?Math.max(0,Math.floor(Number(value))):0;
+  badge.textContent=String(count);
+  badge.classList.toggle('hidden',count===0);
+  button.setAttribute('aria-label',count?`Inbox, ${count} elemento${count===1?'':'s'} pendiente${count===1?'':'s'}`:'Inbox, vacío');
+}
 function renderToday(dashboardOverride=null) {
   const dashboard=dashboardOverride&&typeof dashboardOverride==='object'
     ?dashboardOverride
     :(state.startupSplashActive&&state.startupHomeDashboard
       ?state.startupHomeDashboard
       :parseNative(NexoNative.getHomeDashboard(),{}));
+  updateInboxBadge(dashboard.inboxCount);
   state.homeUpcoming=Array.isArray(dashboard.upcoming)?dashboard.upcoming:[];
 
   const todayCount=Math.max(0,Number(dashboard.todayCount||0));
@@ -2049,7 +2059,7 @@ function openConnectShareChoice(section,id,shareNormally){
     <h2>¿Cómo quieres compartir?</h2>
     <p class="muted">Puedes compartirlo de forma habitual o preparar una copia cifrada para un contacto verificado de Nexo.</p>
     <div class="scope-buttons">
-      <button class="primary-button" type="button" data-connect-share>Con un contacto de Nexo (pruebas)</button>
+      <button class="primary-button" type="button" data-connect-share>Con una persona en Nexo</button>
       <button class="secondary-button" type="button" data-normal-share>Compartir por Android</button>
       <button class="ghost-button" type="button" data-share-close>Cancelar</button>
     </div></div>`;
@@ -2067,7 +2077,7 @@ function openItemShareMenu(id,occurrenceAt,recurring,hasDate){
   const overlay=document.createElement('div');overlay.className='modal scope-overlay';
   let connectEnabled=false;
   try{connectEnabled=NexoNative.isNexoConnectExperimentEnabled()===true;}catch(_){}
-  overlay.innerHTML=`<div class="confirm-sheet scope-sheet"><h2>Compartir</h2><p class="muted">Elige el formato según quién vaya a recibirlo.</p><div class="scope-buttons">${connectEnabled?'<button class="primary-button" data-share-format="connect">Con un contacto de Nexo (pruebas)</button>':''}<button class="secondary-button" data-share-format="nexo">Nexo · archivo para compartir</button>${hasDate?'<button class="secondary-button" data-share-format="ics">Calendario (.ics)</button>':''}<button class="ghost-button" data-share-cancel>Cancelar</button></div></div>`;
+  overlay.innerHTML=`<div class="confirm-sheet scope-sheet"><h2>Compartir</h2><p class="muted">Elige el formato según quién vaya a recibirlo.</p><div class="scope-buttons">${connectEnabled?'<button class="primary-button" data-share-format="connect">Con una persona en Nexo</button>':''}<button class="secondary-button" data-share-format="nexo">Nexo · archivo para compartir</button>${hasDate?'<button class="secondary-button" data-share-format="ics">Calendario (.ics)</button>':''}<button class="ghost-button" data-share-cancel>Cancelar</button></div></div>`;
   document.body.appendChild(overlay);
   overlay.querySelector('[data-share-format="connect"]')?.addEventListener('click',()=>{
     overlay.remove();NexoNative.openNexoConnectShare('items',Number(id));
@@ -2992,6 +3002,7 @@ function inboxCaptureCard(capture){
 function renderInboxPanel(){
   const captures=parseNative(NexoNative.getInboxCaptures(),[]);
   const legacy=parseNative(NexoNative.getInbox(),[]);
+  updateInboxBadge(parseNative(NexoNative.getHomeDashboard(),{}).inboxCount);
   const sourceState=parseNative(NexoNative.getCommunicationCaptureSettings(),{});
   const smsReady=!!sourceState.smsDirectEnabled&&!!sourceState.smsPermission&&!!sourceState.smsBaselined;
   const gmailReady=!!sourceState.gmailDirectEnabled&&!!sourceState.gmailAuthorized&&!!sourceState.gmailBaselined;
@@ -3138,7 +3149,7 @@ function renderBackupPanel(){
       </div>`;
 
   $('#panelContent').innerHTML=`<div class="backup-stack">
-    <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div><div class="backup-copy"><strong>Exportar copia</strong><p>Guarda la base de datos, listas, avisos y adjuntos en un archivo <b>.nexo</b>. <strong>Las grabaciones no se incluyen.</strong> Expórtalas por separado desde Grabaciones.</p><div class="small muted">${last?`Última copia: ${esc(fmtDate(last,true))}`:'Aún no has creado ninguna copia.'}</div><div class="small muted">${esc(backupStatLine(stats))}</div></div><button id="backupExportBtn" class="primary-button">Exportar copia</button></div>
+    <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div><div class="backup-copy"><strong>Exportar copia</strong><p>Guarda tus fichas, listas, avisos, adjuntos y conversaciones en un archivo <b>.nexo</b>. El chat se protege con la contraseña que elijas. <strong>Las grabaciones no se incluyen.</strong> Expórtalas por separado desde Grabaciones.</p><div class="small muted">${last?`Última copia: ${esc(fmtDate(last,true))}`:'Aún no has creado ninguna copia.'}</div><div class="small muted">${esc(backupStatLine(stats))}</div></div><button id="backupExportBtn" class="primary-button">Exportar copia</button></div>
     <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg></div><div class="backup-copy"><strong>Restaurar copia</strong><p>Selecciona un archivo <b>.nexo</b> desde el teléfono, la nube, USB u otra ubicación disponible.</p><div class="small muted">${restored?`Última restauración: ${esc(fmtDate(restored,true))}`:'La restauración sustituye el contenido actual por el de la copia.'}</div></div><button id="backupRestoreBtn" class="secondary-button">Restaurar copia</button></div>
     ${familyCard}
     <div class="backup-security"><strong>Seguridad de la vinculación</strong><p>Nexo usa Supabase Auth como un usuario normal de Nexo Familia. Supabase aplica los mismos permisos y reglas RLS que en la aplicación familiar.</p></div>
@@ -4246,7 +4257,7 @@ window.NexoUI={
   onBackupExported(raw){const r=parseNative(raw,{});toast('Copia de seguridad creada correctamente.', '', null, 4500);if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();renderMore();},
   onBackupRestorePreview(raw){
     const p=parseNative(raw,{}),st=p.stats||{},when=Number(p.createdAt||0);
-    openModal('Restaurar copia',`<div class="restore-preview"><div class="restore-check">✓</div><h3>COPIA VÁLIDA</h3><p>${when?`Creada el <strong>${esc(fmtDate(when,true))}</strong>.`:''}</p><div class="restore-stats"><span>${Number(st.items||0)} elementos</span><span>${Number(st.lists||0)} listas</span><span>${Number(st.journal||0)} Cuaderno</span><span>${Number(st.medications||0)} medicamentos</span><span>${Number(st.attachments||0)} adjuntos</span></div><div class="restore-warning"><strong>Importante</strong><p>Al restaurar, Nexo quedará exactamente con los datos de esta copia. El contenido actual será sustituido. Antes de hacerlo, Nexo guardará automáticamente una copia interna de seguridad.</p></div><div class="modal-actions"><button id="restoreCancelBtn" class="secondary-button">Cancelar</button><button id="restoreConfirmBtn" class="danger-button solid">Restaurar ahora</button></div></div>`);
+    openModal('Restaurar copia',`<div class="restore-preview"><div class="restore-check">✓</div><h3>COPIA VÁLIDA</h3><p>${when?`Creada el <strong>${esc(fmtDate(when,true))}</strong>.`:''}</p><div class="restore-stats"><span>${Number(st.items||0)} elementos</span><span>${Number(st.lists||0)} listas</span><span>${Number(st.journal||0)} Cuaderno</span><span>${Number(st.medications||0)} medicamentos</span><span>${Number(st.attachments||0)} adjuntos</span></div><p>${p.chatIncluded?'Incluye tus conversaciones y nombres. Necesitarás la contraseña de la copia.':'Esta copia no contiene conversaciones.'}</p><div class="restore-warning"><strong>Importante</strong><p>Las fichas y los adjuntos actuales se sustituirán por los de esta copia. Las conversaciones recuperadas se añadirán al historial sin duplicarlas. Antes de hacerlo, Nexo guardará una copia interna de seguridad.</p></div><div class="modal-actions"><button id="restoreCancelBtn" class="secondary-button">Cancelar</button><button id="restoreConfirmBtn" class="danger-button solid">Restaurar ahora</button></div></div>`);
     $('#restoreCancelBtn').addEventListener('click',closeModal);$('#restoreConfirmBtn').addEventListener('click',()=>{const b=$('#restoreConfirmBtn');b.disabled=true;b.textContent='Restaurando…';NexoNative.confirmRestoreBackup();});
   },
   onBackupRestored(raw){closeModal();toast('Copia restaurada. Recargando Nexo…','',null,5000);setTimeout(()=>window.location.reload(),900);},
@@ -4402,6 +4413,7 @@ function init(){
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
+  $('#nexoChatOpen')?.addEventListener('click',()=>NexoNative.openNexoChat());
   $('#nexoConnectEmbeddedOpen')?.addEventListener('click',()=>{
     try{
       if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;

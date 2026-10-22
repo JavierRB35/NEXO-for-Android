@@ -890,16 +890,32 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void backupPassword(boolean restoring,java.util.function.Consumer<char[]> next){
+        runOnUiThread(()->{
+            android.widget.EditText field=new android.widget.EditText(this);field.setInputType(129);field.setHint("Contraseña de la copia");
+            android.app.AlertDialog dialog=new android.app.AlertDialog.Builder(this).setTitle(restoring?"Recuperar conversaciones":"Proteger conversaciones")
+                .setMessage(restoring?"Introduce la contraseña de la copia. Si la copia no incluía chat, elige una para la copia de seguridad previa.":"Elige una contraseña de al menos 8 caracteres. La necesitarás para recuperar el chat en otro teléfono.")
+                .setView(field).setNegativeButton("Cancelar",(d,w)->jsCallback("onBackupError","Operación cancelada.")).setPositiveButton("Continuar",null).create();
+            dialog.setOnShowListener(d->dialog.getButton(-1).setOnClickListener(v->{String value=field.getText().toString();if(value.length()<8){field.setError("Usa al menos 8 caracteres");return;}field.setText("");dialog.dismiss();next.accept(value.toCharArray());}));dialog.show();
+        });
+    }
+    private boolean backupHasLocalChat(){try{return com.jruiz.nexo.connect.vault.NexoConnectChatBackup.hasHistory(this);}catch(Exception e){return true;}}
+    private boolean restoreIncludesChat;
     private void exportBackupTo(Uri uri) {
+        if(backupHasLocalChat()){backupPassword(false,p->exportBackupTo(uri,p));return;}
+        exportBackupTo(uri,null);
+    }
+    private void exportBackupTo(Uri uri,char[] password) {
         new Thread(() -> {
             try {
-                JSONObject info = NexoBackupManager.exportToUri(this, db, uri);
+                JSONObject info = NexoBackupManager.exportToUri(this, db, uri,password);
                 getSharedPreferences("nexo_backup", MODE_PRIVATE).edit()
                         .putLong("lastExportAt", info.optLong("createdAt", System.currentTimeMillis())).apply();
                 jsCallbackJson("onBackupExported", info);
             } catch (Exception e) {
                 jsCallback("onBackupError", cleanBackupError(e, "No se pudo crear la copia de seguridad."));
             }
+            finally {if(password!=null)java.util.Arrays.fill(password,'\0');}
         }, "nexo-backup-export").start();
     }
 
@@ -907,6 +923,7 @@ public class MainActivity extends Activity {
         new Thread(() -> {
             try {
                 JSONObject preview = NexoBackupManager.inspect(this, uri);
+                restoreIncludesChat=preview.optBoolean("chatIncluded");
                 pendingRestoreUri = uri;
                 jsCallbackJson("onBackupRestorePreview", preview);
             } catch (Exception e) {
@@ -917,6 +934,10 @@ public class MainActivity extends Activity {
     }
 
     private void confirmRestoreBackup() {
+        if(restoreIncludesChat||backupHasLocalChat()){backupPassword(true,this::confirmRestoreBackup);return;}
+        confirmRestoreBackup(null);
+    }
+    private void confirmRestoreBackup(char[] password) {
         final Uri uri = pendingRestoreUri;
         if (uri == null) { jsCallback("onBackupError", "Selecciona primero una copia de Nexo."); return; }
         pendingRestoreUri = null;
@@ -927,7 +948,7 @@ public class MainActivity extends Activity {
                 for (int i=0;i<old.length();i++) {
                     JSONObject r=old.optJSONObject(i); if(r!=null) ReminderScheduler.cancel(this,r.optLong("id"));
                 }
-                JSONObject result = NexoBackupManager.restoreFromUri(this, db, uri);
+                JSONObject result = NexoBackupManager.restoreFromUri(this, db, uri,password);
                 JSONArray restored = db.getFutureReminders();
                 for (int i=0;i<restored.length();i++) {
                     JSONObject r=restored.optJSONObject(i); if(r!=null) ReminderScheduler.schedule(this,r.optLong("id"),r.optString("title"),r.optLong("triggerAt"));
@@ -950,6 +971,7 @@ public class MainActivity extends Activity {
                 } catch(Exception ignored){}
                 jsCallback("onBackupError", cleanBackupError(e, "No se pudo restaurar la copia."));
             }
+            finally {if(password!=null)java.util.Arrays.fill(password,'\0');}
         }, "nexo-backup-restore").start();
     }
 
@@ -2026,7 +2048,7 @@ public class MainActivity extends Activity {
          * Deliberately inaccessible in a release build.
          */
         @JavascriptInterface public boolean isNexoConnectExperimentEnabled() {
-            return BuildConfig.DEBUG;
+            return true;
         }
         /**
          * In-app LAB UI: debug-only, a separate Android Activity in Nexo.
@@ -2035,12 +2057,11 @@ public class MainActivity extends Activity {
          * No identity creation or network operations happen by opening it.
          */
         @JavascriptInterface public void openNexoConnectEmbedded() {
-            if (!BuildConfig.DEBUG) return;
             runOnUiThread(() -> {
                 try {
                     Intent intent = new Intent(Intent.ACTION_MAIN);
                     intent.setClassName(getPackageName(),
-                        "com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity");
+                        "com.jruiz.nexo.connectui.NexoConnectActivity");
                     // No intent extras, even inside our app.
                     startActivity(intent);
                 } catch (ActivityNotFoundException | SecurityException failure) {
@@ -2056,7 +2077,7 @@ public class MainActivity extends Activity {
          * local file path, token or private key is exported by the WebView.
          */
         @JavascriptInterface public void openNexoConnectShare(String section,long localId) {
-            if(!BuildConfig.DEBUG || localId<=0 || section==null)return;
+            if(localId<=0 || section==null)return;
             if(!("items".equals(section)||"lists".equals(section)||
                     "journal".equals(section)||"books".equals(section)||
                     "movies".equals(section)))return;
@@ -2065,7 +2086,7 @@ public class MainActivity extends Activity {
                 try{
                     Intent intent=new Intent(Intent.ACTION_MAIN);
                     intent.setClassName(getPackageName(),
-                        "com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity");
+                        "com.jruiz.nexo.connectui.NexoConnectActivity");
                     intent.putExtra("nexoShareSection",selected);
                     intent.putExtra("nexoShareId",localId);
                     startActivity(intent);
@@ -2076,22 +2097,9 @@ public class MainActivity extends Activity {
                 }
             });
         }
-        @JavascriptInterface public void openNexoConnectPilot() {
-            if (!BuildConfig.DEBUG) return;
-            runOnUiThread(() -> {
-                try {
-                    Intent launch = new Intent(Intent.ACTION_MAIN);
-                    launch.setComponent(new ComponentName(
-                        "com.jruiz.nexo.connect.pilot",
-                        "com.jruiz.nexo.connect.vault.NexoConnectPilotActivity"));
-                    // User gesture only, no intent extras and no trust transfer.
-                    startActivity(launch);
-                } catch (ActivityNotFoundException | SecurityException error) {
-                    Toast.makeText(MainActivity.this,
-                        "Instala primero Nexo Connect Pruebas (APK laboratorio).",
-                        Toast.LENGTH_LONG).show();
-                }
-            });
+        @JavascriptInterface public void openNexoConnectPilot() { openNexoConnectEmbedded(); }
+        @JavascriptInterface public void openNexoChat() {
+            runOnUiThread(()->startActivity(new Intent(MainActivity.this,com.jruiz.nexo.connectui.NexoConnectActivity.class).putExtra("openChat",true)));
         }
         @JavascriptInterface public String getUpdateStatus() { return updateManager == null ? "{}" : updateManager.getStatus().toString(); }
         @JavascriptInterface public void checkForUpdates() { if (updateManager != null) updateManager.check(true); }

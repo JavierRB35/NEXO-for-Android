@@ -95,6 +95,11 @@ public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImport
         return NexoConnectNativeWriter.INSTANCE.insertNew(db,"note",surrogate);
     }
 
+    String sealForChat(JSONObject payload)throws Exception {
+        NexoConnectChatStore.parse(payload);
+        return seal(NexoConnectPayloadCodec.sanitize("note",payload,null).toString());
+    }
+
     public JSONObject read(String value) throws Exception {
         if(!isSealed(value) || value.length() > MAX_BLOB_BYTES * 2)
             throw new GeneralSecurityException("Not a sealed Nexo note");

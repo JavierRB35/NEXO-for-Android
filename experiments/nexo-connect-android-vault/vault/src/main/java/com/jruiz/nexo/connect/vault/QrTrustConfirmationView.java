@@ -74,31 +74,30 @@ public final class QrTrustConfirmationView extends ScrollView {
         TextView title=label("Verificar contacto Nexo",20,true);
         column.addView(title);
         column.addView(label(
-                "El QR NO demuestra la identidad por sí solo. Comprueba las dos huellas completas " +
-                "en el teléfono de la otra persona, en presencia física o por un canal confiable " +
-                "distinto de este QR y de Supabase.",14,false));
-        column.addView(label("Cuenta: "+candidate.peerId,14,true));
-        column.addView(label("Generación del teléfono: "+candidate.generation,14,false));
-        column.addView(label("Huella de firma Ed25519 mostrada en QR:",14,true));
+                "Confirma que es la persona con la que quieres conectar. Pídele sus dos códigos de seguridad " +
+                "en persona o por un medio de confianza. Los encontrará en Mi código QR → Ver códigos de seguridad.",14,false));
+
+
+        column.addView(label("Código de seguridad 1:",14,true));
         column.addView(fingerprint(candidate.signingFingerprint()));
-        column.addView(label("Huella de cifrado HPKE mostrada en QR:",14,true));
+        column.addView(label("Código de seguridad 2:",14,true));
         column.addView(fingerprint(candidate.encryptionFingerprint()));
         column.addView(label(
-                "Escribe a continuación las huellas de 64 caracteres que has obtenido " +
+                "Introduce los dos códigos que has obtenido " +
                 "directamente de la otra persona. No las copies de los valores mostrados arriba.",
                 14,false));
-        independentSigning=input("Huella de firma obtenida por otro canal (64 hex)");
-        independentEncryption=input("Huella de cifrado obtenida por otro canal (64 hex)");
+        independentSigning=input("Código 1 de la otra persona");
+        independentEncryption=input("Código 2 de la otra persona");
         column.addView(independentSigning);
         column.addView(independentEncryption);
         checkedChannel=new CheckBox(context);
-        checkedChannel.setText("He comprobado ambas huellas completas por otro canal confiable");
+        checkedChannel.setText("He comprobado los dos códigos con esta persona");
         column.addView(checkedChannel);
         checkedConsent=new CheckBox(context);
-        checkedConsent.setText("Autorizo vincular esta identidad y sus claves con mi cuenta");
+        checkedConsent.setText("Quiero conectar con esta persona");
         column.addView(checkedConsent);
         verify=new Button(context);
-        verify.setText("Guardar contacto verificado");
+        verify.setText("Guardar persona");
         verify.setEnabled(false);
         column.addView(verify);
         status=label("",14,false);
@@ -129,7 +128,7 @@ public final class QrTrustConfirmationView extends ScrollView {
             requireHumanVerification(candidate,sign,encrypt,
                     checkedChannel.isChecked(),checkedConsent.isChecked());
         }catch(GeneralSecurityException ex){
-            status.setText("Verificación rechazada. Revisa las dos huellas y el consentimiento.");
+            status.setText("Revisa que los dos códigos coincidan y confirma que quieres conectar.");
             listener.onFailure("fingerprint-mismatch");
             return;
         }

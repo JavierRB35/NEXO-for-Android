@@ -141,6 +141,37 @@ public final class AndroidPeerTrustStore {
         }
     }
 
+    org.json.JSONArray migrationSnapshot() throws Exception {
+        synchronized(LOCK) {
+            org.json.JSONArray out=new org.json.JSONArray();
+            for(PeerPin p:read().values())out.put(new JSONObject()
+                .put("id",p.peerId.toString()).put("generation",p.generation)
+                .put("active",p.active).put("sign",encodeRaw(p.signingRaw))
+                .put("enc",encodeRaw(p.encryptionRaw)));
+            return out;
+        }
+    }
+    void restoreMigration(org.json.JSONArray rows) throws Exception {
+        synchronized(LOCK) {
+            Map<UUID,PeerPin> restored=new TreeMap<>();
+            if(rows.length()>MAX_PEERS)throw new SecurityException("Too many peers");
+            for(int i=0;i<rows.length();i++) {
+                JSONObject p=rows.getJSONObject(i);UUID id=UUID.fromString(p.getString("id"));
+                if(id.equals(owner)||restored.containsKey(id))throw new SecurityException("Invalid peer");
+                restored.put(id,new PeerPin(id,p.getInt("generation"),decodeRaw(p.getString("sign")),
+                        decodeRaw(p.getString("enc")),p.getBoolean("active")));
+            }
+            Map<UUID,PeerPin> old=read();
+            if(!old.isEmpty()) {
+                if(old.size()!=restored.size())throw new SecurityException("Existing contacts differ");
+                for(UUID id:old.keySet())if(!restored.containsKey(id)||
+                    old.get(id).active!=restored.get(id).active||!old.get(id).sameKeysAndGeneration(restored.get(id)))
+                    throw new SecurityException("Existing contacts differ");
+            }
+            write(restored);
+        }
+    }
+
     public UUID ownerAccountId() { return owner; }
 
     /** Never return a file path to Android WebView or the server. */

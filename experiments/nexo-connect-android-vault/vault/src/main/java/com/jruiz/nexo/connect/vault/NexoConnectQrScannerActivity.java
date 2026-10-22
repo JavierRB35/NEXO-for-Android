@@ -55,6 +55,7 @@ public final class NexoConnectQrScannerActivity extends Activity {
                 .putExtra(EXTRA_IMAGE_FIRST,true);
     }
 
+    public static Intent forInvitation(Context from,UUID owner,String raw){return forAuthenticatedAccount(from,owner).putExtra("pendingInvitation",raw);}
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         try {
@@ -86,7 +87,8 @@ public final class NexoConnectQrScannerActivity extends Activity {
         screen.addView(file);
         file.setOnClickListener(v->startImagePicker());
         if(state==null){
-            if(getIntent().getBooleanExtra(EXTRA_IMAGE_FIRST,false))
+            if(getIntent().hasExtra("pendingInvitation"))showUntrustedQr(getIntent().getStringExtra("pendingInvitation"));
+            else if(getIntent().getBooleanExtra(EXTRA_IMAGE_FIRST,false))
                 startImagePicker();
             else startScan();
         }

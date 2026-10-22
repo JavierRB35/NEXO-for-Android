@@ -44,7 +44,7 @@ public final class NexoConnectInboxNoticeJob extends JobService {
     public static void schedule(Context context) {
         if(context==null)throw new IllegalArgumentException("Missing app");
         Context app=context.getApplicationContext();
-        if(!"com.jruiz.nexo.connect.pilot".equals(app.getPackageName()))
+        if(NexoConnectMigration.blocked(app)||(!"com.jruiz.nexo".equals(app.getPackageName())&&!"com.jruiz.nexo.connect.pilot".equals(app.getPackageName())))
             return; // Embedded LAB host uses the same Java sources, not this service.
         NotificationManager notifications=
                 (NotificationManager)app.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -70,7 +70,7 @@ public final class NexoConnectInboxNoticeJob extends JobService {
     /** Scheduling status, separate from notification permission state. */
     public static boolean isScheduled(Context context) {
         if(context==null ||
-                !"com.jruiz.nexo.connect.pilot".equals(context.getPackageName()))
+                (!"com.jruiz.nexo".equals(context.getPackageName())&&!"com.jruiz.nexo.connect.pilot".equals(context.getPackageName())))
             return false;
         JobScheduler jobs=(JobScheduler)
                 context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
@@ -148,7 +148,7 @@ public final class NexoConnectInboxNoticeJob extends JobService {
         NotificationManager manager=
                 (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         if(manager==null)return;
-        Intent open=new Intent(this,NexoConnectPilotActivity.class)
+        Intent open=new Intent().setClassName(getPackageName(),"com.jruiz.nexo".equals(getPackageName())?"com.jruiz.nexo.connectui.NexoConnectActivity":NexoConnectPilotActivity.class.getName())
                 .putExtra(NexoConnectPilotActivity.EXTRA_OPEN_INBOX,true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|
                         Intent.FLAG_ACTIVITY_CLEAR_TOP|

@@ -32,13 +32,14 @@ import javax.crypto.spec.GCMParameterSpec;
 public final class NexoConnectSessionVault {
     // Foreground sign-in and background inbox checks share one refresh-token
     // rotation lock in this process; never replay an obsolete refresh token.
-    private static final Object REFRESH_LOCK = new Object();
+    static final Object REFRESH_LOCK = new Object();
 
     public static NexoConnectEmailOtpClient.VerifiedSession refreshSavedSession(
             Context context,NexoConnectEmailOtpClient otp) throws Exception {
         if(context==null || otp==null)
             throw new IllegalArgumentException("Session recovery requires an Auth client");
         synchronized(REFRESH_LOCK) {
+            if(NexoConnectMigration.blocked(context))throw new SecurityException("Account transfer in progress");
             NexoConnectSessionVault store=new NexoConnectSessionVault(context);
             Saved saved=store.restore();
             NexoConnectEmailOtpClient.VerifiedSession fresh=
@@ -71,11 +72,16 @@ public final class NexoConnectSessionVault {
             throws Exception {
         synchronized(REFRESH_LOCK) {
             if(session == null) throw new GeneralSecurityException("Missing verified session");
-            String refresh = session.refreshTokenFor(session.accountId);
+            saveCredentials(session.accountId,session.email,session.refreshTokenFor(session.accountId));
+        }
+    }
+    synchronized void saveCredentials(UUID account,String email,String refresh) throws Exception {
+        synchronized(REFRESH_LOCK) {
             requireRefresh(refresh);
+            if(account==null||email==null||email.length()>254)throw new SecurityException("Invalid account");
             JSONObject payload = new JSONObject()
-                    .put("account", session.accountId.toString())
-                    .put("email", session.email)
+                    .put("account", account.toString())
+                    .put("email", email)
                     .put("refresh", refresh);
             byte[] clear = payload.toString().getBytes(StandardCharsets.UTF_8);
             byte[] cipherText = null;

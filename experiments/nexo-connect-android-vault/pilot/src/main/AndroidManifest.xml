@@ -9,10 +9,13 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"/>
+    <uses-permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_MIGRATION"/>
     <queries><package android:name="com.jruiz.nexo"/></queries>
     <application android:label="Nexo Connect Pruebas"
         android:allowBackup="false" android:usesCleartextTraffic="false"
         android:supportsRtl="true">
+        <activity android:name="com.jruiz.nexo.connect.vault.NexoConnectMigrationExportActivity" android:exported="true" android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_MIGRATION" />
+        <service android:name="com.jruiz.nexo.connect.vault.NexoConnectMigrationService" android:exported="true" android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_MIGRATION" />
         <!-- OS-managed periodic background check. Not an instant push service. -->
         <service android:name="com.jruiz.nexo.connect.vault.NexoConnectInboxNoticeJob"
             android:exported="true"

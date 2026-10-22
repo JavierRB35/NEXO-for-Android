@@ -47,19 +47,19 @@ public class NexoConnectPilotActivity extends Activity {
     static final String EXTRA_OPEN_INBOX="com.jruiz.nexo.connect.pilot.OPEN_INBOX";
     private static final int NOTIFICATION_CONSENT=73;
     private static final int QR_SCAN=41;
-    private static final int EMAIL=0,LOGIN=1,SECOND=2,ENROLL=3,READY=4;
-    private int stage=EMAIL,generation;
-    private boolean busy,replace;
+    protected static final int EMAIL=0,LOGIN=1,SECOND=2,ENROLL=3,READY=4;
+    protected int stage=EMAIL,generation;
+    protected boolean busy,replace;
     /** Explicitly selected LAB account flow; never implied by a host share. */
     private boolean hostAccountUi;
-    private String accountEmail="",lastMessage="";
-    private NexoConnectEmailOtpClient otp;
-    private NexoConnectSessionVault sessionVault;
-    private NexoConnectEmailOtpClient.VerifiedSession session;
-    private NexoConnectLocalPhoneIdentity identity;
-    private AndroidPeerTrustStore trusted;
-    private NexoConnectSignedGatewayClient client;
-    private LinearLayout column;
+    protected String accountEmail="",lastMessage="";
+    protected NexoConnectEmailOtpClient otp;
+    protected NexoConnectSessionVault sessionVault;
+    protected NexoConnectEmailOtpClient.VerifiedSession session;
+    protected NexoConnectLocalPhoneIdentity identity;
+    protected AndroidPeerTrustStore trusted;
+    protected NexoConnectSignedGatewayClient client;
+    protected LinearLayout column;
 
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
@@ -74,6 +74,11 @@ public class NexoConnectPilotActivity extends Activity {
         catch(Exception ex){new AlertDialog.Builder(this)
                 .setMessage("Configuración de laboratorio inválida")
                 .setPositiveButton("Cerrar",(d,w)->finish()).show();return;}
+        if(NexoConnectMigration.blocked(this)&&NexoConnectMigration.PILOT.equals(getPackageName())){
+            screen("Continúa en Nexo",false);
+            label("Tu cuenta se está trasladando a Nexo. Abre Nexo para continuar.",16);
+            button("Cerrar",this::finish);return;
+        }
         showSetup();
     }
 
@@ -87,9 +92,9 @@ public class NexoConnectPilotActivity extends Activity {
         sc.addView(body);
         setContentView(sc);
         column=body;
-        label("NEXO CONNECT · PRUEBAS",14);
+        label("com.jruiz.nexo".equals(getPackageName())?"Nexo":"Nexo Connect",14);
         label(name,22);
-        label("Solo laboratorio. No envíes datos personales reales.",13);
+
         if(back)button("← Volver",()->showHome());
         return body;
     }
@@ -116,25 +121,26 @@ public class NexoConnectPilotActivity extends Activity {
         column.addView(v,new LinearLayout.LayoutParams(-1,-2));
         return v;
     }
-    private interface Work{Object call()throws Exception;}
-    private interface Finished{void done(Object value);}
-    private void runWork(Work work,Finished callback){
+    protected interface Work{Object call()throws Exception;}
+    protected interface Finished{void done(Object value);}
+    protected void runWork(Work work,Finished callback){
         if(busy)return;
         busy=true;
         lastMessage="Trabajando…";
         new Thread(()->{
             Object result=null;Exception error=null;
-            try{result=work.call();}catch(Exception e){error=e;}
+            try{synchronized(NexoConnectSessionVault.REFRESH_LOCK){if(NexoConnectMigration.blocked(this))throw new SecurityException();if(stage==READY)refreshSessionIfNeeded();result=work.call();}}catch(Exception e){error=e;}
             Object value=result;Exception failure=error;
             runOnUiThread(()->{
                 busy=false;
+                if(isFinishing()||isDestroyed())return;
                 if(failure!=null){
                     // Never display OTP, bearer token, private keys or HTTP body.
                     lastMessage="No se ha completado la operación ("+
                             failure.getClass().getSimpleName()+
                             "). Comprueba permisos, red y datos; NO reintentes "+
                             "automáticamente envíos inciertos.";
-                    showError(lastMessage);
+                    showError("No se ha podido completar. Comprueba tu conexión y vuelve a abrir esta pantalla.");
                 }else{
                     lastMessage="Operación completada.";
                     callback.done(value);
@@ -142,8 +148,8 @@ public class NexoConnectPilotActivity extends Activity {
             });
         },"nexo-connect-pilot-worker").start();
     }
-    private void showError(String text){
-        new AlertDialog.Builder(this).setTitle("Nexo Connect Pruebas")
+    protected void showError(String text){
+        new AlertDialog.Builder(this).setTitle("Nexo")
                 .setMessage(text).setPositiveButton("Entendido",(d,w)->{
                     if(stage==READY)showHome();else showSetup();
                 }).show();
@@ -169,18 +175,19 @@ public class NexoConnectPilotActivity extends Activity {
         showSetup();
     }
 
-    private void showSetup(){
-        screen("Inicio seguro",false);
+    protected void showSetup(){
+        screen("Chat y compartir",false);
         // The integrated DEBUG host can render a share-first landing instead
         // of an OTP form. Standalone pilot keeps its original login flow.
         if(!hostAccountUi && addHostSetupActions())return;
+        button("Seguir usando Nexo sin cuenta",this::finish);
         if(hostAccountUi)
             button("← Volver a la ficha",()->{
                 hostAccountUi=false;
                 showSetup();
             });
         label("Conecta tu cuenta para compartir fichas con personas autorizadas. "+
-              "En esta prueba, cada emulador representa una cuenta distinta.",14);
+              "Las demás funciones de Nexo no necesitan cuenta.",14);
         if(stage==EMAIL){
             EditText email=input("Correo de esta cuenta",false);
             email.setInputType(InputType.TYPE_CLASS_TEXT|
@@ -228,7 +235,7 @@ public class NexoConnectPilotActivity extends Activity {
             CheckBox create=new CheckBox(this);
             create.setText("Crear cuenta nueva con este correo");
             column.addView(create);
-            button("1. Solicitar código de acceso",()->{
+            button("Recibir código",()->{
                 String address=email.getText().toString().trim();
                 runWork(()->{otp.sendEmailCode(address,create.isChecked());
                     return address;},value->{
@@ -236,9 +243,9 @@ public class NexoConnectPilotActivity extends Activity {
                 });
             });
         }else if(stage==LOGIN){
-            label("Introduce el PRIMER código recibido en "+accountEmail,15);
-            EditText code=input("Primer código OTP",true);
-            button("2. Verificar cuenta",()->{
+            label("Introduce el código recibido en "+accountEmail,15);
+            EditText code=input("Código de acceso",true);
+            button("Continuar",()->{
                 String entered=code.getText().toString();code.setText("");
                 runWork(()->{
                     NexoConnectEmailOtpClient.VerifiedSession verified=
@@ -275,21 +282,21 @@ public class NexoConnectPilotActivity extends Activity {
             label(replace?
                 "Ya existe otro teléfono para esta cuenta. Sustituirlo revoca el anterior. "+
                 "Continúa solo si es una sustitución autorizada.":
-                "Tu cuenta todavía no tiene teléfono registrado. Necesitamos otro OTP.",
+                "Tu cuenta todavía no tiene teléfono registrado. Necesitamos confirmar este teléfono.",
                 15);
-            button("3. Enviar SEGUNDO código nuevo",()->runWork(()->{
+            button("Enviar código de confirmación",()->runWork(()->{
                 otp.sendEmailCode(accountEmail,false);return Boolean.TRUE;
             },v->{stage=ENROLL;showSetup();}));
         }else if(stage==ENROLL){
             label("Introduce el SEGUNDO código, diferente del utilizado al entrar.",15);
             if(replace)label("ATENCIÓN: esta operación revocará el dispositivo anterior.",15);
-            EditText code=input("Segundo código OTP",true);
+            EditText code=input("Código de confirmación",true);
             CheckBox consent=new CheckBox(this);
             consent.setText(replace?
                     "Autorizo sustituir y revocar el teléfono anterior":
                     "Autorizo registrar este teléfono para Nexo Connect");
             column.addView(consent);
-            button("4. Registrar teléfono",()->{
+            button("Confirmar teléfono",()->{
                 if(!consent.isChecked()){showError("Necesitamos tu consentimiento.");return;}
                 String entered=code.getText().toString();code.setText("");
                 runWork(()->new NexoConnectDeviceEnrollmentClient(ORIGIN,PUBLIC_KEY,
@@ -300,6 +307,23 @@ public class NexoConnectPilotActivity extends Activity {
                         });
             });
         }
+    }
+    protected final void refreshSessionIfNeeded()throws Exception{
+        if(session!=null&&session.expiresAtMillis-System.currentTimeMillis()>60000)return;
+        var restored=NexoConnectSessionVault.refreshSavedSession(this,otp);
+        if(identity==null||!identity.accountId().equals(restored.accountId))throw new SecurityException();
+        var status=new NexoConnectDeviceRecoveryClient(ORIGIN,PUBLIC_KEY,restored,restored.accountId,identity.deviceId(),identity.signingPrivate()).checkOnce();
+        if(status.state!=NexoConnectDeviceRecoveryClient.State.OWN_DEVICE_CONFIRMED||status.generation!=generation)throw new SecurityException();
+        session=restored;client=new NexoConnectSignedGatewayClient(ORIGIN,PUBLIC_KEY,session.accessTokenFor(identity.accountId(),System.currentTimeMillis()),identity.accountId(),identity.deviceId(),generation,identity.signingPrivate());
+    }
+    protected final void resumeSavedSession(){
+        runWork(()->{
+            NexoConnectEmailOtpClient.VerifiedSession restored=NexoConnectSessionVault.refreshSavedSession(this,otp);
+            NexoConnectLocalPhoneIdentity local=NexoConnectLocalPhoneIdentity.openOrCreate(this,restored.accountId);
+            NexoConnectDeviceRecoveryClient.Outcome status=new NexoConnectDeviceRecoveryClient(ORIGIN,PUBLIC_KEY,restored,restored.accountId,local.deviceId(),local.signingPrivate()).checkOnce();
+            if(status.state!=NexoConnectDeviceRecoveryClient.State.OWN_DEVICE_CONFIRMED)throw new SecurityException();
+            return new Object[]{restored,local,status};
+        },value->{Object[] out=(Object[])value;session=(NexoConnectEmailOtpClient.VerifiedSession)out[0];identity=(NexoConnectLocalPhoneIdentity)out[1];generation=((NexoConnectDeviceRecoveryClient.Outcome)out[2]).generation;activate();});
     }
     private void activate(){
         try{
@@ -325,7 +349,7 @@ public class NexoConnectPilotActivity extends Activity {
             }
         }catch(Exception ex){showError("No se puede verificar la sesión del teléfono");}
     }
-    private void showHome(){
+    protected void showHome(){
         if(stage!=READY){showSetup();return;}
         screen("Compartir con personas",false);
         label("Conectado como "+accountEmail,14);
@@ -397,7 +421,11 @@ public class NexoConnectPilotActivity extends Activity {
         }
     }
 
-    private void openScanner(){
+    protected final void acceptPendingInvitation(String raw){
+        startActivityForResult(NexoConnectQrScannerActivity.forInvitation(this,identity.accountId(),raw),QR_SCAN);
+    }
+    protected void onInvitationAccepted(){}
+    protected void openScanner(){
         try{
             Intent intent=NexoConnectQrScannerActivity.forAuthenticatedAccount(
                     this,identity.accountId());
@@ -418,7 +446,7 @@ public class NexoConnectPilotActivity extends Activity {
      * decoded locally; it is NOT proof of identity on its own. The existing
      * independent dual-SHA-256 verification UI is mandatory before pinning.
      */
-    private void openImageQr(){
+    protected void openImageQr(){
         try{
             Intent intent=NexoConnectQrScannerActivity.forVerifiedQrImage(
                     this,identity.accountId());
@@ -432,7 +460,7 @@ public class NexoConnectPilotActivity extends Activity {
         }
     }
 
-    private void showOwnQr(){
+    protected void showOwnQr(){
         try{
             LinearLayout group=screen("Mi código de identidad",true);
             NexoConnectOwnQrView qr=new NexoConnectOwnQrView(this,
@@ -441,7 +469,7 @@ public class NexoConnectPilotActivity extends Activity {
             group.addView(qr,new LinearLayout.LayoutParams(-1,dp(650)));
         }catch(Exception ex){showError("No se pudo generar el código QR");}
     }
-    private void showInvite(){
+    protected void showInvite(){
         runWork(()->{
             AndroidPeerTrustStore.PeerPin own=
                 NexoConnectOwnQrView.publicIdentity(identity.accountId(),
@@ -462,10 +490,12 @@ public class NexoConnectPilotActivity extends Activity {
                 img.setImageBitmap(qr);img.setAdjustViewBounds(true);
                 column.addView(img,new LinearLayout.LayoutParams(-1,-2));
                 label("Invitación válida durante 60 minutos. No la publiques.",14);
+                onInvitationCreated(invite.qrPayload,qr);
             }catch(Exception e){showError("No se pudo mostrar el QR");}
         });
     }
 
+    protected void onInvitationCreated(String payload,Bitmap qr){}
     @Override protected void onActivityResult(int req,int result,Intent data){
         super.onActivityResult(req,result,data);
         if(req!=QR_SCAN||stage!=READY)return;
@@ -488,7 +518,7 @@ public class NexoConnectPilotActivity extends Activity {
                     client.verifyStoredPeer(trusted,id);
                     client.setReceiving(trusted,id,true);
                     return id;
-                },v->{lastMessage="Vínculo solicitado y verificación de "+
+                },v->{onInvitationAccepted();lastMessage="Vínculo solicitado y verificación de "+
                       "contacto completada. Debe verificarse también en el otro móvil.";
                       showHome();})).show();
         }else{
@@ -498,7 +528,7 @@ public class NexoConnectPilotActivity extends Activity {
         }
     }
     /** Friendly local names: no cloud lookup, no identity or QR key change. */
-    private String contactName(AndroidPeerTrustStore.PeerPin peer) {
+    protected String contactName(AndroidPeerTrustStore.PeerPin peer) {
         if(peer==null)return "Contacto";
         String fallback="Contacto "+peer.peerId.toString().substring(0,8);
         if(identity==null)return fallback;
@@ -540,7 +570,7 @@ public class NexoConnectPilotActivity extends Activity {
             }).show();
     }
 
-    private void showContacts(){
+    protected void showContacts(){
         try{
             List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
             screen("Personas autorizadas",true);
@@ -816,12 +846,12 @@ public class NexoConnectPilotActivity extends Activity {
             });
         });
     }
-    private void showInbox(){
-        runWork(()->client.inbox(20,null),value->{
+    protected void showInbox(){
+        runWork(()->{NexoConnectChatTransport.sync(this,client,identity,trusted,generation);return client.inbox(20,null);},value->{
             JSONArray items=(JSONArray)value;
             screen("Bandeja de recepción",true);
             if(items.length()==0){
-                label("Sin entregas pendientes. Comprueba el vínculo bilateral.",15);
+                label("No hay fichas pendientes.",15);
                 return;
             }
             for(int i=0;i<items.length();i++){
@@ -829,7 +859,7 @@ public class NexoConnectPilotActivity extends Activity {
                 if(info==null)continue;
                 String id=info.optString("deliveryId","");
                 String sender=info.optString("senderId","");
-                String senderName="Contacto "+sender.substring(0,Math.min(8,sender.length()));
+                String senderName="Una persona";
                 try {
                     UUID from=UUID.fromString(sender);
                     AndroidPeerTrustStore.PeerPin peer=trusted.findActive(from);
@@ -891,10 +921,10 @@ public class NexoConnectPilotActivity extends Activity {
               "created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)");
         return db;
     }
-    private void showReceivedNotes(){
+    protected void showReceivedNotes(){
         try(SQLiteDatabase db=openPrivateDatabase();
             Cursor c=db.rawQuery("SELECT id,title,body FROM items ORDER BY id DESC LIMIT 100",null)){
-            screen("Fichas recibidas (copia privada)",true);
+            screen("Fichas recibidas",true);
             if(c.getCount()==0)label("No se han recibido fichas.",14);
             while(c.moveToNext()){
                 long localId=c.getLong(0);
@@ -919,6 +949,7 @@ public class NexoConnectPilotActivity extends Activity {
                         }else if(!"note".equals(receiptType)){
                             throw new SecurityException("Legacy receipt entity mismatch");
                         }
+                        if(NexoConnectChatStore.CATEGORY.equals(data.optString("category")))continue;
                         label("■ "+friendlyEntity(receiptType)+" · "+
                                 data.getString("title"),17);
                         String preview=data.optString("body",
@@ -963,7 +994,7 @@ public class NexoConnectPilotActivity extends Activity {
 
     /** User-initiated reverse bridge. Pilot owns all keys and reauthenticates
      * the saved encrypted list before issuing a one-use ticket. */
-    private void handoffReceivedList(UUID delivery) {
+    protected void handoffReceivedList(UUID delivery) {
         if(stage!=READY || identity==null || trusted==null || delivery==null) {
             showError("Debes recuperar tu cuenta verificada del piloto.");
             return;

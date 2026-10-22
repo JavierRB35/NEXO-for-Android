@@ -72,7 +72,7 @@ public final class NexoConnectInboxProcessor {
             throws Exception {
         return receiveInternal(db, serverEnvelope, recipientPrivate, pinnedSenderPublic,
                 pinnedSenderAccount, pinnedSenderGeneration, recipientAccount,
-                recipientGeneration, nowMillis, false);
+                recipientGeneration, nowMillis, false, false);
     }
 
     /** Real pilot inbox: no plaintext note ever reaches SQLite. */
@@ -84,15 +84,22 @@ public final class NexoConnectInboxProcessor {
             throws Exception {
         return receiveInternal(db, serverEnvelope, recipientPrivate, pinnedSenderPublic,
                 pinnedSenderAccount, pinnedSenderGeneration, recipientAccount,
-                recipientGeneration, nowMillis, true);
+                recipientGeneration, nowMillis, true, false);
     }
+
+    public static NexoConnectAtomicImporter.Result receiveChat(SQLiteDatabase db,JSONObject envelope,
+            KeysetHandle recipient,KeysetHandle signer,UUID sender,int senderGeneration,
+            UUID owner,int generation,long now)throws Exception {
+        return receiveInternal(db,envelope,recipient,signer,sender,senderGeneration,owner,generation,now,true,true);
+    }
+    public static final class NotChat extends Exception {}
 
     private static NexoConnectAtomicImporter.Result receiveInternal(
             SQLiteDatabase db, JSONObject serverEnvelope,
             KeysetHandle recipientPrivate, KeysetHandle pinnedSenderPublic,
             UUID pinnedSenderAccount, int pinnedSenderGeneration,
             UUID recipientAccount, int recipientGeneration, long nowMillis,
-            boolean protectedStorage)
+            boolean protectedStorage,boolean chatOnly)
             throws Exception {
         if (db == null || serverEnvelope == null || recipientPrivate == null ||
                 pinnedSenderPublic == null || recipientAccount == null ||
@@ -183,6 +190,11 @@ public final class NexoConnectInboxProcessor {
                 RegistryConfiguration.get(), HybridDecrypt.class);
         byte[] plaintext=decrypt.decrypt(ciphertext,context);
         try {
+            if(chatOnly){
+                JSONObject decoded=com.jruiz.nexo.connect.NexoConnectPayloadCodec.decodeDecrypted(plaintext);
+                if(!"note".equals(entity)||!"nexo.chat.v1".equals(decoded.getJSONObject("data").optString("category")))throw new NotChat();
+                NexoConnectChatStore.parse(decoded.getJSONObject("data"));
+            }
             return NexoConnectAtomicImporter.importVerified(
                     db,deliveryId.toString(),senderId.toString(),entity,
                     plaintext,protectedStorage

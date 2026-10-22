@@ -45,10 +45,10 @@ public final class NexoConnectOwnQrView extends ScrollView {
         column.setPadding(padding,padding,padding,padding);
         addView(column,new ScrollView.LayoutParams(
                 LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT));
-        TextView title=text("Mi identidad pública · Nexo Connect",20);
+        TextView title=text("Mi código de Nexo",20);
         column.addView(title);
         column.addView(text("Muestra este QR a la otra persona EN PERSONA. "+
-                "Debe comprobar también las huellas completas en esta pantalla. "+
+                "Debe comprobar también los códigos de seguridad en esta pantalla. "+
                 "Este QR no contiene contraseñas ni claves privadas.",14));
         ImageView image=new ImageView(context);
         image.setImageBitmap(bitmap);
@@ -64,9 +64,9 @@ public final class NexoConnectOwnQrView extends ScrollView {
         column.addView(details);
         TextView account=text("Identificador: "+self.peerId,14);
         TextView generation=text("Generación de seguridad: "+self.generation,14);
-        TextView signing=text("Firma SHA-256: "+
+        TextView signing=text("Código 1: "+
                 groups(self.signingFingerprint()),14);
-        TextView encryption=text("Cifrado SHA-256: "+
+        TextView encryption=text("Código 2: "+
                 groups(self.encryptionFingerprint()),14);
         for(TextView detail:new TextView[]{account,generation,signing,encryption}){
             detail.setVisibility(View.GONE);

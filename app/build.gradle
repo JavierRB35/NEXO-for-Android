@@ -68,9 +68,9 @@ android {
     // Full Connect UI is debug-only and lives in this app's process.
     sourceSets {
         main {
-            java.exclude 'com/jruiz/nexo/connect/**'
+            java.exclude 'com/jruiz/nexo/connect/*.java'
         }
-        debug {
+        main {
             java.srcDir rootProject.file('experiments/nexo-connect-android-vault/pilot/src/main/java')
         }
     }
@@ -81,7 +81,8 @@ dependencies {
     implementation files('libs/sherpa-onnx-1.13.7.aar')
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'
     implementation 'com.google.android.gms:play-services-auth:21.3.0'
-    // LAB-only: never package the Supabase LAB pilot or transport in release.
-    debugImplementation project(':connectVault')
-    debugImplementation 'com.google.crypto.tink:tink:1.18.0'
+    // Connect and Chat are part of Nexo in both build variants.
+    implementation project(':connectVault')
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'com.google.crypto.tink:tink:1.18.0'
 }
