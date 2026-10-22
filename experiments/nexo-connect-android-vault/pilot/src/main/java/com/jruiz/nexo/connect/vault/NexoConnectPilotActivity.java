@@ -589,7 +589,7 @@ public class NexoConnectPilotActivity extends Activity {
         screen("Revisar envío",true);
         String title=safe.optString("title","");
         label("Compartir: "+title,18);
-        label("Es una "+friendlyEntity(entity).toLowerCase(java.util.Locale.ROOT),14);
+        label("Tipo: "+friendlyEntity(entity),14);
         label("Personas: "+recipients.size(),14);
         for(AndroidPeerTrustStore.PeerPin person:recipients)
             label("• "+contactName(person),14);
@@ -662,8 +662,7 @@ public class NexoConnectPilotActivity extends Activity {
             if(peers.isEmpty()){showError("Escanea y verifica antes el QR del contacto");return;}
             String[] names=new String[peers.size()];
             for(int i=0;i<peers.size();i++)
-                names[i]="Contacto verificado · "+
-                        peers.get(i).peerId.toString().substring(0,8);
+                names[i]=contactName(peers.get(i));
             new AlertDialog.Builder(this).setTitle("Destinatario verificado")
                 .setItems(names,(d,which)->showCompose(peers.get(which),
                         proposedTitle,proposedBody))
@@ -676,8 +675,7 @@ public class NexoConnectPilotActivity extends Activity {
     private void showCompose(AndroidPeerTrustStore.PeerPin peer,
             String proposedTitle,String proposedBody){
         screen("Enviar NOTA cifrada",true);
-        label("Para: contacto verificado · "+
-                peer.peerId.toString().substring(0,8),14);
+        label("Para: "+contactName(peer),14);
         EditText title=input("Título",false),body=input("Mensaje",false);
         title.setText(proposedTitle);
         body.setText(proposedBody);
@@ -723,8 +721,27 @@ public class NexoConnectPilotActivity extends Activity {
                 if(info==null)continue;
                 String id=info.optString("deliveryId","");
                 String sender=info.optString("senderId","");
-                label("De: contacto "+sender.substring(0,Math.min(8,sender.length())),14);
-                button("Recibir ficha",()->acceptInboxItem(id,sender));
+                String senderName="Contacto "+sender.substring(0,Math.min(8,sender.length()));
+                try {
+                    UUID from=UUID.fromString(sender);
+                    AndroidPeerTrustStore.PeerPin peer=trusted.findActive(from);
+                    if(peer!=null)senderName=contactName(peer);
+                }catch(Exception malformed){}
+                // The delivery remains encrypted; type is only a hint until
+                // signed-envelope verification during explicit receipt.
+                String type=info.optString("entityType","");
+                String kind;
+                switch(type) {
+                    case "list":kind="una lista";break;
+                    case "appointment":kind="una cita";break;
+                    case "book":kind="un libro";break;
+                    case "note":kind="una nota";break;
+                    case "movie":kind="una película o serie";break;
+                    case "journal":kind="una ficha";break;
+                    default:kind="una ficha";
+                }
+                label(senderName+" te ha enviado "+kind+".",14);
+                button("Ver y recibir",()->acceptInboxItem(id,sender));
             }
         });
     }
@@ -804,10 +821,19 @@ public class NexoConnectPilotActivity extends Activity {
                         JSONArray elements=data.optJSONArray("entries");
                         if(elements!=null){
                             label("Elementos: "+elements.length(),14);
+                            List<JSONObject> sorted=new ArrayList<>();
                             for(int j=0;j<elements.length();j++){
                                 JSONObject entry=elements.optJSONObject(j);
-                                if(entry!=null)label("• "+entry.optString("text",""),14);
+                                if(entry!=null)sorted.add(entry);
                             }
+                            // The pilot preview must use the SAME order as
+                            // native Nexo (sort_order, then original position).
+                            java.util.Collections.sort(sorted,
+                                (a,b)->Integer.compare(
+                                    a.optInt("sortOrder",Integer.MAX_VALUE),
+                                    b.optInt("sortOrder",Integer.MAX_VALUE)));
+                            for(JSONObject entry:sorted)
+                                label("• "+entry.optString("text",""),14);
                         }
                         if("list".equals(receiptType)) {
                             final UUID verifiedDelivery=id;
