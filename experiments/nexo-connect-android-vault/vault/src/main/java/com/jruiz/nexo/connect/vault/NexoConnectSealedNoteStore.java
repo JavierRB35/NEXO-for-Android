@@ -7,6 +7,7 @@ import android.util.Base64;
 
 import com.jruiz.nexo.connect.NexoConnectAtomicImporter;
 import com.jruiz.nexo.connect.NexoConnectNativeWriter;
+import com.jruiz.nexo.connect.NexoConnectPayloadCodec;
 
 import org.json.JSONObject;
 
@@ -37,6 +38,9 @@ import javax.crypto.spec.GCMParameterSpec;
 public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImporter.EntityWriter {
     private static final String ALIAS = "nexo_connect_pilot_notes_aes256gcm_v1";
     private static final String PREFIX = "nxc2:";
+    /** Format within the existing AES-GCM envelope, for non-note entities. */
+    public static final String PACKED_ENTITY = "_nxcEntity";
+    public static final String PACKED_DATA = "_nxcData";
     private static final int IV_BYTES = 12;
     private static final int TAG_BYTES = 16;
     private static final int MAX_BLOB_BYTES = 512 * 1024;
@@ -59,21 +63,36 @@ public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImport
             throws Exception {
         if(db == null || !db.isOpen() || !db.inTransaction())
             throw new GeneralSecurityException("Atomic receipt transaction required");
-        if(!"note".equals(entity) || note == null)
-            throw new GeneralSecurityException("Encrypted import unsupported for this entity");
-        String title = note.optString("title", "").trim();
-        String body = note.optString("body", "");
-        if(title.isEmpty() || title.length() > 250 || body.length() > 240000)
-            throw new GeneralSecurityException("Invalid note contents");
+        if(note==null||!"note".equals(entity)&&
+                !"appointment".equals(entity)&&!"list".equals(entity)&&
+                !"journal".equals(entity)&&!"book".equals(entity)&&
+                !"movie".equals(entity))
+            throw new GeneralSecurityException(
+                    "Encrypted import unsupported without safe native type");
+        // The decoded data was sanitized by AtomicImporter, but explicitly
+        // revalidate types before binding this copy to the Keystore.
+        JSONObject sanitized=NexoConnectPayloadCodec.sanitize(entity,note,null);
+        String title=sanitized.optString("title","").trim();
+        if(title.isEmpty()||title.length()>250)
+            throw new GeneralSecurityException("Invalid protected title");
+        if("note".equals(entity)&&
+                sanitized.optString("body","").length()>240000)
+            throw new GeneralSecurityException("Invalid protected note");
 
-        // Keep the entire original validated note in one authenticated envelope.
-        // Never write its original title, body, tags or category to SQLite.
-        String encrypted = seal(note.toString());
-        JSONObject surrogate = new JSONObject()
-                .put("title", "Nota cifrada")
-                .put("body", encrypted)
-                .put("category", "Notas");
-        return NexoConnectNativeWriter.INSTANCE.insertNew(db, "note", surrogate);
+        // Backwards compatible: existing note ciphertext keeps its original
+        // inner JSON structure. Non-note entities get a typed inner envelope.
+        JSONObject inner="note".equals(entity)?sanitized:
+                new JSONObject().put(PACKED_ENTITY,entity)
+                                .put(PACKED_DATA,sanitized);
+        String encrypted=seal(inner.toString());
+        JSONObject surrogate=new JSONObject()
+                .put("title","note".equals(entity)?"Nota cifrada":"Ficha cifrada")
+                .put("body",encrypted)
+                .put("category","Notas");
+        // This storage is a SEALED INBOX, not the final native destination.
+        // We intentionally reuse the proven protected 'items' SQLite schema
+        // until a per-type native promotion is available.
+        return NexoConnectNativeWriter.INSTANCE.insertNew(db,"note",surrogate);
     }
 
     public JSONObject read(String value) throws Exception {
@@ -103,11 +122,26 @@ public final class NexoConnectSealedNoteStore implements NexoConnectAtomicImport
             c.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));
             c.updateAAD(aad());
             clear = c.doFinal(ciphertext);
-            JSONObject result = new JSONObject(new String(clear, StandardCharsets.UTF_8));
-            String title = result.optString("title", "").trim();
-            if(title.isEmpty() || title.length() > 250 ||
-                    result.optString("body", "").length() > 240000)
-                throw new GeneralSecurityException("Invalid decrypted note");
+            JSONObject result=new JSONObject(new String(clear,StandardCharsets.UTF_8));
+            if(result.has(PACKED_ENTITY)||result.has(PACKED_DATA)){
+                if(result.length()!=2||!result.has(PACKED_ENTITY)||
+                        !result.has(PACKED_DATA))
+                    throw new GeneralSecurityException("Invalid typed sealed envelope");
+                String type=result.optString(PACKED_ENTITY,"");
+                JSONObject data=result.optJSONObject(PACKED_DATA);
+                if(data==null||!("appointment".equals(type)||
+                        "list".equals(type)||"journal".equals(type)||
+                        "book".equals(type)||"movie".equals(type)))
+                    throw new GeneralSecurityException("Invalid protected entity");
+                JSONObject normalized=NexoConnectPayloadCodec.sanitize(type,data,null);
+                if(normalized.optString("title","").trim().isEmpty())
+                    throw new GeneralSecurityException("Protected title missing");
+            }else{
+                String title=result.optString("title","").trim();
+                if(title.isEmpty()||title.length()>250||
+                        result.optString("body","").length()>240000)
+                    throw new GeneralSecurityException("Invalid decrypted note");
+            }
             return result;
         } finally {
             Arrays.fill(iv, (byte) 0);
