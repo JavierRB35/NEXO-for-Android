@@ -1,3 +1,10 @@
+## Nexo 3.7.49 — Argumento / sinopsis en libros y filmoteca
+- Campo de texto libre y opcional en el alta y edición de libros, películas y series, incluso cuando están pendientes.
+- Sinopsis visible íntegra en la ficha y al compartir, con saltos de línea conservados.
+- Independiente de «Mi resumen personal» y «Mis notas y opinión»: el argumento no se borra al comenzar o reiniciar una lectura o visionado.
+- SQLite 32 → 33: dos columnas nuevas de texto con valores predeterminados vacíos; migración no destructiva.
+- VersionCode 142. La detección e instalación de actualizaciones oficiales usa el repositorio público `JavierRB35/nexo-android-updates` y su `latest.json`, generado por el workflow de APK Release firmada.
+
 ## Nexo 3.7.48 — Actualizaciones consultadas y ofrecidas al abrir
 - Al terminar la pantalla inicial se consulta el canal de actualizaciones sin el límite diario de las verificaciones periódicas.
 - Si se publica una versión superior, aparece un diálogo con dos opciones: Actualizar o Más tarde.
