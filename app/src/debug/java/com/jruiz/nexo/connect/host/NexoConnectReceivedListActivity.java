@@ -32,7 +32,7 @@ import java.util.UUID;
  */
 public final class NexoConnectReceivedListActivity extends Activity {
     private String ticket;
-    private boolean bound,requested,copying;
+    private boolean bindingAttempted,requested,copying;
     private volatile boolean completed;
     private ServiceConnection connection;
 
@@ -72,9 +72,15 @@ public final class NexoConnectReceivedListActivity extends Activity {
             Intent service=new Intent();
             service.setClassName(NexoConnectBridgeProtocol.PILOT_PACKAGE,
                     NexoConnectBridgeProtocol.PILOT_RECEIVE_SERVICE);
-            bound=bindService(service,connection,BIND_AUTO_CREATE);
-            if(!bound)fail();
+            // Even a failed bind can leave a registered connection on some
+            // Android versions; always attempt an explicit unbind.
+            bindingAttempted=true;
+            if(!bindService(service,connection,BIND_AUTO_CREATE)) {
+                releaseBinding();
+                fail();
+            }
         }catch(Exception failure) {
+            releaseBinding();
             fail();
         }
     }
@@ -122,6 +128,8 @@ public final class NexoConnectReceivedListActivity extends Activity {
         }finally {
             reply.recycle();
             data.recycle();
+            // The opaque ticket is one-use; the binding is no longer needed.
+            runOnUiThread(this::releaseBinding);
         }
     }
 
@@ -197,11 +205,19 @@ public final class NexoConnectReceivedListActivity extends Activity {
             .setPositiveButton("Cerrar",(d,w)->finish()).show();
     }
 
-    @Override protected void onDestroy() {
-        if(bound && connection!=null){
-            try {unbindService(connection);}catch(IllegalArgumentException ignored){}
-            bound=false;
+    /** Always run on the main thread, including the failed-bind case. */
+    private void releaseBinding() {
+        if(bindingAttempted && connection!=null) {
+            bindingAttempted=false;
+            try {unbindService(connection);}
+            catch(IllegalArgumentException ignored) {
+                // No service connection was registered (bind failed early).
+            }
         }
+    }
+
+    @Override protected void onDestroy() {
+        releaseBinding();
         super.onDestroy();
     }
 }
