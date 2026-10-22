@@ -7,6 +7,11 @@
     <application android:label="Nexo Connect Pruebas"
         android:allowBackup="false" android:usesCleartextTraffic="false"
         android:supportsRtl="true">
+        <!-- LAB only: same-signature Nexo can pull one user-approved, verified
+             received list. The service never exports the pilot Keystore. -->
+        <service android:name="com.jruiz.nexo.connect.vault.NexoConnectReceivedBridgeService"
+            android:exported="true"
+            android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE" />
         <activity android:name="com.jruiz.nexo.connect.vault.NexoConnectPilotActivity"
             android:exported="true" android:screenOrientation="portrait">
             <intent-filter>
