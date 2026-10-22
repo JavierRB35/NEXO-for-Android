@@ -7,6 +7,10 @@ import android.database.sqlite.SQLiteDatabase;
 import com.jruiz.nexo.connect.vault.AndroidPeerTrustStore;
 import com.jruiz.nexo.connect.vault.NexoConnectLocalNotePromotion;
 import com.jruiz.nexo.connect.vault.NexoConnectLocalListPromotion;
+import com.jruiz.nexo.connect.vault.NexoConnectBridgeProtocol;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.ActivityNotFoundException;
 
 import java.util.UUID;
 
@@ -65,15 +69,18 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                 }
                 label("Esta ficha sigue en tu teléfono. No se ha enviado nada.",14);
                 button("Revisar datos de la ficha",()->readSelectedShare(true));
-                button("Envío cifrado · pendiente de conexión",()->new AlertDialog.Builder(this)
-                    .setTitle("Conexión segura pendiente")
-                    .setMessage("La identidad y los contactos verificados del "+
-                            "piloto están protegidos en otra aplicación Android. "+
-                            "No pueden utilizarse automáticamente desde Nexo. "+
-                            "No registres otra cuenta ni sustituyas claves: "+
-                            "prepararemos una transición segura antes de "+
-                            "habilitar los envíos desde aquí.")
-                    .setPositiveButton("Entendido",null).show());
+                button("Compartir con persona verificada",()->new AlertDialog.Builder(this)
+                    .setTitle("Continuar en Nexo Connect")
+                    .setMessage("Se abrirá el piloto que ya tiene tus claves y "+
+                            "contactos verificados. La ficha se transferirá "+
+                            "solo entre estas dos aplicaciones, sin dejarla "+
+                            "en Descargas ni incluir su contenido en el enlace. "+
+                            "Podrás elegir un contacto y confirmar el envío "+
+                            "cifrado. No se ha enviado nada todavía.")
+                    .setNegativeButton("Cancelar",null)
+                    .setPositiveButton("Continuar",
+                            (dialog,which)->handoffSelectedShare(section,id))
+                    .show());
             }catch(UnsupportedOperationException pending){
                 label("Esta ficha todavía no admite el intercambio cifrado.",16);
                 label(pending.getMessage(),14);
@@ -98,6 +105,39 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                 .setPositiveButton("Abrir acceso", (d,w)->openHostAccountSetup())
                 .show());
         return true;
+    }
+
+    /**
+     * Only a 128-bit unpredictable ticket crosses in the explicit Intent.
+     * Nexo private rows remain here; the trusted pilot reads one sanitized
+     * record from our signature-protected Binder service and signs E2EE.
+     */
+    private void handoffSelectedShare(String section,long id){
+        if(!BuildConfig.DEBUG||!hasSelectedShare()||id<=0)return;
+        if(!section.equals(getIntent().getStringExtra("nexoShareSection"))||
+                id!=getIntent().getLongExtra("nexoShareId",0L))
+            return;
+        try {
+            if(getPackageManager().checkSignatures(getPackageName(),
+                    NexoConnectBridgeProtocol.PILOT_PACKAGE)!=
+                            PackageManager.SIGNATURE_MATCH) {
+                showPickerError("No se encontró el piloto verificado con "+
+                        "una firma compatible. No se ha enviado nada.");
+                return;
+            }
+            String nonce=NexoConnectShareBridgeService.stage(section,id);
+            Intent launch=new Intent();
+            launch.setClassName(NexoConnectBridgeProtocol.PILOT_PACKAGE,
+                    NexoConnectBridgeProtocol.PILOT_ACTIVITY);
+            launch.putExtra(NexoConnectBridgeProtocol.EXTRA_TICKET,nonce);
+            startActivity(launch);
+        }catch(ActivityNotFoundException|SecurityException invalid){
+            showPickerError("Nexo Connect Pruebas no está disponible con "+
+                    "la firma autorizada. Ningún dato se ha enviado.");
+        }catch(Exception invalid){
+            showPickerError("No se pudo abrir la conexión segura. "+
+                    "Ningún dato se ha enviado.");
+        }
     }
 
     @Override protected void addHostActions() {
