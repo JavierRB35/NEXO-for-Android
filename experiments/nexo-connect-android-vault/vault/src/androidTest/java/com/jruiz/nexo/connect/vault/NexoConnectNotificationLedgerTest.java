@@ -42,7 +42,8 @@ public final class NexoConnectNotificationLedgerTest {
     }
     @Test public void duplicateOrMalformedIdsFailClosed()throws Exception {
         for(JSONArray bad:Arrays.asList(
-                items(A,A),items("untrusted"),items(A.toUpperCase()))){
+                items(A,A),items("untrusted"),
+                items("AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA"))){
             try{
                 NexoConnectNotificationLedger.unseenIds(bad,Collections.emptySet());
                 fail("Invalid metadata should never trigger a notification");
