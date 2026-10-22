@@ -8,7 +8,7 @@ java=(root/'app/src/main/java/com/jruiz/nexo/MainActivity.java').read_text()
 place=(root/'app/src/main/java/com/jruiz/nexo/core/PlaceEntry.java').read_text()
 books=(root/'app/src/main/assets/books.js').read_text()
 
-assert 'DB_VERSION = 32' in db and 'if (oldVersion < 29)' in db
+assert 'DB_VERSION = 33' in db and 'if (oldVersion < 29)' in db
 for col in ('place_state','place_rating','place_visited_on'):
     assert f'ALTER TABLE items ADD COLUMN {col} ' in db, col
     assert f'"{col} ' in db, col
