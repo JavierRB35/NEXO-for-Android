@@ -691,7 +691,7 @@ function renderToday(dashboardOverride=null) {
   $('#homeWeekHint').textContent=weekCount?'Eventos en los próximos días':'Semana tranquila';
 
   $('#homeCalendarHint').textContent='Ver todos';
-  $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card">No hay próximos eventos. Añade el primero desde Agenda.</div>';
+  $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card design-empty"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><strong>No hay próximos eventos.</strong><span>Añade el primero desde Agenda.</span></div>';
   bindHomeUpcoming();
 
   // El índice global puede leer miles de filas y transcripciones. Solo se crea
@@ -2553,7 +2553,7 @@ function renderCalendar(direction=0){
 }
 
 function renderCalendarDay(){
-  const iso=state.calendarSelected||isoDateLocal(new Date()),d=new Date(iso+'T12:00:00');const items=(state.calendarItems||[]).filter(i=>itemCoversIsoDate(i,iso)).sort((a,b)=>{if((a.allDay===true||a.hasTime===false)&&(b.allDay!==true&&b.hasTime!==false))return -1;if((a.allDay!==true&&a.hasTime!==false)&&(b.allDay===true||b.hasTime===false))return 1;return (a.dueAt||0)-(b.dueAt||0);});const hs=holidayEntriesForYears([Number(iso.slice(0,4))]).filter(h=>h.date===iso);const label=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(d);$('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());const ap=items.length?`${items.length} evento${items.length===1?'':'s'}`:'Sin eventos';$('#calendarSelectedMeta').textContent=hs.length?`${ap} · ${hs.length===1?'Festivo':'Festivos'}`:ap;const host=$('#calendarDayHolidays');if(host){host.innerHTML=hs.map(holidayCard).join('');host.classList.toggle('hidden',!hs.length);bindHolidaySources(host);}$('#calendarDayItems').innerHTML=items.length?items.map(i=>agendaCard(i)).join(''):'<div class="empty-state">Sin eventos para este día.</div>';const add=$('#calendarAddFab'),voice=$('#globalVoiceFab');if(add){add.setAttribute('aria-label','Añadir una cita el '+label);add.setAttribute('title','Añadir una cita el '+label);}if(voice){voice.setAttribute('aria-label','Añadir una cita por voz el '+label);voice.setAttribute('title','Añadir una cita por voz el '+label);}bindItemButtons($('#calendarDayItems'));
+  const iso=state.calendarSelected||isoDateLocal(new Date()),d=new Date(iso+'T12:00:00');const items=(state.calendarItems||[]).filter(i=>itemCoversIsoDate(i,iso)).sort((a,b)=>{if((a.allDay===true||a.hasTime===false)&&(b.allDay!==true&&b.hasTime!==false))return -1;if((a.allDay!==true&&a.hasTime!==false)&&(b.allDay===true||b.hasTime===false))return 1;return (a.dueAt||0)-(b.dueAt||0);});const hs=holidayEntriesForYears([Number(iso.slice(0,4))]).filter(h=>h.date===iso);const label=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(d);$('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());const ap=items.length?`${items.length} evento${items.length===1?'':'s'}`:'Sin eventos';$('#calendarSelectedMeta').textContent=hs.length?`${ap} · ${hs.length===1?'Festivo':'Festivos'}`:ap;const host=$('#calendarDayHolidays');if(host){host.innerHTML=hs.map(holidayCard).join('');host.classList.toggle('hidden',!hs.length);bindHolidaySources(host);}$('#calendarDayItems').innerHTML=items.length?items.map(i=>agendaCard(i)).join(''):'<div class="empty-state design-empty"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><span>Sin eventos para este día.</span></div>';const add=$('#calendarAddFab'),voice=$('#globalVoiceFab');if(add){add.setAttribute('aria-label','Añadir una cita el '+label);add.setAttribute('title','Añadir una cita el '+label);}if(voice){voice.setAttribute('aria-label','Añadir una cita por voz el '+label);voice.setAttribute('title','Añadir una cita por voz el '+label);}bindItemButtons($('#calendarDayItems'));
 }
 
 function prepareCaptureForDate(iso){openCreationMenu(iso);}
@@ -4385,7 +4385,8 @@ function init(){
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';bindCategorySelectIcon('#captureCategory');
   setInterpretationStatus('idle','Interpretación local preparada');
-  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else navigate(b.dataset.nav,{root:true});}));
+  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else if(b.dataset.nav==='chat')NexoNative.openNexoChat();else navigate(b.dataset.nav,{root:true});}));
+  $('#globalSearchBtn').addEventListener('click',()=>navigate('search'));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   $('#headerWeatherBtn')?.addEventListener('click',()=>NexoNative.openHeaderWeather());
   $('#weatherLocationMode')?.addEventListener('change',e=>{

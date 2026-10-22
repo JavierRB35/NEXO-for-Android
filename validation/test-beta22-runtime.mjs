@@ -147,6 +147,21 @@ input.dispatchEvent(new window.Event('input',{bubbles:true}));
 const afterSearch=calls.filter(x=>x==='getFamilyStyleSearchIndex').length;
 assert.equal(afterSearch,beforeSearch+1,'La búsqueda debe crear el índice una sola vez bajo demanda');
 
+// Six destinations: Chat opens native UI; Search remains reachable and Back works.
+const labels=[...window.document.querySelectorAll('.nav-item small')].map(e=>e.textContent);
+assert.deepEqual(labels,['Inicio','Calendario','Notas','Chat','Inbox','Tools']);
+window.document.querySelector('[data-nav="today"]').click();
+window.document.querySelector('#globalSearchBtn').click();
+assert.equal(window.__nexoTestState.screen,'search');
+window.NexoUI.handleBack();
+assert.equal(window.__nexoTestState.screen,'today');
+const chatCalls=calls.filter(x=>x==='openNexoChat').length;
+window.document.querySelector('[data-nav="chat"]').click();
+assert.equal(calls.filter(x=>x==='openNexoChat').length,chatCalls+1);
+assert.equal(window.__nexoTestState.screen,'today','Returning from native chat keeps the route');
+window.document.querySelector('[data-nav="tools"]').click();
+assert.equal(window.__nexoTestState.screen,'tools');
+assert.equal(window.document.querySelector('#toolsTitle').textContent,'Herramientas');
 assert.equal(errors.length,0,'Errores finales de runtime: '+errors.join('\n'));
 console.log('OK: runtime WebView simulado, Inicio no bloqueante y accesos data-panel operativos, incluida Libros');
 window.close();

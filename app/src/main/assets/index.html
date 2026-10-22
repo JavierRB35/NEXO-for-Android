@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#FFFFFF">
   <title>Nexo</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="design-system.css">
 <style>
 [data-nav="inbox"]{position:relative}
 .inbox-nav-badge{position:absolute;top:2px;left:calc(50% + 5px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#c62828;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;pointer-events:none}
@@ -35,6 +36,7 @@
 <img class="brand-logo" src="nexo-toolbar-logo.png" alt=""><span class="brand-copy"><span class="brand-main"><span class="brand">Nexo</span><small id="headerVersion" class="brand-version"></small></span><span id="headerTodayDate" class="header-today-date" aria-label="Fecha de hoy"></span></span>
 </button>
 <div class="header-actions"><div class="header-weather-group"><button id="headerWeatherBtn" class="header-weather-button" type="button" aria-label="Consultar el tiempo" title="Consultar el tiempo"><span class="header-weather-reading"><span id="headerWeatherIcon" class="header-weather-symbol" aria-hidden="true">⛅</span><span id="headerWeatherTemp">…</span></span><small id="headerWeatherPlace" class="header-weather-place">Consultando tiempo…</small></button><a class="header-weather-attribution" href="https://open-meteo.com/" aria-label="Fuente de datos meteorológicos: Open-Meteo, CC BY 4.0" title="Datos meteorológicos: Open-Meteo (CC BY 4.0)">ⓘ</a></div>
+<button id="globalSearchBtn" class="icon-button" aria-label="Buscar en Nexo"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg></button>
 <button id="settingsBtn" class="icon-button" aria-label="Ajustes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg></button></div></header><main>
       <section class="screen active family-home" data-screen="today" aria-labelledby="homeNowTitle">
   <section class="family-home-search" aria-label="Búsqueda en Nexo">
@@ -505,7 +507,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.49</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.50</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -518,7 +520,7 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.49</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.50</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>
@@ -582,9 +584,9 @@
 <button class="nav-item" data-nav="today"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-home"></use></svg><small>Inicio</small></button>
 <button class="nav-item" data-nav="calendar"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><small>Calendario</small></button>
 <button class="nav-item" data-nav="notes"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-note"></use></svg><small>Notas</small></button>
-<button class="nav-item" data-nav="search"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg><small>Buscar</small></button>
+<button class="nav-item" data-nav="chat" aria-label="Abrir Chat"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-chat"></use></svg><small>Chat</small></button>
 <button class="nav-item" data-nav="inbox" aria-label="Inbox"><span class="inbox-nav-badge hidden" id="inboxNavBadge" aria-hidden="true"></span><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-inbox"></use></svg><small>Inbox</small></button>
-<button class="nav-item" data-nav="tools"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-grid"></use></svg><small>Herramientas</small></button>
+<button class="nav-item" data-nav="tools"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-grid"></use></svg><small>Tools</small></button>
 </nav>
 </div>
 

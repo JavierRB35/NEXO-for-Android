@@ -42,7 +42,7 @@
             <intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="application/vnd.nexo.invitation"/></intent-filter>
             <intent-filter><action android:name="android.intent.action.SEND"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="application/vnd.nexo.invitation"/></intent-filter>
         </activity>
-        <activity android:name="com.jruiz.nexo.connectui.NexoConnectActivity" android:exported="false" />
+        <activity android:name="com.jruiz.nexo.connectui.NexoConnectActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name="com.jruiz.nexo.connectui.NexoConnectMigrationActivity" android:exported="false" />
         <service android:name="com.jruiz.nexo.connect.vault.NexoConnectInboxNoticeJob" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
         <activity

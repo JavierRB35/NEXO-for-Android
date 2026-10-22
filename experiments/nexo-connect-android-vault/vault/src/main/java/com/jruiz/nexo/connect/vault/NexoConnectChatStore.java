@@ -25,9 +25,36 @@ public final class NexoConnectChatStore {
     public static JSONObject parse(JSONObject payload)throws Exception {
         if(!CATEGORY.equals(payload.optString("category")))throw new SecurityException("Not a chat");
         JSONObject body=new JSONObject(payload.getString("body"));
-        if(body.length()!=5||body.getInt("version")!=1||!("message".equals(body.getString("kind"))||"profile".equals(body.getString("kind"))))throw new SecurityException("Invalid chat");
+        if(body.length()!=5||body.getInt("version")!=1||!("message".equals(body.getString("kind"))||"profile".equals(body.getString("kind"))||"read".equals(body.getString("kind"))))throw new SecurityException("Invalid chat");
         validateName(body.getString("name"));String text=body.getString("text");
-        if(text.length()>4000||("message".equals(body.getString("kind"))&&text.trim().isEmpty())||body.getLong("sentAt")<=0)throw new SecurityException("Invalid message");return body;
+        if(text.length()>4000||("message".equals(body.getString("kind"))&&text.trim().isEmpty())||body.getLong("sentAt")<=0)throw new SecurityException("Invalid message");if("read".equals(body.getString("kind")))receiptIds(body);return body;
+    }
+    /** Read receipts travel in the same authenticated, encrypted envelope as messages. */
+    public static JSONObject receipt(String name,java.util.List<String> deliveries)throws Exception {
+        if(deliveries.isEmpty()||deliveries.size()>100)throw new SecurityException("Receipt limit");
+        JSONObject data=payload(name,new JSONArray(deliveries).toString(),false);
+        JSONObject body=new JSONObject(data.getString("body")).put("kind","read");
+        receiptIds(body);data.put("body",body.toString());return data;
+    }
+    public static java.util.List<String> receiptIds(JSONObject body)throws Exception {
+        JSONArray ids=new JSONArray(body.getString("text"));
+        if(ids.length()==0||ids.length()>100)throw new SecurityException("Receipt limit");
+        java.util.List<String> result=new ArrayList<>();Set<String> unique=new HashSet<>();
+        for(int i=0;i<ids.length();i++){String id=ids.getString(i);if(!UUID.fromString(id).toString().equals(id)||!unique.add(id))throw new SecurityException("Invalid receipt");result.add(id);}
+        return result;
+    }
+    /** Called only after the envelope's signature and recipient binding have been verified. */
+    public static void applyRead(SQLiteDatabase db,UUID account,UUID sender,JSONObject body)throws Exception {
+        if(!"read".equals(body.getString("kind")))throw new SecurityException("Not a receipt");
+        schema(db);NexoConnectChatBackup.schema(db);db.beginTransaction();
+        try{for(String id:receiptIds(body)){
+            db.execSQL("UPDATE nexo_chat_outgoing SET status='read' WHERE delivery=? AND account=? AND peer=?",new Object[]{id,account.toString(),sender.toString()});
+            db.execSQL("UPDATE nexo_chat_restored SET status='read' WHERE delivery=? AND account=? AND peer=? AND outgoing=1",new Object[]{id,account.toString(),sender.toString()});
+        }db.setTransactionSuccessful();}finally{db.endTransaction();}
+    }
+    public static boolean queueRead(SQLiteDatabase db,UUID account,UUID peer,String delivery){
+        schema(db);android.content.ContentValues row=new android.content.ContentValues();row.put("account",account.toString());row.put("peer",peer.toString());row.put("delivery",UUID.fromString(delivery).toString());
+        return db.insertWithOnConflict("nexo_chat_reads",null,row,SQLiteDatabase.CONFLICT_IGNORE)!=-1;
     }
     public static String ownName(Context c,UUID account){return c.getSharedPreferences("nexo-connect-profiles",0).getString("own:"+account,"");}
     public static void setOwnName(Context c,UUID account,String name){if(!c.getSharedPreferences("nexo-connect-profiles",0).edit().putString("own:"+account,validateName(name)).commit())throw new IllegalStateException();}
@@ -41,15 +68,15 @@ public final class NexoConnectChatStore {
         long at=body.optLong("sentAt",0);if(at<=0||at>System.currentTimeMillis()+300000)return;
         if(at>=prefs.getLong("time:"+key,0))prefs.edit().putString(key,validateName(body.optString("name"))).putLong("time:"+key,at).commit();
     }
-    public static void schema(SQLiteDatabase db){db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_outgoing(delivery TEXT PRIMARY KEY,account TEXT NOT NULL,peer TEXT NOT NULL,body TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL)");}
+    public static void schema(SQLiteDatabase db){db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_reads(account TEXT NOT NULL,peer TEXT NOT NULL,delivery TEXT NOT NULL,confirmed INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(account,peer,delivery))");db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_outgoing(delivery TEXT PRIMARY KEY,account TEXT NOT NULL,peer TEXT NOT NULL,body TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL)");}
     public static void pending(SQLiteDatabase db,UUID account,UUID peer,UUID delivery,JSONObject data)throws Exception {
         schema(db);String sealed=new NexoConnectSealedNoteStore(account,delivery).sealForChat(data);
         db.execSQL("INSERT INTO nexo_chat_outgoing VALUES(?,?,?,?,?,?)",new Object[]{delivery.toString(),account.toString(),peer.toString(),sealed,"sending",System.currentTimeMillis()});
     }
-    public static void status(SQLiteDatabase db,UUID delivery,String status){db.execSQL("UPDATE nexo_chat_outgoing SET status=? WHERE delivery=?",new Object[]{status,delivery.toString()});}
+    public static void status(SQLiteDatabase db,UUID delivery,String status){db.execSQL("UPDATE nexo_chat_outgoing SET status=CASE WHEN status='read' THEN status ELSE ? END WHERE delivery=?",new Object[]{status,delivery.toString()});}
     public static final class Message {
-        public final String text,status;public final boolean outgoing;public final long time;
-        Message(String text,String status,boolean out,long time){this.text=text;this.status=status;outgoing=out;this.time=time;}
+        public final String delivery,text,status;public final boolean outgoing;public final long time;
+        Message(String delivery,String text,String status,boolean out,long time){this.delivery=delivery;this.text=text;this.status=status;outgoing=out;this.time=time;}
     }
     public static List<Message> messages(SQLiteDatabase db,UUID account,UUID peer)throws Exception {
         schema(db);NexoConnectChatBackup.schema(db);List<Message> result=new ArrayList<>();Set<String> seen=new HashSet<>();
@@ -57,7 +84,7 @@ public final class NexoConnectChatStore {
             while(c.moveToNext()){
                 seen.add(c.getString(0));
                 JSONObject body=parse(new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1)));
-                if("message".equals(body.getString("kind")))result.add(new Message(body.getString("text"),c.getString(2),true,c.getLong(3)));
+                if("message".equals(body.getString("kind")))result.add(new Message(c.getString(0),body.getString("text"),c.getString(2),true,c.getLong(3)));
             }
         }
         try(Cursor c=db.rawQuery("SELECT r.delivery_id,i.body,r.imported_at FROM nexo_connect_import_receipts r JOIN items i ON i.id=r.local_id WHERE r.sender_id=? AND r.entity_type='note' ORDER BY r.imported_at DESC LIMIT 200",new String[]{peer.toString()})){
@@ -65,11 +92,11 @@ public final class NexoConnectChatStore {
                 seen.add(c.getString(0));
                 JSONObject data=new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1));
                 if(!CATEGORY.equals(data.optString("category")))continue;JSONObject body=parse(data);
-                if("message".equals(body.getString("kind")))result.add(new Message(body.getString("text"),"received",false,c.getLong(2)));
+                if("message".equals(body.getString("kind")))result.add(new Message(c.getString(0),body.getString("text"),"received",false,c.getLong(2)));
             }
         }
         try(Cursor c=db.rawQuery("SELECT delivery,body,status,created_at,outgoing FROM nexo_chat_restored WHERE account=? AND peer=?",new String[]{account.toString(),peer.toString()})){
-            while(c.moveToNext()){if(!seen.add(c.getString(0)))continue;JSONObject body=parse(new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1)));result.add(new Message(body.getString("text"),c.getString(2),c.getInt(4)==1,c.getLong(3)));}
+            while(c.moveToNext()){if(!seen.add(c.getString(0)))continue;JSONObject body=parse(new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1)));result.add(new Message(c.getString(0),body.getString("text"),c.getString(2),c.getInt(4)==1,c.getLong(3)));}
         }
         result.sort(java.util.Comparator.comparingLong(m->m.time));return result;
     }

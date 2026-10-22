@@ -121,6 +121,7 @@ public class NexoConnectPilotActivity extends Activity {
         column.addView(v,new LinearLayout.LayoutParams(-1,-2));
         return v;
     }
+    protected final Object sessionRefreshLock(){return NexoConnectSessionVault.REFRESH_LOCK;}
     protected interface Work{Object call()throws Exception;}
     protected interface Finished{void done(Object value);}
     protected void runWork(Work work,Finished callback){

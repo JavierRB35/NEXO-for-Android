@@ -27,10 +27,11 @@ import java.util.UUID;
 /**
  * LAB background notifications without a Firebase/push provider.
  *
- * Android periodically checks encrypted-delivery METADATA; execution is
+ * Android periodically checks pending deliveries; execution is
  * deferred by Doze/battery scheduling and is NOT instant messaging.
  * No message body, keys, fingerprints, OTP, JWT, or document title in a
- * notification or local ledger. Job NEVER decrypts or imports a delivery.
+ * notification or local ledger. The integrated host receives authenticated chat
+ * messages without marking them read; control receipts never produce notifications.
  */
 public final class NexoConnectInboxNoticeJob extends JobService {
     private static final String TAG="NexoConnectNotice";
@@ -139,6 +140,27 @@ public final class NexoConnectInboxNoticeJob extends JobService {
         JSONArray pending=client.inbox(20,null);
         if(stopped || pending.length()==0)return;
 
+        if("com.jruiz.nexo".equals(getPackageName())){
+            // Receipt/profile events must not look like new messages to the user.
+            synchronized(NexoConnectSessionVault.REFRESH_LOCK){
+                NexoConnectChatTransport.sync(this,client,local,new AndroidPeerTrustStore(this,session.accountId),confirmed.generation);
+            }
+            JSONArray visible=new JSONArray();
+            try(android.database.sqlite.SQLiteDatabase db=NexoConnectMigration.inbox(this)){
+                for(int i=0;i<pending.length();i++){
+                    org.json.JSONObject item=pending.getJSONObject(i);UUID delivery=UUID.fromString(item.getString("deliveryId"));boolean control=false;
+                    try(android.database.Cursor row=db.rawQuery("SELECT i.body FROM nexo_connect_import_receipts r JOIN items i ON i.id=r.local_id WHERE r.delivery_id=? AND r.entity_type='note'",new String[]{delivery.toString()})){
+                        if(row.moveToFirst()){
+                            org.json.JSONObject data=new NexoConnectSealedNoteStore(session.accountId,delivery).read(row.getString(0));
+                            if(NexoConnectChatStore.CATEGORY.equals(data.optString("category")))control=!"message".equals(NexoConnectChatStore.parse(data).getString("kind"));
+                        }
+                    }
+                    if(!control)visible.put(item);
+                }
+            }
+            pending=visible;if(pending.length()==0)return;
+        }
+
         SharedPreferences preferences=getSharedPreferences(PREFS,Context.MODE_PRIVATE);
         String accountKey="seen:"+session.accountId;
         Set<String> seen=new HashSet<>(
@@ -156,8 +178,8 @@ public final class NexoConnectInboxNoticeJob extends JobService {
         PendingIntent tap=PendingIntent.getActivity(this,0,open,
                 PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         String message=unseen.size()==1?
-                "Tienes una ficha pendiente de revisar":
-                "Tienes "+unseen.size()+" fichas pendientes de revisar";
+                "Tienes un mensaje o una ficha nueva":
+                "Tienes "+unseen.size()+" novedades en Nexo";
         Notification notice=new Notification.Builder(this,CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_dialog_email)
                 .setContentTitle("Nexo Connect")

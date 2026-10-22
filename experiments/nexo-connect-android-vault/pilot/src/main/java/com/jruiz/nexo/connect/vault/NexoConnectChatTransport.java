@@ -43,6 +43,7 @@ public final class NexoConnectChatTransport {
                             if(!row.moveToFirst())throw new SecurityException();
                             JSONObject body=NexoConnectChatStore.parse(new NexoConnectSealedNoteStore(identity.accountId(),delivery).read(row.getString(0)));
                             NexoConnectChatStore.rememberProfile(c,identity.accountId(),sender,body);
+                            if("read".equals(body.getString("kind")))NexoConnectChatStore.applyRead(db,identity.accountId(),sender,body);
                         }
                         if("accepted".equals(client.resolve(delivery,"accepted")))com.jruiz.nexo.connect.NexoConnectAtomicImporter.markServerAccepted(db,delivery.toString());
                         received++;
@@ -51,6 +52,22 @@ public final class NexoConnectChatTransport {
                 if(pending.length()<20)break;
             }
         }
+        flushReads(c,client,identity,trust);
         return received;
+    }
+    private static void flushReads(Context c,NexoConnectSignedGatewayClient client,NexoConnectLocalPhoneIdentity identity,AndroidPeerTrustStore trust)throws Exception {
+        try(SQLiteDatabase db=NexoConnectMigration.inbox(c)){
+            NexoConnectChatStore.schema(db);java.util.Map<UUID,java.util.List<String>> groups=new java.util.LinkedHashMap<>();
+            try(Cursor rows=db.rawQuery("SELECT peer,delivery FROM nexo_chat_reads WHERE account=? AND confirmed=0 LIMIT 100",new String[]{identity.accountId().toString()})){
+                while(rows.moveToNext())groups.computeIfAbsent(UUID.fromString(rows.getString(0)),key->new java.util.ArrayList<>()).add(rows.getString(1));
+            }
+            for(var entry:groups.entrySet()){
+                UUID peer=entry.getKey();AndroidPeerTrustStore.PeerPin pin=trust.findActive(peer);if(pin==null)continue;
+                JSONObject payload=NexoConnectChatStore.receipt(NexoConnectChatStore.ownName(c,identity.accountId()),entry.getValue());
+                // An uncertain retry can duplicate this idempotent control event, never a user's message.
+                client.sendApproved(identity,trust,peer,NexoConnectPinnedKeysets.recipientEncryption(pin),UUID.randomUUID(),UUID.randomUUID(),"note",payload,null,System.currentTimeMillis()+24L*60*60*1000,true);
+                for(String id:entry.getValue())db.execSQL("UPDATE nexo_chat_reads SET confirmed=1 WHERE account=? AND peer=? AND delivery=?",new Object[]{identity.accountId().toString(),peer.toString(),id});
+            }
+        }
     }
 }

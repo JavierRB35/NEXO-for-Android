@@ -69,7 +69,7 @@ public final class NexoConnectChatBackup {
         if(!data.getString("name").isEmpty())NexoConnectChatStore.validateName(data.getString("name"));
         JSONObject names=data.getJSONObject("names");for(Iterator<String> it=names.keys();it.hasNext();){String id=it.next();UUID.fromString(id);NexoConnectChatStore.validateName(names.getString(id));}
         JSONArray rows=data.getJSONArray("messages");Set<String> ids=new HashSet<>();
-        for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);UUID.fromString(row.getString("id"));UUID.fromString(row.getString("peer"));if(!ids.add(row.getString("id"))||row.getLong("at")<=0)throw new SecurityException();row.getBoolean("outgoing");if(!Arrays.asList("sending","unknown","sent","received").contains(row.getString("status")))throw new SecurityException();NexoConnectChatStore.parse(row.getJSONObject("data"));}
+        for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);UUID.fromString(row.getString("id"));UUID.fromString(row.getString("peer"));if(!ids.add(row.getString("id"))||row.getLong("at")<=0)throw new SecurityException();row.getBoolean("outgoing");if(!Arrays.asList("sending","unknown","sent","received","read").contains(row.getString("status")))throw new SecurityException();if(!"message".equals(NexoConnectChatStore.parse(row.getJSONObject("data")).getString("kind")))throw new SecurityException("Not a history message");}
     }
     public static void restore(Context c,JSONObject data)throws Exception{
         validate(data);UUID account=UUID.fromString(data.getString("owner"));UUID current=owner(c);if(current!=null&&!current.equals(account))throw new java.io.IOException("Esta copia de chat pertenece a otra cuenta.");
