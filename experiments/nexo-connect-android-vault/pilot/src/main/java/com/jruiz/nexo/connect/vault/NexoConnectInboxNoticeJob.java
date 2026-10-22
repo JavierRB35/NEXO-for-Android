@@ -44,11 +44,15 @@ public final class NexoConnectInboxNoticeJob extends JobService {
     public static void schedule(Context context) {
         if(context==null)throw new IllegalArgumentException("Missing app");
         Context app=context.getApplicationContext();
+        if(!"com.jruiz.nexo.connect.pilot".equals(app.getPackageName()))
+            return; // Embedded LAB host uses the same Java sources, not this service.
         NotificationManager notifications=
                 (NotificationManager)app.getSystemService(Context.NOTIFICATION_SERVICE);
         if(notifications!=null && Build.VERSION.SDK_INT>=26) {
-            notifications.createNotificationChannel(new NotificationChannel(
-                    CHANNEL,"Fichas de Nexo Connect",NotificationManager.IMPORTANCE_DEFAULT));
+            NotificationChannel channel=new NotificationChannel(
+                    CHANNEL,"Fichas de Nexo Connect",NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+            notifications.createNotificationChannel(channel);
         }
         JobScheduler jobs=(JobScheduler)app.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if(jobs==null)return;
