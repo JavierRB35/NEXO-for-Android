@@ -6,11 +6,13 @@ js=(root/'app/src/main/assets/app.js').read_text()
 java=(root/'app/src/main/java/com/jruiz/nexo/MainActivity.java').read_text()
 db=(root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text()
 
-# Inicio actual: Lo importante ahora -> Accesos directos -> Próximamente.
+# Inicio compacto: Lo importante ahora -> Próximamente (sin bloque Accesos directos).
 important=html.index('id="homeNowTitle"')
-quick=html.index('id="homeFamilyInfoTitle"')
 upcoming=html.index('id="homeUpcomingTitle"')
-assert important < quick < upcoming, 'Orden de secciones de Inicio incorrecto'
+assert important < upcoming, 'Orden de secciones de Inicio incorrecto'
+home=html[html.index('id="homeDashboardContent"'):html.index('data-screen="tools"')]
+assert 'Accesos directos' not in home and 'home-section--quick-access' not in home
+assert 'module-grid--family-info' not in home
 
 # El resumen ligero de Inicio conserva sus cuatro tarjetas.
 for control in ['homeTodayCard','homeTomorrowCard','homeWeekCard','homeCalendarCard']:
@@ -18,10 +20,10 @@ for control in ['homeTodayCard','homeTomorrowCard','homeWeekCard','homeCalendarC
 
 assert 'id="homeInboxPulseCard"' not in html, 'Inbox ahora debe estar en la navegación inferior'
 
-# Accesos directos de Inicio: exactamente los cuatro módulos de uso frecuente.
-home=html[html.index('data-screen="today"'):html.index('data-screen="tools"')]
+# Los cuatro módulos siguen accesibles desde Herramientas.
+tools=html[html.index('data-screen="tools"'):html.index('data-screen="save"')]
 for module in ['notes','medications','lists','documents']:
-    assert 'data-panel="'+module+'"' in home, f'Falta acceso directo de Inicio a {module}'
+    assert 'data-panel="'+module+'"' in tools, f'Falta el módulo de Herramientas: {module}'
 
 # El calendario completo sigue estando solo en su pantalla dedicada.
 assert 'id="homeCalGrid"' not in html
@@ -35,4 +37,4 @@ for token in ['@JavascriptInterface public String getNotes()', '@JavascriptInter
     assert token in java, f'Falta puente Java de notas: {token}'
 assert 'return queryItems("type=\'note\' AND status=\'active\'", null, "created_at DESC", 500);' in db, 'Las notas no están ordenadas por fecha descendente'
 
-print('Bloc de notas e Inicio actual: OK')
+print('Bloc de notas y pantalla Inicio compacta: OK')
