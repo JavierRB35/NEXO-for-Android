@@ -30,6 +30,24 @@ import javax.crypto.spec.GCMParameterSpec;
  * the signed phone challenge is rechecked after EVERY session restoration.
  */
 public final class NexoConnectSessionVault {
+    // Foreground sign-in and background inbox checks share one refresh-token
+    // rotation lock in this process; never replay an obsolete refresh token.
+    private static final Object REFRESH_LOCK = new Object();
+
+    public static NexoConnectEmailOtpClient.VerifiedSession refreshSavedSession(
+            Context context,NexoConnectEmailOtpClient otp) throws Exception {
+        if(context==null || otp==null)
+            throw new IllegalArgumentException("Session recovery requires an Auth client");
+        synchronized(REFRESH_LOCK) {
+            NexoConnectSessionVault store=new NexoConnectSessionVault(context);
+            Saved saved=store.restore();
+            NexoConnectEmailOtpClient.VerifiedSession fresh=
+                    otp.refreshSession(saved.refreshToken,saved.accountId,saved.email);
+            store.save(fresh); // rotate token before any device/network operation
+            return fresh;
+        }
+    }
+
     private static final int MAGIC = 0x4e435356; // NCSV
     private static final int VERSION = 1;
     private static final int IV_BYTES = 12;
