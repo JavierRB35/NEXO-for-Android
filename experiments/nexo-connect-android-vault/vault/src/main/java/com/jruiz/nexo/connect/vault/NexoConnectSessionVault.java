@@ -69,6 +69,7 @@ public final class NexoConnectSessionVault {
 
     public synchronized void save(NexoConnectEmailOtpClient.VerifiedSession session)
             throws Exception {
+        synchronized(REFRESH_LOCK) {
         if(session == null) throw new GeneralSecurityException("Missing verified session");
         String refresh = session.refreshTokenFor(session.accountId);
         requireRefresh(refresh);
@@ -108,9 +109,11 @@ public final class NexoConnectSessionVault {
             if(cipherText != null) Arrays.fill(cipherText,(byte)0);
             if(blob != null) Arrays.fill(blob,(byte)0);
         }
-    }
+            }
+}
 
     public synchronized Saved restore() throws Exception {
+        synchronized(REFRESH_LOCK) {
         if(!exists()) throw new GeneralSecurityException("No stored session");
         SecretKey key = findKey();
         if(key == null) throw new GeneralSecurityException("Session Keystore key missing");
@@ -154,12 +157,15 @@ public final class NexoConnectSessionVault {
                 Arrays.fill(ciphertext,(byte)0);
             }
         } finally { Arrays.fill(bytes,(byte)0); }
-    }
+            }
+}
 
     /** Local sign-out only; existing remote sessions are not revoked here. */
     public synchronized void clear() {
+        synchronized(REFRESH_LOCK) {
         file.delete();
-    }
+            }
+}
 
     private static void requireRefresh(String value) throws GeneralSecurityException {
         if(value == null || value.length() < 8 || value.length() > 4096 ||
