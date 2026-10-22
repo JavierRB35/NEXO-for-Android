@@ -25,6 +25,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -427,6 +428,43 @@ public class NexoConnectPilotActivity extends Activity {
             showHome();
         }
     }
+    /** Friendly local names: no cloud lookup, no identity or QR key change. */
+    private String contactName(AndroidPeerTrustStore.PeerPin peer) {
+        if(peer==null)return "Contacto";
+        String fallback="Contacto "+peer.peerId.toString().substring(0,8);
+        if(identity==null)return fallback;
+        String name=getSharedPreferences("nexo-connect-local-names",MODE_PRIVATE)
+            .getString(identity.accountId()+"_"+peer.peerId,"").trim();
+        return name.isEmpty()?fallback:name;
+    }
+
+    private void renameContact(AndroidPeerTrustStore.PeerPin peer) {
+        if(identity==null || trusted.findActive(peer.peerId)==null) {
+            showError("Este contacto ya no está disponible.");
+            return;
+        }
+        EditText input=new EditText(this);
+        input.setSingleLine(true);
+        input.setHint("Nombre, por ejemplo Pepito");
+        input.setText(contactName(peer).startsWith("Contacto ")?"":
+                contactName(peer));
+        new AlertDialog.Builder(this)
+            .setTitle("Nombre de este contacto")
+            .setMessage("El nombre solo se guarda en tu móvil. No cambia su identidad verificada.")
+            .setView(input)
+            .setNegativeButton("Cancelar",null)
+            .setPositiveButton("Guardar",(d,w)->{
+                String name=input.getText().toString().trim();
+                if(name.length()>50 || name.contains("\n") || name.contains("\r")) {
+                    showError("Usa un nombre de hasta 50 caracteres.");
+                    return;
+                }
+                getSharedPreferences("nexo-connect-local-names",MODE_PRIVATE)
+                    .edit().putString(identity.accountId()+"_"+peer.peerId,name).apply();
+                showContacts();
+            }).show();
+    }
+
     private void showContacts(){
         try{
             List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
@@ -436,7 +474,8 @@ public class NexoConnectPilotActivity extends Activity {
                 return;
             }
             for(AndroidPeerTrustStore.PeerPin p:peers){
-                label("Contacto verificado · "+p.peerId.toString().substring(0,8),16);
+                label(contactName(p),16);
+                button("Cambiar nombre",()->renameContact(p));
                 button("Detalles de seguridad",()->{
                     try{
                         new AlertDialog.Builder(this)
@@ -509,64 +548,99 @@ public class NexoConnectPilotActivity extends Activity {
                     .decodeDecrypted(serialized).getJSONObject("data");
             final List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
             if(peers.isEmpty()){
-                new AlertDialog.Builder(this).setTitle("Sin contactos autorizados")
-                    .setMessage("Primero añade y verifica una persona desde Contactos. "+
-                            "No se ha enviado nada.")
+                new AlertDialog.Builder(this).setTitle("Aún no tienes contactos")
+                    .setMessage("Añade antes una persona de confianza. No se ha enviado nada.")
                     .setPositiveButton("Entendido",null).show();
                 return;
             }
-            String[] names=new String[peers.size()];
-            for(int i=0;i<peers.size();i++)
-                names[i]="Contacto verificado · "+peers.get(i).peerId.toString().substring(0,8);
+            final String[] names=new String[peers.size()];
+            final boolean[] checked=new boolean[peers.size()];
+            for(int i=0;i<peers.size();i++)names[i]=contactName(peers.get(i));
             new AlertDialog.Builder(this)
-                .setTitle("¿Con quién quieres compartir?")
-                .setItems(names,(d,which)->composeHostEntity(entity,clean,peers.get(which)))
-                .setNegativeButton("Cancelar",null).show();
-        } catch(Exception rejected) {
+                .setTitle("¿A quién se la enviamos?")
+                .setMultiChoiceItems(names,checked,(dialog,which,isChecked)->
+                        checked[which]=isChecked)
+                .setNegativeButton("Cancelar",null)
+                .setPositiveButton("Continuar",(dialog,which)->{
+                    List<AndroidPeerTrustStore.PeerPin> selected=new ArrayList<>();
+                    for(int i=0;i<checked.length;i++)
+                        if(checked[i])selected.add(peers.get(i));
+                    if(selected.isEmpty()){
+                        showError("Elige al menos una persona.");
+                    }else if(selected.size()>NexoConnectSendBatch.MAX_RECIPIENTS){
+                        showError("Elige como máximo "+
+                                NexoConnectSendBatch.MAX_RECIPIENTS+" personas.");
+                    }else{
+                        composeHostEntity(entity,clean,selected);
+                    }
+                }).show();
+        }catch(Exception rejected){
             new AlertDialog.Builder(this).setTitle("No se puede compartir")
-                .setMessage("La ficha no cumple todavía las condiciones "+
-                        "de intercambio seguro. No se ha enviado nada.")
+                .setMessage("Esta ficha no se puede enviar todavía. No se ha enviado nada.")
                 .setPositiveButton("Entendido",null).show();
         }
     }
 
+    /** One explicit send action, independently encrypted for each recipient.
+     * Confirmed deliveries stay confirmed if a subsequent request is uncertain.
+     * A failed/ambiguous request stops the batch; never auto-retry. */
     private void composeHostEntity(String entity,JSONObject safe,
-            AndroidPeerTrustStore.PeerPin peer) {
+            List<AndroidPeerTrustStore.PeerPin> recipients) {
         screen("Revisar envío",true);
         String title=safe.optString("title","");
-        label("Se compartirá una copia de: "+title,18);
-        label("Tipo: "+friendlyEntity(entity),14);
-        label("Para: contacto verificado "+peer.peerId.toString().substring(0,8),14);
-        String text=safe.optString("body",
-                safe.optString("summary",""));
-        if(text.length()>500)text=text.substring(0,500)+"…";
-        if(!text.isEmpty())label(text,14);
+        label("Compartir: "+title,18);
+        label("Es una "+friendlyEntity(entity).toLowerCase(java.util.Locale.ROOT),14);
+        label("Personas: "+recipients.size(),14);
+        for(AndroidPeerTrustStore.PeerPin person:recipients)
+            label("• "+contactName(person),14);
         JSONArray entries=safe.optJSONArray("entries");
-        if(entries!=null)label("Elementos de la lista: "+entries.length(),14);
-        label("Tus datos originales no se modificarán. No se adjuntarán "+
-                "ficheros, fotografías ni rutas privadas.",13);
-        button("Enviar copia cifrada",()->new AlertDialog.Builder(this)
-            .setTitle("Confirmar envío")
-            .setMessage("¿Enviar «"+title+"» a este contacto? "+
-                    "El envío solo se intentará una vez.")
-            .setNegativeButton("Cancelar",null)
-            .setPositiveButton("Enviar una vez",(dialog,which)->runWork(()->{
-                AndroidPeerTrustStore.PeerPin latest=trusted.findActive(peer.peerId);
-                if(latest==null||latest.generation!=peer.generation||
-                        !java.security.MessageDigest.isEqual(
-                             latest.signingPublicRaw(),peer.signingPublicRaw())||
-                        !java.security.MessageDigest.isEqual(
-                             latest.encryptionPublicRaw(),peer.encryptionPublicRaw()))
-                    throw new SecurityException("Verificación del contacto revocada");
-                KeysetHandle recipient=NexoConnectPinnedKeysets.recipientEncryption(latest);
-                return client.sendApproved(identity,trusted,peer.peerId,recipient,
-                        UUID.randomUUID(),UUID.randomUUID(),entity,safe,null,
-                        System.currentTimeMillis()+60*60*1000,true);
-            },result->{
-                lastMessage="Copia cifrada enviada. Pide al destinatario "+
-                        "que consulte su bandeja de entrada.";
+        if(entries!=null)label("Elementos: "+entries.length(),14);
+        label("Cada persona recibirá su propia copia cifrada. "+
+                "Tus datos originales no se modificarán.",13);
+        button("Enviar",()->runWork(()->{
+            List<UUID> ids=new ArrayList<>();
+            for(AndroidPeerTrustStore.PeerPin peer:recipients)
+                ids.add(peer.peerId);
+            return NexoConnectSendBatch.sendOnce(
+                ids,identity.accountId(),true,recipientId->{
+                    AndroidPeerTrustStore.PeerPin original=null;
+                    for(AndroidPeerTrustStore.PeerPin p:recipients)
+                        if(p.peerId.equals(recipientId)){original=p;break;}
+                    if(original==null)throw new SecurityException("Recipient not selected");
+                    AndroidPeerTrustStore.PeerPin latest=trusted.findActive(recipientId);
+                    if(latest==null || latest.generation!=original.generation ||
+                            !java.security.MessageDigest.isEqual(
+                                    latest.signingPublicRaw(),original.signingPublicRaw()) ||
+                            !java.security.MessageDigest.isEqual(
+                                    latest.encryptionPublicRaw(),original.encryptionPublicRaw()))
+                        throw new SecurityException("Recipient changed or revoked");
+                    KeysetHandle key=NexoConnectPinnedKeysets.recipientEncryption(latest);
+                    // Fresh delivery + request IDs for EVERY recipient; each has
+                    // its own HPKE ciphertext. Never reuse another person's copy.
+                    client.sendApproved(identity,trusted,recipientId,key,
+                            UUID.randomUUID(),UUID.randomUUID(),entity,safe,null,
+                            System.currentTimeMillis()+60*60*1000,true);
+                });
+        },result->{
+            NexoConnectSendBatch.Result outcome=(NexoConnectSendBatch.Result)result;
+            if(!outcome.interrupted){
+                lastMessage=outcome.confirmed==1?
+                    "Enviado correctamente a 1 persona.":
+                    "Enviado correctamente a "+outcome.confirmed+" personas.";
                 showHome();
-            })).show());
+            }else{
+                showHome();
+                new AlertDialog.Builder(this)
+                    .setTitle("Envío parcialmente confirmado")
+                    .setMessage("Envíos confirmados: "+outcome.confirmed+
+                        " de "+outcome.requested+".\n"+
+                        "No pudimos confirmar el siguiente envío; podría "+
+                        "haberse entregado. Los restantes no se intentaron. "+
+                        "Para evitar copias repetidas no reenvíes esta ficha "+
+                        "hasta comprobarlo con los destinatarios.")
+                    .setPositiveButton("Entendido",null).show();
+            }
+        }));
     }
 
     private static String friendlyEntity(String entity) {
