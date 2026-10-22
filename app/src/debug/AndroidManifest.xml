@@ -11,6 +11,12 @@
             android:name="com.jruiz.nexo.connect.host.NexoConnectShareBridgeService"
             android:exported="true"
             android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE" />
+        <!-- Only applications signed with the host certificate may launch
+             the reverse bridge; an opaque one-time ticket is also required. -->
+        <activity android:name="com.jruiz.nexo.connect.host.NexoConnectReceivedListActivity"
+            android:exported="true"
+            android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"
+            android:screenOrientation="portrait" />
         <activity
             android:name="com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity"
             android:exported="false"
