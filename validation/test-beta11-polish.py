@@ -54,9 +54,11 @@ assert 'calendar-category-marker' in js and 'uiIcon(familyCategoryIcon(item.cate
 assert '.calendar-category-marker .ui-icon' in css
 assert "'cumpleanos':'cake'" in js
 
-# 6. Título correcto.
-assert '<h2 id="homeFamilyInfoTitle">Accesos directos</h2>' in html
-assert '<h2 id="homeFamilyInfoTitle">Información familiar</h2>' not in html
+# 6. Inicio sin bloque de accesos directos, pero con sus dos secciones esenciales.
+home=html[html.index('id="homeDashboardContent"'):html.index('data-screen="tools"')]
+assert 'homeFamilyInfoTitle' not in home
+assert 'Accesos directos' not in home
+assert home.index('id="homeNowTitle"') < home.index('id="homeUpcomingTitle"')
 
 # 8. Acciones compactas; Documentos replica editar/ver/descargar/eliminar de Nexo Familia.
 assert 'function recordIconAction' in js
