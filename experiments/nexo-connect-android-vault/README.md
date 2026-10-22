@@ -150,3 +150,20 @@ git pull --ff-only origin experiment/nexo-connect-phase0-crypto; if ($LASTEXITCO
 La prueba `NexoConnectSealedNoteStoreTest` amplía la validación de cifrado para cita, lista, Cuaderno, libro y película (incluyendo recibos/idempotencia, vinculación AES-GCM a cuenta/entrega y rechazo de documentos sin binario cifrado). **Esta nueva revisión aún no se ha compilado ni probado localmente**, por lo que no se da por validada hasta que el usuario comparta el resultado.
 
 No invocar GitHub Actions automáticamente: preferimos el script local del PC; el usuario ha autorizado usarlas si agilizan claramente una futura fase.
+
+
+## 22/10/2026 — Copia voluntaria de una lista cifrada recibida a Listas de Nexo (LAB)
+
+Se añade `NexoConnectLocalListPromotion` al módulo `vault` y el botón de laboratorio `Añadir lista cifrada recibida a Listas de Nexo` en `NexoConnectEmbeddedActivity`. Se reutiliza el protocolo E2EE/HPKE y el recibo local verificado: esta nueva función no transmite, descarga ni acusa mensajes y no lleva datos privados en `Intent`.
+
+Flujo esperado **solo para una cuenta Connect integrada y ya verificada**: abrir bandeja, recibir una lista con consentimiento, elegir `Añadir lista cifrada recibida a Listas de Nexo`, revisar título y elementos, confirmar `Añadir a mis listas`. El contenido se vuelve a autenticar desde el almacén AES-GCM de Android Keystore ligado a cuenta/entrega, y se exige que el remitente siga fijado por QR y que el sobre protegido indique `list`. `NexoConnectPayloadCodec` sanea los metadatos otra vez.
+
+La copia se crea en `lists` + `list_entries` nativas usando `NexoConnectNativeWriter`. Las entradas conservan texto, `checked`, `sortOrder` y categoría, así como título, clase, `reusable` y favorito de la lista. **En una única transacción SQLite de destino**, se escribe también un recibo `nexo_connect_native_list_promotions` por UUID de entrega, destinatario, remitente y hash del contenido. Repetir la acción devuelve la lista ya existente sin duplicar filas. Si se eliminó, no se vuelve a crear silenciosamente. Un fallo a mitad de la creación revierte todas las filas y el recibo. La fuente cifrada sigue intacta.
+
+La copia ordinaria en Listas **no usa el cifrado adicional de Connect**; el usuario recibe una explicación y debe consentir explícitamente antes de crearla. Esto es equivalente a la copia nativa de una nota y no significa sincronización bidireccional permanente.
+
+Se añadieron **6 pruebas instrumentadas** en `NexoConnectLocalListPromotionTest`: buzón vacío; consentimiento/2 elementos y atributos/replay; revocación; vinculación a cuenta/manipulación; rollback si falta tabla de entradas; y no recuperación silenciosa de una lista borrada.
+
+**Estado:** código en PR experimental, **aún no probado localmente**. La cuenta del piloto independiente sigue en otro paquete Android y no se ha migrado; no pedir enrolar otra cuenta ni reemplazar el móvil. Pendiente: migración segura de identidades, importación nativa por los demás tipos, cifrado de adjuntos, UX de nombres amistosos, invitación simple y pruebas E2EE reales de listas entre dos cuentas integradas.
+
+Desde `experiments/nexo-connect-android-vault` en PowerShell, usar `git pull --ff-only origin experiment/nexo-connect-phase0-crypto` y luego `powershell -NoProfile -ExecutionPolicy Bypass -File .\\run-local-tests.ps1 -IncludeNexoMain`. Esto ejecutará todas las pruebas Android instrumentadas en ambos AVD y compilará Nexo DEBUG y piloto localmente, sin GitHub Actions.
