@@ -663,55 +663,88 @@ public class NexoConnectPilotActivity extends Activity {
 
     private void chooseRecipient(){chooseRecipient("","");}
     private void chooseRecipient(String proposedTitle,String proposedBody){
-        try{
+        try {
             List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
-            if(peers.isEmpty()){showError("Escanea y verifica antes el QR del contacto");return;}
+            if(peers.isEmpty()){
+                showError("Añade antes una persona de confianza.");
+                return;
+            }
             String[] names=new String[peers.size()];
-            for(int i=0;i<peers.size();i++)
-                names[i]=contactName(peers.get(i));
-            new AlertDialog.Builder(this).setTitle("Destinatario verificado")
-                .setItems(names,(d,which)->showCompose(peers.get(which),
-                        proposedTitle,proposedBody))
-                .setNegativeButton("Cancelar",null).show();
+            boolean[] checked=new boolean[peers.size()];
+            for(int i=0;i<peers.size();i++)names[i]=contactName(peers.get(i));
+            new AlertDialog.Builder(this).setTitle("¿A quién se la enviamos?")
+                .setMultiChoiceItems(names,checked,(d,which,isChecked)->
+                        checked[which]=isChecked)
+                .setNegativeButton("Cancelar",null)
+                .setPositiveButton("Continuar",(d,w)->{
+                    List<AndroidPeerTrustStore.PeerPin> selection=new ArrayList<>();
+                    for(int i=0;i<checked.length;i++)
+                        if(checked[i])selection.add(peers.get(i));
+                    if(selection.isEmpty() ||
+                            selection.size()>NexoConnectSendBatch.MAX_RECIPIENTS){
+                        showError("Selecciona de 1 a "+
+                                NexoConnectSendBatch.MAX_RECIPIENTS+" personas.");
+                    }else{
+                        showCompose(selection,proposedTitle,proposedBody);
+                    }
+                }).show();
         }catch(Exception ex){showError("No se pudieron cargar los contactos");}
     }
-    private void showCompose(AndroidPeerTrustStore.PeerPin peer){
-        showCompose(peer,"","");
+    private void showCompose(AndroidPeerTrustStore.PeerPin peer) {
+        List<AndroidPeerTrustStore.PeerPin> one=new ArrayList<>();
+        one.add(peer);
+        showCompose(one,"","");
     }
-    private void showCompose(AndroidPeerTrustStore.PeerPin peer,
-            String proposedTitle,String proposedBody){
-        screen("Enviar NOTA cifrada",true);
-        label("Para: "+contactName(peer),14);
+    private void showCompose(List<AndroidPeerTrustStore.PeerPin> peers,
+            String proposedTitle,String proposedBody) {
+        screen("Enviar nota",true);
+        label("Para "+peers.size()+(peers.size()==1?" persona:":" personas:"),14);
+        for(AndroidPeerTrustStore.PeerPin p:peers)label("• "+contactName(p),14);
         EditText title=input("Título",false),body=input("Mensaje",false);
         title.setText(proposedTitle);
         body.setText(proposedBody);
-        if(!proposedTitle.isEmpty()||!proposedBody.isEmpty())
-            label("Nota guardada en Nexo: revisa el titulo y el texto antes de confirmar. No se incluiran adjuntos.",13);
-        button("Confirmar y enviar UNA vez",()->{
+        button("Enviar",()->{
             String t=title.getText().toString().trim(),b=body.getText().toString();
             if(t.isEmpty()||t.length()>250||b.length()>20000){
-                showError("Escribe un título y un mensaje breve");return;
+                showError("Escribe un título y un mensaje breve.");return;
             }
-            new AlertDialog.Builder(this).setTitle("Confirmar envío cifrado")
-                .setMessage("¿Compartir «"+t+"» con el contacto "+
-                   peer.peerId.toString().substring(0,8)+"? "+
-                   "No se reintentará automáticamente si falla Internet.")
-                .setNegativeButton("No",null)
-                .setPositiveButton("Enviar una vez",(d,w)->runWork(()->{
-                    AndroidPeerTrustStore.PeerPin latest=
-                            trusted.findActive(peer.peerId);
-                    if(latest==null)throw new SecurityException("Contacto revocado");
-                    KeysetHandle recipient=
-                            NexoConnectPinnedKeysets.recipientEncryption(latest);
-                    return client.sendApproved(identity,trusted,peer.peerId,
-                            recipient,UUID.randomUUID(),UUID.randomUUID(),
-                            "note",new JSONObject().put("title",t).put("body",b),
+            runWork(()->{
+                JSONObject safe=new JSONObject().put("title",t).put("body",b);
+                List<UUID> ids=new ArrayList<>();
+                for(AndroidPeerTrustStore.PeerPin peer:peers)ids.add(peer.peerId);
+                return NexoConnectSendBatch.sendOnce(ids,identity.accountId(),true,id->{
+                    AndroidPeerTrustStore.PeerPin old=null;
+                    for(AndroidPeerTrustStore.PeerPin p:peers)
+                        if(p.peerId.equals(id)){old=p;break;}
+                    AndroidPeerTrustStore.PeerPin latest=trusted.findActive(id);
+                    if(old==null || latest==null || latest.generation!=old.generation ||
+                            !java.security.MessageDigest.isEqual(
+                                    latest.signingPublicRaw(),old.signingPublicRaw()) ||
+                            !java.security.MessageDigest.isEqual(
+                                    latest.encryptionPublicRaw(),old.encryptionPublicRaw()))
+                        throw new SecurityException("Contacto modificado");
+                    client.sendApproved(identity,trusted,id,
+                            NexoConnectPinnedKeysets.recipientEncryption(latest),
+                            UUID.randomUUID(),UUID.randomUUID(),"note",safe,
                             null,System.currentTimeMillis()+60*60*1000,true);
-                },value->{
-                    lastMessage="Solicitud de envío cifrada registrada: "+
-                            value+". Pide al otro móvil que abra su bandeja.";
+                });
+            },value->{
+                NexoConnectSendBatch.Result r=(NexoConnectSendBatch.Result)value;
+                showHome();
+                if(!r.interrupted){
+                    lastMessage="Nota enviada a "+r.confirmed+
+                            (r.confirmed==1?" persona.":" personas.");
                     showHome();
-                })).show();
+                }else{
+                    new AlertDialog.Builder(this)
+                        .setTitle("Envío parcialmente confirmado")
+                        .setMessage("Envíos confirmados: "+r.confirmed+
+                                " de "+r.requested+". El siguiente podría "+
+                                "haberse entregado, y el resto no se intentó. "+
+                                "No reenvíes sin consultar antes.")
+                        .setPositiveButton("Entendido",null).show();
+                }
+            });
         });
     }
     private void showInbox(){
