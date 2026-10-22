@@ -72,7 +72,8 @@ jobs:
           filename=f'Nexo-{tag}-release.apk'
           apk=Path('dist')/filename
           release=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text()).get('release') or {}
-          notes=(release.get('body') or 'Mejoras y correcciones de Nexo.').strip()[:800]
+          changelog=Path('CHANGELOG.md').read_text(encoding='utf-8').split('\n## ',1)[0]
+          notes=(release.get('body') or changelog or 'Mejoras y correcciones de Nexo.').strip()[:800]
           metadata={
             'schemaVersion':1,'packageName':'com.jruiz.nexo',
             'versionName':name,'versionCode':code,

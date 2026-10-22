@@ -1,0 +1,52 @@
+name: Nexo Connect experimental APK
+# Local-first: never compile/publish a pilot APK for every push.
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Also publish a public lab prerelease APK?'
+        required: false
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  build-pilot-apk:
+    name: Compilar Nexo Connect Pruebas APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install Android SDK 34
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"'
+      - name: Build experimental APK only
+        env:
+          JAVA_OPTS: -Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
+        run: gradle -p experiments/nexo-connect-android-vault :pilot:assembleDebug --no-daemon --max-workers=1 --stacktrace
+      - name: Assert ZXing + AndroidX classes are packaged in APK
+        run: python3 experiments/nexo-connect-android-vault/check-qr-apk-dex.py experiments/nexo-connect-android-vault/pilot/build/outputs/apk/debug/pilot-debug.apk
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexoConnectPruebas-APK
+          path: experiments/nexo-connect-android-vault/pilot/build/outputs/apk/debug/pilot-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish DIRECT APK lab prerelease (never mark as latest)
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: nexo-connect-pilot-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cp experiments/nexo-connect-android-vault/pilot/build/outputs/apk/debug/pilot-debug.apk NexoConnectPruebas.apk
+          sha256sum NexoConnectPruebas.apk
+          gh release create "$TAG" NexoConnectPruebas.apk --target "$GITHUB_SHA" --prerelease --latest=false --title "Nexo Connect Pruebas 0.1.1 · LAB QR (APK)" --notes "APK DEBUG EXCLUSIVAMENTE DE LABORATORIO, compilada con Java 17 / SDK 34 desde la rama experimental. No modifica Nexo estable. Usa cuentas distintas y no envíes datos reales. No está certificada ni validada entre dos móviles reales. El proyecto Nexo Connect de Supabase es independiente de Nexo Familia."

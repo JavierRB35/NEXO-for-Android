@@ -16,3 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name="Nexo"
 include(":app")
+include(":connectVault")
+project(":connectVault").projectDir=file("experiments/nexo-connect-android-vault/vault")

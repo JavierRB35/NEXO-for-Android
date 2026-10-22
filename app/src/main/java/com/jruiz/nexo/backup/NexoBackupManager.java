@@ -1,6 +1,7 @@
 package com.jruiz.nexo.backup;
 
 import com.jruiz.nexo.BuildConfig;
+import com.jruiz.nexo.connect.vault.NexoConnectChatBackup;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -38,10 +39,11 @@ public final class NexoBackupManager {
     }
 
     /** Crea y escribe una copia en el URI elegido mediante el selector de archivos de Android. */
-    public static JSONObject exportToUri(Context context, DatabaseHelper db, Uri destination) throws Exception {
+    public static JSONObject exportToUri(Context context, DatabaseHelper db, Uri destination) throws Exception { return exportToUri(context, db, destination, null); }
+    public static JSONObject exportToUri(Context context, DatabaseHelper db, Uri destination, char[] password) throws Exception {
         File temp = new File(context.getCacheDir(), "nexo_export_" + System.currentTimeMillis() + ".nexo");
         try {
-            JSONObject info = createBackupFile(context, db, temp);
+            JSONObject info = createBackupFile(context, db, temp, password);
             try (InputStream in = new BufferedInputStream(new FileInputStream(temp));
                  OutputStream out = new BufferedOutputStream(requireOutput(context, destination))) {
                 copy(in, out);
@@ -55,7 +57,8 @@ public final class NexoBackupManager {
     }
 
     /** Crea una copia interna; se usa también como red de seguridad antes de restaurar. */
-    public static JSONObject createBackupFile(Context context, DatabaseHelper db, File output) throws Exception {
+    public static JSONObject createBackupFile(Context context, DatabaseHelper db, File output) throws Exception { return createBackupFile(context, db, output, null); }
+    public static JSONObject createBackupFile(Context context, DatabaseHelper db, File output, char[] password) throws Exception {
         File work = new File(context.getCacheDir(), "nexo_backup_work_" + System.currentTimeMillis());
         if (!work.mkdirs()) throw new IOException("No se pudo preparar la copia");
         File dbSnapshot = new File(work, "nexo.db");
@@ -82,6 +85,8 @@ public final class NexoBackupManager {
             File attachments = new File(context.getFilesDir(), "attachments");
             collectFiles(attachments, attachments, "attachments/", sources);
 
+            JSONObject chat=NexoConnectChatBackup.snapshot(context);
+            if(chat!=null){File history=new File(work,"chat.enc");try(FileOutputStream out=new FileOutputStream(history)){out.write(NexoConnectChatBackup.encrypt(chat,password));}sources.add(new EntrySource("connect/chat.enc",history));}
             JSONArray files = new JSONArray();
             for (EntrySource s : sources) {
                 JSONObject f = new JSONObject();
@@ -100,6 +105,7 @@ public final class NexoBackupManager {
             manifest.put("createdAt", createdAt);
             manifest.put("stats", db.getBackupStats());
             manifest.put("files", files);
+            manifest.put("chatIncluded",chat!=null);
 
             File parent = output.getParentFile();
             if (parent != null && !parent.exists() && !parent.mkdirs()) throw new IOException("No se pudo crear la carpeta de copia");
@@ -132,7 +138,8 @@ public final class NexoBackupManager {
     }
 
     /** Restaura exactamente el contenido de la copia validada. */
-    public static JSONObject restoreFromUri(Context context, DatabaseHelper db, Uri source) throws Exception {
+    public static JSONObject restoreFromUri(Context context, DatabaseHelper db, Uri source) throws Exception { return restoreFromUri(context, db, source, null); }
+    public static JSONObject restoreFromUri(Context context, DatabaseHelper db, Uri source, char[] password) throws Exception {
         File archive = copyUriToTemp(context, source, "nexo_restore_");
         File extracted = new File(context.getCacheDir(), "nexo_restore_dir_" + System.currentTimeMillis());
         if (!extracted.mkdirs()) throw new IOException("No se pudo preparar la restauración");
@@ -142,6 +149,12 @@ public final class NexoBackupManager {
             File incomingDb = new File(extracted, DB_ENTRY);
             if (!incomingDb.exists()) throw new IOException("La copia no contiene la base de datos");
             verifySqlite(incomingDb);
+            File history=new File(extracted,"connect/chat.enc");
+            if(manifest.optBoolean("chatIncluded")&&!history.isFile())throw new IOException("Falta el historial del chat.");
+            if(history.length()>32L*1024*1024+45)throw new IOException("El historial supera el tamaño permitido.");
+            JSONObject chat=history.isFile()?NexoConnectChatBackup.decrypt(java.nio.file.Files.readAllBytes(history.toPath()),password):null;
+            if(chat!=null){java.util.UUID owner=NexoConnectChatBackup.owner(context);if(owner!=null&&!owner.toString().equals(chat.getString("owner")))throw new IOException("Esta copia de chat pertenece a otra cuenta.");}
+
 
             // Red de seguridad local: si la restauración falla o el usuario se equivoca, conservamos
             // automáticamente el estado inmediatamente anterior. Se mantiene solo la última.
@@ -151,7 +164,7 @@ public final class NexoBackupManager {
                 f.delete();
             }
             File safety = new File(safetyDir, "Antes_de_restaurar_" + System.currentTimeMillis() + ".nexo");
-            createBackupFile(context, db, safety);
+            createBackupFile(context, db, safety, password);
 
             synchronized (db) {
                 db.close();
@@ -205,6 +218,7 @@ public final class NexoBackupManager {
                     // Al abrir, SQLiteOpenHelper migra automáticamente copias antiguas al esquema actual.
                     db.getWritableDatabase();
                     db.repairAttachmentPaths(liveAttachments);
+                    if(chat!=null)NexoConnectChatBackup.restore(context,chat);
                     deleteIfExists(oldDb); deleteTree(oldAttachments);
                 } catch (Exception openError) {
                     db.close();

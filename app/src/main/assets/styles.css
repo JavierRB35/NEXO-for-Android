@@ -3601,3 +3601,6 @@ button.nexo-unified-save>.ui-icon{
 .settings-security-action__text strong{font-weight:700}
 .settings-security-action__text small{display:block;font-size:.82rem;line-height:1.3;font-weight:400;opacity:.78}
 .settings-security-action .settings-security-action__arrow{width:16px;height:16px;flex-basis:16px;opacity:.65}
+
+/* Fail-closed: debug-only Nexo Connect settings card. */
+#nexoConnectExperimentSection.hidden{display:none!important}

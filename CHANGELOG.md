@@ -1,3 +1,14 @@
+## Nexo 3.7.50 — Chat integrado y diseño renovado
+
+- Connect y Chat integrados en una sola aplicación. Uso local sin registro; cuenta al conversar o compartir.
+- Personas identificadas por su nombre elegido, invitaciones y transferencia desde Connect.
+- Chat con burbujas y acuses de lectura con iniciales, siguiendo Nexo Familia.
+- Historial de chat incluido en la copia de seguridad protegida por contraseña.
+- Inicio, calendario, notas y herramientas con un sistema visual común y controles más legibles.
+- Chat sustituye a Buscar en la barra inferior; búsqueda disponible en Inicio y cabecera.
+- Inbox muestra el número de elementos pendientes y se oculta cuando está vacío.
+- Conserva Argumento / sinopsis y los datos existentes de la versión 3.7.49.
+
 ## Nexo 3.7.49 — Argumento / sinopsis en libros y filmoteca
 - Campo de texto libre y opcional en el alta y edición de libros, películas y series, incluso cuando están pendientes.
 - Sinopsis visible íntegra en la ficha y al compartir, con saltos de línea conservados.

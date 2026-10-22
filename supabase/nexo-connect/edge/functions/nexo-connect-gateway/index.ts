@@ -1,0 +1,133 @@
+// Supabase Edge gateway: JWT validated through Auth.getUser.
+// Restricted to status, challenge, and signed contact invitation creation.
+import {createClient} from "npm:@supabase/supabase-js@2";
+import {createGateway} from "./gateway.mjs";
+const url=Deno.env.get("SUPABASE_URL");
+const anon=Deno.env.get("SUPABASE_ANON_KEY");
+const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+if(!url||!anon||!service)throw Error("Missing Supabase configuration");
+const auth=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
+const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+const hexToRaw=hex=>{
+  if(typeof hex!=="string"||!/^[a-fA-F0-9]{64}$/.test(hex))
+    throw Error("Unexpected signing key");
+  return Uint8Array.from(hex.match(/.{2}/g),x=>parseInt(x,16));
+};
+const hexToBytea=hex=>{
+  if(typeof hex!=="string"||!/^[a-f0-9]{64}$/.test(hex))
+    throw Error("Unexpected hash");
+  return "\\x"+hex;
+};
+const bytesToBytea=bytes=>{
+  if(!(bytes instanceof Uint8Array))throw Error("Binary input required");
+  let hex="\\x";
+  for(const b of bytes)hex+=b.toString(16).padStart(2,"0");
+  return hex;
+};
+const rpc=async(name,args)=>{
+  const {data,error}=await admin.rpc(name,args);
+  if(error)throw Error("Service operation failed");
+  return data;
+};
+const gateway=createGateway({
+  authenticate:async token=>{
+    const {data,error}=await auth.auth.getUser(token);
+    if(error||!data?.user)return null;
+    return {id:data.user.id,email:data.user.email,
+      emailConfirmed:Boolean(data.user.email_confirmed_at)};
+  },
+  verifyFreshOtp:async({userId,email,otp})=>{
+    // Use a fresh Auth client per request: verifyOtp mutates Auth session
+    // state. Never reuse an Auth client containing a session from another call.
+    const otpAuth=createClient(url,anon,{
+      auth:{persistSession:false,autoRefreshToken:false}
+    });
+    const {data,error}=await otpAuth.auth.verifyOtp({
+      email,token:otp,type:"email"
+    });
+    return !error&&data?.user?.id===userId&&
+      data?.user?.email?.toLowerCase()===email.toLowerCase()&&
+      Boolean(data?.session?.access_token);
+  },
+  enrollDevice:async({userId,deviceId,replace,signingRaw,encryptionRaw})=>
+    rpc("nexo_connect_enroll_device",{
+      p_user:userId,p_device:deviceId,p_replace:replace,
+      p_signing_raw:bytesToBytea(signingRaw),
+      p_encryption_raw:bytesToBytea(encryptionRaw)
+    }),
+  getDevice:async userId=>{
+    const data=await rpc("nexo_connect_proof_device",{p_user:userId});
+    const device=Array.isArray(data)?data[0]??null:null;
+    if(!device)return null;
+    return {
+      user_id:device.user_id,device_id:device.device_id,
+      generation:Number(device.generation),
+      signing_public_key:hexToRaw(device.signing_key_hex)
+    };
+  },
+  issueChallenge:async({userId,deviceId,generation,action})=>
+    rpc("nexo_connect_issue_challenge",{
+      p_user:userId,p_device:deviceId,p_generation:generation,p_action:action
+    }),
+  consumeChallenge:async({userId,deviceId,generation,challengeId,action})=>
+    rpc("nexo_connect_consume_proof",{
+      p_user:userId,p_device:deviceId,p_generation:generation,
+      p_action:action,p_challenge:challengeId
+    }),
+  createInvite:async({userId,tokenSha256,expiresInSeconds})=>
+    rpc("nexo_connect_create_invite",{
+      p_user:userId,p_token_sha256:hexToBytea(tokenSha256),p_seconds:expiresInSeconds
+    }),
+  acceptInvite:async({recipientId,recipientDeviceId,recipientGeneration,
+                      creatorId,creatorGeneration,creatorSigningFingerprint,
+                      creatorEncryptionFingerprint,tokenSha256})=>
+    rpc("nexo_connect_accept_invite",{
+      p_recipient:recipientId,p_recipient_device:recipientDeviceId,
+      p_recipient_generation:recipientGeneration,p_creator:creatorId,
+      p_creator_generation:creatorGeneration,p_token_hash:hexToBytea(tokenSha256),
+      p_creator_signing_fp:hexToBytea(creatorSigningFingerprint),
+      p_creator_encryption_fp:hexToBytea(creatorEncryptionFingerprint)
+    }),
+  verifyPeer:async({ownerId,ownerDeviceId,ownerGeneration,peerId,
+                    peerGeneration,peerSigningFingerprint,peerEncryptionFingerprint})=>
+    rpc("nexo_connect_verify_peer",{
+      p_owner:ownerId,p_owner_device:ownerDeviceId,p_owner_generation:ownerGeneration,
+      p_peer:peerId,p_peer_generation:peerGeneration,
+      p_signing_fp:hexToBytea(peerSigningFingerprint),
+      p_encryption_fp:hexToBytea(peerEncryptionFingerprint)
+    }),
+  setReceivePermission:async({userId,deviceId,generation,peerId,allowReceive})=>
+    rpc("nexo_connect_receive_permission",{
+      p_actor:userId,p_device:deviceId,p_generation:generation,
+      p_peer:peerId,p_allow:allowReceive
+    }),
+  unlinkContact:async({userId,deviceId,generation,peerId})=>
+    rpc("nexo_connect_unlink_contact",{
+      p_actor:userId,p_device:deviceId,p_generation:generation,p_peer:peerId
+    }),
+  resolveDelivery:async({actorId,deviceId,generation,deliveryId,target})=>
+    rpc("nexo_connect_resolve_delivery",{
+      p_actor:actorId,p_device:deviceId,p_generation:generation,
+      p_delivery:deliveryId,p_target:target
+    }),
+  sendDelivery:async({senderId,deviceId,generation,deliveryId,clientRequestId,
+                       recipientId,recipientGeneration,entityType,context,ciphertext,signature})=>
+    rpc("nexo_connect_send_delivery",{
+      p_sender:senderId,p_device:deviceId,p_generation:generation,
+      p_id:deliveryId,p_request:clientRequestId,p_recipient:recipientId,
+      p_recipient_generation:recipientGeneration,p_entity_type:entityType,
+      p_context:bytesToBytea(context),p_ciphertext:bytesToBytea(ciphertext),
+      p_signature:bytesToBytea(signature)
+    }),
+  listInbox:async({actorId,deviceId,generation,limit,afterId})=>
+    rpc("nexo_connect_inbox",{
+      p_actor:actorId,p_device:deviceId,p_generation:generation,
+      p_limit:limit,p_after:afterId
+    }),
+  openDelivery:async({actorId,deviceId,generation,deliveryId})=>
+    rpc("nexo_connect_open_delivery",{
+      p_actor:actorId,p_device:deviceId,p_generation:generation,
+      p_delivery:deliveryId
+    })
+});
+Deno.serve(gateway);

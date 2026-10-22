@@ -1,0 +1,183 @@
+name: Nexo Connect · Phase 0 crypto proof
+
+# Local-first: developer runs JDK17/Gradle8.9/Android emulator on Windows.
+# CI is opt-in for major milestones; no automatic PR runners or emulators.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: nexo-connect-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  jdk17-crypto-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Run isolated cryptographic tests
+        env:
+          JAVA_OPTS: -Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
+        run: gradle -p experiments/nexo-connect-crypto test --no-daemon --max-workers=1 --stacktrace
+      - name: Upload unit-test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexo-connect-phase0-test-reports
+          path: experiments/nexo-connect-crypto/build/test-results/test/
+          if-no-files-found: warn
+          retention-days: 14
+
+  postgres-rls-policy-tests:
+    name: Test Supabase-style permissions in PostgreSQL 16
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: nexo_connect_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Check schema, RLS and separation across three test accounts
+        env:
+          PGPASSWORD: test-only-password
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: nexo_connect_test
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/auth-stub.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200001_identity_contacts.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-identity-contacts-rls.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200002_contact_api.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-contact-api.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200003_deliveries.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-deliveries.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200004_device_challenges.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-device-challenges.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200007_gateway_bridge.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-gateway-bridge.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200008_invite_server_proof.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-invite-server-proof.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200009_enrollment.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-enrollment.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200010_contact_accept.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-contact-accept.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200011_peer_verify.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-peer-verify.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200012_contact_controls.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-contact-controls.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200013_delivery_resolution.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-delivery-resolution.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200014_delivery_send.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-delivery-send.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200015_signed_expiry.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-signed-expiry.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/migrations/202610200016_secure_inbox.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/nexo-connect/tests/test-secure-inbox.sql
+
+  android-keystore-compile:
+    name: Compile isolated Android vault with SDK 34
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install Android SDK 34
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"
+      - name: Compile Android vault and instrumented tests
+        env:
+          JAVA_OPTS: -Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
+        run: gradle -p experiments/nexo-connect-android-vault :vault:assembleDebugAndroidTest --no-daemon --max-workers=1 --stacktrace
+
+  android-keystore-emulator:
+    name: Android 34 emulator tests (Keystore real)
+    needs: android-keystore-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Run tests in Android 34 emulator, not user's phone
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+          script: |
+            set +e
+            # Keep the last logcat events even when AndroidJUnitRunner dies
+            # before producing any JUnit XML (the earlier 0/0 CI failure).
+            adb logcat -c
+            adb shell pm list instrumentation
+            # Bound Gradle/instrumentation runtime so a stuck test fails explicitly.
+            # GNU timeout returns 124 when the test exceeds the limit.
+            timeout -k 30s 900s gradle -p experiments/nexo-connect-android-vault :vault:connectedDebugAndroidTest --no-daemon --max-workers=1 --stacktrace --info
+            result=$?
+            echo "Android instrumentation command exit code: $result"
+            adb shell dumpsys activity activities > nexo-connect-emulator-activity.txt || true
+            adb shell pm list instrumentation > nexo-connect-emulator-instrumentation.txt || true
+            adb logcat -d -v threadtime -t 10000 > nexo-connect-emulator-logcat.txt || true
+            exit "$result"
+      - name: Collect Android instrumentation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexo-connect-keystore-emulator-diagnostics
+          path: |
+            nexo-connect-emulator-logcat.txt
+            nexo-connect-emulator-activity.txt
+            nexo-connect-emulator-instrumentation.txt
+            experiments/nexo-connect-android-vault/vault/build/reports/androidTests/connected/
+            experiments/nexo-connect-android-vault/vault/build/outputs/androidTest-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  device-proof-unit-tests:
+    name: Request signatures, anti-replay proof (Node WebCrypto)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Ed25519 request proof and negative cases
+        run: node --test supabase/nexo-connect/edge/tests/*.test.mjs

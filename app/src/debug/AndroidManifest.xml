@@ -1,0 +1,28 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Debug-only in-process Nexo Connect LAB Activity. This manifest and its
+         source code are excluded automatically from all RELEASE variants. -->
+    <permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"
+        android:protectionLevel="signature" />
+    <!-- The reverse bridge requires the HOST to request the same signature
+         permission that protects the pilot service. DEBUG only. -->
+    <uses-permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE" />
+    <queries>
+        <package android:name="com.jruiz.nexo.connect.pilot" />
+    </queries>
+    <application>
+        <service
+            android:name="com.jruiz.nexo.connect.host.NexoConnectShareBridgeService"
+            android:exported="true"
+            android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE" />
+        <!-- Only applications signed with the host certificate may launch
+             the reverse bridge; an opaque one-time ticket is also required. -->
+        <activity android:name="com.jruiz.nexo.connect.host.NexoConnectReceivedListActivity"
+            android:exported="true"
+            android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name="com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+    </application>
+</manifest>

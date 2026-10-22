@@ -1,0 +1,36 @@
+plugins { id 'com.android.library' }
+// The standalone pilot and host include this library under different Gradle
+// project identities. Separate outputs avoid corrupt incremental class caches.
+if (project.path == ':connectVault') {
+    layout.buildDirectory = file('build/host')
+}
+android {
+    namespace 'com.jruiz.nexo.connect.vault'
+    compileSdk 34
+    defaultConfig {
+        minSdk 26
+        targetSdk 34
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    sourceSets {
+        main {
+            // Include only experimental Connect transport/import classes,
+            // not the rest of the Android app or its native dependencies.
+            java.srcDir '../../../app/src/main/java/com/jruiz/nexo/connect'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+dependencies {
+    implementation 'com.google.crypto.tink:tink:1.18.0'
+    // Self-contained camera scanner; no external scanner app or Play Services required.
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+    // ZXing CaptureManager calls ContextCompat at runtime. Without AndroidX Core
+    // the scanner crashes with NoClassDefFoundError before showing the camera.
+    implementation 'androidx.core:core:1.13.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}

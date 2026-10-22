@@ -41,6 +41,12 @@ w.relatedOwnersSectionHtml=()=>'<section id="noteRelated">Referencias a esta not
 w.refreshNotesSurface=()=>{events.read++};
 w.toast=msg=>events.errors.push(msg);
 
+const shareStart=app.indexOf('function openConnectShareChoice(');
+const shareEnd=app.indexOf('\nfunction ',shareStart+1);
+w.eval(app.slice(shareStart,shareEnd));
+w.NexoNative.isNexoConnectExperimentEnabled=()=>true;
+const connectShares=[];
+w.NexoNative.openNexoConnectShare=(section,id)=>connectShares.push([section,id]);
 w.eval(fragment);
 d.querySelector('#notes').innerHTML=entries.map(w.noteCard).join('');
 w.bindNoteButtons(d.querySelector('#notes'));
@@ -65,6 +71,8 @@ assert.equal(d.querySelector('#noteReaderFontDown').disabled,true,'Límite infer
 d.querySelector('#noteReaderFontUp').click();
 assert.equal(d.querySelector('#noteReaderText').style.fontSize,'17px');
 d.querySelector('#noteReaderShare').click();
+assert(d.querySelector('[data-connect-share]'),'Ofrece compartir por Nexo');
+d.querySelector('[data-normal-share]').click();
 assert.deepEqual(events.share,[12]);
 d.querySelector('#noteReaderDelete').click();
 assert.deepEqual(events.delete,[12]);
@@ -77,9 +85,13 @@ assert.deepEqual(events.edit,[12,13]);
 d.querySelector('[data-note-read="13"]').click();
 assert(d.querySelector('#noteReaderText').textContent.includes('Nota sin anotación.'));
 d.querySelector('[data-note-share="13"]').click();
+d.querySelector('[data-normal-share]').click();
 assert.deepEqual(events.share,[12,13]);
 d.querySelector('[data-note-delete="13"]').click();
 assert.deepEqual(events.delete,[12,13]);
+d.querySelector('[data-note-share="13"]').click();
+d.querySelector('[data-connect-share]').click();
+assert.deepEqual(connectShares,[['items',13]]);
 w.openNoteReader(999);
 assert.equal(events.errors.at(-1),'La nota ya no existe.');
 

@@ -14,7 +14,13 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
 
+    <permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_MIGRATION" android:protectionLevel="signature" />
+    <uses-permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_MIGRATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <queries>
+        <package android:name="com.jruiz.nexo.connect.pilot" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
@@ -31,6 +37,14 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="false">
 
+        <provider android:name="com.jruiz.nexo.connectui.NexoConnectInvitationProvider" android:authorities="com.jruiz.nexo.connectinvites" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/connect_invite_paths" /></provider>
+        <activity android:name="com.jruiz.nexo.connectui.NexoConnectInvitationActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="application/vnd.nexo.invitation"/></intent-filter>
+            <intent-filter><action android:name="android.intent.action.SEND"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="application/vnd.nexo.invitation"/></intent-filter>
+        </activity>
+        <activity android:name="com.jruiz.nexo.connectui.NexoConnectActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name="com.jruiz.nexo.connectui.NexoConnectMigrationActivity" android:exported="false" />
+        <service android:name="com.jruiz.nexo.connect.vault.NexoConnectInboxNoticeJob" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
