@@ -439,8 +439,14 @@ public class NexoConnectPilotActivity extends Activity {
     }
 
     private void renameContact(AndroidPeerTrustStore.PeerPin peer) {
-        if(identity==null || trusted.findActive(peer.peerId)==null) {
-            showError("Este contacto ya no está disponible.");
+        try {
+            if(identity==null || trusted==null ||
+                    trusted.findActive(peer.peerId)==null) {
+                showError("Este contacto ya no está disponible.");
+                return;
+            }
+        }catch(Exception invalid) {
+            showError("No se ha podido verificar el contacto.");
             return;
         }
         EditText input=new EditText(this);
@@ -746,12 +752,10 @@ public class NexoConnectPilotActivity extends Activity {
         });
     }
     private void acceptInboxItem(String delivery,String sender){
-        new AlertDialog.Builder(this).setTitle("Descifrar e importar")
-            .setMessage("¿Recibir esta ficha del contacto "+
-                sender.substring(0,Math.min(8,sender.length()))+
-                "? Se comprobará su identidad antes de guardarla.")
-            .setNegativeButton("Cancelar",null)
-            .setPositiveButton("Sí, importar",(d,w)->runWork(()->{
+        new AlertDialog.Builder(this).setTitle("¿Recibir esta ficha?")
+            .setMessage("Comprobaremos que procede de una persona autorizada antes de guardarla.")
+            .setNegativeButton("No",null)
+            .setPositiveButton("Sí",(d,w)->runWork(()->{
                 UUID peer=UUID.fromString(sender);
                 AndroidPeerTrustStore.PeerPin pin=trusted.findActive(peer);
                 if(pin==null)throw new SecurityException("QR del remitente no verificado");
