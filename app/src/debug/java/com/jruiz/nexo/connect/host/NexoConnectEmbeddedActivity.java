@@ -65,7 +65,7 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                 }
                 label("Esta ficha sigue en tu teléfono. No se ha enviado nada.",14);
                 button("Revisar datos de la ficha",()->readSelectedShare(true));
-                button("Elegir destinatario y enviar",()->new AlertDialog.Builder(this)
+                button("Envío cifrado · pendiente de conexión",()->new AlertDialog.Builder(this)
                     .setTitle("Conexión segura pendiente")
                     .setMessage("La identidad y los contactos verificados del "+
                             "piloto están protegidos en otra aplicación Android. "+
