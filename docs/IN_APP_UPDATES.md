@@ -51,3 +51,14 @@ La política de publicación es una decisión explícita para **cada versión**.
 El flujo `publish-public-updates.yml` obtiene esos valores de la revisión **inmutable de la Release**, verifica APK, firma y hash, y publica `critical` (booleano) y `criticalReason` (texto) en `latest.json`. No se permite cambiar la criticidad de una versión publicada sin incrementar su `versionCode`. Si faltan campos en un manifiesto antiguo, se considera opcional. Los metadatos inválidos se rechazan.
 
 **Importante:** la obligatoriedad se hace cumplir por el cliente Nexo 3.7.51 o superior cuando detecta el aviso crítico. Las instalaciones anteriores no conocen esta política y podrán seguir mostrando el aviso voluntario. Si la conexión no permite consultar el canal, no se impone un bloqueo remoto; esto evita dejar sin funciones locales a un usuario por una caída de red. En ningún caso se debe modificar `latest.json` manualmente para forzar una actualización ni publicar una APK sin comprobar firma y hash.
+
+
+## Resumen de novedades para quien utiliza Nexo
+
+Antes de crear cada versión, actualizar el archivo .github/nexo-update-summary.json con su número de versión y una explicación breve, en lenguaje cotidiano, de qué cambia para la persona que utiliza la app.
+
+- Describir uno o dos beneficios reales, sin detallar código, bases de datos, archivos, pruebas ni herramientas de compilación.
+- No utilizar Markdown ni superar 360 caracteres.
+- El publicador comprueba que el resumen pertenece a la versión que va a distribuir y se detiene si no coincide.
+- CHANGELOG.md y el cuerpo técnico de GitHub Releases permanecen disponibles para desarrolladores, pero no se copian al diálogo de actualización.
+- Mantener la clasificación opcional u obligatoria y la comprobación oficial del APK de forma independiente del texto visible.
