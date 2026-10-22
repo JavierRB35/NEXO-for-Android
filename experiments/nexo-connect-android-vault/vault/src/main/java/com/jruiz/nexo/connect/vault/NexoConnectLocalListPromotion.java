@@ -49,6 +49,11 @@ public final class NexoConnectLocalListPromotion {
         public final String title,kind;
         public final JSONArray entries;
         private final JSONObject safeData;
+        // Only the pilot's authenticated, signature-protected service may
+        // expose this previously unsealed copy to the trusted native host.
+        JSONObject dataCopy() throws org.json.JSONException {
+            return new JSONObject(safeData.toString());
+        }
         private VerifiedList(Received source,JSONObject safeData){
             this.source=source;
             this.safeData=safeData;
