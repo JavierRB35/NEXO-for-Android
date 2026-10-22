@@ -1,3 +1,9 @@
+## Nexo 3.7.52 — Inicio simplificado y avisos claros
+- Se elimina el bloque «Accesos directos» de Inicio (Notas, Medicación, Listas y Documentos) para dar prioridad al listado «Próximamente» bajo «Lo importante ahora».
+- Todos los módulos eliminados del Inicio siguen disponibles en Herramientas; Notas se conserva además en la navegación inferior.
+- El aviso de nueva versión muestra un resumen breve para usuarios, separado de las notas técnicas; se mantiene la distinción entre actualizaciones opcionales y necesarias.
+- Publicación **opcional** con versionCode 145, firma Release oficial y base de datos SQLite 33 sin cambios de esquema ni pérdida de datos.
+
 ## Nexo 3.7.51 — Actualizaciones críticas y opcionales
 - El aviso de nueva versión y las notificaciones identifican explícitamente la importancia de la actualización.
 - Las opcionales conservan «Actualizar» y «Más tarde».
