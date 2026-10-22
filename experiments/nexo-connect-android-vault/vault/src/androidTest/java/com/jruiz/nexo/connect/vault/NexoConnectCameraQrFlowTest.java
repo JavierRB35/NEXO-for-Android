@@ -5,6 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.hybrid.HpkeParameters;
 import com.google.crypto.tink.hybrid.HybridConfig;
+import com.google.crypto.tink.signature.SignatureConfig;
 import com.google.crypto.tink.signature.SignatureKeyTemplates;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.MultiFormatReader;
@@ -23,6 +24,8 @@ public class NexoConnectCameraQrFlowTest {
 
     @Test public void generatedQrIsDecodableByRealZxingAndContainsOnlyPublicKeys()
             throws Exception{
+        // Make this test independent of other instrumentation tests.
+        SignatureConfig.register();
         HybridConfig.register();
         KeysetHandle signer=KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
         KeysetHandle hpke=KeysetHandle.generateNew(HpkeParameters.builder()
@@ -53,6 +56,8 @@ public class NexoConnectCameraQrFlowTest {
         assertEquals(6,new org.json.JSONObject(parsed).length());
     }
     @Test public void scannerRejectsSelfPairingOversizedAndNonNexoQr()throws Exception{
+        // Make this test independent of other instrumentation tests.
+        SignatureConfig.register();
         HybridConfig.register();
         KeysetHandle signer=KeysetHandle.generateNew(SignatureKeyTemplates.ED25519WithRawOutput);
         KeysetHandle hpke=KeysetHandle.generateNew(HpkeParameters.builder()
