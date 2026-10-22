@@ -166,28 +166,27 @@ public final class NexoUpdateManager {
     private void showUpdatePrompt(Release remote) {
         if (remote.critical) {
             AlertDialog dialog = new AlertDialog.Builder(activity)
-                    .setTitle("Actualización CRÍTICA de Nexo")
-                    .setMessage("Nexo " + remote.versionName + " es una actualización OBLIGATORIA.\n\n"
-                            + "Motivo: " + remote.criticalReason + "\n\n"
-                            + remote.notes + "\n\n"
-                            + "Para seguir utilizando Nexo debes instalar esta versión. "
-                            + "Android solicitará tu autorización antes de instalarla.")
+                    .setTitle("Actualización necesaria de Nexo")
+                    .setMessage("Nexo " + remote.versionName + " es necesaria para seguir usando la aplicación.\n\n"
+                            + "¿Por qué?\n" + remote.criticalReason + "\n\n"
+                            + "¿Qué mejora?\n" + remote.notes + "\n\n"
+                            + "Android te pedirá confirmar la instalación.")
                     .setCancelable(false)
                     .setNegativeButton("Salir de Nexo", (d, which) -> activity.finishAffinity())
                     .setPositiveButton("Actualizar ahora", null)
                     .create();
             dialog.setCanceledOnTouchOutside(false);
-            // No cerrar el aviso durante descarga/verificación o si Android rechaza instalar.
+            // Mantener el aviso si falla la descarga o Android no completa la instalación.
             dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
                     .setOnClickListener(button -> download(remote)));
             dialog.setOnDismissListener(d -> updatePromptVisible = false);
             dialog.show();
         } else {
             new AlertDialog.Builder(activity)
-                    .setTitle("Actualización opcional de Nexo")
-                    .setMessage("Disponible Nexo " + remote.versionName
-                            + " (no crítica).\n\n" + remote.notes
-                            + "\n\nPuedes actualizar ahora o continuar con esta versión.")
+                    .setTitle("Nueva versión de Nexo")
+                    .setMessage("Nexo " + remote.versionName + " · Actualización opcional\n\n"
+                            + remote.notes + "\n\n"
+                            + "Puedes actualizar ahora o más adelante.")
                     .setNegativeButton("Más tarde", (d, which) -> {})
                     .setPositiveButton("Actualizar", (d, which) -> download(remote))
                     .setOnDismissListener(d -> updatePromptVisible = false)
@@ -251,7 +250,16 @@ public final class NexoUpdateManager {
             String hash = json.getString("apkSha256").toUpperCase(Locale.ROOT);
             long size = json.getLong("apkSize");
             String apk = json.getString("apkUrl");
-            String notes = json.optString("notes", "Mejoras y correcciones.");
+            String notes = json.optString("notes", "Mejoras y correcciones.").trim();
+            // Los metadatos antiguos pueden incluir Markdown sin interpretar.
+            notes = notes.replaceAll("(?m)^#{1,6}\\s*", "").replace("**", "")
+                    .replace(String.valueOf((char) 96), "");
+            if (notes.length() > 360) {
+                int endOfSentence = notes.lastIndexOf(". ", 360);
+                notes = endOfSentence >= 60
+                        ? notes.substring(0, endOfSentence + 1).trim()
+                        : notes.substring(0, 359).trim() + "…";
+            }
             // Los manifiestos anteriores a este cambio son siempre opcionales.
             if (json.has("critical") && !(json.opt("critical") instanceof Boolean))
                 throw new IllegalArgumentException("criticidad no válida");
@@ -269,7 +277,7 @@ public final class NexoUpdateManager {
                     u.getQuery() != null || u.getRef() != null)
                 throw new IllegalArgumentException("origen APK no válido");
             return new Release(name, code, apk, hash, size,
-                    notes.length() > 800 ? notes.substring(0, 800) : notes,
+                    notes,
                     critical, critical ? criticalReason : "");
         }
     }
