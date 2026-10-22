@@ -44,6 +44,8 @@ public class NexoConnectPilotActivity extends Activity {
     private static final int EMAIL=0,LOGIN=1,SECOND=2,ENROLL=3,READY=4;
     private int stage=EMAIL,generation;
     private boolean busy,replace;
+    /** Explicitly selected LAB account flow; never implied by a host share. */
+    private boolean hostAccountUi;
     private String accountEmail="",lastMessage="";
     private NexoConnectEmailOtpClient otp;
     private NexoConnectSessionVault sessionVault;
@@ -69,7 +71,7 @@ public class NexoConnectPilotActivity extends Activity {
         showSetup();
     }
 
-    private LinearLayout screen(String name,boolean back){
+    protected final LinearLayout screen(String name,boolean back){
         ScrollView sc=new ScrollView(this);
         sc.setFillViewport(true);
         LinearLayout body=new LinearLayout(this);
@@ -86,7 +88,7 @@ public class NexoConnectPilotActivity extends Activity {
         return body;
     }
     private int dp(int pixels){return (int)(pixels*getResources().getDisplayMetrics().density+0.5f);}
-    private TextView label(String text,int font){
+    protected final TextView label(String text,int font){
         TextView v=new TextView(this);
         v.setText(text);v.setTextSize(font);v.setTextIsSelectable(true);
         v.setPadding(0,dp(7),0,dp(7));column.addView(v);return v;
@@ -145,15 +147,26 @@ public class NexoConnectPilotActivity extends Activity {
      * Host-specific, pre-authentication UI only. By default no action exists.
      * Never use this hook to send content, mint identities or access a network.
      */
-    protected void addHostSetupActions(){}
+    protected boolean addHostSetupActions(){return false;}
+
+    /** A deliberate, reversible LAB-only action; never silently enroll. */
+    protected final void openHostAccountSetup(){
+        hostAccountUi=true;
+        showSetup();
+    }
 
     private void showSetup(){
         screen("Inicio seguro",false);
+        // The integrated DEBUG host can render a share-first landing instead
+        // of an OTP form. Standalone pilot keeps its original login flow.
+        if(!hostAccountUi && addHostSetupActions())return;
+        if(hostAccountUi)
+            button("← Volver a la ficha",()->{
+                hostAccountUi=false;
+                showSetup();
+            });
         label("Conecta tu cuenta para compartir fichas con personas autorizadas. "+
               "En esta prueba, cada emulador representa una cuenta distinta.",14);
-        // Only the integrated Nexo DEBUG subclass offers read-only previews.
-        // Standalone pilot deliberately does not expose Nexo's SQLite.
-        addHostSetupActions();
         if(stage==EMAIL){
             EditText email=input("Correo de esta cuenta",false);
             email.setInputType(InputType.TYPE_CLASS_TEXT|
