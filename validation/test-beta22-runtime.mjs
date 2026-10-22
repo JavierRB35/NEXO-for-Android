@@ -131,12 +131,14 @@ for(const [panel,title] of Object.entries(expected)){
   assert.ok(window.document.querySelector('[data-screen="panel"]')?.classList.contains('active'),'Panel '+panel+' no quedó visible');
 }
 
-// Los cuatro accesos directos de Inicio deben usar el mismo cableado robusto.
+// Inicio no duplica accesos; los cuatro módulos siguen disponibles en Herramientas.
+assert.equal(window.document.querySelector('[data-screen="today"] .home-section--quick-access'),null,
+  'Inicio no debe mostrar el bloque Accesos directos');
 for(const panel of ['notes','medications','lists','documents']){
-  const button=window.document.querySelector('[data-screen="today"] [data-panel="'+panel+'"]');
-  assert.ok(button,'Falta acceso directo de Inicio a '+panel);
+  const button=window.document.querySelector('[data-screen="tools"] [data-panel="'+panel+'"]');
+  assert.ok(button,'Falta acceso de Herramientas a '+panel);
   button.dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true}));
-  assert.equal(window.__nexoTestState.lastPanel,panel,'Acceso directo de Inicio no abre '+panel);
+  assert.equal(window.__nexoTestState.lastPanel,panel,'Herramientas no abre '+panel);
 }
 
 // El índice pesado se crea solo al buscar.
