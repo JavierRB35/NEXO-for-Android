@@ -115,7 +115,7 @@ public class NexoConnectSealedNoteStoreTest {
             try {
                 db.beginTransaction();
                 new NexoConnectSealedNoteStore(UUID.fromString(OWNER),
-                    UUID.fromString(SECOND)).insertNew(db,"list",
+                    UUID.fromString(SECOND)).insertNew(db,"document",
                     new JSONObject().put("title","Prohibida"));
                 fail("Unprotected list accepted");
             } catch(GeneralSecurityException expected) {
@@ -124,6 +124,85 @@ public class NexoConnectSealedNoteStoreTest {
             }
         }
     }
+    @Test public void sealedInboxRetainsFiveOtherEntityTypesWithoutPlaintext()
+            throws Exception {
+        String[] types={"appointment","list","journal","book","movie"};
+        try(SQLiteDatabase db=database()) {
+            for(int n=0;n<types.length;n++){
+                String type=types[n];
+                UUID delivery=UUID.randomUUID();
+                JSONObject input=new JSONObject()
+                    .put("title","Titular confidencial "+type);
+                switch(type){
+                    case "appointment":
+                        input.put("type","event").put("dueAt",1780400000000L);
+                        break;
+                    case "list":
+                        input.put("entries",new org.json.JSONArray()
+                            .put(new JSONObject().put("text","Elemento secreto")));
+                        break;
+                    case "journal":
+                        input.put("kind","quote").put("body","Frase privada");
+                        break;
+                    case "book":
+                        input.put("author","Autor privado");
+                        break;
+                    case "movie":
+                        input.put("mediaType","series");
+                        break;
+                }
+                byte[] clear=NexoConnectPayloadCodec.encode(type,input,null);
+                NexoConnectAtomicImporter.Result imported=
+                    NexoConnectAtomicImporter.importVerified(
+                        db,delivery.toString(),SENDER,type,clear,
+                        new NexoConnectSealedNoteStore(UUID.fromString(OWNER),delivery));
+                String sealed=storedBody(db,imported.localId);
+                assertTrue(NexoConnectSealedNoteStore.isSealed(sealed));
+                assertFalse(sealed.contains("Titular confidencial"));
+                assertEquals("Ficha cifrada",storedTitle(db,imported.localId));
+                JSONObject restored=new NexoConnectSealedNoteStore(
+                    UUID.fromString(OWNER),delivery).read(sealed);
+                assertEquals(type,restored.getString(
+                    NexoConnectSealedNoteStore.PACKED_ENTITY));
+                assertEquals(input.getString("title"),restored
+                    .getJSONObject(NexoConnectSealedNoteStore.PACKED_DATA)
+                    .getString("title"));
+                assertReject(()->new NexoConnectSealedNoteStore(
+                    UUID.randomUUID(),delivery).read(sealed));
+                NexoConnectAtomicImporter.Result replay=
+                    NexoConnectAtomicImporter.importVerified(
+                        db,delivery.toString(),SENDER,type,clear,
+                        new NexoConnectSealedNoteStore(UUID.fromString(OWNER),delivery));
+                assertTrue(replay.alreadyImported);
+                assertEquals(imported.localId,replay.localId);
+            }
+            try(Cursor c=db.rawQuery("SELECT count(*) FROM items",null)){
+                assertTrue(c.moveToFirst());assertEquals(types.length,c.getInt(0));
+            }
+        }
+    }
+
+    @Test public void documentWithoutEncryptedAttachmentCannotEnterInbox()
+            throws Exception{
+        try(SQLiteDatabase db=database()){
+            byte[] metadata=NexoConnectPayloadCodec.encode("document",
+                new JSONObject().put("title","No permitido")
+                    .put("fileName","test.pdf")
+                    .put("attachmentSize",123)
+                    .put("attachmentSha256","a".repeat(64)),null);
+            try{
+                NexoConnectAtomicImporter.importVerified(
+                    db,SECOND,SENDER,"document",metadata,
+                    new NexoConnectSealedNoteStore(UUID.fromString(OWNER),
+                        UUID.fromString(SECOND)));
+                fail("Document metadata accepted without encrypted blob");
+            }catch(GeneralSecurityException expected){}
+            try(Cursor c=db.rawQuery("SELECT count(*) FROM items",null)){
+                assertTrue(c.moveToFirst());assertEquals(0,c.getInt(0));
+            }
+        }
+    }
+
     private interface Operation {void run()throws Exception;}
     private static void assertReject(Operation op)throws Exception {
         try {op.run();fail("Tampered note was readable");}
