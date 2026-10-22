@@ -8,6 +8,9 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Build;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.util.Log;
 import android.text.InputType;
 import android.view.View;
@@ -38,9 +41,11 @@ import java.util.UUID;
  * Session/JWT is memory-only. Re-open app -> request a fresh email OTP.
  */
 public class NexoConnectPilotActivity extends Activity {
-    private static final String ORIGIN="https://fwvmoqrsqtpvpbyfclld.supabase.co";
+    static final String ORIGIN="https://fwvmoqrsqtpvpbyfclld.supabase.co";
     // Supabase PUBLIC publishable key, NEVER a service_role secret.
-    private static final String PUBLIC_KEY="sb_publishable_rsDUyUEyuXcjkyKsSxZFUg_RezHhNUk";
+    static final String PUBLIC_KEY="sb_publishable_rsDUyUEyuXcjkyKsSxZFUg_RezHhNUk";
+    static final String EXTRA_OPEN_INBOX="com.jruiz.nexo.connect.pilot.OPEN_INBOX";
+    private static final int NOTIFICATION_CONSENT=73;
     private static final int QR_SCAN=41;
     private static final int EMAIL=0,LOGIN=1,SECOND=2,ENROLL=3,READY=4;
     private int stage=EMAIL,generation;
@@ -189,10 +194,10 @@ public class NexoConnectPilotActivity extends Activity {
                         NexoConnectSessionVault.Saved saved=sessionVault.restore();
                         if(!saved.email.equalsIgnoreCase(address))
                             throw new SecurityException("El correo no coincide con este teléfono");
+                        // Serialize token rotation with OS background checks.
                         NexoConnectEmailOtpClient.VerifiedSession restored=
-                                otp.refreshSession(saved.refreshToken,saved.accountId,saved.email);
-                        // Refresh tokens rotate. Save the NEW token before other work.
-                        sessionVault.save(restored);
+                                NexoConnectSessionVault.refreshSavedSession(
+                                        getApplicationContext(),otp);
                         NexoConnectLocalPhoneIdentity local=
                                 NexoConnectLocalPhoneIdentity.openOrCreate(
                                         getApplicationContext(),restored.accountId);
@@ -304,8 +309,20 @@ public class NexoConnectPilotActivity extends Activity {
                             System.currentTimeMillis()),
                     identity.accountId(),identity.deviceId(),generation,
                     identity.signingPrivate());
-            stage=READY;showHome();
+            stage=READY;
+            // A scheduled job may run while the pilot is closed. Device
+            // verification still precedes every background inbox query.
+            try { NexoConnectInboxNoticeJob.schedule(this); }
+            catch(RuntimeException unavailable){
+                Log.w("NexoConnectNotice","Alerts could not be scheduled");
+            }
+            showHome();
             onVerifiedPilotReady();
+            if(getIntent()!=null &&
+                    getIntent().getBooleanExtra(EXTRA_OPEN_INBOX,false)){
+                getIntent().removeExtra(EXTRA_OPEN_INBOX);
+                showInbox();
+            }
         }catch(Exception ex){showError("No se puede verificar la sesión del teléfono");}
     }
     private void showHome(){
@@ -323,11 +340,40 @@ public class NexoConnectPilotActivity extends Activity {
         // subclass may add a read-only, explicit user-selected local note.
         addHostActions();
         button("Bandeja de entrada",this::showInbox);
+        if(Build.VERSION.SDK_INT>=33 &&
+                !NexoConnectInboxNoticeJob.permitted(this)){
+            button("Activar avisos de fichas",()->
+                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        NOTIFICATION_CONSENT));
+        }else{
+            label("Avisos activados: comprobación periódica. Android puede retrasarlos "+
+                    "para ahorrar batería.",12);
+        }
         button("Fichas recibidas",this::showReceivedNotes);
         button("Confirmaciones pendientes",this::retryAcks);
         label("Tus fichas se cifran para el destinatario y las personas "+
               "autorizadas se verifican antes de compartir.",13);
     }
+
+    @Override public void onRequestPermissionsResult(int code,String[] permissions,
+            int[] results) {
+        super.onRequestPermissionsResult(code,permissions,results);
+        if(code==NOTIFICATION_CONSENT && stage==READY){
+            // Denial is honored. The background job will not post without it.
+            showHome();
+        }
+    }
+
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if(stage==READY && intent!=null &&
+                intent.getBooleanExtra(EXTRA_OPEN_INBOX,false)){
+            intent.removeExtra(EXTRA_OPEN_INBOX);
+            showInbox();
+        }
+    }
+
     private void openScanner(){
         try{
             Intent intent=NexoConnectQrScannerActivity.forAuthenticatedAccount(
