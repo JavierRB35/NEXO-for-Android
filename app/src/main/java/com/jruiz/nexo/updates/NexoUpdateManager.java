@@ -32,7 +32,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-/** Canal de actualización opcional: no instala, ni reemplaza datos, sin consentimiento. */
+/** Canal de actualizaciones oficiales, voluntarias u obligatorias. Nunca instala sin Android. */
 public final class NexoUpdateManager {
     public static final String MANIFEST_URL =
             "https://raw.githubusercontent.com/JavierRB35/nexo-android-updates/main/latest.json";
@@ -75,6 +75,9 @@ public final class NexoUpdateManager {
                 result.put("versionName", release.versionName);
                 result.put("versionCode", release.versionCode);
                 result.put("notes", release.notes);
+                result.put("critical", release.critical);
+                result.put("updateType", release.critical ? "critical" : "optional");
+                result.put("criticalReason", release.criticalReason);
             }
         } catch (Exception ignored) {}
         status = result.toString();
@@ -126,7 +129,9 @@ public final class NexoUpdateManager {
                     if (manual) showMessage("Firma incompatible",
                             "Esta instalación fue firmada con otra clave. No se puede sustituir mediante una actualización. Haz una copia de seguridad antes de cambiar de instalación.");
                 } else {
-                    emit("available", "Nueva versión " + remote.versionName + " disponible.", remote);
+                    emit("available", remote.critical
+                            ? "Actualización CRÍTICA obligatoria: Nexo " + remote.versionName + "."
+                            : "Actualización opcional: Nexo " + remote.versionName + " disponible.", remote);
                     int alerted = prefs().getInt("last_alerted_code", 0);
                     if (manual || onOpen || alerted != remote.versionCode) {
                         main.post(() -> {
@@ -135,14 +140,7 @@ public final class NexoUpdateManager {
                                     !activity.hasWindowFocus() || updatePromptVisible || downloading.get()) return;
                             updatePromptVisible = true;
                             try {
-                                new AlertDialog.Builder(activity)
-                                        .setTitle("Actualización de Nexo")
-                                        .setMessage("Disponible Nexo " + remote.versionName + ".\n\n"
-                                                + remote.notes + "\n\n¿Quieres actualizar ahora?")
-                                        .setNegativeButton("Más tarde", (dialog, which) -> {})
-                                        .setPositiveButton("Actualizar", (dialog, which) -> download(remote))
-                                        .setOnDismissListener(dialog -> updatePromptVisible = false)
-                                        .show();
+                                showUpdatePrompt(remote);
                                 prefs().edit().putInt("last_alerted_code", remote.versionCode).apply();
                             } catch (Exception error) {
                                 updatePromptVisible = false;
@@ -158,6 +156,43 @@ public final class NexoUpdateManager {
                 checking.set(false);
             }
         }, "nexo-update-check").start();
+    }
+
+    /**
+     * Una actualización crítica mantiene el aviso bloqueante hasta que Android instale
+     * la nueva APK o la persona cierre Nexo. La descarga nunca es silenciosa.
+     * Una actualización normal siempre permite elegir «Más tarde».
+     */
+    private void showUpdatePrompt(Release remote) {
+        if (remote.critical) {
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                    .setTitle("Actualización CRÍTICA de Nexo")
+                    .setMessage("Nexo " + remote.versionName + " es una actualización OBLIGATORIA.\n\n"
+                            + "Motivo: " + remote.criticalReason + "\n\n"
+                            + remote.notes + "\n\n"
+                            + "Para seguir utilizando Nexo debes instalar esta versión. "
+                            + "Android solicitará tu autorización antes de instalarla.")
+                    .setCancelable(false)
+                    .setNegativeButton("Salir de Nexo", (d, which) -> activity.finishAffinity())
+                    .setPositiveButton("Actualizar ahora", null)
+                    .create();
+            dialog.setCanceledOnTouchOutside(false);
+            // No cerrar el aviso durante descarga/verificación o si Android rechaza instalar.
+            dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    .setOnClickListener(button -> download(remote)));
+            dialog.setOnDismissListener(d -> updatePromptVisible = false);
+            dialog.show();
+        } else {
+            new AlertDialog.Builder(activity)
+                    .setTitle("Actualización opcional de Nexo")
+                    .setMessage("Disponible Nexo " + remote.versionName
+                            + " (no crítica).\n\n" + remote.notes
+                            + "\n\nPuedes actualizar ahora o continuar con esta versión.")
+                    .setNegativeButton("Más tarde", (d, which) -> {})
+                    .setPositiveButton("Actualizar", (d, which) -> download(remote))
+                    .setOnDismissListener(d -> updatePromptVisible = false)
+                    .show();
+        }
     }
 
     private void showMessage(String title, String message) {
@@ -195,13 +230,16 @@ public final class NexoUpdateManager {
     }
 
     public static final class Release {
-        public final String versionName, apkUrl, sha256, notes;
+        public final String versionName, apkUrl, sha256, notes, criticalReason;
         public final int versionCode;
         public final long size;
+        public final boolean critical;
 
-        private Release(String name, int code, String url, String hash, long bytes, String notes) {
+        private Release(String name, int code, String url, String hash, long bytes,
+                        String notes, boolean critical, String criticalReason) {
             this.versionName = name; this.versionCode = code; this.apkUrl = url;
             this.sha256 = hash; this.size = bytes; this.notes = notes;
+            this.critical = critical; this.criticalReason = criticalReason;
         }
 
         public static Release parse(JSONObject json) throws Exception {
@@ -214,6 +252,13 @@ public final class NexoUpdateManager {
             long size = json.getLong("apkSize");
             String apk = json.getString("apkUrl");
             String notes = json.optString("notes", "Mejoras y correcciones.");
+            // Los manifiestos anteriores a este cambio son siempre opcionales.
+            if (json.has("critical") && !(json.opt("critical") instanceof Boolean))
+                throw new IllegalArgumentException("criticidad no válida");
+            boolean critical = json.optBoolean("critical", false);
+            String criticalReason = json.optString("criticalReason", "").trim();
+            if (critical && (criticalReason.length() < 10 || criticalReason.length() > 300))
+                throw new IllegalArgumentException("motivo de actualización crítica no válido");
             if (!name.matches("[0-9]+\\.[0-9]+\\.[0-9]+") || code <= 0 ||
                     !hash.matches("[0-9A-F]{64}") || size < 1024 * 1024 || size > MAX_APK_BYTES)
                 throw new IllegalArgumentException("metadatos no válidos");
@@ -223,7 +268,9 @@ public final class NexoUpdateManager {
                     !u.getPath().endsWith("/Nexo-v" + name + "-release.apk") ||
                     u.getQuery() != null || u.getRef() != null)
                 throw new IllegalArgumentException("origen APK no válido");
-            return new Release(name, code, apk, hash, size, notes.length() > 800 ? notes.substring(0, 800) : notes);
+            return new Release(name, code, apk, hash, size,
+                    notes.length() > 800 ? notes.substring(0, 800) : notes,
+                    critical, critical ? criticalReason : "");
         }
     }
 
