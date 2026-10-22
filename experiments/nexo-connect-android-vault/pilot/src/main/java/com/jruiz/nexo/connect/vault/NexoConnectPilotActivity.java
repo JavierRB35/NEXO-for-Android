@@ -735,6 +735,11 @@ public class NexoConnectPilotActivity extends Activity {
                                 if(entry!=null)label("• "+entry.optString("text",""),14);
                             }
                         }
+                        if("list".equals(receiptType)) {
+                            final UUID verifiedDelivery=id;
+                            button("Añadir esta lista a Nexo",
+                                    ()->handoffReceivedList(verifiedDelivery));
+                        }
                     }catch(Exception invalidNote){
                         label("■ Ficha protegida inaccesible (clave o datos no válidos)",14);
                         // Never fall back to displaying unverified ciphertext.
@@ -749,6 +754,53 @@ public class NexoConnectPilotActivity extends Activity {
             }
         }catch(Exception ex){showError("No se pudo consultar el almacenamiento");}
     }
+
+    /** User-initiated reverse bridge. Pilot owns all keys and reauthenticates
+     * the saved encrypted list before issuing a one-use ticket. */
+    private void handoffReceivedList(UUID delivery) {
+        if(stage!=READY || identity==null || trusted==null || delivery==null) {
+            showError("Debes recuperar tu cuenta verificada del piloto.");
+            return;
+        }
+        if(getPackageManager().checkSignatures(getPackageName(),
+                NexoConnectBridgeProtocol.HOST_PACKAGE)!=
+                android.content.pm.PackageManager.SIGNATURE_MATCH) {
+            showError("Nexo no está instalado con una firma compatible.");
+            return;
+        }
+        try(SQLiteDatabase db=openPrivateDatabase()) {
+            // Refuse an old, revoked or tampered source BEFORE showing consent.
+            NexoConnectLocalListPromotion.read(
+                    db,identity.accountId(),delivery,trusted);
+        }catch(Exception invalid) {
+            showError("La lista o el remitente ya no están verificados.");
+            return;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("Continuar en Nexo")
+            .setMessage("Se abrirá Nexo para revisar esta lista recibida. "+
+                "Solo se transferirá una copia verificada entre las dos aplicaciones "+
+                "protegidas por la misma firma, sin claves privadas, archivos ni "+
+                "datos de la ficha en el enlace. Nexo solicitará una segunda "+
+                "confirmación antes de crear una lista normal sin el cifrado "+
+                "adicional de Connect.")
+            .setNegativeButton("Cancelar",null)
+            .setPositiveButton("Continuar",(d,w)->{
+                try {
+                    String ticket=NexoConnectReceivedBridgeService.stage(
+                            identity.accountId(),delivery);
+                    Intent open=new Intent();
+                    open.setClassName(NexoConnectBridgeProtocol.HOST_PACKAGE,
+                            NexoConnectBridgeProtocol.HOST_RECEIVE_ACTIVITY);
+                    open.putExtra(NexoConnectBridgeProtocol.EXTRA_RECEIVED_TICKET,
+                            ticket);
+                    startActivity(open);
+                }catch(Exception failure) {
+                    showError("No se pudo abrir Nexo de forma segura.");
+                }
+            }).show();
+    }
+
     private void retryAcks(){
         new AlertDialog.Builder(this).setTitle("Confirmaciones pendientes")
             .setMessage("Se reintentará únicamente la confirmación de fichas "+
