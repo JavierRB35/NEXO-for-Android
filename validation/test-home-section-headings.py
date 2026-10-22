@@ -6,10 +6,10 @@ css=(root/'app/src/main/assets/styles.css').read_text(encoding='utf-8')
 
 home=html[html.index('id="homeDashboardContent"'):html.index('data-screen="tools"')]
 
-for removed in ('Resumen familiar','Accesos rápidos','Agenda familiar'):
+for removed in ('Resumen familiar','Accesos rápidos','Agenda familiar','Accesos directos'):
     assert removed not in home, f'Sigue visible el título duplicado: {removed}'
 
-for kept in ('Lo importante ahora','Accesos directos','Próximamente'):
+for kept in ('Lo importante ahora','Próximamente'):
     assert kept in home, f'Falta el título principal: {kept}'
 
 style=css[css.index('#homeNowTitle,'):css.index('.tool-group .section-heading h2', css.index('#homeNowTitle,'))]
@@ -24,4 +24,4 @@ for token in (
 
 assert '#homeDashboardContent>.home-section--pulse{margin-top:20px}' in css, 'Falta separación entre buscador y primer bloque de Inicio'
 
-print('OK: Inicio conserva un único título compacto por sección y separación bajo el buscador')
+print('OK: Inicio muestra Lo importante ahora y Próximamente, sin accesos directos')
