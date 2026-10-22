@@ -3,6 +3,9 @@
          source code are excluded automatically from all RELEASE variants. -->
     <permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"
         android:protectionLevel="signature" />
+    <!-- The reverse bridge requires the HOST to request the same signature
+         permission that protects the pilot service. DEBUG only. -->
+    <uses-permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE" />
     <queries>
         <package android:name="com.jruiz.nexo.connect.pilot" />
     </queries>
