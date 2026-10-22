@@ -62,8 +62,19 @@ public final class NexoConnectInboxNoticeJob extends JobService {
                 .setPeriodic(INTERVAL_MS)
                 .setPersisted(true)
                 .build();
-        if(jobs.getPendingJob(JOB_ID)==null)
-            jobs.schedule(scheduled);
+        if(jobs.getPendingJob(JOB_ID)==null &&
+                jobs.schedule(scheduled)!=JobScheduler.RESULT_SUCCESS)
+            throw new IllegalStateException("Android refused inbox notice job");
+    }
+
+    /** Scheduling status, separate from notification permission state. */
+    public static boolean isScheduled(Context context) {
+        if(context==null ||
+                !"com.jruiz.nexo.connect.pilot".equals(context.getPackageName()))
+            return false;
+        JobScheduler jobs=(JobScheduler)
+                context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        return jobs!=null && jobs.getPendingJob(JOB_ID)!=null;
     }
 
     /** May be disabled for an emulator; never bypass user notification consent. */
