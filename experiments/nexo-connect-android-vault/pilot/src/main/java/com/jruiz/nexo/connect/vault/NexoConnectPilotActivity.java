@@ -149,6 +149,14 @@ public class NexoConnectPilotActivity extends Activity {
      */
     protected boolean addHostSetupActions(){return false;}
 
+    /** Safe for a separate pilot subclass: never exposes session credentials. */
+    protected final boolean hasSavedPilotSession(){
+        return sessionVault!=null && sessionVault.exists();
+    }
+
+    /** Called only after account+own-device verification succeeded. */
+    protected void onVerifiedPilotReady(){}
+
     /** A deliberate, reversible LAB-only action; never silently enroll. */
     protected final void openHostAccountSetup(){
         hostAccountUi=true;
@@ -296,6 +304,7 @@ public class NexoConnectPilotActivity extends Activity {
                     identity.accountId(),identity.deviceId(),generation,
                     identity.signingPrivate());
             stage=READY;showHome();
+            onVerifiedPilotReady();
         }catch(Exception ex){showError("No se puede verificar la sesión del teléfono");}
     }
     private void showHome(){
