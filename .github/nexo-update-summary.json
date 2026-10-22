@@ -1,4 +1,4 @@
 {
   "versionName": "3.7.51",
-  "notes": "Ahora Nexo te indicará si una nueva versión es opcional o necesaria para seguir utilizando la aplicación. Esta actualización es opcional: puedes instalarla ahora o más adelante."
+  "notes": "Nexo ahora distingue las actualizaciones que puedes dejar para más adelante de las que son necesarias. Cuando una actualización sea obligatoria, te explicará por qué."
 }
