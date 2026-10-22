@@ -2,6 +2,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"/>
+    <queries><package android:name="com.jruiz.nexo"/></queries>
     <application android:label="Nexo Connect Pruebas"
         android:allowBackup="false" android:usesCleartextTraffic="false"
         android:supportsRtl="true">
@@ -12,5 +14,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name="com.jruiz.nexo.connect.vault.NexoConnectPilotBridgeActivity"
+            android:exported="true" android:screenOrientation="portrait"/>
     </application>
 </manifest>

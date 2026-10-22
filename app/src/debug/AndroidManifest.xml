@@ -1,7 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Debug-only in-process Nexo Connect LAB Activity. This manifest and its
          source code are excluded automatically from all RELEASE variants. -->
+    <permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"
+        android:protectionLevel="signature" />
+    <queries>
+        <package android:name="com.jruiz.nexo.connect.pilot" />
+    </queries>
     <application>
+        <service
+            android:name="com.jruiz.nexo.connect.host.NexoConnectShareBridgeService"
+            android:exported="true"
+            android:permission="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE" />
         <activity
             android:name="com.jruiz.nexo.connect.host.NexoConnectEmbeddedActivity"
             android:exported="false"
