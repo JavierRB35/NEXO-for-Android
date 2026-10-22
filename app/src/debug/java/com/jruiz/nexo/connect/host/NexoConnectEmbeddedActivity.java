@@ -337,18 +337,18 @@ public final class NexoConnectEmbeddedActivity extends NexoConnectPilotActivity 
                     NexoConnectLocalListPromotion.read(privateDb,owner,delivery,trust);
             StringBuilder preview=new StringBuilder()
                 .append(received.title)
-                .append("\\n\\nElementos: ").append(received.entries.length());
+                .append("\n\nElementos: ").append(received.entries.length());
             for(int i=0;i<Math.min(20,received.entries.length());i++){
                 JSONObject row=received.entries.optJSONObject(i);
-                if(row!=null)preview.append("\\n")
+                if(row!=null)preview.append("\n")
                     .append(row.optBoolean("checked",false)?"☑ ":"☐ ")
                     .append(row.optString("text",""));
             }
             if(received.entries.length()>20)
-                preview.append("\\n… y ")
+                preview.append("\n… y ")
                        .append(received.entries.length()-20)
                        .append(" elementos más");
-            preview.append("\\n\\nSe añadirá como nueva lista de Nexo, "+
+            preview.append("\n\nSe añadirá como nueva lista de Nexo, "+
                     "con sus elementos, categorías y estados. "+
                     "La copia normal de Nexo no tendrá el cifrado "+
                     "adicional de Connect. La lista original cifrada "+
