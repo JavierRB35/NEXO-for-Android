@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.51",
-  "notes": "Nexo ahora distingue las actualizaciones que puedes dejar para más adelante de las que son necesarias. Cuando una actualización sea obligatoria, te explicará por qué."
+  "versionName": "3.7.52",
+  "notes": "Inicio más sencillo: eliminamos el bloque «Accesos directos» para que veas antes «Próximamente». Notas, Listas, Documentos y Medicación siguen en Herramientas. Los avisos de nuevas versiones son más claros."
 }
