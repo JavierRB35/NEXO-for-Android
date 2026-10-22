@@ -71,9 +71,16 @@ jobs:
           name,code,tag=os.environ['NAME'],int(os.environ['CODE']),os.environ['TAG']
           filename=f'Nexo-{tag}-release.apk'
           apk=Path('dist')/filename
-          release=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text()).get('release') or {}
-          changelog=Path('CHANGELOG.md').read_text(encoding='utf-8').split('\n## ',1)[0]
-          notes=(release.get('body') or changelog or 'Mejoras y correcciones de Nexo.').strip()[:800]
+          # El aviso a usuarios nunca toma el texto técnico de CHANGELOG o Release.
+          summary=json.loads(Path('.github/nexo-update-summary.json').read_text(encoding='utf-8'))
+          if summary.get('versionName') != name:
+              raise SystemExit('Falta actualizar el resumen para usuarios de esta versión')
+          notes=summary.get('notes')
+          if not isinstance(notes,str) or not (40 <= len(notes.strip()) <= 360):
+              raise SystemExit('El resumen para usuarios debe tener entre 40 y 360 caracteres')
+          notes=notes.strip()
+          if any(mark in notes for mark in ('#','**','\x60','\n','\r')):
+              raise SystemExit('El resumen para usuarios debe estar en texto sencillo, sin Markdown')
           # La criticidad se declara en el código fuente de la versión firmada.
           policy=json.loads(Path('.github/nexo-update-policy.json').read_text(encoding='utf-8'))
           critical=policy.get('critical')
