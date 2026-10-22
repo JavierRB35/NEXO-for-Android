@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Consent is requested in the pilot UI, never silently. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Required for the OS to restore the persisted periodic check. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-permission android:name="com.jruiz.nexo.permission.NEXO_CONNECT_DEBUG_BRIDGE"/>
@@ -7,6 +11,10 @@
     <application android:label="Nexo Connect Pruebas"
         android:allowBackup="false" android:usesCleartextTraffic="false"
         android:supportsRtl="true">
+        <!-- OS-managed periodic background check. Not an instant push service. -->
+        <service android:name="com.jruiz.nexo.connect.vault.NexoConnectInboxNoticeJob"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
         <!-- LAB only: same-signature Nexo can pull one user-approved, verified
              received list. The service never exports the pilot Keystore. -->
         <service android:name="com.jruiz.nexo.connect.vault.NexoConnectReceivedBridgeService"
