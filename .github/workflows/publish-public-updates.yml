@@ -73,12 +73,24 @@ jobs:
           apk=Path('dist')/filename
           release=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text()).get('release') or {}
           notes=(release.get('body') or 'Mejoras y correcciones de Nexo.').strip()[:800]
+          # La criticidad es una decisión explícita y versionada en el código privado.
+          policy=json.loads(Path('.github/nexo-update-policy.json').read_text(encoding='utf-8'))
+          critical=policy.get('critical')
+          reason=policy.get('reason','')
+          if type(critical) is not bool or not isinstance(reason,str):
+              raise SystemExit('Política de actualización no válida')
+          reason=reason.strip()
+          if critical and not (10 <= len(reason) <= 300):
+              raise SystemExit('Una actualización crítica requiere un motivo de 10-300 caracteres')
+          if not critical and reason:
+              raise SystemExit('La actualización opcional no debe definir motivo crítico')
           metadata={
             'schemaVersion':1,'packageName':'com.jruiz.nexo',
             'versionName':name,'versionCode':code,
             'apkUrl':f'https://github.com/JavierRB35/nexo-android-updates/releases/download/{tag}/{filename}',
             'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
-            'apkSize':apk.stat().st_size,'notes':notes
+            'apkSize':apk.stat().st_size,'notes':notes,
+            'critical':critical,'criticalReason':reason
           }
           Path('dist/latest.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n')
           PY
@@ -110,6 +122,11 @@ jobs:
               raise SystemExit('No se puede publicar una versión antigua')
           if current['versionCode'] == previous['versionCode'] and current['apkSha256'] != previous['apkSha256']:
               raise SystemExit('No se puede sustituir silenciosamente una versión ya publicada')
+          # Nunca convertir retroactivamente una versión opcional en obligatoria.
+          if current['versionCode'] == previous['versionCode'] and (
+                  current['critical'] != previous.get('critical',False) or
+                  current['criticalReason'] != previous.get('criticalReason','')):
+              raise SystemExit('No se puede modificar la criticidad de una versión ya publicada')
           PY
           fi
           APK="dist/Nexo-$TAG-release.apk"
