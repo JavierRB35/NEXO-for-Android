@@ -16,7 +16,7 @@ public final class MediaRepository {
     private MediaRepository() {}
 
     private static final String FIELDS =
-            "id,title,creator,status,progress,finish_date,abandoned_date,summary,created_at,updated_at,start_date,favorite,rating,media_type,category";
+            "id,title,creator,status,progress,finish_date,abandoned_date,summary,created_at,updated_at,start_date,favorite,rating,media_type,category,synopsis";
 
     private static JSONObject result(boolean ok, String error, long id) {
         JSONObject o = new JSONObject();
@@ -46,6 +46,7 @@ public final class MediaRepository {
             o.put("rating", c.getInt(12));
             o.put("mediaType", c.getString(13));
             o.put("category", c.getString(14));
+            o.put("synopsis", c.getString(15));
         } catch (Exception ignored) {}
         return o;
     }
@@ -119,6 +120,7 @@ public final class MediaRepository {
         String finishDate = input.optString("finishDate", "").trim();
         String abandonedDate = input.optString("abandonedDate", "").trim();
         String summary = input.optString("summary", "").trim();
+        String synopsis = input.optString("synopsis", "").trim();
         String category = input.optString("category", "").trim();
         if (category.length() > 80) return result(false, "La categoría supera 80 caracteres.", 0);
         long id = input.optLong("id", 0);
@@ -130,6 +132,8 @@ public final class MediaRepository {
         String previousStatus = id > 0 ? get(helper, id).optString("status", "") : "";
         if (summary.length() > 20000)
             return result(false, "El resumen supera los 20.000 caracteres.", 0);
+        if (synopsis.length() > 20000)
+            return result(false, "El argumento supera los 20.000 caracteres.", 0);
 
         if ("want".equals(status)) {
             progress = 0;
@@ -168,6 +172,7 @@ public final class MediaRepository {
         v.put("finish_date", finishDate);
         v.put("abandoned_date", abandonedDate);
         v.put("summary", summary);
+        v.put("synopsis", synopsis);
         v.put("category", category);
         v.put("favorite", favorite ? 1 : 0);
         v.put("rating", rating);
