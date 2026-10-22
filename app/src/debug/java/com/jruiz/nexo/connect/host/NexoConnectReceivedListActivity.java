@@ -32,7 +32,8 @@ import java.util.UUID;
  */
 public final class NexoConnectReceivedListActivity extends Activity {
     private String ticket;
-    private boolean bound,requested,completed,copying;
+    private boolean bound,requested,copying;
+    private volatile boolean completed;
     private ServiceConnection connection;
 
     @Override public void onCreate(Bundle state) {
