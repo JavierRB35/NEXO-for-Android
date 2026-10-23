@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.58",
-  "notes": "Nueva agenda diaria por horas en Hoy y Calendario. Permite ver eventos que coinciden, mover citas manteniéndolas pulsadas y deshacer cambios de horario. Las recurrencias solo modifican la cita seleccionada. Actualización opcional."
+  "versionName": "3.7.59",
+  "notes": "Agenda Hoy y Calendario más legible: tarjetas con hora, título y categoría. Mantén pulsado el centro para mover una cita o sus bordes para cambiar inicio y fin, cada 15 minutos. Horarios disponibles durante las 24 horas y opción Deshacer. Actualización opcional."
 }
