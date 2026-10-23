@@ -162,17 +162,14 @@ public class NexoConnectTwoAccountExchangeTest {
                 assertNull(receivePins.findActive(a));
                 assertNull(sendPins.findActive(b));
                 try{
-                    QrTrustConfirmationView.requireHumanVerification(parsedA,
-                        publicA.signingFingerprint(),publicA.encryptionFingerprint(),
-                        false,true);
+                    NexoConnectSafetyCode.verify(parsedA,
+                        NexoConnectSafetyCode.forPeer(publicA),false,true);
                     fail("QR image alone must not establish identity");
                 }catch(GeneralSecurityException expected){}
-                QrTrustConfirmationView.requireHumanVerification(parsedA,
-                    publicA.signingFingerprint(),publicA.encryptionFingerprint(),
-                    true,true);
-                QrTrustConfirmationView.requireHumanVerification(parsedB,
-                    publicB.signingFingerprint(),publicB.encryptionFingerprint(),
-                    true,true);
+                NexoConnectSafetyCode.verify(parsedA,
+                    NexoConnectSafetyCode.forPeer(publicA),true,true);
+                NexoConnectSafetyCode.verify(parsedB,
+                    NexoConnectSafetyCode.forPeer(publicB),true,true);
             }
             receivePins.saveQrConfirmed(aQr,publicA.signingFingerprint(),
                     publicA.encryptionFingerprint(),true);
