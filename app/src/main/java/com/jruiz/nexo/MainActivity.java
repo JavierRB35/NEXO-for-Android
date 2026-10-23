@@ -2095,6 +2095,15 @@ public class MainActivity extends Activity {
             });
         }
         @JavascriptInterface public void openNexoConnectPilot() { openNexoConnectEmbedded(); }
+        /** Opens only an allowlisted native Connect screen; no credentials or profiles
+         * cross the WebView JavaScript bridge. */
+        @JavascriptInterface public void openNexoConnectSettings(String action){
+            if(!("profile".equals(action)||"generate".equals(action)||"pair".equals(action)))return;
+            final String selected=action;
+            runOnUiThread(()->startActivity(new Intent(MainActivity.this,
+                com.jruiz.nexo.connectui.NexoConnectActivity.class)
+                .putExtra("nexoConnectAction",selected)));
+        }
         @JavascriptInterface public void openNexoChat() {
             runOnUiThread(()->startActivity(new Intent(MainActivity.this,com.jruiz.nexo.connectui.NexoConnectActivity.class).putExtra("openChat",true)));
         }
