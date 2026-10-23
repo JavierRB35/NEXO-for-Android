@@ -2501,8 +2501,10 @@ function itemEffectiveEndAt(item){
 }
 function itemCoversIsoDate(item,iso){
   if(!item?.dueAt||!iso)return false;
-  const start=isoDateLocal(new Date(item.dueAt)),end=isoDateLocal(new Date(itemEffectiveEndAt(item)));
-  return iso>=start&&iso<=end;
+  // El final es exclusivo: una cita que acaba a las 00:00 no ocupa el día siguiente.
+  // Los eventos sin duración siguen mostrándose en su día de inicio.
+  const bounds=dayBounds(iso),start=Number(item.dueAt),end=itemEffectiveEndAt(item);
+  return start<=bounds.end&&(end>bounds.start||start===bounds.start);
 }
 
 function renderCalendar(direction=0){
@@ -2534,7 +2536,7 @@ function renderCalendar(direction=0){
   const holidaysByDay={};
   holidayEntriesForYears(years).forEach(h=>{if(/^\d{4}-\d{2}-\d{2}$/.test(String(h.date||'')))(holidaysByDay[h.date]||(holidaysByDay[h.date]=[])).push(h);});
   const today=isoDateLocal(now),byDay={};
-  items.forEach(i=>{if(!i.dueAt)return;const a=new Date(isoDateLocal(new Date(i.dueAt))+'T12:00:00'),z=new Date(isoDateLocal(new Date(itemEffectiveEndAt(i)))+'T12:00:00');for(let d=new Date(a),g=0;d<=z&&g<730;d.setDate(d.getDate()+1),g++){const k=isoDateLocal(d);(byDay[k]||(byDay[k]=[])).push(i);}});
+  items.forEach(i=>{if(!i.dueAt)return;const startAt=Number(i.dueAt),endAt=itemEffectiveEndAt(i),lastDisplayedAt=endAt>startAt?endAt-1:startAt;const a=new Date(isoDateLocal(new Date(startAt))+'T12:00:00'),z=new Date(isoDateLocal(new Date(lastDisplayedAt))+'T12:00:00');for(let d=new Date(a),g=0;d<=z&&g<730;d.setDate(d.getDate()+1),g++){const k=isoDateLocal(d);(byDay[k]||(byDay[k]=[])).push(i);}});
 
   let calendarHtml='';
   for(let cell=0;cell<cells;cell++){
@@ -4580,6 +4582,7 @@ function refreshHeaderDate(){
   if(target.textContent!==formatted)target.textContent=formatted;
 }
 function navigateBack(){
+  if(window.NexoTimeGrid?.dismissDetail?.())return true;
   if(state.screen==='today'&&state.homeTimelineVisible){window.NexoTimeGrid?.hideHome();return true;}
   // Comprobar ANTES de consumir el historial: cancelar debe dejar la cita intacta.
   if(state.screen==='save'&&state.capturePendingLinks?.length){
