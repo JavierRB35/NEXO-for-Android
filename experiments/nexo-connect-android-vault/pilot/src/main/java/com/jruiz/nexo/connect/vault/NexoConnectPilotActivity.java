@@ -566,9 +566,28 @@ public class NexoConnectPilotActivity extends Activity {
                     lastMessage="Identidad comprobada. Contacto conectado. La otra persona debe confirmar también tu código.";
                     showHome();})).show();
         }else{
-            lastMessage="Identidad QR guardada en este móvil. Si ya existe "+
-                    "invitación aceptada, verifica el contacto en el servidor.";
-            showHome();
+            // The verified identity was pinned locally first. A second signed,
+            // server-side check is required before allowing this contact to
+            // send anything; mere possession of a QR never grants access.
+            runWork(()->{
+                try{
+                    client.verifyStoredPeer(trusted,id);
+                    client.setReceiving(trusted,id,true);
+                    return Boolean.TRUE;
+                }catch(NexoConnectSignedGatewayClient.TransportException status){
+                    if(status.httpStatus==403||status.httpStatus==503)
+                        return Boolean.FALSE;
+                    throw status;
+                }
+            },out->{
+                boolean connected=Boolean.TRUE.equals(out);
+                new AlertDialog.Builder(this)
+                    .setTitle(connected?"Contacto conectado":"Identidad comprobada")
+                    .setMessage(connected?
+                        "La otra persona ya está autorizada y podéis compartir mensajes y fichas.":
+                        "El código es correcto y está guardado, pero el servidor todavía no ha confirmado la conexión. La otra persona debe aceptar tu invitación; luego podrás comprobarla desde Personas.")
+                    .setPositiveButton("Entendido",(d,w)->showHome()).show();
+            });
         }
     }
     /** Friendly local names: no cloud lookup, no identity or QR key change. */
