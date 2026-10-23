@@ -231,4 +231,47 @@ render(largeHost,'2026-10-23',[{
 assert.match(largeHost.innerHTML,/tgv-event-status/);
 assert.doesNotMatch(largeHost.innerHTML,/tgv-event-location|tgv-event-extras|tgv-avatars|tgv-event-description/);
 
+// El rango de un evento termina en exclusiva: fin 00:00 no aparece al día siguiente.
+const coverageStart=app.indexOf('function itemCoversIsoDate(');
+const coverageEnd=app.indexOf('function renderCalendar(',coverageStart);
+assert.ok(coverageStart>0&&coverageEnd>coverageStart,'calendar coverage helper exists');
+const coverageCtx={
+  dayBounds:iso=>({start:new Date(iso+'T00:00:00').getTime(),end:new Date(iso+'T23:59:59.999').getTime()}),
+  itemEffectiveEndAt:item=>item.endAt||item.dueAt
+};
+vm.runInNewContext(app.slice(coverageStart,coverageEnd),coverageCtx);
+assert.equal(coverageCtx.itemCoversIsoDate({dueAt:day+22*3600000,endAt:day+86400000},'2026-10-24'),false);
+assert.equal(coverageCtx.itemCoversIsoDate({dueAt:day+22*3600000,endAt:day+86400000},'2026-10-23'),true);
+assert.equal(coverageCtx.itemCoversIsoDate({dueAt:day,endAt:day,allDay:true},'2026-10-23'),true);
+assert.match(app,/lastDisplayedAt=endAt>startAt\?endAt-1:startAt/);
+
+// Un mismo id/ocurrencia nunca se pinta dos veces aunque llegue duplicado del proveedor.
+const uniqueHost=makeHost(),duplicate={id:198,title:'Mismo evento',dueAt:day+12*3600000,endAt:day+13*3600000,hasTime:true};
+render(uniqueHost,'2026-10-23',[duplicate,{...duplicate}, {...duplicate,title:'Versión actualizada'}]);
+assert.equal((uniqueHost.innerHTML.match(/class="tgv-event(?:\s|")/g)||[]).length,1);
+assert.match(uniqueHost.innerHTML,/Versión actualizada/);
+
+// La agenda reutiliza la ficha de lectura existente en Nexo; no crea otro diálogo.
+const actions={},fichaOpens=[],block={dataset:{tgvIndex:'0'},style:{},classList:{add:noop,remove:noop},
+  addEventListener:(name,handler)=>{(actions['block_'+name] ||= []).push(handler);},
+  setAttribute:noop};
+const allDayBlock={dataset:{tgvAllday:'0'},addEventListener:(name,handler)=>{actions['allDay_'+name]=handler;}};
+const detailCtx={...ctx,window:{},document:{},openEventInAgenda:(...args)=>fichaOpens.push(args)};
+vm.runInNewContext(source,detailCtx,{filename:'time-grid-detail.js'});
+const detailHost={classList:{add:noop},dataset:{},innerHTML:'',querySelectorAll:selector=>
+  selector==='[data-tgv-index]'?[block]:selector==='[data-tgv-allday]'?[allDayBlock]:[]};
+detailCtx.window.NexoTimeGrid.render(detailHost,'2026-10-23',[
+  {id:201,title:'Cita para consultar',category:'Salud / Médico',dueAt:day+12*3600000,endAt:day+13*3600000,hasTime:true},
+  {id:202,title:'Aniversario',category:'Familia',dueAt:day,endAt:day+86400000,allDay:true,hasTime:false}
+]);
+actions.block_click[0]({preventDefault:noop});
+actions.allDay_click();
+assert.deepEqual(fichaOpens,[[201,day+12*3600000,false],[202,day,false]],'both paths open the existing ficha');
+assert.match(app,/function openEventInAgenda\(id,occurrenceAt,recurring\)/);
+assert.match(app,/function openItem\(id\)/);
+assert.match(app,/<details class="details-box"><summary>Editar<\/summary>/);
+assert.doesNotMatch(source,/tgv-detail-sheet|tgv-detail-backdrop|showDetail/);
+
+console.log('OK: event identities, day-boundaries and reuse of existing event ficha');
+
 console.log('OK: time-grid 24h, compact cards, move and start/end resize, persistence, undo, recurrence and bounds');

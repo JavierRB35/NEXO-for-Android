@@ -125,7 +125,12 @@
   function render(host,iso,rawItems){
     if(!host||!iso)return;
     const bounds=dayBounds(iso);
-    const items=(Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds));
+    // La identidad no depende de la hora: una misma cita puede moverse o pasar a todo el día.
+    // Si la fuente devuelve dos instantáneas de esa identidad, se representa solo una vez.
+    const byIdentity=new Map();
+    (Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds))
+      .forEach(item=>byIdentity.set(eventKey(item),item));
+    const items=[...byIdentity.values()];
     const allDay=items.filter(item=>!isTimed(item));
     const timed=assignColumns(items.filter(isTimed).map(item=>segment(item,bounds)));
     // Toda la jornada, incluso citas de madrugada o a última hora.
@@ -161,13 +166,18 @@
       '</div><p class="tgv-help">Mantén pulsado el centro para mover una cita, o los bordes para cambiar su inicio o final (15 min).</p>';
     host.querySelectorAll('[data-tgv-allday]').forEach(btn=>btn.addEventListener('click',()=>{
       const item=allDay[Number(btn.dataset.tgvAllday)];
-      if(item)openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
+      if(item)openExistingDetail(item);
     }));
     host.querySelectorAll('[data-tgv-index]').forEach(btn=>{
       const row=timed[Number(btn.dataset.tgvIndex)];
       attachDrag(btn,row,iso,host);
     });
     focusInitialHour(host,iso,timed.length?Math.min(...timed.map(r=>r.start)):clockMinutes(Date.now()));
+  }
+  /** Abre la ficha única que ya utiliza Nexo, con el apartado Editar plegado. */
+  function openExistingDetail(item){
+    if(!item||writing)return;
+    openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
   }
   function notifyChange(){
     if(state.screen==='calendar')renderCalendar();
@@ -245,7 +255,7 @@
     btn.addEventListener('click',e=>{
       if(btn._tgvSuppressUntil&&Date.now()<btn._tgvSuppressUntil){e.preventDefault();return;}
       if(writing)return;
-      openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
+      openExistingDetail(item);
     });
     if(writing)return;
     const bounds=dayBounds(iso),originalStart=Number(item.dueAt),
@@ -358,7 +368,9 @@
     if(!Array.isArray(items))items=[];
     host._tgvItems=items;
     section.querySelector('[data-tgv-home-title]').textContent='Hoy · '+new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(new Date(iso+'T12:00:00'));
-    section.querySelector('[data-tgv-home-count]').textContent=items.length+' evento'+(items.length===1?'':'s');
+    const visibleKeys=new Set(items.filter(item=>item?.dueAt&&visibleInDay(item,bounds)).map(eventKey));
+    const count=visibleKeys.size;
+    section.querySelector('[data-tgv-home-count]').textContent=count+' evento'+(count===1?'':'s');
     render(host,iso,items);
   }
   function showHome(){

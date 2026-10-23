@@ -1927,7 +1927,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
 
         // Elementos no recurrentes.
-        try (Cursor c = db.rawQuery(ITEM_SELECT_WITH_REMINDER + " WHERE items.deleted_at=0 AND items.type NOT IN ('place','restaurant','document') AND items.due_at>0 AND items.due_at<=CAST(? AS INTEGER) AND (CASE WHEN items.end_at>0 THEN items.end_at ELSE items.due_at END)>=CAST(? AS INTEGER) AND items.recurrence='none' ORDER BY items.due_at ASC",
+        try (Cursor c = db.rawQuery(ITEM_SELECT_WITH_REMINDER + " WHERE items.deleted_at=0 AND items.type NOT IN ('place','restaurant','document') AND items.due_at>0 AND items.due_at<=CAST(? AS INTEGER) AND (CASE WHEN items.end_at>items.due_at THEN items.end_at ELSE items.due_at+1 END)>CAST(? AS INTEGER) AND items.recurrence='none' ORDER BY items.due_at ASC",
                 new String[]{String.valueOf(end), String.valueOf(start)})) {
             while (c.moveToNext()) {
                 JSONObject o = normalizeNexoFamiliaStatusForRead(itemJson(c));
@@ -1954,7 +1954,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     if (occ == null) continue;
                     long actual = occ.optLong("dueAt", occurrenceAt);
                     long actualEnd = occ.optLong("endAt", actual);
-                    if (actual > end || actualEnd < start) continue;
+                    if (actual > end || (actualEnd > actual ? actualEnd <= start : actual < start)) continue;
                     rows.add(occ); emitted.add(occurrenceAt);
                 }
                 // Excepciones movidas desde otra fecha hacia el rango actual.
