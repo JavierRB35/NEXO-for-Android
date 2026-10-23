@@ -1,4 +1,4 @@
-/* Nexo 3.7.59 · Agenda diaria completa, movimiento y cambio de duración. */
+/* Nexo 3.7.60 · Agenda diaria completa, movimiento y cambio de duración. */
 (function(){
   'use strict';
   const PX_PER_MINUTE=1.6;
