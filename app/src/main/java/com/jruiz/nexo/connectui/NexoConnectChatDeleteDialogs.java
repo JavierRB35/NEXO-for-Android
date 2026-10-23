@@ -29,15 +29,25 @@ final class NexoConnectChatDeleteDialogs {
                     " en este teléfono. Esta acción no se puede deshacer. El contacto seguirá vinculado.")
             .setNegativeButton("Cancelar",null)
             .setPositiveButton("Eliminar",(d,which)->{
-                try(SQLiteDatabase db=NexoConnectMigration.inbox(activity)){
-                    NexoConnectChatDeletion.deleteConversation(db,owner,peer,System.currentTimeMillis());
-                    Toast.makeText(activity,"Conversación eliminada",Toast.LENGTH_SHORT).show();
-                    completed.run();
-                }catch(Exception ex){
-                    new AlertDialog.Builder(activity).setTitle("No se pudo eliminar")
-                        .setMessage("El historial sigue disponible. Vuelve a intentarlo.")
-                        .setPositiveButton("Entendido",null).show();
-                }
+                new Thread(()->{
+                    boolean ok=false;
+                    try(SQLiteDatabase db=NexoConnectMigration.inbox(activity)){
+                        NexoConnectChatDeletion.deleteConversation(db,owner,peer,System.currentTimeMillis());
+                        ok=true;
+                    }catch(Exception ex){android.util.Log.w("NexoConnect","Local chat delete failed",ex);}
+                    final boolean success=ok;
+                    activity.runOnUiThread(()->{
+                        if(activity.isFinishing()||activity.isDestroyed())return;
+                        if(success){
+                            Toast.makeText(activity,"Conversación eliminada",Toast.LENGTH_SHORT).show();
+                            completed.run();
+                        }else{
+                            new AlertDialog.Builder(activity).setTitle("No se pudo eliminar")
+                                .setMessage("El historial sigue disponible. Vuelve a intentarlo.")
+                                .setPositiveButton("Entendido",null).show();
+                        }
+                    });
+                },"nexo-chat-remove").start();
             }).create();
         dialog.setOnShowListener(v->
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(RED));
