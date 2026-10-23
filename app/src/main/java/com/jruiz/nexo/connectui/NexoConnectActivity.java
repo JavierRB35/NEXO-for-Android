@@ -354,7 +354,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         if(!peer.equals(conversation)||messages==null||chatHistory==null)return;
         String name=NexoConnectChatStore.peerName(this,identity.accountId(),peer);conversationTitle.setText(name);
         try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){
-            var all=NexoConnectChatStore.messages(db,identity.accountId(),peer);StringBuilder stamp=new StringBuilder();for(var m:all)stamp.append(m.delivery).append(m.status);if(stamp.toString().equals(renderedMessages)&&messages.getChildCount()>0){markVisibleRead();return;}
+            var all=NexoConnectChatStore.messages(db,identity.accountId(),peer);StringBuilder stamp=new StringBuilder();for(var m:all)stamp.append(m.delivery).append(m.status).append(messageSelection!=null&&messageSelection.contains(m.delivery)?"checked":"");if(stamp.toString().equals(renderedMessages)&&messages.getChildCount()>0){markVisibleRead();return;}
             boolean atBottom=messages.getChildCount()==0||chatHistory.getScrollY()+chatHistory.getHeight()>=messages.getHeight()-px(64);int previousY=chatHistory.getScrollY();renderedMessages=stamp.toString();messages.removeAllViews();String date="";
             if(all.isEmpty()){TextView empty=text("Empieza la conversación con "+name+".",16,MUTED);empty.setGravity(android.view.Gravity.CENTER);empty.setPadding(px(16),px(40),px(16),px(40));messages.addView(empty);}
             for(var m:all){String day=android.text.format.DateFormat.format("dd MMM yyyy",m.time).toString();if(!day.equals(date)){TextView separator=text(day,12,MUTED);separator.setGravity(android.view.Gravity.CENTER);separator.setPadding(0,px(12),0,px(12));messages.addView(separator);date=day;}
