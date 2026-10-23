@@ -291,11 +291,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Argumento opcional: migración aditiva sin modificar libros ni películas existentes.
             if (!columnExists(db, "books", "synopsis")) db.execSQL("ALTER TABLE books ADD COLUMN synopsis TEXT NOT NULL DEFAULT ''");
             if (!columnExists(db, "media_items", "synopsis")) db.execSQL("ALTER TABLE media_items ADD COLUMN synopsis TEXT NOT NULL DEFAULT ''");
-            if (oldVersion < 34) {
+        }
+        if (oldVersion < 34) {
             // Solo tablas nuevas; conserva íntegramente la base anterior.
             VehicleRepository.createTables(db);
         }
-    }
     }
 
 
