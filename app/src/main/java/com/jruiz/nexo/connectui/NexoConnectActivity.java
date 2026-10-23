@@ -379,7 +379,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     @Override protected void onResume(){super.onResume();foreground=true;handler.removeCallbacks(poll);handler.postDelayed(poll,10000);markVisibleRead();}
     @Override protected void onPause(){foreground=false;handler.removeCallbacks(poll);super.onPause();}
     @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus)markVisibleRead();}
-    @Override public void onBackPressed(){if(conversation!=null)showChats();else super.onBackPressed();}
+    @Override public void onBackPressed(){if(messageSelection!=null&&messageSelection.active())messageSelection.clear();else if(conversation!=null)showChats();else super.onBackPressed();}
     private void showConversationMenu(UUID peer,String name){
         NexoConnectChatDeleteDialogs.showConversationMenu(this,name,
             ()->confirmDeleteConversation(peer,name));
