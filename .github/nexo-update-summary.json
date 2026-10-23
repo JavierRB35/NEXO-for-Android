@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.54",
-  "notes": "Connect permite retomar el alta del teléfono cuando quedó pendiente y volver a verificar el correo sin borrar la sesión. Los avisos indican cuándo debes esperar para pedir otro código. No cambian tus datos. Actualización opcional."
+  "versionName": "3.7.55",
+  "notes": "Conectar con personas ahora es más sencillo: un único código de seguridad, pantallas renovadas y recuperación de contactos ya vinculados. Mantiene la verificación de identidad y tus datos. Actualización opcional."
 }
