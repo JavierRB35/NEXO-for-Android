@@ -4438,6 +4438,11 @@ function init(){
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
   $('#nexoChatOpen')?.addEventListener('click',()=>NexoNative.openNexoChat());
+  [['#nexoConnectProfileOpen','profile'],['#nexoConnectGenerateOpen','generate'],['#nexoConnectPairOpen','pair']]
+    .forEach(([id,action])=>$(id)?.addEventListener('click',()=>{
+      try{NexoNative.openNexoConnectSettings(action);}
+      catch(_){toast('No se pudo abrir Nexo Connect.');}
+    }));
   $('#nexoConnectEmbeddedOpen')?.addEventListener('click',()=>{
     try{
       if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;
