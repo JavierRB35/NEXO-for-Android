@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="time-grid.css">
+  <link rel="stylesheet" href="vehicles.css">
 <style>
 [data-nav="inbox"]{position:relative}
 .inbox-nav-badge{position:absolute;top:2px;left:calc(50% + 5px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#c62828;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;pointer-events:none}
@@ -142,6 +143,12 @@
       </div>
     </section>
 
+    <section class="tool-group">
+      <div class="section-heading"><div><h2>Mis vehículos</h2></div></div>
+      <div class="module-grid tools-grid">
+        <button class="module-tile" type="button" data-panel="vehicles"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-car"></use></svg><span><strong>Mantenimiento</strong><small>Revisiones, kilómetros e historial</small></span></button>
+      </div>
+    </section>
     <section class="tool-group">
       <div class="section-heading"><div><h2>Mis lugares</h2></div></div>
       <div class="module-grid tools-grid">
@@ -622,6 +629,6 @@
   <div id="toast" class="toast hidden" aria-live="polite">
 <span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button>
 </div>
-  <script src="navigation.js"></script><script src="app.js"></script><script src="time-grid.js"></script><script src="books.js"></script><script src="media.js"></script>
+  <script src="navigation.js"></script><script src="app.js"></script><script src="time-grid.js"></script><script src="books.js"></script><script src="media.js"></script><script src="vehicles.js"></script>
 </body>
 </html>
