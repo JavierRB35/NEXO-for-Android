@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.56",
-  "notes": "Nexo Connect: Mi perfil con nombre y foto, contactos con avatar y alias privado, vinculación desde Ajustes y navegación más fluida en Chat. El perfil solo se comparte cifrado con contactos verificados. Actualización opcional."
+  "versionName": "3.7.57",
+  "notes": "Nexo Connect: borrar una conversación deslizando a la izquierda o manteniéndola pulsada; eliminar uno o varios mensajes para mí, con confirmación, papelera roja y aviso. No se eliminan contactos ni mensajes del otro teléfono. Actualización opcional."
 }

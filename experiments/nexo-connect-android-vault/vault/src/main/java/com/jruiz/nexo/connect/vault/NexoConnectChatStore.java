@@ -117,7 +117,7 @@ public final class NexoConnectChatStore {
         }
         e.commit();
     }
-    public static void schema(SQLiteDatabase db){db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_reads(account TEXT NOT NULL,peer TEXT NOT NULL,delivery TEXT NOT NULL,confirmed INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(account,peer,delivery))");db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_outgoing(delivery TEXT PRIMARY KEY,account TEXT NOT NULL,peer TEXT NOT NULL,body TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL)");}
+    public static void schema(SQLiteDatabase db){db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_reads(account TEXT NOT NULL,peer TEXT NOT NULL,delivery TEXT NOT NULL,confirmed INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(account,peer,delivery))");db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_outgoing(delivery TEXT PRIMARY KEY,account TEXT NOT NULL,peer TEXT NOT NULL,body TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL)");NexoConnectChatDeletion.schema(db);}
     public static void pending(SQLiteDatabase db,UUID account,UUID peer,UUID delivery,JSONObject data)throws Exception {
         schema(db);String sealed=new NexoConnectSealedNoteStore(account,delivery).sealForChat(data);
         db.execSQL("INSERT INTO nexo_chat_outgoing VALUES(?,?,?,?,?,?)",new Object[]{delivery.toString(),account.toString(),peer.toString(),sealed,"sending",System.currentTimeMillis()});
@@ -128,12 +128,12 @@ public final class NexoConnectChatStore {
         Message(String delivery,String text,String status,boolean out,long time){this.delivery=delivery;this.text=text;this.status=status;outgoing=out;this.time=time;}
     }
     public static List<Message> messages(SQLiteDatabase db,UUID account,UUID peer)throws Exception {
-        schema(db);NexoConnectChatBackup.schema(db);List<Message> result=new ArrayList<>();Set<String> seen=new HashSet<>();
+        schema(db);NexoConnectChatBackup.schema(db);NexoConnectChatDeletion.Visibility visible=NexoConnectChatDeletion.visibility(db,account,peer);List<Message> result=new ArrayList<>();Set<String> seen=new HashSet<>();
         try(Cursor c=db.rawQuery("SELECT delivery,body,status,created_at FROM nexo_chat_outgoing WHERE account=? AND peer=? ORDER BY created_at DESC LIMIT 200",new String[]{account.toString(),peer.toString()})){
             while(c.moveToNext()){
                 seen.add(c.getString(0));
                 JSONObject body=parse(new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1)));
-                if("message".equals(body.getString("kind")))result.add(new Message(c.getString(0),body.getString("text"),c.getString(2),true,c.getLong(3)));
+                if("message".equals(body.getString("kind"))&&!visible.hidden(c.getString(0),body.getLong("sentAt")))result.add(new Message(c.getString(0),body.getString("text"),c.getString(2),true,c.getLong(3)));
             }
         }
         try(Cursor c=db.rawQuery("SELECT r.delivery_id,i.body,r.imported_at FROM nexo_connect_import_receipts r JOIN items i ON i.id=r.local_id WHERE r.sender_id=? AND r.entity_type='note' ORDER BY r.imported_at DESC LIMIT 200",new String[]{peer.toString()})){
@@ -141,11 +141,11 @@ public final class NexoConnectChatStore {
                 seen.add(c.getString(0));
                 JSONObject data=new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1));
                 if(!CATEGORY.equals(data.optString("category")))continue;JSONObject body=parse(data);
-                if("message".equals(body.getString("kind")))result.add(new Message(c.getString(0),body.getString("text"),"received",false,c.getLong(2)));
+                if("message".equals(body.getString("kind"))&&!visible.hidden(c.getString(0),body.getLong("sentAt")))result.add(new Message(c.getString(0),body.getString("text"),"received",false,c.getLong(2)));
             }
         }
         try(Cursor c=db.rawQuery("SELECT delivery,body,status,created_at,outgoing FROM nexo_chat_restored WHERE account=? AND peer=?",new String[]{account.toString(),peer.toString()})){
-            while(c.moveToNext()){if(!seen.add(c.getString(0)))continue;JSONObject body=parse(new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1)));result.add(new Message(c.getString(0),body.getString("text"),c.getString(2),c.getInt(4)==1,c.getLong(3)));}
+            while(c.moveToNext()){if(!seen.add(c.getString(0)))continue;JSONObject body=parse(new NexoConnectSealedNoteStore(account,UUID.fromString(c.getString(0))).read(c.getString(1)));if("message".equals(body.getString("kind"))&&!visible.hidden(c.getString(0),body.getLong("sentAt")))result.add(new Message(c.getString(0),body.getString("text"),c.getString(2),c.getInt(4)==1,c.getLong(3)));}
         }
         result.sort(java.util.Comparator.comparingLong(m->m.time));return result;
     }

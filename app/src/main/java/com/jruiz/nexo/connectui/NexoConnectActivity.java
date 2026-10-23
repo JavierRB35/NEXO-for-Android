@@ -19,6 +19,8 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     private ScrollView chatHistory;
     private boolean foreground;
     private String renderedMessages="";
+    private NexoConnectMessageSelection messageSelection;
+    private final Map<UUID,android.view.View> conversationRows=new HashMap<>();
     private final java.util.Map<UUID,String> drafts=new java.util.HashMap<>();
     private static final int INK=0xff142337,MUTED=0xff526177,GREEN=0xff0f766e,PAPER=0xfff7f9fc;
     private int px(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
@@ -307,12 +309,20 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         }catch(Exception e){showError("No se pudieron abrir tus personas.");}
     }
     private void showChats(){showChats(true);}
+    // The local chat-history controls preserve identity and contact pins.
     private void showChats(boolean refresh){
-        conversation=null;chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
+        conversation=null;messageSelection=null;conversationRows.clear();chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
         LinearLayout root=chatShell("Chat",null,this::finish);ScrollView scroll=new ScrollView(this);LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(px(16),px(16),px(16),px(16));scroll.addView(list);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){var peers=trusted.listActive();if(peers.isEmpty())list.addView(text("Añade a alguien para empezar a conversar.",16,MUTED));
             for(var p:peers){String name=contactName(p);var history=NexoConnectChatStore.messages(db,identity.accountId(),p.peerId);var last=history.isEmpty()?null:history.get(history.size()-1);
-                LinearLayout row=new LinearLayout(this);row.setGravity(android.view.Gravity.CENTER_VERTICAL);row.setPadding(px(12),px(12),px(12),px(12));row.setBackground(surface(android.graphics.Color.WHITE,16));LinearLayout.LayoutParams rowParams=new LinearLayout.LayoutParams(-1,-2);rowParams.bottomMargin=px(8);list.addView(row,rowParams);
+                if(last==null&&NexoConnectChatDeletion.wasCleared(db,identity.accountId(),p.peerId))continue;
+                LinearLayout row=new LinearLayout(this);row.setGravity(android.view.Gravity.CENTER_VERTICAL);row.setPadding(px(12),px(12),px(12),px(12));row.setBackground(surface(android.graphics.Color.WHITE,16));LinearLayout.LayoutParams rowParams=new LinearLayout.LayoutParams(-1,-2);rowParams.bottomMargin=px(8);
+                android.widget.FrameLayout card=NexoConnectChatRowActions.wrap(this,row,
+                    ()->openConversation(p.peerId),
+                    ()->showConversationMenu(p.peerId,name),
+                    ()->confirmDeleteConversation(p.peerId,name));
+                conversationRows.put(p.peerId,card);
+                list.addView(card,rowParams);
                 row.addView(avatarView(p.peerId,name,48),new LinearLayout.LayoutParams(px(48),px(48)));LinearLayout copy=new LinearLayout(this);copy.setOrientation(LinearLayout.VERTICAL);copy.setPadding(px(12),0,0,0);TextView title=text(name,16,INK);title.setTypeface(null,android.graphics.Typeface.BOLD);copy.addView(title);TextView preview=text(last==null?"Empieza la conversación":(last.outgoing?"Tú: ":"")+last.text,14,MUTED);preview.setMaxLines(2);preview.setEllipsize(android.text.TextUtils.TruncateAt.END);copy.addView(preview);row.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
                 row.setContentDescription(name+(last==null?"":", "+preview.getText()));row.setFocusable(true);row.setOnClickListener(v->openConversation(p.peerId));
             }
@@ -325,6 +335,18 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     }
     private void openConversation(UUID peer){
         conversation=peer;renderedMessages="";String name=NexoConnectChatStore.peerName(this,identity.accountId(),peer);LinearLayout root=chatShell(name,peer,this::showChats);
+        messageSelection=new NexoConnectMessageSelection(this,root,identity.accountId(),peer,
+            ()->{renderedMessages="";renderMessages(peer);},
+            ()->{
+                if(!peer.equals(conversation))return;
+                if(messages!=null){
+                    messages.animate().alpha(0.4f).setDuration(110).withEndAction(()->{
+                        if(!peer.equals(conversation))return;
+                        if(messages!=null)messages.setAlpha(1f);
+                        renderedMessages="";renderMessages(peer);
+                    }).start();
+                }else{renderedMessages="";renderMessages(peer);}
+            });
         chatHistory=new ScrollView(this);chatHistory.setFillViewport(true);chatHistory.setBackgroundColor(0xfff6f2e9);messages=new LinearLayout(this);messages.setOrientation(LinearLayout.VERTICAL);messages.setPadding(px(12),px(12),px(12),px(12));chatHistory.addView(messages);root.addView(chatHistory,new LinearLayout.LayoutParams(-1,0,1));chatHistory.setOnScrollChangeListener((v,x,y,ox,oy)->markVisibleRead());
         LinearLayout compose=new LinearLayout(this);compose.setGravity(android.view.Gravity.BOTTOM);compose.setPadding(px(8),px(8),px(8),px(8));compose.setBackgroundColor(android.graphics.Color.WHITE);
         EditText draft=new EditText(this);draft.setHint("Escribe un mensaje…");draft.setTextColor(INK);draft.setHintTextColor(MUTED);draft.setTextSize(16);draft.setMinHeight(px(48));draft.setMaxLines(5);draft.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);draft.setBackground(surface(PAPER,16));draft.setPadding(px(12),px(10),px(12),px(10));draft.setText(drafts.getOrDefault(peer,""));draft.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence a,int st,int count,int after){}public void onTextChanged(CharSequence value,int st,int before,int count){drafts.put(peer,value.toString());}public void afterTextChanged(android.text.Editable e){}});
@@ -337,15 +359,15 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         if(!peer.equals(conversation)||messages==null||chatHistory==null)return;
         String name=NexoConnectChatStore.peerName(this,identity.accountId(),peer);conversationTitle.setText(name);
         try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){
-            var all=NexoConnectChatStore.messages(db,identity.accountId(),peer);StringBuilder stamp=new StringBuilder();for(var m:all)stamp.append(m.delivery).append(m.status);if(stamp.toString().equals(renderedMessages)&&messages.getChildCount()>0){markVisibleRead();return;}
+            var all=NexoConnectChatStore.messages(db,identity.accountId(),peer);StringBuilder stamp=new StringBuilder();for(var m:all)stamp.append(m.delivery).append(m.status).append(messageSelection!=null&&messageSelection.contains(m.delivery)?"checked":"");if(stamp.toString().equals(renderedMessages)&&messages.getChildCount()>0){markVisibleRead();return;}
             boolean atBottom=messages.getChildCount()==0||chatHistory.getScrollY()+chatHistory.getHeight()>=messages.getHeight()-px(64);int previousY=chatHistory.getScrollY();renderedMessages=stamp.toString();messages.removeAllViews();String date="";
             if(all.isEmpty()){TextView empty=text("Empieza la conversación con "+name+".",16,MUTED);empty.setGravity(android.view.Gravity.CENTER);empty.setPadding(px(16),px(40),px(16),px(40));messages.addView(empty);}
             for(var m:all){String day=android.text.format.DateFormat.format("dd MMM yyyy",m.time).toString();if(!day.equals(date)){TextView separator=text(day,12,MUTED);separator.setGravity(android.view.Gravity.CENTER);separator.setPadding(0,px(12),0,px(12));messages.addView(separator);date=day;}
-                LinearLayout row=new LinearLayout(this);row.setGravity(m.outgoing?android.view.Gravity.END:android.view.Gravity.START);LinearLayout bubble=new LinearLayout(this);bubble.setOrientation(LinearLayout.VERTICAL);bubble.setPadding(px(12),px(10),px(12),px(8));bubble.setBackground(surface(m.outgoing?0xfffff4d6:android.graphics.Color.WHITE,16));
-                TextView content=text(m.text,16,INK);content.setTextIsSelectable(true);content.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.78));bubble.addView(content);LinearLayout meta=new LinearLayout(this);meta.setGravity(android.view.Gravity.END|android.view.Gravity.CENTER_VERTICAL);meta.setPadding(0,px(6),0,0);
+                LinearLayout row=new LinearLayout(this);row.setGravity(m.outgoing?android.view.Gravity.END:android.view.Gravity.START);LinearLayout bubble=new LinearLayout(this);bubble.setOrientation(LinearLayout.VERTICAL);bubble.setPadding(px(12),px(10),px(12),px(8));bubble.setBackground(surface(messageSelection!=null&&messageSelection.contains(m.delivery)?0xffc7ebe2:(m.outgoing?0xfffff4d6:android.graphics.Color.WHITE),16));
+                TextView content=text(m.text,16,INK);content.setTextIsSelectable(false);content.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.78));bubble.addView(content);LinearLayout meta=new LinearLayout(this);meta.setGravity(android.view.Gravity.END|android.view.Gravity.CENTER_VERTICAL);meta.setPadding(0,px(6),0,0);
                 if(m.outgoing&&"read".equals(m.status)){TextView reader=avatar(peer,name,22);reader.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_YES);reader.setContentDescription("Leído por "+name);reader.setTooltipText("Leído por "+name);LinearLayout.LayoutParams readerParams=new LinearLayout.LayoutParams(px(22),px(22));readerParams.rightMargin=px(6);meta.addView(reader,readerParams);}
                 String stateLabel=m.outgoing&&!"read".equals(m.status)?("sent".equals(m.status)?" · Enviado":" · No confirmado"):"";meta.addView(text(android.text.format.DateFormat.format("HH:mm",m.time)+stateLabel,12,MUTED));bubble.addView(meta);
-                LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-2,-2);bp.setMargins(m.outgoing?px(40):0,px(4),m.outgoing?0:px(40),px(4));row.addView(bubble,bp);if(!m.outgoing)row.setTag(m.delivery);messages.addView(row);
+                LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-2,-2);bp.setMargins(m.outgoing?px(40):0,px(4),m.outgoing?0:px(40),px(4));row.addView(bubble,bp);if(!m.outgoing)row.setTag(m.delivery);if(messageSelection!=null)messageSelection.bindBubble(bubble,m.delivery);messages.addView(row);
             }
             chatHistory.post(()->{if(!peer.equals(conversation)||chatHistory==null)return;if(atBottom)chatHistory.fullScroll(android.view.View.FOCUS_DOWN);else chatHistory.scrollTo(0,previousY);markVisibleRead();});
         }catch(Exception e){showError("No se pudo abrir el historial.");}
@@ -362,7 +384,22 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     @Override protected void onResume(){super.onResume();foreground=true;handler.removeCallbacks(poll);handler.postDelayed(poll,10000);markVisibleRead();}
     @Override protected void onPause(){foreground=false;handler.removeCallbacks(poll);super.onPause();}
     @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus)markVisibleRead();}
-    @Override public void onBackPressed(){if(conversation!=null)showChats();else super.onBackPressed();}
+    @Override public void onBackPressed(){if(messageSelection!=null&&messageSelection.active())messageSelection.clear();else if(conversation!=null)showChats();else super.onBackPressed();}
+    private void showConversationMenu(UUID peer,String name){
+        NexoConnectChatDeleteDialogs.showConversationMenu(this,name,
+            ()->confirmDeleteConversation(peer,name));
+    }
+    private void confirmDeleteConversation(UUID peer,String name){
+        NexoConnectChatDeleteDialogs.confirmConversation(this,identity.accountId(),peer,name,
+            ()->{
+                if(conversation!=null)return;
+                android.view.View card=conversationRows.get(peer);
+                if(card!=null){
+                    card.animate().alpha(0f).scaleY(0.86f).setDuration(170)
+                        .withEndAction(()->showChats(false)).start();
+                }else showChats(false);
+            });
+    }
     private void chooseSection(){new AlertDialog.Builder(this).setTitle("¿Qué quieres compartir?").setItems(NexoConnectHostShare.sections(),(d,i)->chooseEntry(NexoConnectHostShare.sectionKinds()[i])).show();}
     private void chooseEntry(String section){try(DatabaseHelper db=new DatabaseHelper(this)){
         var entries=NexoConnectHostShare.list(db,section);String[] names=new String[entries.size()];for(int i=0;i<names.length;i++)names[i]=entries.get(i).title;
