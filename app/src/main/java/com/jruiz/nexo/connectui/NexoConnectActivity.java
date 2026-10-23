@@ -79,9 +79,9 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     }
     @Override protected void onInvitationAccepted(){
         getSharedPreferences("nexo-connect-pending-invite",0).edit().remove("payload").apply();
-        new AlertDialog.Builder(this).setTitle("Invitación aceptada")
-            .setMessage("Para terminar, la otra persona debe añadir tu código y aceptar la conexión en Personas. Así los dos confirmáis con quién vais a compartir.")
-            .setNegativeButton("Más tarde",null).setPositiveButton("Mostrar mi código",(d,w)->showOwnQr()).show();
+        new AlertDialog.Builder(this).setTitle("Contacto añadido")
+            .setMessage("La conexión se ha confirmado en este teléfono. Para poder compartir en ambas direcciones, la otra persona debe comprobar también tu código desde Nexo → Personas.")
+            .setNegativeButton("Ahora no",null).setPositiveButton("Ver mi código",(d,w)->showOwnQr()).show();
     }
     @Override protected String contactName(AndroidPeerTrustStore.PeerPin p){return NexoConnectChatStore.peerName(this,identity.accountId(),p.peerId);}
     private void editName(){
@@ -94,7 +94,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         }));dialog.show();
     }
     @Override protected void onInvitationCreated(String payload,android.graphics.Bitmap qr){
-        label("Pendiente de aceptar",18);
+        label("Comparte esta invitación por WhatsApp o en persona. La otra persona abrirá el archivo con Nexo.",16);
         button("Compartir invitación",()->{
             try{
                 java.io.File dir=new java.io.File(getCacheDir(),"connect-invites");if(!dir.exists()&&!dir.mkdirs())throw new java.io.IOException();
@@ -122,15 +122,26 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     }
     private void people(){
         conversation=null;screen("Personas",true);
-        button("Añadir con un código QR",this::openScanner);
-        button("Mi código QR",this::showOwnQr);
-        button("Abrir una imagen QR",this::openImageQr);
-        button("Invitar a una persona",this::showInvite);
-        label("La otra persona debe activar su cuenta y aceptar la conexión antes de recibir fichas o mensajes.",15);
-        try{for(var p:trusted.listActive()){
-            label(contactName(p),18);
-            button("Aceptar conexión",()->runWork(()->{client.verifyStoredPeer(trusted,p.peerId);client.setReceiving(trusted,p.peerId,true);return true;},v->people()));
-        }}catch(Exception e){showError("No se pudieron abrir tus personas.");}
+        label("Conectar es sencillo: envía una invitación, confirmad un único código de seguridad y aceptad la conexión.",16);
+        button("Invitar a alguien",this::showInvite);
+        button("Abrir invitación / escanear QR",this::openScanner);
+        button("Abrir QR desde una imagen",this::openImageQr);
+        button("Mi código QR y de seguridad",this::showOwnQr);
+        try{
+            var peers=trusted.listActive();
+            label(peers.isEmpty()?"Aún no hay personas guardadas.":"Mis personas",19);
+            for(var p:peers){
+                label(contactName(p),18);
+                button("Comprobar conexión",()->runWork(()->{
+                    client.verifyStoredPeer(trusted,p.peerId);
+                    client.setReceiving(trusted,p.peerId,true);
+                    return true;
+                },v->{new AlertDialog.Builder(this)
+                    .setTitle("Contacto preparado")
+                    .setMessage("La identidad coincide y este teléfono puede recibir sus mensajes y fichas. Para compartir también desde el otro móvil, debe confirmar tu código.")
+                    .setPositiveButton("Entendido",(d,w)->people()).show();}));
+            }
+        }catch(Exception e){showError("No se pudieron abrir tus personas.");}
     }
     private void showChats(){showChats(true);}
     private void showChats(boolean refresh){

@@ -1,3 +1,10 @@
+## Nexo 3.7.55 — Personas y conexión más sencilla
+- Un único código de seguridad de 16 caracteres en cuatro grupos sustituye la introducción manual de dos huellas completas. Debe comprobarse con la otra persona por un medio independiente; el dispositivo conserva y verifica las dos claves públicas completas.
+- Pantallas de invitaciones y aceptación de contacto renovadas con estética Nexo, botones destacados y textos claros.
+- Si una invitación se vuelve a aceptar cuando la relación ya está activa, Nexo comprueba de forma firmada el contacto existente antes de permitir continuar. Un código incorrecto o una relación no autorizada nunca activa la conexión.
+- Confirmación de la segunda persona simplificada, con comprobación automática cuando hay relación autorizada.
+- Actualización opcional, versionCode 148, misma aplicación, esquema SQLite 33 y firma Release oficial.
+
 ## Nexo 3.7.54 — Continuar el registro de Connect sin bloqueo
 - Cuando el usuario ya verificó su correo pero aún no ha terminado la confirmación del teléfono, Connect puede reanudar desde la sesión guardada sin exigir un teléfono ya autorizado.
 - El estado confirmado sigue exigiendo comprobación firmada; un teléfono nuevo o sustituido necesita un código nuevo y consentimiento explícito. Un estado inconcluso nunca autoriza automáticamente.

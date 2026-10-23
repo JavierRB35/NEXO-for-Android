@@ -86,6 +86,7 @@ public class NexoConnectPilotActivity extends Activity {
     protected final LinearLayout screen(String name,boolean back){
         ScrollView sc=new ScrollView(this);
         sc.setFillViewport(true);
+        sc.setBackgroundColor(0xfff7f9fc);
         LinearLayout body=new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
         int pad=dp(18);
@@ -93,8 +94,12 @@ public class NexoConnectPilotActivity extends Activity {
         sc.addView(body);
         setContentView(sc);
         column=body;
-        label("com.jruiz.nexo".equals(getPackageName())?"Nexo":"Nexo Connect",14);
-        label(name,22);
+        TextView brand=label("NEXO",13);
+        brand.setTextColor(0xff0f766e);
+        brand.setTypeface(null,android.graphics.Typeface.BOLD);
+        TextView heading=label(name,24);
+        heading.setTextColor(0xff142337);
+        heading.setTypeface(null,android.graphics.Typeface.BOLD);
 
         if(back)button("← Volver",()->showHome());
         return body;
@@ -103,11 +108,26 @@ public class NexoConnectPilotActivity extends Activity {
     protected final TextView label(String text,int font){
         TextView v=new TextView(this);
         v.setText(text);v.setTextSize(font);v.setTextIsSelectable(true);
-        v.setPadding(0,dp(7),0,dp(7));column.addView(v);return v;
+        v.setTextColor(0xff142337);
+        v.setPadding(0,dp(7),0,dp(9));column.addView(v);return v;
     }
     protected final Button button(String text,Runnable action){
-        Button b=new Button(this);b.setText(text);b.setAllCaps(false);
-        column.addView(b,new LinearLayout.LayoutParams(-1,-2));
+        Button b=new Button(this);
+        b.setText(text);b.setTextSize(16);b.setAllCaps(false);
+        boolean secondary=text.startsWith("←")||text.startsWith("Volver")||
+                text.startsWith("Seguir usando")||text.startsWith("Cancelar")||
+                text.startsWith("Mi código")||text.startsWith("Detalles");
+        android.graphics.drawable.GradientDrawable shape=
+                new android.graphics.drawable.GradientDrawable();
+        shape.setColor(secondary?android.graphics.Color.WHITE:0xff0f766e);
+        shape.setCornerRadius(dp(13));
+        if(secondary)shape.setStroke(dp(1),0xffcbd5e1);
+        b.setBackground(shape);
+        b.setTextColor(secondary?0xff0f766e:android.graphics.Color.WHITE);
+        b.setMinHeight(dp(50));
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,dp(50));
+        params.bottomMargin=dp(10);
+        column.addView(b,params);
         b.setOnClickListener(v->{if(!busy)action.run();});
         return b;
     }
@@ -160,7 +180,14 @@ public class NexoConnectPilotActivity extends Activity {
             if(status>=500)
                 return "El servicio de verificación no está disponible ahora. No se han borrado tu sesión ni tus datos.";
         }
-        return "No se ha podido completar la operación. Comprueba tu conexión. Puedes continuar la verificación sin borrar los datos de Nexo.";
+        if(failure instanceof NexoConnectSignedGatewayClient.TransportException){
+            int code=((NexoConnectSignedGatewayClient.TransportException)failure).httpStatus;
+            if(code==503)
+                return "Nexo Connect no ha podido confirmar esta operación. Si estabas aceptando una invitación, puede haber caducado o el contacto ya estar vinculado. Abre Personas para comprobarlo o solicita una invitación nueva.";
+            if(code==403)
+                return "No se ha podido validar este teléfono o contacto. Comprueba que los dos estáis usando vuestra cuenta y la versión actual de Nexo.";
+        }
+        return "No hemos podido terminar la operación. Tus datos siguen guardados. Comprueba tu conexión y vuelve a intentarlo desde Personas.";
     }
 
     protected void showError(String text){
@@ -452,7 +479,7 @@ public class NexoConnectPilotActivity extends Activity {
     /**
      * Alternative to scanning with the emulator camera. A selected image is
      * decoded locally; it is NOT proof of identity on its own. The existing
-     * independent dual-SHA-256 verification UI is mandatory before pinning.
+     * independent safety-code check, full-key pinning and consent remain mandatory.
      */
     protected void openImageQr(){
         try{
@@ -490,7 +517,7 @@ public class NexoConnectPilotActivity extends Activity {
                 screen("Invitación privada",true);
                 label("Muestra esta invitación a la persona con la que "+
                       "quieras conectar. Antes de autorizar, los dos deberéis "+
-                      "comprobar los códigos de seguridad por otro medio.",14);
+                      "confirmar un único código de seguridad por llamada o en persona.",14);
                 Bitmap qr=NexoConnectOwnQrView.encodeQrBitmap(
                         invite.qrPayload,Math.max(384,
                                 Math.min(getResources().getDisplayMetrics().widthPixels-50,720)));
@@ -517,22 +544,50 @@ public class NexoConnectPilotActivity extends Activity {
         final UUID id;
         try{id=UUID.fromString(peer);}catch(Exception ex){showError("QR inválido");return;}
         if(invitation!=null){
-            new AlertDialog.Builder(this).setTitle("Aceptar invitación")
-                .setMessage("Has comprobado la identidad QR de tu contacto. "+
-                    "¿Quieres enlazar y autorizar recibir mensajes de esta cuenta?")
-                .setNegativeButton("Cancelar",(d,w)->showHome())
-                .setPositiveButton("Sí, aceptar",(d,w)->runWork(()->{
-                    client.acceptVerifiedInvitation(invitation,trusted,true);
-                    client.verifyStoredPeer(trusted,id);
+            new AlertDialog.Builder(this).setTitle("Añadir esta persona")
+                .setMessage("Código de seguridad comprobado. ¿Quieres permitir conversar y compartir fichas con esta persona?")
+                .setNegativeButton("Ahora no",(d,w)->showHome())
+                .setPositiveButton("Sí, conectar",(d,w)->runWork(()->{
+                    boolean newlyLinked=true;
+                    try{
+                        client.acceptVerifiedInvitation(invitation,trusted,true);
+                    }catch(NexoConnectSignedGatewayClient.TransportException unexpected){
+                        if(unexpected.httpStatus!=503)throw unexpected;
+                        // Recovery is safe only if the signed server endpoint
+                        // independently confirms a PREEXISTING active relationship
+                        // to the locally fingerprint-pinned peer. Never bypass trust.
+                        try{client.verifyStoredPeer(trusted,id);newlyLinked=false;}
+                        catch(Exception unlinked){throw unexpected;}
+                    }
+                    if(newlyLinked)client.verifyStoredPeer(trusted,id);
                     client.setReceiving(trusted,id,true);
                     return id;
-                },v->{onInvitationAccepted();lastMessage="Vínculo solicitado y verificación de "+
-                      "contacto completada. Debe verificarse también en el otro móvil.";
-                      showHome();})).show();
+                },v->{onInvitationAccepted();
+                    lastMessage="Identidad comprobada. Contacto conectado. La otra persona debe confirmar también tu código.";
+                    showHome();})).show();
         }else{
-            lastMessage="Identidad QR guardada en este móvil. Si ya existe "+
-                    "invitación aceptada, verifica el contacto en el servidor.";
-            showHome();
+            // The verified identity was pinned locally first. A second signed,
+            // server-side check is required before allowing this contact to
+            // send anything; mere possession of a QR never grants access.
+            runWork(()->{
+                try{
+                    client.verifyStoredPeer(trusted,id);
+                    client.setReceiving(trusted,id,true);
+                    return Boolean.TRUE;
+                }catch(NexoConnectSignedGatewayClient.TransportException status){
+                    if(status.httpStatus==403||status.httpStatus==503)
+                        return Boolean.FALSE;
+                    throw status;
+                }
+            },out->{
+                boolean connected=Boolean.TRUE.equals(out);
+                new AlertDialog.Builder(this)
+                    .setTitle(connected?"Contacto conectado":"Identidad comprobada")
+                    .setMessage(connected?
+                        "La otra persona ya está autorizada y podéis compartir mensajes y fichas.":
+                        "El código es correcto y está guardado, pero el servidor todavía no ha confirmado la conexión. La otra persona debe aceptar tu invitación; luego podrás comprobarla desde Personas.")
+                    .setPositiveButton("Entendido",(d,w)->showHome()).show();
+            });
         }
     }
     /** Friendly local names: no cloud lookup, no identity or QR key change. */

@@ -72,18 +72,20 @@ public final class NexoConnectQrScannerActivity extends Activity {
         }
         screen=new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
+        screen.setBackgroundColor(0xfff7f9fc);
         int dp=(int)(18*getResources().getDisplayMetrics().density);
         screen.setPadding(dp,dp,dp,dp);
         setContentView(screen);
-        title("Nexo Connect · Verificar QR");
-        title("Escanea el QR del contacto. Después tendrás que cotejar ambas "+
-                "huellas SHA-256 por un canal de confianza distinto del QR.");
+        title("Nexo  ·  Añadir persona");
+        title("Escanea su QR o abre la invitación recibida. Después confirma un solo código de seguridad con esa persona.");
         Button scan=new Button(this);
-        scan.setText("Abrir cámara y escanear QR");
+        scan.setText("Escanear QR con cámara");
+        styleButton(scan);
         screen.addView(scan);
         scan.setOnClickListener(v->startScan());
         Button file=new Button(this);
-        file.setText("Importar una imagen QR (sin cámara)");
+        file.setText("Abrir QR desde una imagen");
+        styleButton(file);
         screen.addView(file);
         file.setOnClickListener(v->startImagePicker());
         if(state==null){
@@ -174,7 +176,7 @@ public final class NexoConnectQrScannerActivity extends Activity {
         showUntrustedQr(scanned.getContents());
     }
 
-    /** Shared path: both file and camera require independent full fingerprints. */
+    /** Shared path: both file and camera require independent human safety code. */
     private void showUntrustedQr(String raw){
         try {
             final NexoConnectInvitationQr invitation;
@@ -208,7 +210,7 @@ public final class NexoConnectQrScannerActivity extends Activity {
                     // keeps user on verification without silently trusting.
                 }
             });
-            // UI must continue to require independent full hashes and consent.
+            // UI requires a full-key-derived independent safety code and consent.
             setContentView(verification);
         }catch(Exception invalid){
             title("QR inválido o no pertenece al protocolo Nexo Connect.");
@@ -226,10 +228,25 @@ public final class NexoConnectQrScannerActivity extends Activity {
         return pin;
     }
 
+    private void styleButton(Button button){
+        button.setAllCaps(false);
+        button.setTextColor(android.graphics.Color.WHITE);
+        android.graphics.drawable.GradientDrawable background=
+                new android.graphics.drawable.GradientDrawable();
+        background.setColor(0xff0f766e);
+        background.setCornerRadius(16*getResources().getDisplayMetrics().density);
+        button.setBackground(background);
+        button.setMinHeight((int)(52*getResources().getDisplayMetrics().density));
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,
+                (int)(52*getResources().getDisplayMetrics().density));
+        params.bottomMargin=(int)(12*getResources().getDisplayMetrics().density);
+        button.setLayoutParams(params);
+    }
     private void title(String value){
         TextView label=new TextView(this);
         label.setText(value);
         label.setTextSize(17);
+        label.setTextColor(0xff142337);
         label.setPadding(0,0,0,20);
         screen.addView(label);
     }

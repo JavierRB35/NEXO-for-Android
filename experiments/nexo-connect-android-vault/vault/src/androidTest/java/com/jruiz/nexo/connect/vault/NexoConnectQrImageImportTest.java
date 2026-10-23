@@ -68,14 +68,13 @@ public final class NexoConnectQrImageImportTest {
         AndroidPeerTrustStore store=new AndroidPeerTrustStore(APP,owner);
         assertNull("Reading an image must never establish trust",store.findActive(peer));
         try {
-            QrTrustConfirmationView.requireHumanVerification(parsed,
-                    parsed.signingFingerprint(),parsed.encryptionFingerprint(),
-                    false,true);
+            NexoConnectSafetyCode.verify(parsed,
+                    NexoConnectSafetyCode.forPeer(parsed),false,true);
             fail("Independent-channel verification was not enforced");
         }catch(GeneralSecurityException expected){}
         try {
-            QrTrustConfirmationView.requireHumanVerification(parsed,
-                    "0".repeat(64),parsed.encryptionFingerprint(),true,true);
+            NexoConnectSafetyCode.verify(parsed,
+                    "0000000000000000",true,true);
             fail("Wrong signing key was accepted");
         }catch(GeneralSecurityException expected){}
         assertNull(store.findActive(peer));

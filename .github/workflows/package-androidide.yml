@@ -53,6 +53,7 @@ jobs:
           python3 validation/test-ui-structure.py
           python3 validation/test-version-identity.py
           python3 validation/test-connect-registration-recovery.py
+          python3 validation/test-connect-friendly-pairing.py
           python3 validation/test-related-links.py
           node validation/test-list-quick-runtime.cjs
           python3 validation/test-books-compact.py
@@ -77,6 +78,12 @@ jobs:
           JAVA_OPTS: -Xmx1536m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
         run: gradle assembleDebug --no-daemon --max-workers=1
 
+      - name: Compile Connect Android instrumented tests
+        shell: bash
+        env:
+          JAVA_OPTS: -Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
+        run: gradle :connectVault:assembleDebugAndroidTest --no-daemon --max-workers=1
+
       - name: Verify expected build output
         shell: bash
         run: |
@@ -88,7 +95,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          STAGE="$RUNNER_TEMP/Nexo_3_7_54_AndroidIDE"
+          STAGE="$RUNNER_TEMP/Nexo_3_7_55_AndroidIDE"
           mkdir -p "$STAGE"
           git archive --format=tar HEAD | tar -x -C "$STAGE"
 
@@ -106,8 +113,8 @@ jobs:
       - name: Upload clean project
         uses: actions/upload-artifact@v4
         with:
-          name: Nexo_3_7_54_AndroidIDE
-          path: ${{ runner.temp }}/Nexo_3_7_54_AndroidIDE/
+          name: Nexo_3_7_55_AndroidIDE
+          path: ${{ runner.temp }}/Nexo_3_7_55_AndroidIDE/
           include-hidden-files: true
           if-no-files-found: error
           compression-level: 6
