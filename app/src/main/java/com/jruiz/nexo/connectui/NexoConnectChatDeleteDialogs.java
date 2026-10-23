@@ -64,16 +64,26 @@ final class NexoConnectChatDeleteDialogs {
                     " solo de este teléfono.")
             .setNegativeButton("Cancelar",null)
             .setPositiveButton("Eliminar para mí",(d,which)->{
-                try(SQLiteDatabase db=NexoConnectMigration.inbox(activity)){
-                    NexoConnectChatDeletion.deleteMessages(db,owner,peer,deliveries);
-                    Toast.makeText(activity,count==1?"Mensaje eliminado":"Mensajes eliminados",
-                            Toast.LENGTH_SHORT).show();
-                    completed.run();
-                }catch(Exception ex){
-                    new AlertDialog.Builder(activity).setTitle("No se pudo eliminar")
-                        .setMessage("Los mensajes siguen disponibles. Vuelve a intentarlo.")
-                        .setPositiveButton("Entendido",null).show();
-                }
+                new Thread(()->{
+                    boolean ok=false;
+                    try(SQLiteDatabase db=NexoConnectMigration.inbox(activity)){
+                        NexoConnectChatDeletion.deleteMessages(db,owner,peer,deliveries);
+                        ok=true;
+                    }catch(Exception ex){android.util.Log.w("NexoConnect","Local messages delete failed",ex);}
+                    final boolean success=ok;
+                    activity.runOnUiThread(()->{
+                        if(activity.isFinishing()||activity.isDestroyed())return;
+                        if(success){
+                            Toast.makeText(activity,count==1?"Mensaje eliminado":"Mensajes eliminados",
+                                    Toast.LENGTH_SHORT).show();
+                            completed.run();
+                        }else{
+                            new AlertDialog.Builder(activity).setTitle("No se pudo eliminar")
+                                .setMessage("Los mensajes siguen disponibles. Vuelve a intentarlo.")
+                                .setPositiveButton("Entendido",null).show();
+                        }
+                    });
+                },"nexo-message-remove").start();
             }).create();
         dialog.setOnShowListener(v->
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(RED));
