@@ -1,4 +1,4 @@
-/* Nexo 3.7.60 · Agenda diaria completa, movimiento y cambio de duración. */
+/* Nexo 3.7.62 · Agenda diaria completa, movimiento y cambio de duración. */
 (function(){
   'use strict';
   const PX_PER_MINUTE=1.6;
@@ -127,13 +127,20 @@
         scroller=scroller.parentElement;
       }
       const rect=board.getBoundingClientRect();
-      const offset=Math.max(0,minute-15)*PX_PER_MINUTE;
+      const header=document.querySelector?.('.topbar');
+      const headerHeight=Math.max(0,header?.getBoundingClientRect?.().height||0);
+      const allDay=host.querySelector?.('.tgv-all-day');
+      const allDayHeight=Math.max(0,allDay?.getBoundingClientRect?.().height||0);
+      // La primera cita horaria debe quedar visible DEBAJO de los eventos
+      // de todo el día (anclados bajo la cabecera), no oculta tras ellos.
+      const visibleInset=headerHeight+12+(allDayHeight?allDayHeight+12:0);
+      const offset=Math.max(0,minute-8)*PX_PER_MINUTE;
       if(scroller){
         const origin=scroller.getBoundingClientRect().top;
-        const position=Math.max(0,scroller.scrollTop+rect.top-origin+offset-110);
+        const position=Math.max(0,scroller.scrollTop+rect.top-origin+offset-visibleInset);
         scroller.scrollTo?.({top:position,behavior:'instant'});
       }else if(typeof window.scrollTo==='function'){
-        const position=Math.max(0,(window.scrollY||0)+rect.top+offset-110);
+        const position=Math.max(0,(window.scrollY||0)+rect.top+offset-visibleInset);
         window.scrollTo({top:position,behavior:'instant'});
       }else return;
       host.dataset.tgvFocusedDay=iso;
@@ -180,8 +187,12 @@
     }).join('');
     host.classList.add('tgv-host');
     host.dataset.tgvDay=iso;
-    host.innerHTML=(allDay.length?'<div class="tgv-all-day"><span class="tgv-all-day-label">Todo el día</span>'+allDay.map((item,index)=>
-      '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
+    // Una sola referencia de altura para la cabecera sticky y la franja fija.
+    const topBar=document.querySelector?.('.topbar');
+    const topBarHeight=Math.max(0,Math.ceil(topBar?.getBoundingClientRect?.().height||0));
+    host.style?.setProperty?.('--tgv-top-offset',(topBarHeight+6)+'px');
+    host.innerHTML=(allDay.length?'<div class="tgv-all-day" role="region" aria-label="Eventos de todo el día"><span class="tgv-all-day-label">Todo el día · '+allDay.length+' evento'+(allDay.length===1?'':'s')+'</span>'+allDay.map((item,index)=>
+      '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'" title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr('Abrir '+fullLabel(item))+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</div>':'')+
       '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas, de 00:00 a 24:00">'+
       hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+
@@ -195,7 +206,7 @@
       const row=timed[Number(btn.dataset.tgvIndex)];
       attachDrag(btn,row,iso,host);
     });
-    if(timed.length)focusInitialHour(host,iso,Math.min(...timed.map(r=>r.start)));
+    focusInitialHour(host,iso,timed.length?Math.min(...timed.map(r=>r.start)):0);
   }
   /** Abre la ficha única que ya utiliza Nexo, con el apartado Editar plegado. */
   function openExistingDetail(item){

@@ -8,8 +8,8 @@ publisher = (root / ".github/workflows/publish-public-updates.yml").read_text()
 policy = json.loads((root / ".github/nexo-update-policy.json").read_text())
 gradle = (root / "app/build.gradle").read_text()
 
-assert policy == {"critical": False, "reason": ""}, "3.7.61 debe publicarse como opcional"
-assert "versionCode 154" in gradle and "versionName '3.7.61'" in gradle
+assert policy == {"critical": False, "reason": ""}, "3.7.62 debe publicarse como opcional"
+assert "versionCode 155" in gradle and "versionName '3.7.62'" in gradle
 assert 'result.put("critical", release.critical)' in java
 assert 'result.put("updateType", release.critical ? "critical" : "optional")' in java
 assert 'result.put("criticalReason", release.criticalReason)' in java

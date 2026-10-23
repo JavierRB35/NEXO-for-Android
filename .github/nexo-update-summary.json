@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.61",
-  "notes": "En Hoy y Calendario, la agenda se posiciona automáticamente en la primera cita del día. Chat muestra los mensajes sin leer en la barra inferior y permite activar las notificaciones Android; mejorada la comprobación de mensajes recibidos. Actualización opcional."
+  "versionName": "3.7.62",
+  "notes": "Agenda de HOY y CALENDARIO: los eventos de todo el día permanecen fijados sobre el horario mientras te desplazas; la primera cita con hora se muestra justo debajo. Si hay muchas actividades de todo el día, la franja se desplaza para consultarlas todas. Se conserva la ficha de evento y la edición por gestos. Actualización opcional."
 }

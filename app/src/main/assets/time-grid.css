@@ -8,7 +8,7 @@
 .tgv-head h2{font-size:1.35rem;line-height:1.18;color:#111c32;font-weight:750;margin:0}
 .tgv-head p{font-size:.92rem;color:#63728c;margin:5px 0 0}
 .tgv-back{width:40px;height:40px;min-width:40px;border-radius:12px;border:1px solid #e0e7ef;background:white;color:#36526e;font-weight:800}
-.tgv-host{display:block;min-width:0;margin:0;padding:0 0 12px}
+.tgv-host{display:block;min-width:0;margin:0;padding:0 0 12px;--tgv-top-offset:64px}
 .tgv-board{position:relative;margin:8px 1px 0 0;border-left:0;background:linear-gradient(90deg,#f8fafc 0 55px,#fff 55px 100%);overflow:visible}
 .tgv-hour{position:absolute;left:0;right:0;z-index:0;height:0;border-top:1px dotted #c7d6e6;pointer-events:none}
 .tgv-hour span{position:absolute;left:0;top:-9px;width:51px;padding-right:7px;text-align:right;color:#546985;font-size:.78rem;font-variant-numeric:tabular-nums;background:#f8fafc}
@@ -43,9 +43,9 @@
 .tgv-event--dragging .tgv-resize-handle::before{height:4px;opacity:1}
 .tgv-event--dragging{cursor:grabbing}
 .tgv-event--start,.tgv-event--end{border-style:dashed}
-.tgv-all-day{display:grid;gap:6px;margin-bottom:12px;padding:8px;border:1px solid #dce6ef;border-radius:12px;background:#f8fbff}
-.tgv-all-day-label{font-size:.8rem;font-weight:750;color:#4a5d76}
-.tgv-all-day-event{display:flex;align-items:center;gap:8px;min-height:48px;border:1px solid #e2e7ee;border-left:5px solid var(--tgv-accent);border-radius:8px;background:#fff;color:#16233c;padding:7px 9px;text-align:left}
+.tgv-all-day{position:sticky;top:var(--tgv-top-offset);z-index:15;display:flex;flex-direction:column;gap:6px;max-height:min(34dvh,260px);overflow-y:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px;padding:8px;border:1px solid #cbd9e9;border-radius:12px;background:#f8fbff;box-shadow:0 5px 18px rgba(22,44,78,.12)}
+.tgv-all-day-label{position:sticky;top:-8px;z-index:1;flex:0 0 auto;padding:3px 2px;background:#f8fbff;font-size:.8rem;font-weight:750;color:#334865}
+.tgv-all-day-event{display:flex;flex:0 0 auto;align-items:center;gap:8px;min-height:48px;border:1px solid #e2e7ee;border-left:5px solid var(--tgv-accent);border-radius:8px;background:#fff;color:#16233c;padding:7px 9px;text-align:left}
 .tgv-all-day-event .ui-icon{width:20px;height:20px;min-width:20px;color:var(--tgv-accent)}
 .tgv-all-day-event>span{display:grid;min-width:0;gap:2px}
 .tgv-all-day-event strong{font-size:.85rem;overflow-wrap:anywhere}
