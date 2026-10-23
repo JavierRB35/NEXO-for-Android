@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.59",
-  "notes": "Agenda Hoy y Calendario más legible: tarjetas con hora, título y categoría. Mantén pulsado el centro para mover una cita o sus bordes para cambiar inicio y fin, cada 15 minutos. Horarios disponibles durante las 24 horas y opción Deshacer. Actualización opcional."
+  "versionName": "3.7.60",
+  "notes": "En Hoy y Calendario, al tocar una actividad se abre la ficha habitual de consulta, dejando Editar plegado. Corregida la visualización de citas que terminan a medianoche y evitada la repetición visual de un mismo evento. Actualización opcional."
 }
