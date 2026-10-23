@@ -25,6 +25,8 @@
 .tgv-event-status{font-size:.72rem;line-height:1.18;color:#395372;border-radius:6px;background:#e3ebf6;padding:2px 5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tgv-event-location,.tgv-event-description{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;font-size:.72rem;line-height:1.2;color:#486079;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tgv-event-location>.ui-icon{width:15px;height:15px;min-width:15px}
+.tgv-event-extras{display:flex;align-items:center;gap:4px;font-size:.68rem;color:#365775;white-space:nowrap}
+.tgv-event-extras .ui-icon{width:12px;height:12px;vertical-align:middle}
 .tgv-avatars{margin-top:auto}
 .tgv-event .event-participant-avatars{transform:scale(.82);transform-origin:top left}
 .tgv-event[style*="width:calc(50%"] .tgv-event-title{font-size:.77rem}
