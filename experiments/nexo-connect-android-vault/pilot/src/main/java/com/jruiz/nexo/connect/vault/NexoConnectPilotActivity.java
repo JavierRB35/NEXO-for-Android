@@ -515,9 +515,13 @@ public class NexoConnectPilotActivity extends Activity {
                 NexoConnectSignedGatewayClient.InvitationCreated invite=
                         (NexoConnectSignedGatewayClient.InvitationCreated)value;
                 screen("Invitación privada",true);
-                label("Muestra esta invitación a la persona con la que "+
-                      "quieras conectar. Antes de autorizar, los dos deberéis "+
-                      "confirmar un único código de seguridad por llamada o en persona.",14);
+                label("Comparte este QR o envía la invitación por WhatsApp. Confirmad el siguiente código por llamada o en persona.",15);
+                AndroidPeerTrustStore.PeerPin own=NexoConnectOwnQrView.publicIdentity(
+                        identity.accountId(),generation,identity.signingPrivate(),identity.hpkePrivate());
+                TextView safety=label("Mi código: "+
+                        NexoConnectSafetyCode.grouped(NexoConnectSafetyCode.forPeer(own)),20);
+                safety.setTextColor(0xff0f766e);
+                safety.setTypeface(null,android.graphics.Typeface.BOLD);
                 Bitmap qr=NexoConnectOwnQrView.encodeQrBitmap(
                         invite.qrPayload,Math.max(384,
                                 Math.min(getResources().getDisplayMetrics().widthPixels-50,720)));
