@@ -72,8 +72,10 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         }
         if(hasSavedPilotSession()&&!resumed){
             resumed=true;
-            screen("Chat",false);
-            label("Recuperando tus conversaciones de forma segura…",16);
+            LinearLayout root=chatShell("Chat",null,this::finish);
+            TextView loading=text("Cargando conversaciones seguras…",16,MUTED);
+            loading.setPadding(px(20),px(28),px(20),px(16));
+            root.addView(loading);
             resumeSavedSession();
             return true;
         }
