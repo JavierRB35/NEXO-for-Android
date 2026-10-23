@@ -310,7 +310,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     private void showChats(){showChats(true);}
     // The local chat-history controls preserve identity and contact pins.
     private void showChats(boolean refresh){
-        conversation=null;chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
+        conversation=null;messageSelection=null;chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
         LinearLayout root=chatShell("Chat",null,this::finish);ScrollView scroll=new ScrollView(this);LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(px(16),px(16),px(16),px(16));scroll.addView(list);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){var peers=trusted.listActive();if(peers.isEmpty())list.addView(text("Añade a alguien para empezar a conversar.",16,MUTED));
             for(var p:peers){String name=contactName(p);var history=NexoConnectChatStore.messages(db,identity.accountId(),p.peerId);var last=history.isEmpty()?null:history.get(history.size()-1);
