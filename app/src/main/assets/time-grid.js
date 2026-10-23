@@ -226,7 +226,8 @@
     const newTime=fmtTime(ctx.newStart)+' – '+fmtTime(ctx.request.endAt),saved=ctx.request;
     toast('Horario actualizado: '+newTime,'Deshacer',()=>{
       if(writing){toast('Hay otra actualización en curso.');return;}
-      const undo={...saved,dueAt:ctx.oldStart,endAt:ctx.oldEnd};
+      const undo={...saved,dueAt:ctx.oldStart,endAt:ctx.oldEnd,
+        durationMinutes:Math.round((ctx.oldEnd-ctx.oldStart)/60000)};
       const id='tgv-'+(++nextRequest);
       writing=true;
       pending.set(id,{...ctx,request:undo,newStart:ctx.oldStart,oldStart:ctx.newStart,oldEnd:ctx.request.endAt,isUndo:true});

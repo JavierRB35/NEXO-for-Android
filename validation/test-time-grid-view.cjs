@@ -171,6 +171,14 @@ assert.equal(resized.data.dueAt,day+9*3600000+30*60000);
 assert.equal(resized.data.endAt,day+11*3600000);
 assert.equal(resized.data.durationMinutes,90);
 dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
+// Deshacer un cambio de duración debe revertir también durationMinutes.
+messages.at(-1)[2]();
+const undoResize=writes.at(-1);
+assert.equal(undoResize.data.dueAt,day+10*3600000);
+assert.equal(undoResize.data.endAt,day+11*3600000);
+assert.equal(undoResize.data.durationMinutes,60);
+dragCtx.window.NexoTimeGrid.onSaved(undoResize.id,'{"ok":true}');
+assert.equal(topAppointment.durationMinutes,60);
 
 // Redimensionar por abajo: cambia solo final.
 const bottomAppointment={id:93,category:'Trabajo',title:'Redimensionar abajo',
