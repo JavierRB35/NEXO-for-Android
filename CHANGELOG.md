@@ -1,3 +1,9 @@
+## Nexo 3.7.58 — Agenda diaria por horas (Time-Grid)
+- Inicio → HOY y Calendario muestran los eventos de cada día en una rejilla cronológica de 24 horas, con bloques proporcionales a su duración, colores y barras laterales por categoría y columnas para citas simultáneas.
+- Pulsación abre la ficha inferior; pulsación larga de 300 ms y vibración permiten mover una cita en pasos de 15 minutos. Guardado asíncrono y notificación con Deshacer; recuperación de hora original en caso de error.
+- Las series recurrentes solo modifican la aparición seleccionada. Los eventos de todo el día se agrupan aparte; se evita arrastrar citas que atraviesan varios días.
+- Actualización opcional `versionCode 151`, misma firma Release y esquema SQLite 33. Añadidas pruebas JavaScript de calendario, solapamientos, arrastre, persistencia, recurrencias, errores y Deshacer.
+
 ## Nexo 3.7.57 — Borrado local de conversaciones y mensajes
 - Chat: deslizar la fila a la izquierda revela la papelera roja y mantenerla pulsada abre el menú contextual «Eliminar conversación».
 - Dentro de la conversación: mantener pulsada una burbuja durante un segundo activa la selección, permite añadir mensajes y eliminarlos «para mí» con confirmación.
