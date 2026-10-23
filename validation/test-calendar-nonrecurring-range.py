@@ -15,7 +15,7 @@ new_sql=(
     "SELECT count(*) FROM items WHERE deleted_at=0 "
     "AND type NOT IN ('place','restaurant','document') "
     "AND due_at>0 AND due_at<=CAST(? AS INTEGER) "
-    "AND (CASE WHEN end_at>0 THEN end_at ELSE due_at END)>=CAST(? AS INTEGER) "
+    "AND (CASE WHEN end_at>due_at THEN end_at ELSE due_at+1 END)>CAST(? AS INTEGER) "
     "AND recurrence='none'"
 )
 
@@ -48,7 +48,15 @@ assert old_count==0, f'La reproducción del bug debía devolver 0, devolvió {ol
 assert new_count==18, f'La consulta corregida debía devolver 18, devolvió {new_count}'
 
 assert 'due_at<=CAST(? AS INTEGER)' in db_source
-assert '(CASE WHEN items.end_at>0 THEN items.end_at ELSE items.due_at END)>=CAST(? AS INTEGER)' in db_source
+assert '(CASE WHEN items.end_at>items.due_at THEN items.end_at ELSE items.due_at+1 END)>CAST(? AS INTEGER)' in db_source
 assert '(CASE WHEN end_at>0 THEN end_at ELSE due_at END)<CAST(? AS INTEGER)' in db_source
 
-print('Calendario no recurrente: 0 con comparación TEXT, 18 con CAST INTEGER — OK')
+# El final a medianoche es exclusivo y no duplica la cita al día siguiente.
+midnight=1793487600000
+con.execute("INSERT INTO items(id,type,due_at,end_at,recurrence,deleted_at) VALUES(19,'event',?,?, 'none',0)",(midnight-7200000,midnight))
+assert con.execute(new_sql,(str(midnight+86400000-1),str(midnight))).fetchone()[0]==0
+# Un instante sin duración, a medianoche, sí pertenece al propio día.
+con.execute("INSERT INTO items(id,type,due_at,end_at,recurrence,deleted_at) VALUES(20,'event',?,?, 'none',0)",(midnight,midnight))
+assert con.execute(new_sql,(str(midnight+86400000-1),str(midnight))).fetchone()[0]==1
+
+print('Calendario no recurrente: CAST numérico, fin exclusivo y eventos sin duración — OK')
