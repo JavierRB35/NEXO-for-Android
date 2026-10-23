@@ -65,7 +65,15 @@ public final class NexoConnectOwnQrView extends ScrollView {
         details.setText("Detalles técnicos");
         details.setTextColor(0xff0f766e);
         details.setAllCaps(false);
-        column.addView(details);
+        android.graphics.drawable.GradientDrawable outline=
+                new android.graphics.drawable.GradientDrawable();
+        outline.setColor(0xffffffff);
+        outline.setCornerRadius(dp(12));
+        outline.setStroke(dp(1),0xffcbd5e1);
+        details.setBackground(outline);
+        LinearLayout.LayoutParams detailsLayout=new LinearLayout.LayoutParams(-1,dp(50));
+        detailsLayout.topMargin=dp(10);
+        column.addView(details,detailsLayout);
         TextView account=text("Identificador: "+self.peerId,14);
         TextView generation=text("Generación de seguridad: "+self.generation,14);
         TextView signing=text("Código 1: "+
