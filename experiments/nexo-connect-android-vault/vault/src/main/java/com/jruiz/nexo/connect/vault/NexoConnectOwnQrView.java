@@ -48,19 +48,19 @@ public final class NexoConnectOwnQrView extends ScrollView {
         TextView title=text("Mi código de Nexo",20);
         column.addView(title);
         column.addView(text("Muestra este QR a la otra persona, o compártelo de forma privada. Cuando te llame para confirmar, dile tu código de seguridad.",15));
-        ImageView image=new ImageView(context);
-        image.setImageBitmap(bitmap);
-        image.setAdjustViewBounds(true);
-        image.setContentDescription("Código QR público de mi identidad Nexo Connect");
-        column.addView(image,new LinearLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT));
         column.addView(text("MI CÓDIGO DE SEGURIDAD",13));
         TextView safety=text(NexoConnectSafetyCode.grouped(NexoConnectSafetyCode.forPeer(self)),22);
         safety.setTextColor(0xff0f766e);
         safety.setTypeface(null,android.graphics.Typeface.BOLD);
         safety.setContentDescription("Mi código de seguridad Nexo");
         column.addView(safety);
-        column.addView(text("La otra persona introduce este código en su Nexo tras comprobarlo contigo por teléfono o en persona.",14));
+        column.addView(text("Díselo a la otra persona por teléfono o en persona; comprobará que coincide con tu identidad.",14));
+        ImageView image=new ImageView(context);
+        image.setImageBitmap(bitmap);
+        image.setAdjustViewBounds(true);
+        image.setContentDescription("Código QR público de mi identidad Nexo Connect");
+        column.addView(image,new LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT));
         Button details=new Button(context);
         details.setText("Detalles técnicos");
         details.setTextColor(0xff0f766e);
