@@ -392,7 +392,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     private void confirmDeleteConversation(UUID peer,String name){
         NexoConnectChatDeleteDialogs.confirmConversation(this,identity.accountId(),peer,name,
             ()->{
-                conversation=null;
+                if(conversation!=null)return;
                 android.view.View card=conversationRows.get(peer);
                 if(card!=null){
                     card.animate().alpha(0f).scaleY(0.86f).setDuration(170)
