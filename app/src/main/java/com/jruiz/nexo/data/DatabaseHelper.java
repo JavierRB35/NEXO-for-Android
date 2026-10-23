@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 33;
+    private static final int DB_VERSION = 34;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder, " +
             "(SELECT COUNT(*) FROM record_links linked WHERE linked.owner_item_id=items.id " +
@@ -155,6 +155,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         createMedicationTables(db);
         createPeopleTables(db);
         createRecordLinksTable(db);
+        VehicleRepository.createTables(db);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -290,7 +291,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Argumento opcional: migración aditiva sin modificar libros ni películas existentes.
             if (!columnExists(db, "books", "synopsis")) db.execSQL("ALTER TABLE books ADD COLUMN synopsis TEXT NOT NULL DEFAULT ''");
             if (!columnExists(db, "media_items", "synopsis")) db.execSQL("ALTER TABLE media_items ADD COLUMN synopsis TEXT NOT NULL DEFAULT ''");
+            if (oldVersion < 34) {
+            // Solo tablas nuevas; conserva íntegramente la base anterior.
+            VehicleRepository.createTables(db);
         }
+    }
     }
 
 
