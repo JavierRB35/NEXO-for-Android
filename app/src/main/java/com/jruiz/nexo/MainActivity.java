@@ -2245,8 +2245,7 @@ public class MainActivity extends Activity {
             catch(Exception e) { return "{\"ok\":false,\"error\":\"Datos del lugar no válidos\"}"; }
         }
         @JavascriptInterface public void openPlaceMap(String location) {
-            try { MainActivity.this.openExternal(PlaceEntry.mapsUrl(location)); }
-            catch(IllegalArgumentException e) { runOnUiThread(()->Toast.makeText(MainActivity.this,e.getMessage(),Toast.LENGTH_LONG).show()); }
+            MainActivity.this.openLocationDirections(location);
         }
         @JavascriptInterface public String saveCapture(String json) {
             try {
