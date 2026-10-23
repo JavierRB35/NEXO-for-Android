@@ -1,7 +1,7 @@
-/* Nexo 3.7.56 · Agenda diaria por horas. Solo Inicio/HOY y Calendario. */
+/* Nexo 3.7.59 · Agenda diaria completa, movimiento y cambio de duración. */
 (function(){
   'use strict';
-  const PX_PER_MINUTE=1.25;
+  const PX_PER_MINUTE=1.6;
   const SNAP_MINUTES=15;
   const pending=new Map();
   let nextRequest=0;
@@ -73,19 +73,54 @@
       item.recurrence&&item.recurrence!=='none'?'Recurrente':'',
       item.hasReminder?'Con aviso':'',Number(item.linkCount)>0?item.linkCount+' vínculos':''].filter(Boolean).join(' · ');
   }
-  function blockContents(item,row){
-    const start=fmtTime(item.dueAt);
-    const end=itemEffectiveEndAt(item)>Number(item.dueAt)?fmtTime(itemEffectiveEndAt(item)):'';
+  function blockContents(item,row,height,width){
     const icon=isVehicleReservation(item)?'car':familyCategoryIcon(item.category);
-    const loc=String(item.locationText||item.mapsUrl||'').trim();
-    const extras=[item.hasReminder?uiIcon('bell'):'',Number(item.linkCount)>0?uiIcon('link')+esc(item.linkCount):'',isRecurring(item)?'↻':''].filter(Boolean).join(' ');
-    return '<span class="tgv-event-time">'+esc(start)+(end?' – '+esc(end):'')+'</span>'+
+    // Lo demás se consulta en la ficha completa al pulsar: sin avatares,
+    // ubicación, descripción, avisos ni marcadores de recurrencia.
+    const optionalChip=height>=100&&width>34?'<span class="tgv-event-status">'+esc(subtitle(item))+'</span>':'';
+    return '<span class="tgv-event-time">'+hhmm(row.start)+' – '+hhmm(row.end)+'</span>'+
       '<span class="tgv-event-title">'+uiIcon(icon)+'<strong>'+esc(item.title||'Evento')+'</strong></span>'+
-      '<span class="tgv-event-status">'+esc(subtitle(item))+'</span>'+
-      (loc?'<span class="tgv-event-location">'+uiIcon('pin')+esc(loc)+'</span>':'')+
-      (item.body?'<span class="tgv-event-description">'+esc(item.body)+'</span>':'')+
-      (extras?'<span class="tgv-event-extras" aria-label="Avisos, vínculos y recurrencia">'+extras+'</span>':'')+
-      eventParticipantAvatarsHtml(item,'tgv-avatars');
+      optionalChip;
+  }
+  function minuteToTimestamp(iso,minute){
+    const d=new Date(iso+'T00:00:00');
+    d.setHours(Math.floor(minute/60),minute%60,0,0);
+    return d.getTime();
+  }
+  // Tres operaciones distintas: mover (duración constante), cambiar inicio
+  // (final constante), o cambiar fin (inicio constante). Día completo 00–24.
+  function gestureRange(mode,start,end,delta){
+    const snap=n=>Math.round(n/SNAP_MINUTES)*SNAP_MINUTES;
+    const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+    if(mode==='start')return {start:clamp(snap(start+delta),0,end-SNAP_MINUTES),end};
+    if(mode==='end')return {start,end:clamp(snap(end+delta),start+SNAP_MINUTES,1440)};
+    const duration=end-start;
+    const movedStart=clamp(snap(start+delta),0,1440-duration);
+    return {start:movedStart,end:movedStart+duration};
+  }
+  function chooseGesture(btn,y,target){
+    const direct=target?.closest?.('[data-tgv-resize]')?.dataset?.tgvResize;
+    if(direct==='start'||direct==='end')return direct;
+    const rect=btn.getBoundingClientRect?.();
+    if(!rect)return 'move';
+    const margin=Math.min(18,Math.max(6,rect.height*.24));
+    if(y-rect.top<=margin)return 'start';
+    if(rect.bottom-y<=margin)return 'end';
+    return 'move';
+  }
+  function focusInitialHour(host,iso,minute){
+    if(host.dataset.tgvFocusedDay===iso)return;
+    host.dataset.tgvFocusedDay=iso;
+    // Mostrar la primera cita o la hora actual, sin recortar la rejilla.
+    const action=()=>{
+      const board=host.querySelector?.('.tgv-board');
+      if(!host.isConnected||!board?.getBoundingClientRect||typeof window.scrollTo!=='function')return;
+      const top=(window.scrollY||0)+board.getBoundingClientRect().top;
+      const target=Math.max(0,top+Math.max(0,minute-45)*PX_PER_MINUTE-120);
+      window.scrollTo({top:target,behavior:'instant'});
+    };
+    if(typeof window.requestAnimationFrame==='function')window.requestAnimationFrame(action);
+    else if(typeof requestAnimationFrame==='function')requestAnimationFrame(action);
   }
   function render(host,iso,rawItems){
     if(!host||!iso)return;
@@ -93,22 +128,27 @@
     const items=(Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds));
     const allDay=items.filter(item=>!isTimed(item));
     const timed=assignColumns(items.filter(isTimed).map(item=>segment(item,bounds)));
-    const minimum=timed.length?Math.min(480,Math.floor(Math.min(...timed.map(i=>i.start))/60)*60):480;
-    const maximum=timed.length?Math.max(1200,Math.ceil(Math.max(...timed.map(i=>i.end))/60)*60):1200;
-    const first=Math.max(0,minimum),last=Math.min(1440,Math.max(first+60,maximum));
-    const total=(last-first)*PX_PER_MINUTE;
+    // Toda la jornada, incluso citas de madrugada o a última hora.
+    const first=0,last=1440,total=last*PX_PER_MINUTE;
     const hours=[];
     for(let m=first;m<=last;m+=60){
       hours.push('<div class="tgv-hour" style="top:'+(m-first)*PX_PER_MINUTE+'px"><span>'+hhmm(m)+'</span></div>');
     }
     const cards=timed.map((row,index)=>{
-      const item=row.item,top=(row.start-first)*PX_PER_MINUTE,
-        height=Math.max(26,(Math.min(last,row.end)-Math.max(first,row.start))*PX_PER_MINUTE),
+      const item=row.item,top=row.start*PX_PER_MINUTE,
+        height=Math.max(24,(row.end-row.start)*PX_PER_MINUTE),
         width=100/row.columns,left=row.column*width,
+        canResize=Number(item.dueAt)>=bounds.start&&itemEffectiveEndAt(item)<=bounds.end&&itemDuration(item)<86400000,
+        density=height<84?' tgv-event--compact':'',
+        narrow=width<=50?' tgv-event--narrow':'',
         accessible='Abrir '+fullLabel(item);
-      return '<button type="button" class="tgv-event'+(writing?' tgv-event--busy':'')+'"'+
+      return '<button type="button" class="tgv-event'+density+narrow+(writing?' tgv-event--busy':'')+'"'+
         ' data-tgv-index="'+index+'" style="top:'+top+'px;height:'+height+'px;left:calc('+left+'% + 3px);width:calc('+width+'% - 6px);--tgv-accent:'+validColor(item)+'"'+
-        ' title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr(accessible)+'">'+blockContents(item,row)+'</button>';
+        ' title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr(accessible)+'">'+
+        blockContents(item,row,height,width)+
+        (canResize?'<span class="tgv-resize-handle tgv-resize-handle--start" data-tgv-resize="start" aria-hidden="true"></span>'+
+        '<span class="tgv-resize-handle tgv-resize-handle--end" data-tgv-resize="end" aria-hidden="true"></span>':'')+
+        '</button>';
     }).join('');
     host.classList.add('tgv-host');
     host.dataset.tgvDay=iso;
@@ -116,10 +156,10 @@
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+
       ((item.locationText||item.mapsUrl)?' · '+esc(item.locationText||item.mapsUrl):'')+'</small></span></button>').join('')+'</div>':'')+
-      '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas">'+
+      '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas, de 00:00 a 24:00">'+
       hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+
       (!timed.length?'<div class="tgv-no-events">No hay eventos con hora para este día.</div>':'')+
-      '</div><p class="tgv-help">Mantén pulsada una cita para cambiar la hora en intervalos de 15 minutos.</p>';
+      '</div><p class="tgv-help">Mantén pulsado el centro para mover una cita, o los bordes para cambiar su inicio o final (15 min).</p>';
     host.querySelectorAll('[data-tgv-allday]').forEach(btn=>btn.addEventListener('click',()=>{
       const item=allDay[Number(btn.dataset.tgvAllday)];
       if(item)openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
@@ -128,6 +168,7 @@
       const row=timed[Number(btn.dataset.tgvIndex)];
       attachDrag(btn,row,iso,host);
     });
+    focusInitialHour(host,iso,timed.length?Math.min(...timed.map(r=>r.start)):clockMinutes(Date.now()));
   }
   function notifyChange(){
     if(state.screen==='calendar')renderCalendar();
@@ -136,16 +177,17 @@
   function submitMove(row,iso,host,newStart,newEnd){
     if(writing)return;
     const item=row.item,originalStart=Number(item.dueAt),originalEnd=Number(itemEffectiveEndAt(item));
-    if(newStart===originalStart)return;
+    if(newStart===originalStart&&newEnd===originalEnd)return;
+    if(newStart<dayBounds(iso).start||newEnd>dayBounds(iso).end||newEnd-newStart<15*60000)return;
     const recurrent=isRecurring(item),seriesId=Number(item.seriesId||item.id),
       occurrenceAt=Number(item.occurrenceAt||item.dueAt),status=String(item.occurrenceStatus||'active');
     const request={seriesId,occurrenceAt,id:Number(item.id||seriesId),recurring:recurrent,
-      dueAt:newStart,endAt:newEnd,durationMinutes:Number(item.durationMinutes)||Math.round(itemDuration(item)/60000),
+      dueAt:newStart,endAt:newEnd,durationMinutes:Math.round((newEnd-newStart)/60000),
       hasTime:true,allDay:false,occurrenceState:status==='deleted'?'active':status};
     const requestId='tgv-'+(++nextRequest);
     const oldItem={...item},ctx={request,item,oldItem,oldStart:originalStart,oldEnd:originalEnd,newStart,iso,host,isUndo:false};
     writing=true;pending.set(requestId,ctx);
-    item.dueAt=newStart;item.endAt=newEnd;
+    item.dueAt=newStart;item.endAt=newEnd;item.durationMinutes=request.durationMinutes;
     if(host.isConnected&&host.dataset.tgvDay===iso)render(host,iso,host._tgvItems||[]);
     try {
       if(typeof NexoNative.moveCalendarEventAsync==='function'){
@@ -169,6 +211,7 @@
     try{result=typeof json==='string'?JSON.parse(json):json||result;}catch(_){}
     if(!result.ok){
       ctx.item.dueAt=ctx.oldStart;ctx.item.endAt=ctx.oldEnd;
+      ctx.item.durationMinutes=Math.round((ctx.oldEnd-ctx.oldStart)/60000);
       notifyChange();
       toast(result.error||'No se pudo actualizar la hora. Se ha restaurado la cita.','',null,5000);
       return;
@@ -178,10 +221,11 @@
       // La operación nativa ha confirmado el Deshacer: el modelo local acompaña a SQLite.
       ctx.item.dueAt=ctx.request.dueAt;
       ctx.item.endAt=ctx.request.endAt;
+      ctx.item.durationMinutes=Math.round((ctx.request.endAt-ctx.request.dueAt)/60000);
       toast('Cambio de hora deshecho');return;
     }
-    const newTime=fmtTime(ctx.newStart),saved=ctx.request;
-    toast('Hora actualizada a las '+newTime,'Deshacer',()=>{
+    const newTime=fmtTime(ctx.newStart)+' – '+fmtTime(ctx.request.endAt),saved=ctx.request;
+    toast('Horario actualizado: '+newTime,'Deshacer',()=>{
       if(writing){toast('Hay otra actualización en curso.');return;}
       const undo={...saved,dueAt:ctx.oldStart,endAt:ctx.oldEnd};
       const id='tgv-'+(++nextRequest);
@@ -204,46 +248,69 @@
       openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
     });
     if(writing)return;
-    // No mover desde un día intermedio ni desplazar citas que abarcan varios días.
-    const bounds=dayBounds(iso);
-    if(Number(item.dueAt)<bounds.start||itemEffectiveEndAt(item)>bounds.end||itemDuration(item)>=86400000)return;
-    let timer=0,active=false,startY=0,currentY=0,lastTouch=0,mouseEnabled=false;
-    const heightMs=itemDuration(item),originalStart=Number(item.dueAt);
-    const startMinutes=clockMinutes(originalStart);
-    const maxMinutes=Math.max(0,1440-Math.ceil(heightMs/60000));
-    const bounded=mins=>Math.max(0,Math.min(maxMinutes,Math.round(mins/SNAP_MINUTES)*SNAP_MINUTES));
-    const move=y=>{
-      if(!active)return;
-      currentY=y;
-      const next=bounded(startMinutes+(y-startY)/PX_PER_MINUTE);
-      btn.style.transform='translateY('+((next-startMinutes)*PX_PER_MINUTE)+'px)';
-      btn.classList.add('tgv-event--dragging');
-      btn.setAttribute('aria-label','Nueva hora '+hhmm(next));
+    const bounds=dayBounds(iso),originalStart=Number(item.dueAt),
+      originalEnd=Number(itemEffectiveEndAt(item));
+    // Multidía: consulta permitida, edición por gesto desactivada para no
+    // modificar un tramo accidentalmente desde un día intermedio.
+    if(originalStart<bounds.start||originalEnd>bounds.end||originalEnd-originalStart>=86400000)return;
+    const startMinutes=clockMinutes(originalStart),
+      endMinutes=originalEnd>=bounds.end?1440:Math.max(startMinutes+15,clockMinutes(originalEnd));
+    let timer=0,active=false,startY=0,currentY=0,lastTouch=0,
+      mouseEnabled=false,mode='move',scrollStart=0,rafId=0,preview=null;
+    const viewportDelta=y=>y-startY+((window.scrollY||0)-scrollStart);
+    const nextRange=y=>gestureRange(mode,startMinutes,endMinutes,viewportDelta(y)/PX_PER_MINUTE);
+    const paint=range=>{
+      preview=range;
+      btn.style.top=(range.start*PX_PER_MINUTE)+'px';
+      btn.style.height=(Math.max(24,(range.end-range.start)*PX_PER_MINUTE))+'px';
+      const text=btn.querySelector?.('.tgv-event-time');
+      if(text)text.textContent=hhmm(range.start)+' – '+hhmm(range.end);
+      btn.setAttribute('aria-label','Nuevo horario '+hhmm(range.start)+' a '+hhmm(range.end));
+    };
+    const scrollTick=()=>{
+      if(!active){rafId=0;return;}
+      const viewport=window.innerHeight||0;
+      if(viewport&&typeof window.scrollBy==='function'){
+        const edge=88;
+        const speed=currentY<edge?-Math.min(17,(edge-currentY)/5):
+          currentY>viewport-edge?Math.min(17,(currentY-viewport+edge)/5):0;
+        if(speed){
+          window.scrollBy(0,speed);
+          paint(nextRange(currentY));
+        }
+      }
+      rafId=window.requestAnimationFrame?.(scrollTick)||0;
     };
     const begin=()=>{
       timer=0;active=true;btn._tgvSuppressUntil=Date.now()+1000;
-      btn.classList.add('tgv-event--dragging');document.body.classList.add('tgv-drag-active');
+      btn.classList.add('tgv-event--dragging');
+      btn.classList.add('tgv-event--'+mode);
+      document.body.classList.add('tgv-drag-active');
       try{navigator.vibrate?.(12);}catch(_){}
+      if(typeof window.requestAnimationFrame==='function')rafId=window.requestAnimationFrame(scrollTick);
     };
     const stop=(y,cancel=false)=>{
       clearTimeout(timer);timer=0;
       if(!active)return;
       active=false;btn._tgvSuppressUntil=Date.now()+900;
-      btn.classList.remove('tgv-event--dragging');document.body.classList.remove('tgv-drag-active');
-      const next=bounded(startMinutes+(y-startY)/PX_PER_MINUTE);
-      btn.style.transform='';
-      // Una pulsación larga sin desplazamiento no modifica una hora irregular.
-      if(cancel||Math.abs(y-startY)<7||next===startMinutes)return;
-      const newDate=new Date(originalStart);
-      const originalDate=newDate.toDateString();
-      newDate.setHours(Math.floor(next/60),next%60,0,0);
-      if(newDate.toDateString()!==originalDate)return;
-      submitMove(row,iso,host,newDate.getTime(),newDate.getTime()+heightMs);
+      if(rafId&&typeof window.cancelAnimationFrame==='function')window.cancelAnimationFrame(rafId);
+      rafId=0;
+      btn.classList.remove('tgv-event--dragging','tgv-event--move','tgv-event--start','tgv-event--end');
+      document.body.classList.remove('tgv-drag-active');
+      const result=nextRange(y),moved=Math.abs(viewportDelta(y))>=7;
+      btn.style.top=(row.start*PX_PER_MINUTE)+'px';
+      btn.style.height=(Math.max(24,(row.end-row.start)*PX_PER_MINUTE))+'px';
+      const time=btn.querySelector?.('.tgv-event-time');
+      if(time)time.textContent=hhmm(row.start)+' – '+hhmm(row.end);
+      if(cancel||!moved||(result.start===startMinutes&&result.end===endMinutes))return;
+      submitMove(row,iso,host,minuteToTimestamp(iso,result.start),minuteToTimestamp(iso,result.end));
     };
     btn.addEventListener('contextmenu',e=>e.preventDefault());
     btn.addEventListener('touchstart',e=>{
       if(e.touches.length!==1||writing)return;
       lastTouch=Date.now();startY=e.touches[0].clientY;currentY=startY;
+      scrollStart=window.scrollY||0;
+      mode=chooseGesture(btn,startY,e.target);
       clearTimeout(timer);timer=setTimeout(begin,300);
     },{passive:true});
     btn.addEventListener('touchmove',e=>{
@@ -251,9 +318,9 @@
       const y=e.touches[0].clientY;
       if(!active){
         if(Math.abs(y-startY)>9){clearTimeout(timer);timer=0;btn._tgvSuppressUntil=Date.now()+650;}
-        return;
+        return; // El scroll vertical normal no queda bloqueado.
       }
-      e.preventDefault();move(y);
+      e.preventDefault();currentY=y;paint(nextRange(y));
     },{passive:false});
     btn.addEventListener('touchend',e=>{
       if(!active){clearTimeout(timer);timer=0;return;}
@@ -263,7 +330,7 @@
     const onMouseMove=e=>{
       if(!mouseEnabled)return;
       if(!active&&Math.abs(e.clientY-startY)>9){clearTimeout(timer);timer=0;}
-      if(active){e.preventDefault();move(e.clientY);}
+      if(active){e.preventDefault();currentY=e.clientY;paint(nextRange(e.clientY));}
     };
     const onMouseUp=e=>{
       window.removeEventListener('mousemove',onMouseMove);
@@ -274,6 +341,8 @@
     btn.addEventListener('mousedown',e=>{
       if(e.button!==0||Date.now()-lastTouch<800||writing)return;
       mouseEnabled=true;startY=e.clientY;currentY=startY;
+      scrollStart=window.scrollY||0;
+      mode=chooseGesture(btn,startY,e.target);
       clearTimeout(timer);timer=setTimeout(begin,300);
       window.addEventListener('mousemove',onMouseMove);
       window.addEventListener('mouseup',onMouseUp);
