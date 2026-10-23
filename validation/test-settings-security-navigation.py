@@ -26,5 +26,5 @@ assert "const button=event.target?.closest?.('[data-panel]');" in js
 assert 'openPanel(panel);' in js
 assert 'function navigateBack()' in js
 assert "else navigate(route.screen,options);" in js
-assert "versionName '3.7.53'" in gradle and "versionCode 146" in gradle
+assert "versionName '3.7.54'" in gradle and "versionCode 147" in gradle
 print('Nexo 3.7.47: Datos y seguridad solo en Ajustes, accesos únicos y navegación conservada: OK')

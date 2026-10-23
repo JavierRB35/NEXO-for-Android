@@ -46,7 +46,8 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         try{if(NexoConnectChatBackup.owner(this)!=null)button("Conversaciones guardadas",this::archivedChats);}catch(Exception ignored){}
         label(hasSavedPilotSession()?"Abriendo tus conversaciones…":"Activa tu cuenta para hablar y compartir con otras personas. En Nexo te reconocerán por el nombre que elijas.",16);
         if(hasSavedPilotSession()){
-            button("Entrar",this::resumeSavedSession);
+            button("Entrar / Continuar alta",this::resumeSavedSession);
+            button("Volver a verificar mi correo",this::openHostEmailReverification);
             if(!resumed){resumed=true;resumeSavedSession();}
         }else{
             try{getPackageManager().getPackageInfo("com.jruiz.nexo.connect.pilot",0);

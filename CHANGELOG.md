@@ -1,3 +1,10 @@
+## Nexo 3.7.54 — Continuar el registro de Connect sin bloqueo
+- Cuando el usuario ya verificó su correo pero aún no ha terminado la confirmación del teléfono, Connect puede reanudar desde la sesión guardada sin exigir un teléfono ya autorizado.
+- El estado confirmado sigue exigiendo comprobación firmada; un teléfono nuevo o sustituido necesita un código nuevo y consentimiento explícito. Un estado inconcluso nunca autoriza automáticamente.
+- Se añade «Volver a verificar mi correo» sin borrar la sesión cifrada ni las claves de identidad del dispositivo.
+- El límite de solicitudes de Supabase Auth (HTTP 429) muestra un mensaje de espera específico, sin reintentar ni reenviar OTP automáticamente.
+- Actualización **opcional**; versionCode 147, mismo applicationId, mismo esquema SQLite 33. La APK debe publicarse firmada con la identidad Release oficial y pasar pruebas de actualización de datos.
+
 ## Nexo 3.7.53 — Maps directamente desde citas y eventos
 - Cuando la cita tiene ubicación, la ficha muestra un bloque diferenciado «Ver ubicación en Maps» y un botón Maps en el pie fijo, junto a Editar, Vincular y Más.
 - Funciona sin abrir Editar y también para citas recurrentes. Si no hay ubicación, se omiten los accesos.
