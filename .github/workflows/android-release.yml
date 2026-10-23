@@ -118,6 +118,7 @@ jobs:
           set -euo pipefail
           sh validation/validate-project.sh
           node validation/test-beta22-runtime.mjs
+          node validation/test-event-maps-runtime.mjs
           node validation/test-books-ui.mjs
           node validation/test-media-ui.mjs
           node validation/test-library-categories-ui.mjs
