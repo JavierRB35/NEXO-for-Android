@@ -107,7 +107,7 @@
     host.innerHTML=(allDay.length?'<div class="tgv-all-day"><span class="tgv-all-day-label">Todo el día</span>'+allDay.map((item,index)=>
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+
-      (item.locationText?' · '+esc(item.locationText):'')+'</small></span></button>').join('')+'</div>':'')+
+      ((item.locationText||item.mapsUrl)?' · '+esc(item.locationText||item.mapsUrl):'')+'</small></span></button>').join('')+'</div>':'')+
       '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas">'+
       hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+
       (!timed.length?'<div class="tgv-no-events">No hay eventos con hora para este día.</div>':'')+
@@ -135,7 +135,7 @@
       dueAt:newStart,endAt:newEnd,durationMinutes:Number(item.durationMinutes)||Math.round(itemDuration(item)/60000),
       hasTime:true,allDay:false,occurrenceState:status==='deleted'?'active':status};
     const requestId='tgv-'+(++nextRequest);
-    const oldItem={...item},ctx={request,item,oldItem,oldStart:originalStart,oldEnd:originalEnd,newStart,iso,host};
+    const oldItem={...item},ctx={request,item,oldItem,oldStart:originalStart,oldEnd:originalEnd,newStart,iso,host,isUndo:false};
     writing=true;pending.set(requestId,ctx);
     item.dueAt=newStart;item.endAt=newEnd;
     if(host.isConnected&&host.dataset.tgvDay===iso)render(host,iso,host._tgvItems||[]);
@@ -166,13 +166,14 @@
       return;
     }
     notifyChange();
+    if(ctx.isUndo){toast('Cambio de hora deshecho');return;}
     const newTime=fmtTime(ctx.newStart),saved=ctx.request;
     toast('Hora actualizada a las '+newTime,'Deshacer',()=>{
       if(writing){toast('Hay otra actualización en curso.');return;}
       const undo={...saved,dueAt:ctx.oldStart,endAt:ctx.oldEnd};
       const id='tgv-'+(++nextRequest);
       writing=true;
-      pending.set(id,{...ctx,request:undo,newStart:ctx.oldStart,oldStart:ctx.newStart,oldEnd:ctx.request.endAt});
+      pending.set(id,{...ctx,request:undo,newStart:ctx.oldStart,oldStart:ctx.newStart,oldEnd:ctx.request.endAt,isUndo:true});
       try{
         if(typeof NexoNative.moveCalendarEventAsync==='function')NexoNative.moveCalendarEventAsync(JSON.stringify(undo),id);
         else setTimeout(()=>{
@@ -190,6 +191,9 @@
       openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
     });
     if(writing)return;
+    // No mover desde un día intermedio ni desplazar citas que abarcan varios días.
+    const bounds=dayBounds(iso);
+    if(Number(item.dueAt)<bounds.start||itemEffectiveEndAt(item)>bounds.end||itemDuration(item)>=86400000)return;
     let timer=0,active=false,startY=0,currentY=0,lastTouch=0,mouseEnabled=false;
     const heightMs=itemDuration(item),originalStart=Number(item.dueAt);
     const startMinutes=clockMinutes(originalStart);
