@@ -8,6 +8,7 @@
   <title>Nexo</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="time-grid.css">
 <style>
 [data-nav="inbox"]{position:relative}
 .inbox-nav-badge{position:absolute;top:2px;left:calc(50% + 5px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#c62828;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;pointer-events:none}
@@ -94,6 +95,13 @@
       </div>
     </section>
   </div>
+  <section id="homeTodayTimeline" class="hidden" aria-label="Agenda cronológica de hoy">
+    <header class="tgv-head">
+      <button id="homeTimeGridBack" class="tgv-back" type="button" aria-label="Volver a Inicio">←</button>
+      <div><h2 data-tgv-home-title>Hoy</h2><p data-tgv-home-count>Agenda del día</p></div>
+    </header>
+    <div id="homeTodayTimeGrid"></div>
+  </section>
 </section><section class="screen" data-screen="tools" aria-labelledby="toolsTitle">
     <div class="screen-heading nf-tools-heading">
       <div>
@@ -497,7 +505,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.57</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.58</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -510,7 +518,7 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.57</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.58</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>
@@ -614,6 +622,6 @@
   <div id="toast" class="toast hidden" aria-live="polite">
 <span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button>
 </div>
-  <script src="navigation.js"></script><script src="app.js"></script><script src="books.js"></script><script src="media.js"></script>
+  <script src="navigation.js"></script><script src="app.js"></script><script src="time-grid.js"></script><script src="books.js"></script><script src="media.js"></script>
 </body>
 </html>

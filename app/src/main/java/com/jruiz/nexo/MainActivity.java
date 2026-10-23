@@ -102,6 +102,7 @@ public class MainActivity extends Activity {
     private String pendingDocumentExportPath = "";
 
     private WebView webView;
+    private final java.util.concurrent.ExecutorService agendaTimeWriter = java.util.concurrent.Executors.newSingleThreadExecutor();
     private DatabaseHelper db;
     private NexoService service;
     private boolean pageReady = false;
@@ -253,6 +254,7 @@ public class MainActivity extends Activity {
             webView.removeJavascriptInterface("NexoNative");
             webView.destroy();
         }
+        agendaTimeWriter.shutdown();
         if (db != null) db.close();
         super.onDestroy();
     }
@@ -2315,6 +2317,56 @@ public class MainActivity extends Activity {
                 if (r.optJSONArray("rescheduled") != null && r.optJSONArray("rescheduled").length() > 0) ensureNotificationPermission();
                 return r.toString();
             } catch(Exception e){return "{\"ok\":false}";}
+        }
+        /**
+         * Persistencia asíncrona para la agenda de horas. Solo modifica fechas y
+         * duración; nunca altera otros campos ni cambia toda una serie recurrente.
+         * El resultado llega a NexoTimeGrid.onSaved(requestId, json).
+         */
+        @JavascriptInterface public void moveCalendarEventAsync(String json, String requestId) {
+            agendaTimeWriter.execute(() -> {
+                JSONObject result;
+                try {
+                    JSONObject data = new JSONObject(json);
+                    boolean recurring = data.optBoolean("recurring",false);
+                    long id = data.optLong("id",0);
+                    long seriesId = data.optLong("seriesId",0);
+                    long occurrenceAt = data.optLong("occurrenceAt",0);
+                    long dueAt = data.optLong("dueAt",0);
+                    long endAt = data.optLong("endAt",0);
+                    if (dueAt <= 0 || endAt < dueAt || (!recurring && id <= 0) ||
+                            (recurring && (seriesId <= 0 || occurrenceAt <= 0))) {
+                        result = new JSONObject().put("ok",false).put("error","Horario no válido");
+                    } else {
+                        JSONObject move = new JSONObject();
+                        move.put("dueAt",dueAt);
+                        move.put("endAt",endAt);
+                        move.put("durationMinutes",Math.max(0,data.optInt("durationMinutes",0)));
+                        move.put("hasTime",true);
+                        move.put("allDay",false);
+                        if (recurring) {
+                            move.put("seriesId",seriesId);
+                            move.put("occurrenceAt",occurrenceAt);
+                            move.put("occurrenceState",data.optString("occurrenceState","active"));
+                            result = service.updateOccurrence(move,"single");
+                        } else {
+                            move.put("id",id);
+                            result = service.updateItem(move);
+                        }
+                    }
+                } catch (Exception ex) {
+                    result = new JSONObject();
+                    try { result.put("ok",false).put("error","No se pudo guardar la hora"); }
+                    catch(Exception ignored) {}
+                }
+                final String answer = result.toString();
+                runOnUiThread(() -> {
+                    if (webView != null && !isFinishing()) {
+                        webView.evaluateJavascript("window.NexoTimeGrid&&window.NexoTimeGrid.onSaved("+
+                                JSONObject.quote(requestId)+","+JSONObject.quote(answer)+");", null);
+                    }
+                });
+            });
         }
         @JavascriptInterface public String deleteItem(long id) { return service.deleteItem(id).toString(); }
         @JavascriptInterface public String restoreItem(String token) { return service.restoreItem(token).toString(); }
