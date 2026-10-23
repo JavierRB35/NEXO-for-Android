@@ -118,14 +118,113 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
             .setNegativeButton("Ahora no",null).setPositiveButton("Ver mi código",(d,w)->showOwnQr()).show();
     }
     @Override protected String contactName(AndroidPeerTrustStore.PeerPin p){return NexoConnectChatStore.peerName(this,identity.accountId(),p.peerId);}
+    private void broadcastProfile(){
+        if(stage!=READY||identity==null||trusted==null||client==null)return;
+        new Thread(()->{
+            try{
+                synchronized(sessionRefreshLock()){
+                    refreshSessionIfNeeded();
+                    NexoConnectChatTransport.syncProfiles(this,client,identity,trusted);
+                }
+            }catch(Exception pending){/* next Chat opening retries without losing the saved profile */}
+        },"nexo-connect-profile-share").start();
+    }
     private void editName(){
-        EditText name=new EditText(this);name.setHint("Por ejemplo, Javi");name.setText(NexoConnectChatStore.ownName(this,identity.accountId()));
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("¿Cómo quieres que te conozcan?").setView(name).setPositiveButton("Guardar",null).setNegativeButton("Ahora no",null).create();
+        EditText name=new EditText(this);name.setSingleLine(true);name.setHint("Por ejemplo, Mar");name.setText(NexoConnectChatStore.ownName(this,identity.accountId()));
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tu nombre en Nexo")
+            .setMessage("Tus contactos verificados verán este nombre en sus conversaciones.")
+            .setView(name).setPositiveButton("Guardar",null).setNegativeButton("Ahora no",null).create();
         dialog.setOnShowListener(d->dialog.getButton(-1).setOnClickListener(v->{
             try{NexoConnectChatStore.setOwnName(this,identity.accountId(),name.getText().toString());}
             catch(Exception invalid){name.setError("Escribe un nombre de hasta 50 caracteres");return;}
-            dialog.dismiss();runWork(()->{for(var peer:trusted.listActive())NexoConnectChatTransport.send(this,client,identity,trusted,peer.peerId,"",true);return true;},out->{showHome();onVerifiedPilotReady();});
+            dialog.dismiss();broadcastProfile();showHome();
         }));dialog.show();
+    }
+    private void showProfile(){
+        if(stage!=READY||identity==null){showSetup();return;}
+        conversation=null;screen("Mi perfil de Nexo",true);
+        label("Elige cómo te verán las personas con las que conectes. Tu nombre y foto se envían cifrados solo a contactos verificados.",16);
+        String encoded=NexoConnectChatStore.ownAvatar(this,identity.accountId());
+        LinearLayout preview=new LinearLayout(this);preview.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        preview.setPadding(px(12),px(12),px(12),px(12));
+        preview.setBackground(surface(0xffffffff,16));
+        column.addView(preview,new LinearLayout.LayoutParams(-1,-2));
+        if(encoded.isEmpty()){
+            String name=NexoConnectChatStore.ownName(this,identity.accountId());
+            preview.addView(avatar(identity.accountId(),name.isEmpty()?"?":name,64),
+                    new LinearLayout.LayoutParams(px(64),px(64)));
+        }else{
+            try{
+                ImageView img=new ImageView(this);
+                img.setImageBitmap(NexoConnectProfileAvatar.decode(encoded));
+                img.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                android.graphics.drawable.GradientDrawable mask=new android.graphics.drawable.GradientDrawable();
+                mask.setShape(android.graphics.drawable.GradientDrawable.OVAL);mask.setColor(0xffffffff);
+                img.setBackground(mask);img.setClipToOutline(true);
+                preview.addView(img,new LinearLayout.LayoutParams(px(64),px(64)));
+            }catch(Exception invalid){preview.addView(avatar(identity.accountId(), "?",64));}
+        }
+        TextView hint=text("Fotografía opcional",15,MUTED);hint.setPadding(px(14),0,0,0);
+        preview.addView(hint);
+        button("Elegir fotografía",()->{
+            Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            pick.setType("image/*");pick.addCategory(Intent.CATEGORY_OPENABLE);
+            try{startActivityForResult(pick,PICK_PROFILE_PHOTO);}
+            catch(Exception unavailable){showError("No se pudo abrir la galería.");}
+        });
+        if(!encoded.isEmpty())button("Quitar fotografía",()->{
+            try{NexoConnectChatStore.setOwnAvatar(this,identity.accountId(),"");showProfile();broadcastProfile();}
+            catch(Exception invalid){showError("No se pudo quitar la foto.");}
+        });
+        label("Nombre visible",16);
+        EditText name=new EditText(this);
+        name.setSingleLine(true);name.setTextSize(17);name.setHint("Cómo quieres que te conozcan");
+        name.setText(NexoConnectChatStore.ownName(this,identity.accountId()));
+        column.addView(name,new LinearLayout.LayoutParams(-1,-2));
+        button("Guardar mi perfil",()->{
+            try{NexoConnectChatStore.setOwnName(this,identity.accountId(),name.getText().toString());}
+            catch(Exception invalid){name.setError("Escribe entre 1 y 50 caracteres");return;}
+            android.widget.Toast.makeText(this,"Perfil guardado. Se compartirá con tus contactos.",Toast.LENGTH_LONG).show();
+            showProfile();broadcastProfile();
+        });
+        button("Volver a Nexo",this::finish);
+    }
+    private void renamePeer(UUID peer){
+        if(identity==null||trusted.findActive(peer)==null)return;
+        EditText input=new EditText(this);input.setSingleLine(true);
+        input.setHint("Nombre para ti");
+        input.setText(getSharedPreferences("nexo-connect-local-names",0).getString(identity.accountId()+"_"+peer,""));
+        AlertDialog d=new AlertDialog.Builder(this).setTitle("Cambiar nombre del contacto")
+            .setMessage("Es un alias privado de tu teléfono. La otra persona conserva su nombre y su identidad verificada.")
+            .setView(input).setPositiveButton("Guardar",null)
+            .setNegativeButton("Cancelar",null).create();
+        d.setOnShowListener(v->d.getButton(-1).setOnClickListener(button->{
+            try{NexoConnectChatStore.setLocalAlias(this,identity.accountId(),peer,input.getText().toString());}
+            catch(Exception e){input.setError("Nombre de hasta 50 caracteres");return;}
+            d.dismiss();people();
+        }));d.show();
+    }
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        if(requestCode!=PICK_PROFILE_PHOTO){super.onActivityResult(requestCode,resultCode,data);return;}
+        if(resultCode!=RESULT_OK||data==null||data.getData()==null){showProfile();return;}
+        if(identity==null||stage!=READY){showSetup();return;}
+        final UUID owner=identity.accountId();
+        final android.net.Uri uri=data.getData();
+        new Thread(()->{
+            String error=null;
+            try{
+                String photo=NexoConnectProfileAvatar.importFrom(getContentResolver(),uri);
+                NexoConnectChatStore.setOwnAvatar(this,owner,photo);
+            }catch(Exception problem){error="No se ha podido guardar esta fotografía. Prueba con otra imagen.";}
+            final String message=error;
+            runOnUiThread(()->{
+                if(isFinishing()||isDestroyed())return;
+                showProfile();
+                if(message==null)broadcastProfile();
+                else new AlertDialog.Builder(this).setTitle("Fotografía").setMessage(message)
+                    .setPositiveButton("Entendido",null).show();
+            });
+        },"nexo-profile-image").start();
     }
     @Override protected void onInvitationCreated(String payload,android.graphics.Bitmap qr){
         label("Comparte esta invitación por WhatsApp o en persona. La otra persona abrirá el archivo con Nexo.",16);
