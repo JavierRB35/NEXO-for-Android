@@ -81,6 +81,7 @@ final class NexoConnectMessageSelection {
             bubble.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
             toggle(delivery);
         };
+        bubble.setOnLongClickListener(v->{toggle(delivery);return true;});
         bubble.setOnTouchListener((v,e)->{
             switch(e.getActionMasked()){
                 case MotionEvent.ACTION_DOWN:
