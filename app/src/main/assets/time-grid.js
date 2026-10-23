@@ -154,8 +154,7 @@
     host.dataset.tgvDay=iso;
     host.innerHTML=(allDay.length?'<div class="tgv-all-day"><span class="tgv-all-day-label">Todo el día</span>'+allDay.map((item,index)=>
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
-      '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+
-      ((item.locationText||item.mapsUrl)?' · '+esc(item.locationText||item.mapsUrl):'')+'</small></span></button>').join('')+'</div>':'')+
+      '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</div>':'')+
       '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas, de 00:00 a 24:00">'+
       hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+
       (!timed.length?'<div class="tgv-no-events">No hay eventos con hora para este día.</div>':'')+
