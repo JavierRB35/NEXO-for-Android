@@ -72,6 +72,8 @@ public final class NexoConnectChatDeletion {
         if(deliveries==null||deliveries.isEmpty()||deliveries.size()>200)
             throw new IllegalArgumentException("Select 1 to 200 messages");
         schema(db);
+        NexoConnectChatStore.schema(db);
+        NexoConnectChatBackup.schema(db);
         db.beginTransaction();
         try{
             for(String delivery:deliveries){
