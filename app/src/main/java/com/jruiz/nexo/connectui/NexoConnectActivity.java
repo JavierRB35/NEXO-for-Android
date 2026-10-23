@@ -126,6 +126,9 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
             .setNegativeButton("Ahora no",null).setPositiveButton("Ver mi código",(d,w)->showOwnQr()).show();
     }
     @Override protected String contactName(AndroidPeerTrustStore.PeerPin p){return NexoConnectChatStore.peerName(this,identity.accountId(),p.peerId);}
+    @Override protected android.view.View contactAvatar(AndroidPeerTrustStore.PeerPin p){
+        return avatarView(p.peerId,contactName(p),42);
+    }
     private void broadcastProfile(){
         if(stage!=READY||identity==null||trusted==null||client==null)return;
         new Thread(()->{
