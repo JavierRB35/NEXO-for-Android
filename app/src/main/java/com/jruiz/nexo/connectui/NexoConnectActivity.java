@@ -332,6 +332,16 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     }
     private void openConversation(UUID peer){
         conversation=peer;renderedMessages="";String name=NexoConnectChatStore.peerName(this,identity.accountId(),peer);LinearLayout root=chatShell(name,peer,this::showChats);
+        messageSelection=new NexoConnectMessageSelection(this,root,identity.accountId(),peer,
+            ()->{renderedMessages="";renderMessages(peer);},
+            ()->{
+                if(messages!=null){
+                    messages.animate().alpha(0.4f).setDuration(110).withEndAction(()->{
+                        if(messages!=null)messages.setAlpha(1f);
+                        renderedMessages="";renderMessages(peer);
+                    }).start();
+                }else{renderedMessages="";renderMessages(peer);}
+            });
         chatHistory=new ScrollView(this);chatHistory.setFillViewport(true);chatHistory.setBackgroundColor(0xfff6f2e9);messages=new LinearLayout(this);messages.setOrientation(LinearLayout.VERTICAL);messages.setPadding(px(12),px(12),px(12),px(12));chatHistory.addView(messages);root.addView(chatHistory,new LinearLayout.LayoutParams(-1,0,1));chatHistory.setOnScrollChangeListener((v,x,y,ox,oy)->markVisibleRead());
         LinearLayout compose=new LinearLayout(this);compose.setGravity(android.view.Gravity.BOTTOM);compose.setPadding(px(8),px(8),px(8),px(8));compose.setBackgroundColor(android.graphics.Color.WHITE);
         EditText draft=new EditText(this);draft.setHint("Escribe un mensaje…");draft.setTextColor(INK);draft.setHintTextColor(MUTED);draft.setTextSize(16);draft.setMinHeight(px(48));draft.setMaxLines(5);draft.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);draft.setBackground(surface(PAPER,16));draft.setPadding(px(12),px(10),px(12),px(10));draft.setText(drafts.getOrDefault(peer,""));draft.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence a,int st,int count,int after){}public void onTextChanged(CharSequence value,int st,int before,int count){drafts.put(peer,value.toString());}public void afterTextChanged(android.text.Editable e){}});
