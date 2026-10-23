@@ -55,6 +55,7 @@ jobs:
           python3 validation/test-connect-registration-recovery.py
           python3 validation/test-connect-friendly-pairing.py
           python3 validation/test-connect-profile-ux.py
+          python3 validation/test-connect-chat-delete.py
           python3 validation/test-related-links.py
           node validation/test-list-quick-runtime.cjs
           python3 validation/test-books-compact.py
