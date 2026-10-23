@@ -1,10 +1,14 @@
-# Nexo 3.7.54
+# Nexo 3.7.55
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.54**, `versionCode 147`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **33**.
+Esta versión corresponde a **Nexo 3.7.55**, `versionCode 148`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **33**.
 
-**Nuevo en 3.7.54:** Connect y Chat permiten retomar una inscripción de teléfono pendiente con la sesión protegida, sin reintentar códigos automáticamente ni borrar las claves. Se añade acceso directo para volver a verificar el correo y se informa cuando el servicio limita los envíos. La cuenta y los datos locales permanecen conservados; Android exige la misma firma Release al actualizar.\n\n**Nuevo en 3.7.53:** Las fichas de citas y eventos con ubicación incluyen un acceso destacado a Google Maps y un botón Maps en la barra inferior fija, sin tener que abrir Editar. Se corrige la apertura de direcciones, nombres de lugares y enlaces de Maps en formularios y fichas, con alternativa de navegador cuando no esté disponible la aplicación. No cambia la estructura de datos ni la firma de instalación.
+**Nuevo en 3.7.55:** Añadir personas a Connect con un único código de seguridad de 16 caracteres comprobado por teléfono o en persona, botones y pantallas de Nexo, recuperación segura de contactos ya vinculados y confirmación bilateral más clara. Se mantiene el anclaje a ambas claves completas, sin modificar el esquema SQLite ni la firma oficial.
+
+**Nuevo en 3.7.54:** Connect y Chat permiten retomar una inscripción de teléfono pendiente con la sesión protegida, sin reintentar códigos automáticamente ni borrar las claves. Se añade acceso directo para volver a verificar el correo y se informa cuando el servicio limita los envíos. La cuenta y los datos locales permanecen conservados; Android exige la misma firma Release al actualizar.
+
+**Nuevo en 3.7.53:** Las fichas de citas y eventos con ubicación incluyen un acceso destacado a Google Maps y un botón Maps en la barra inferior fija, sin tener que abrir Editar. Se corrige la apertura de direcciones, nombres de lugares y enlaces de Maps en formularios y fichas, con alternativa de navegador cuando no esté disponible la aplicación. No cambia la estructura de datos ni la firma de instalación.
 
 **Nuevo en 3.7.52:** Inicio más despejado: desaparece el bloque «Accesos directos» y «Próximamente» aparece bajo «Lo importante ahora». Notas, Medicación, Listas y Documentos siguen accesibles en Herramientas; las notas también desde la barra inferior. Los mensajes de actualización son breves y explican las novedades sin tecnicismos. Esta versión es opcional y conserva la misma firma Release y los datos locales.
 
