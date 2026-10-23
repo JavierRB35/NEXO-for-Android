@@ -78,6 +78,12 @@ jobs:
           JAVA_OPTS: -Xmx1536m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
         run: gradle assembleDebug --no-daemon --max-workers=1
 
+      - name: Compile Connect Android instrumented tests
+        shell: bash
+        env:
+          JAVA_OPTS: -Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
+        run: gradle :connectVault:assembleDebugAndroidTest --no-daemon --max-workers=1
+
       - name: Verify expected build output
         shell: bash
         run: |
