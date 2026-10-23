@@ -17,7 +17,7 @@ assert "NexoConnectChatDeletion.wasCleared(db,identity.accountId(),p.peerId)" in
 assert "messageSelection.bindBubble(bubble,m.delivery)" in activity
 assert "messageSelection!=null&&messageSelection.active()" in activity
 assert "1000" in row and "postDelayed(hold,1000)" in row
-assert "translationX" in row and 'setText("Eliminar")' in row
+assert "translationX" in row and 'setText("🗑 Eliminar")' in row
 assert "postDelayed(longHold,1000)" in selection
 assert "chosen.add(id)" in selection and "chosen.remove(id)" in selection
 assert "header.setVisibility" in selection and "Cancelar selección" in selection
