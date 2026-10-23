@@ -56,17 +56,66 @@ public final class NexoConnectChatStore {
         schema(db);android.content.ContentValues row=new android.content.ContentValues();row.put("account",account.toString());row.put("peer",peer.toString());row.put("delivery",UUID.fromString(delivery).toString());
         return db.insertWithOnConflict("nexo_chat_reads",null,row,SQLiteDatabase.CONFLICT_IGNORE)!=-1;
     }
-    public static String ownName(Context c,UUID account){return c.getSharedPreferences("nexo-connect-profiles",0).getString("own:"+account,"");}
-    public static void setOwnName(Context c,UUID account,String name){if(!c.getSharedPreferences("nexo-connect-profiles",0).edit().putString("own:"+account,validateName(name)).commit())throw new IllegalStateException();}
-    public static String peerName(Context c,UUID account,UUID peer){
-        String name=c.getSharedPreferences("nexo-connect-profiles",0).getString(account+":"+peer,"");
-        if(name.isEmpty())name=c.getSharedPreferences("nexo-connect-local-names",0).getString(account+"_"+peer,"");
-        return name.isEmpty()?"Persona sin nombre":name;
+    private static android.content.SharedPreferences profiles(Context c){
+        return c.getSharedPreferences("nexo-connect-profiles",0);
     }
+    public static String ownName(Context c,UUID account){return profiles(c).getString("own:"+account,"");}
+    public static void setOwnName(Context c,UUID account,String name){
+        String safe=validateName(name);
+        android.content.SharedPreferences p=profiles(c);
+        if(!p.edit().putString("own:"+account,safe).putLong("revision:"+account,p.getLong("revision:"+account,0)+1).commit())
+            throw new IllegalStateException("Could not save name");
+    }
+    public static String ownAvatar(Context c,UUID account){return profiles(c).getString("avatar:own:"+account,"");}
+    public static void setOwnAvatar(Context c,UUID account,String avatar)throws java.security.GeneralSecurityException{
+        String safe=NexoConnectProfileAvatar.validate(avatar);
+        android.content.SharedPreferences p=profiles(c);
+        if(!p.edit().putString("avatar:own:"+account,safe).putLong("revision:"+account,p.getLong("revision:"+account,0)+1).commit())
+            throw new IllegalStateException("Could not save avatar");
+    }
+    public static String peerAvatar(Context c,UUID account,UUID peer){
+        return profiles(c).getString("avatar:"+account+":"+peer,"");
+    }
+    public static String peerName(Context c,UUID account,UUID peer){
+        String alias=c.getSharedPreferences("nexo-connect-local-names",0).getString(account+"_"+peer,"").trim();
+        if(!alias.isEmpty())return alias;
+        String name=profiles(c).getString(account+":"+peer,"");
+        return name.isEmpty()?"Contacto "+peer.toString().substring(0,8):name;
+    }
+    public static void setLocalAlias(Context c,UUID account,UUID peer,String alias){
+        String name=alias==null?"":alias.trim();
+        if(!name.isEmpty())validateName(name);
+        if(!c.getSharedPreferences("nexo-connect-local-names",0).edit()
+                .putString(account+"_"+peer,name).commit())throw new IllegalStateException("Could not save alias");
+    }
+    public static long profileRevision(Context c,UUID owner){
+        return Math.max(1,profiles(c).getLong("revision:"+owner,0));
+    }
+    public static boolean profileSent(Context c,UUID owner,UUID peer){
+        return profiles(c).getLong("sent:"+owner+":"+peer,0)>=profileRevision(c,owner);
+    }
+    public static void markProfileSent(Context c,UUID owner,UUID peer,long revision){
+        profiles(c).edit().putLong("sent:"+owner+":"+peer,revision).apply();
+    }
+    public static JSONObject profilePayload(Context c,UUID account)throws Exception {
+        return payload(ownName(c,account),"avatar:"+ownAvatar(c,account),true);
+    }
+    /** A profile is accepted only inside an authenticated signed/decrypted chat envelope. */
     public static void rememberProfile(Context c,UUID owner,UUID peer,JSONObject body){
-        String key=owner+":"+peer;android.content.SharedPreferences prefs=c.getSharedPreferences("nexo-connect-profiles",0);
-        long at=body.optLong("sentAt",0);if(at<=0||at>System.currentTimeMillis()+300000)return;
-        if(at>=prefs.getLong("time:"+key,0))prefs.edit().putString(key,validateName(body.optString("name"))).putLong("time:"+key,at).commit();
+        String key=owner+":"+peer;
+        android.content.SharedPreferences p=profiles(c);
+        long at=body.optLong("sentAt",0);
+        if(at<=0||at>System.currentTimeMillis()+300000||at<p.getLong("time:"+key,0))return;
+        String name=validateName(body.optString("name"));
+        android.content.SharedPreferences.Editor e=p.edit().putString(key,name).putLong("time:"+key,at);
+        if("profile".equals(body.optString("kind"))){
+            String text=body.optString("text","");
+            if(text.startsWith("avatar:")){
+                try{e.putString("avatar:"+key,NexoConnectProfileAvatar.validate(text.substring(7)));}
+                catch(java.security.GeneralSecurityException invalid){return;}
+            }
+        }
+        e.commit();
     }
     public static void schema(SQLiteDatabase db){db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_reads(account TEXT NOT NULL,peer TEXT NOT NULL,delivery TEXT NOT NULL,confirmed INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(account,peer,delivery))");db.execSQL("CREATE TABLE IF NOT EXISTS nexo_chat_outgoing(delivery TEXT PRIMARY KEY,account TEXT NOT NULL,peer TEXT NOT NULL,body TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL)");}
     public static void pending(SQLiteDatabase db,UUID account,UUID peer,UUID delivery,JSONObject data)throws Exception {

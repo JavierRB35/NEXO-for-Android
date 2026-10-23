@@ -19,8 +19,10 @@ require('button("Volver a verificar mi correo",this::openHostEmailReverification
         host, "Host must expose email re-verification")
 require('button("Entrar / Continuar alta",this::resumeSavedSession);',
         host, "Host must offer incomplete sign-in resume")
-require('if(!resumed){resumed=true;resumeSavedSession();}', host,
-        "Existing saved sessions should still auto-resume once")
+require('if(hasSavedPilotSession()&&!resumed){', host,
+        "Saved sessions must auto-resume once without flashing the account form")
+require('resumed=true;', host, "Session restore needs a one-shot flag")
+require('resumeSavedSession();', host, "Saved session must resume")
 
 start = pilot.index('protected final void openHostEmailReverification()')
 stop = pilot.index('protected void showSetup()', start)

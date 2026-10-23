@@ -10,14 +10,34 @@ public final class NexoConnectChatTransport {
             AndroidPeerTrustStore trust,UUID peer,String text,boolean profile)throws Exception {
         if(NexoConnectMigration.blocked(c))throw new SecurityException("Migration in progress");
         AndroidPeerTrustStore.PeerPin pin=trust.findActive(peer);if(pin==null)throw new SecurityException("Contact unavailable");
-        JSONObject payload=NexoConnectChatStore.payload(NexoConnectChatStore.ownName(c,identity.accountId()),text,profile);
+        JSONObject payload=profile?NexoConnectChatStore.profilePayload(c,identity.accountId()):
+                NexoConnectChatStore.payload(NexoConnectChatStore.ownName(c,identity.accountId()),text,false);
+        long revision=profile?NexoConnectChatStore.profileRevision(c,identity.accountId()):0;
         UUID delivery=UUID.randomUUID();
         try(SQLiteDatabase db=NexoConnectMigration.inbox(c)) {
             NexoConnectChatStore.pending(db,identity.accountId(),peer,delivery,payload);
             try{
                 client.sendApproved(identity,trust,peer,NexoConnectPinnedKeysets.recipientEncryption(pin),delivery,UUID.randomUUID(),"note",payload,null,System.currentTimeMillis()+24L*60*60*1000,true);
                 NexoConnectChatStore.status(db,delivery,"sent");
+                if(profile)NexoConnectChatStore.markProfileSent(c,identity.accountId(),peer,revision);
             }catch(Exception uncertain){NexoConnectChatStore.status(db,delivery,"unknown");throw uncertain;}
+        }
+    }
+    /** Send latest encrypted profile after a connection is verified and when re-entering Chat.
+     * A one-minute per-contact backoff avoids retry storms if the remote peer is not ready. */
+    public static void syncProfiles(Context c,NexoConnectSignedGatewayClient client,
+            NexoConnectLocalPhoneIdentity identity,AndroidPeerTrustStore trust)throws Exception{
+        long now=System.currentTimeMillis();
+        android.content.SharedPreferences prefs=c.getSharedPreferences("nexo-connect-profile-attempts",0);
+        for(AndroidPeerTrustStore.PeerPin pin:trust.listActive()){
+            if(NexoConnectChatStore.profileSent(c,identity.accountId(),pin.peerId))continue;
+            String key=identity.accountId()+":"+pin.peerId;
+            long rev=NexoConnectChatStore.profileRevision(c,identity.accountId());
+            if(prefs.getLong("revision:"+key,-1)==rev &&
+                    now-prefs.getLong("time:"+key,0)<60000)continue;
+            prefs.edit().putLong("revision:"+key,rev).putLong("time:"+key,now).apply();
+            try{send(c,client,identity,trust,pin.peerId,"",true);}
+            catch(Exception notYetConnected){/* retry on next foreground session after backoff */}
         }
     }
     /** Opening Chat opts into receiving messages from already verified people.

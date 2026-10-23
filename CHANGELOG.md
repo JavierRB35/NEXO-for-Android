@@ -1,3 +1,10 @@
+## Nexo 3.7.56 — Perfil personal y vinculación integrada
+- Ajustes → Nexo Connect: Mi perfil, Generar vinculación y Vincular dispositivo; conservado el código independiente de seguridad de 16 caracteres junto al QR.
+- Nombre propio y fotografía opcional. La foto se reduce a JPEG pequeño y solo se transmite a contactos verificados mediante la entrega cifrada existente; no se hace pública.
+- Listados de contactos, destinatarios y Chat muestran avatar y nombre. Alias privados locales prevalecen sobre nombres recibidos.
+- Chat abre con cabecera coherente y sin formulario fugaz de autenticación. Los perfiles se sincronizan al conectar y abrir Chat, con control de reintentos.
+- Release opcional versionCode 149, misma firma oficial, mismo applicationId, SQLite esquema 33.
+
 ## Nexo 3.7.55 — Personas y conexión más sencilla
 - Un único código de seguridad de 16 caracteres en cuatro grupos sustituye la introducción manual de dos huellas completas. Debe comprobarse con la otra persona por un medio independiente; el dispositivo conserva y verifica las dos claves públicas completas.
 - Pantallas de invitaciones y aceptación de contacto renovadas con estética Nexo, botones destacados y textos claros.
