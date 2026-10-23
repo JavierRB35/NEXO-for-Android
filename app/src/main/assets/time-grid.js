@@ -246,26 +246,24 @@
       stop(e.changedTouches[0]?.clientY??currentY);
     });
     btn.addEventListener('touchcancel',()=>stop(currentY,true));
-    btn.addEventListener('mousedown',e=>{
-      if(e.button!==0||Date.now()-lastTouch<800||writing)return;
-      mouseEnabled=true;startY=e.clientY;currentY=startY;
-      clearTimeout(timer);timer=setTimeout(begin,300);
-    });
     const onMouseMove=e=>{
       if(!mouseEnabled)return;
       if(!active&&Math.abs(e.clientY-startY)>9){clearTimeout(timer);timer=0;}
       if(active){e.preventDefault();move(e.clientY);}
     };
-    const onMouseUp=e=>{if(!mouseEnabled)return;mouseEnabled=false;stop(e.clientY);};
-    window.addEventListener('mousemove',onMouseMove);
-    window.addEventListener('mouseup',onMouseUp);
-    // Si el grid se repinta, liberar los listeners globales antiguos.
-    const observer=new MutationObserver(()=>{
-      if(btn.isConnected)return;
-      clearTimeout(timer);window.removeEventListener('mousemove',onMouseMove);
-      window.removeEventListener('mouseup',onMouseUp);observer.disconnect();
+    const onMouseUp=e=>{
+      window.removeEventListener('mousemove',onMouseMove);
+      window.removeEventListener('mouseup',onMouseUp);
+      if(!mouseEnabled)return;
+      mouseEnabled=false;stop(e.clientY);
+    };
+    btn.addEventListener('mousedown',e=>{
+      if(e.button!==0||Date.now()-lastTouch<800||writing)return;
+      mouseEnabled=true;startY=e.clientY;currentY=startY;
+      clearTimeout(timer);timer=setTimeout(begin,300);
+      window.addEventListener('mousemove',onMouseMove);
+      window.addEventListener('mouseup',onMouseUp);
     });
-    observer.observe(host,{childList:true,subtree:true});
   }
   function renderHome(){
     const host=document.getElementById('homeTodayTimeGrid');
