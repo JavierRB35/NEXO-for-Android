@@ -47,7 +47,7 @@ const state = {
   documentFilter:'all', documentSearch:'', documents:[], documentEditor:null, documentRequest:0,
   recordingPoll:0, recordingWasActive:false, recordingWasPaused:false, recordingActiveId:'', playingRecordingId:'', recordingPlaybackPoll:0, transcriptionPoll:0,
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
-  homeSearchIndex:[], homeSearchIndexReady:false, homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(),
+  homeSearchIndex:[], homeSearchIndexReady:false, homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(), homeTimelineVisible:false,
   startupSplashActive:true, startupInboxReady:false, startupHomeReady:false, startupHomeDashboard:null,
   startupSplashMinReady:false, startupSplashMinTimer:0, startupSplashTimeout:0, startupWeatherReady:false,
   holidayYears:{}, holidayLoading:new Set(),
@@ -693,6 +693,7 @@ function renderToday(dashboardOverride=null) {
   $('#homeCalendarHint').textContent='Ver todos';
   $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card design-empty"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><strong>No hay próximos eventos.</strong><span>Añade el primero desde Agenda.</span></div>';
   bindHomeUpcoming();
+  if(state.homeTimelineVisible&&window.NexoTimeGrid)window.NexoTimeGrid.renderHome();
 
   // El índice global puede leer miles de filas y transcripciones. Solo se crea
   // cuando el usuario utiliza realmente el buscador de Inicio.
@@ -782,6 +783,7 @@ function runHomeSearch(query){
 }
 
 function openHomeToday(){
+  if(window.NexoTimeGrid){window.NexoTimeGrid.showHome();return;}
   state.appointmentsWindow='today';
   state.appointmentsFilter='pending';
   openPanel('appointments',{keepWindow:true});
@@ -2572,7 +2574,7 @@ function renderCalendar(direction=0){
 }
 
 function renderCalendarDay(){
-  const iso=state.calendarSelected||isoDateLocal(new Date()),d=new Date(iso+'T12:00:00');const items=(state.calendarItems||[]).filter(i=>itemCoversIsoDate(i,iso)).sort((a,b)=>{if((a.allDay===true||a.hasTime===false)&&(b.allDay!==true&&b.hasTime!==false))return -1;if((a.allDay!==true&&a.hasTime!==false)&&(b.allDay===true||b.hasTime===false))return 1;return (a.dueAt||0)-(b.dueAt||0);});const hs=holidayEntriesForYears([Number(iso.slice(0,4))]).filter(h=>h.date===iso);const label=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(d);$('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());const ap=items.length?`${items.length} evento${items.length===1?'':'s'}`:'Sin eventos';$('#calendarSelectedMeta').textContent=hs.length?`${ap} · ${hs.length===1?'Festivo':'Festivos'}`:ap;const host=$('#calendarDayHolidays');if(host){host.innerHTML=hs.map(holidayCard).join('');host.classList.toggle('hidden',!hs.length);bindHolidaySources(host);}$('#calendarDayItems').innerHTML=items.length?items.map(i=>agendaCard(i)).join(''):'<div class="empty-state design-empty"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><span>Sin eventos para este día.</span></div>';const add=$('#calendarAddFab'),voice=$('#globalVoiceFab');if(add){add.setAttribute('aria-label','Añadir una cita el '+label);add.setAttribute('title','Añadir una cita el '+label);}if(voice){voice.setAttribute('aria-label','Añadir una cita por voz el '+label);voice.setAttribute('title','Añadir una cita por voz el '+label);}bindItemButtons($('#calendarDayItems'));
+  const iso=state.calendarSelected||isoDateLocal(new Date()),d=new Date(iso+'T12:00:00');const items=(state.calendarItems||[]).filter(i=>itemCoversIsoDate(i,iso)).sort((a,b)=>{if((a.allDay===true||a.hasTime===false)&&(b.allDay!==true&&b.hasTime!==false))return -1;if((a.allDay!==true&&a.hasTime!==false)&&(b.allDay===true||b.hasTime===false))return 1;return (a.dueAt||0)-(b.dueAt||0);});const hs=holidayEntriesForYears([Number(iso.slice(0,4))]).filter(h=>h.date===iso);const label=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(d);$('#calendarSelectedTitle').textContent=(iso===isoDateLocal(new Date())?'Hoy · ':'')+label.replace(/^./,c=>c.toUpperCase());const ap=items.length?`${items.length} evento${items.length===1?'':'s'}`:'Sin eventos';$('#calendarSelectedMeta').textContent=hs.length?`${ap} · ${hs.length===1?'Festivo':'Festivos'}`:ap;const host=$('#calendarDayHolidays');if(host){host.innerHTML=hs.map(holidayCard).join('');host.classList.toggle('hidden',!hs.length);bindHolidaySources(host);}const gridHost=$('#calendarDayItems');if(window.NexoTimeGrid){gridHost._tgvItems=items;window.NexoTimeGrid.render(gridHost,iso,items);}else gridHost.innerHTML=items.length?items.map(i=>agendaCard(i)).join(''):'<div class="empty-state design-empty"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><span>Sin eventos para este día.</span></div>';const add=$('#calendarAddFab'),voice=$('#globalVoiceFab');if(add){add.setAttribute('aria-label','Añadir una cita el '+label);add.setAttribute('title','Añadir una cita el '+label);}if(voice){voice.setAttribute('aria-label','Añadir una cita por voz el '+label);voice.setAttribute('title','Añadir una cita por voz el '+label);}if(!window.NexoTimeGrid)bindItemButtons($('#calendarDayItems'));
 }
 
 function prepareCaptureForDate(iso){openCreationMenu(iso);}
@@ -4458,6 +4460,7 @@ function init(){
   $('#peopleAddBtn')?.addEventListener('click',()=>openPersonEditor());
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
+  $('#homeTimeGridBack')?.addEventListener('click',()=>window.NexoTimeGrid?.hideHome());
   $('#homeTomorrowCard')?.addEventListener('click',openHomeTomorrow);
   $('#homeWeekCard')?.addEventListener('click',openHomeWeek);
   $('#homeCalendarCard')?.addEventListener('click',()=>{state.appointmentsWindow='';state.appointmentsFilter='pending';openPanel('appointments');});
@@ -4577,6 +4580,7 @@ function refreshHeaderDate(){
   if(target.textContent!==formatted)target.textContent=formatted;
 }
 function navigateBack(){
+  if(state.screen==='today'&&state.homeTimelineVisible){window.NexoTimeGrid?.hideHome();return true;}
   // Comprobar ANTES de consumir el historial: cancelar debe dejar la cita intacta.
   if(state.screen==='save'&&state.capturePendingLinks?.length){
     if(!window.confirm('Hay vínculos preparados sin guardar. ¿Salir y descartarlos?'))return false;
