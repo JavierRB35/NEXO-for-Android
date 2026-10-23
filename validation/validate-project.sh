@@ -47,6 +47,7 @@ python validation/test-temporal-status.py
 python validation/test-related-links.py
 node validation/test-list-quick-runtime.cjs
 python validation/test-version-identity.py
+python validation/test-connect-registration-recovery.py
 python validation/test-in-app-updates.py
 python validation/test-event-maps-ui.py
 python validation/test-update-critical-policy.py
