@@ -3,9 +3,13 @@ package com.jruiz.nexo.connect.vault;
 import android.content.ContentResolver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.util.Base64;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 
@@ -27,6 +31,10 @@ public final class NexoConnectProfileAvatar {
             }
             data=out.toByteArray();
         }
+        return encodeNormalized(data);
+    }
+    /** Apply image metadata before stripping it during the small JPEG re-encode. */
+    static String encodeNormalized(byte[] data)throws GeneralSecurityException{
         BitmapFactory.Options bounds=new BitmapFactory.Options();
         bounds.inJustDecodeBounds=true;
         BitmapFactory.decodeByteArray(data,0,data.length,bounds);
@@ -42,19 +50,54 @@ public final class NexoConnectProfileAvatar {
             int edge=Math.min(source.getWidth(),source.getHeight());
             Bitmap crop=Bitmap.createBitmap(source,(source.getWidth()-edge)/2,(source.getHeight()-edge)/2,edge,edge);
             try{
-                Bitmap scaled=Bitmap.createScaledBitmap(crop,72,72,true);
+                Bitmap oriented=applyExifOrientation(crop,readExifOrientation(data));
                 try{
-                    for(int quality=76;quality>=20;quality-=8){
-                        ByteArrayOutputStream out=new ByteArrayOutputStream();
-                        if(!scaled.compress(Bitmap.CompressFormat.JPEG,quality,out))
-                            throw new GeneralSecurityException("No se pudo preparar la foto");
-                        if(out.size()<=MAX_JPEG)
-                            return validate(Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP));
-                    }
-                    throw new GeneralSecurityException("Prueba con una foto más sencilla");
-                }finally{if(scaled!=crop)scaled.recycle();}
+                    Bitmap scaled=Bitmap.createScaledBitmap(oriented,72,72,true);
+                    try{
+                        for(int quality=76;quality>=20;quality-=8){
+                            ByteArrayOutputStream out=new ByteArrayOutputStream();
+                            if(!scaled.compress(Bitmap.CompressFormat.JPEG,quality,out))
+                                throw new GeneralSecurityException("No se pudo preparar la foto");
+                            if(out.size()<=MAX_JPEG)
+                                return validate(Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP));
+                        }
+                        throw new GeneralSecurityException("Prueba con una foto más sencilla");
+                    }finally{if(scaled!=oriented)scaled.recycle();}
+                }finally{if(oriented!=crop)oriented.recycle();}
             }finally{if(crop!=source)crop.recycle();}
         }finally{source.recycle();}
+    }
+    static int readExifOrientation(byte[] data){
+        if(data==null||data.length==0)return ExifInterface.ORIENTATION_NORMAL;
+        try(InputStream in=new ByteArrayInputStream(data)){
+            ExifInterface exif=new ExifInterface(in);
+            return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
+        }catch(IOException|RuntimeException missingExif){
+            // PNG, WebP and pictures without EXIF retain their decoded orientation.
+            return ExifInterface.ORIENTATION_NORMAL;
+        }
+    }
+    static Bitmap applyExifOrientation(Bitmap source,int orientation){
+        Matrix transform=new Matrix();
+        // Matrices include the mirrored EXIF cases, not only 90/180/270 rotations.
+        switch(orientation){
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
+                transform.setValues(new float[]{-1,0,0,0,1,0,0,0,1});break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                transform.setRotate(180);break;
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                transform.setValues(new float[]{1,0,0,0,-1,0,0,0,1});break;
+            case ExifInterface.ORIENTATION_TRANSPOSE:
+                transform.setValues(new float[]{0,1,0,1,0,0,0,0,1});break;
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                transform.setRotate(90);break;
+            case ExifInterface.ORIENTATION_TRANSVERSE:
+                transform.setValues(new float[]{0,-1,0,-1,0,0,0,0,1});break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                transform.setRotate(270);break;
+            default:return source;
+        }
+        return Bitmap.createBitmap(source,0,0,source.getWidth(),source.getHeight(),transform,false);
     }
     public static String validate(String encoded)throws GeneralSecurityException{
         if(encoded==null||encoded.isEmpty())return "";
@@ -81,3 +124,4 @@ public final class NexoConnectProfileAvatar {
         return bmp;
     }
 }
+

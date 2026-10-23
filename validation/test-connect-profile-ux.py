@@ -28,6 +28,12 @@ assert 'protected android.view.View contactAvatar' in host
 assert 'chooseVerifiedPeers(peers' in link
 assert 'MAX_JPEG=2400' in photo and 'MAX_SOURCE=8*1024*1024' in photo
 assert 'getScheme()' in photo and '"content".equals(uri.getScheme())' in photo
+assert 'readExifOrientation(data)' in photo and 'applyExifOrientation(crop,' in photo
+assert 'ExifInterface.TAG_ORIENTATION' in photo
+assert all(token in photo for token in (
+    'ORIENTATION_ROTATE_90','ORIENTATION_ROTATE_180','ORIENTATION_ROTATE_270',
+    'ORIENTATION_FLIP_HORIZONTAL','ORIENTATION_FLIP_VERTICAL',
+    'ORIENTATION_TRANSPOSE','ORIENTATION_TRANSVERSE'))
 assert 'NexoConnectProfileAvatar.validate' in store
 assert 'profilePayload(Context c,UUID account)' in store
 assert 'payload(ownName(c,account),"avatar:"+ownAvatar(c,account),true)' in store
@@ -39,3 +45,4 @@ assert 'if(!alias.isEmpty())return alias;' in store
 assert 'avatar:'+'' in store
 assert 'NEXO_CONNECT_PROFILE' not in bridge
 print('Nexo Connect profile UX and encrypted avatar structural regressions OK')
+
