@@ -53,6 +53,37 @@ assert.doesNotMatch(host.innerHTML,/tgv-event-location|tgv-event-extras|tgv-avat
 assert.match(host.innerHTML,/data-tgv-resize="start"/);
 assert.match(host.innerHTML,/data-tgv-resize="end"/);
 assert.match(source,/function focusInitialHour\(/);
+// La jornada conserva sus 24 h, pero se enfoca tras el scroll de navegación.
+const focusFrames=[],focusScroll=[];
+const focusWindow={
+  scrollY:0,scrollTo:target=>focusScroll.push(target),
+  requestAnimationFrame:fn=>{focusFrames.push(fn);}
+};
+const focusCtx={...ctx,window:focusWindow};
+vm.runInNewContext(source,focusCtx,{filename:'time-grid.js'});
+const focusHost=makeHost();
+focusHost.isConnected=true;
+focusHost.parentElement=null;
+focusHost.querySelector=()=>({
+  getBoundingClientRect:()=>({top:280}),
+  getClientRects:()=>[{}]
+});
+focusCtx.window.NexoTimeGrid.render(focusHost,'2026-10-23',[
+  {id:301,title:'Primera visita',dueAt:day+10*3600000,
+   endAt:day+11*3600000,hasTime:true,category:'Trabajo'}
+]);
+assert.equal(focusScroll.length,0,'do not jump before navigation finishes');
+assert.equal(focusFrames.length,1);
+focusFrames.shift()();
+assert.equal(focusScroll.length,0,'wait for the second frame');
+focusFrames.shift()();
+assert.ok(focusScroll[0].top>700,'10:00 appointment must be in the initial viewport');
+assert.equal(focusHost.dataset.tgvFocusedDay,'2026-10-23');
+focusCtx.window.NexoTimeGrid.render(focusHost,'2026-10-23',[
+  {id:301,dueAt:day+10*3600000,endAt:day+11*3600000,hasTime:true}
+]);
+assert.equal(focusFrames.length,0,'re-render must not unexpectedly reset scroll');
+
 assert.match(host.innerHTML,/left:calc\(50% \+ 3px\)/);
 assert.match(html,/time-grid\.js/);
 assert.match(html,/homeTodayTimeGrid/);

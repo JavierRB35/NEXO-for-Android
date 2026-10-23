@@ -225,6 +225,7 @@ public class MainActivity extends Activity {
                     checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED ? "1" : "0");
             jsCallback("onInputHubChanged", "resume");
             if (headerWeather != null) headerWeather.refresh(false);
+            webView.evaluateJavascript("window.NexoChatBadge?.refresh()",null);
         }
     }
 
@@ -2105,6 +2106,27 @@ public class MainActivity extends Activity {
             runOnUiThread(()->startActivity(new Intent(MainActivity.this,
                 com.jruiz.nexo.connectui.NexoConnectActivity.class)
                 .putExtra("nexoConnectAction",selected)));
+        }
+        /** Only a count leaves the encrypted Connect vault; never message text. */
+        @JavascriptInterface public int getUnreadChatCount(){
+            try{
+                com.jruiz.nexo.connect.vault.NexoConnectSessionVault vault=
+                        new com.jruiz.nexo.connect.vault.NexoConnectSessionVault(MainActivity.this);
+                if(!vault.exists())return 0;
+                java.util.UUID owner=vault.restore().accountId;
+                com.jruiz.nexo.connect.vault.AndroidPeerTrustStore contacts=
+                        new com.jruiz.nexo.connect.vault.AndroidPeerTrustStore(MainActivity.this,owner);
+                try(SQLiteDatabase inbox=com.jruiz.nexo.connect.vault.NexoConnectMigration.inbox(MainActivity.this)){
+                    return com.jruiz.nexo.connect.vault.NexoConnectChatStore
+                            .unreadIds(inbox,owner,contacts).size();
+                }
+            }catch(Exception unavailable){return 0;}
+        }
+        /** Request an early JobScheduler check only while Nexo is on screen. */
+        @JavascriptInterface public void requestNexoChatRefresh(){
+            try{
+                com.jruiz.nexo.connect.vault.NexoConnectInboxNoticeJob.checkSoon(MainActivity.this);
+            }catch(Exception unavailable){/* offline or no enrolled Connect account */}
         }
         @JavascriptInterface public void openNexoChat() {
             runOnUiThread(()->startActivity(new Intent(MainActivity.this,com.jruiz.nexo.connectui.NexoConnectActivity.class).putExtra("openChat",true)));

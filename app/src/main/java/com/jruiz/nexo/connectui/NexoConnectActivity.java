@@ -12,6 +12,7 @@ import com.jruiz.nexo.data.DatabaseHelper;
 public final class NexoConnectActivity extends NexoConnectPilotActivity {
     private boolean resumed,selectedHandled;
     private static final int PICK_PROFILE_PHOTO=7308;
+    private static final int CHAT_NOTIFICATION_PERMISSION=7310;
     private UUID conversation;
     private boolean invitationOpened;
     private LinearLayout messages;
@@ -308,12 +309,47 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
             }
         }catch(Exception e){showError("No se pudieron abrir tus personas.");}
     }
+    private void configureChatNotices(){
+        if(android.os.Build.VERSION.SDK_INT>=33 &&
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=
+                    android.content.pm.PackageManager.PERMISSION_GRANTED){
+            boolean asked=getSharedPreferences("nexo-connect-chat-notices",0)
+                    .getBoolean("permissionAsked",false);
+            if(!asked){
+                getSharedPreferences("nexo-connect-chat-notices",0)
+                        .edit().putBoolean("permissionAsked",true).apply();
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        CHAT_NOTIFICATION_PERMISSION);
+            }else{
+                startActivity(new Intent(
+                        android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getPackageName()));
+            }
+        }else if(!NexoConnectInboxNoticeJob.permitted(this)){
+            startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getPackageName()));
+        }
+    }
+    private void askFirstChatNotificationPermission(){
+        if(android.os.Build.VERSION.SDK_INT>=33 &&
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=
+                        android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                !getSharedPreferences("nexo-connect-chat-notices",0)
+                        .getBoolean("permissionAsked",false))
+            handler.post(this::configureChatNotices);
+    }
+    @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results){
+        super.onRequestPermissionsResult(code,permissions,results);
+        if(code==CHAT_NOTIFICATION_PERMISSION && stage==READY && conversation==null)
+            showChats(false);
+    }
     private void showChats(){showChats(true);}
     // The local chat-history controls preserve identity and contact pins.
     private void showChats(boolean refresh){
         conversation=null;messageSelection=null;conversationRows.clear();chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
         LinearLayout root=chatShell("Chat",null,this::finish);ScrollView scroll=new ScrollView(this);LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(px(16),px(16),px(16),px(16));scroll.addView(list);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){var peers=trusted.listActive();if(peers.isEmpty())list.addView(text("Añade a alguien para empezar a conversar.",16,MUTED));
+            java.util.Set<String> unread=new java.util.HashSet<>(NexoConnectChatStore.unreadIds(db,identity.accountId,trusted));
             for(var p:peers){String name=contactName(p);var history=NexoConnectChatStore.messages(db,identity.accountId(),p.peerId);var last=history.isEmpty()?null:history.get(history.size()-1);
                 if(last==null&&NexoConnectChatDeletion.wasCleared(db,identity.accountId(),p.peerId))continue;
                 LinearLayout row=new LinearLayout(this);row.setGravity(android.view.Gravity.CENTER_VERTICAL);row.setPadding(px(12),px(12),px(12),px(12));row.setBackground(surface(android.graphics.Color.WHITE,16));LinearLayout.LayoutParams rowParams=new LinearLayout.LayoutParams(-1,-2);rowParams.bottomMargin=px(8);
@@ -324,10 +360,24 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
                 conversationRows.put(p.peerId,card);
                 list.addView(card,rowParams);
                 row.addView(avatarView(p.peerId,name,48),new LinearLayout.LayoutParams(px(48),px(48)));LinearLayout copy=new LinearLayout(this);copy.setOrientation(LinearLayout.VERTICAL);copy.setPadding(px(12),0,0,0);TextView title=text(name,16,INK);title.setTypeface(null,android.graphics.Typeface.BOLD);copy.addView(title);TextView preview=text(last==null?"Empieza la conversación":(last.outgoing?"Tú: ":"")+last.text,14,MUTED);preview.setMaxLines(2);preview.setEllipsize(android.text.TextUtils.TruncateAt.END);copy.addView(preview);row.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
-                row.setContentDescription(name+(last==null?"":", "+preview.getText()));row.setFocusable(true);row.setOnClickListener(v->openConversation(p.peerId));
+                int unreadForPeer=0;
+                for(var item:history)if(!item.outgoing&&unread.contains(item.delivery))unreadForPeer++;
+                if(unreadForPeer>0){
+                    TextView counter=text(unreadForPeer>99?"99+":String.valueOf(unreadForPeer),12,android.graphics.Color.WHITE);
+                    counter.setGravity(android.view.Gravity.CENTER);
+                    counter.setTypeface(null,android.graphics.Typeface.BOLD);
+                    counter.setBackground(surface(0xffc72e44,22));
+                    row.addView(counter,new LinearLayout.LayoutParams(px(30),px(30)));
+                }
+                row.setContentDescription(name+(last==null?"":", "+preview.getText())+(unreadForPeer>0?", "+unreadForPeer+" sin leer":""));row.setFocusable(true);row.setOnClickListener(v->openConversation(p.peerId));
             }
         }catch(Exception e){showError("No se pudieron abrir las conversaciones.");}
         Button add=action("Añadir persona",this::people);root.addView(add,new LinearLayout.LayoutParams(-1,px(56)));
+        if(!NexoConnectInboxNoticeJob.permitted(this)){
+            Button notices=action("Activar avisos de mensajes",this::configureChatNotices);
+            root.addView(notices,new LinearLayout.LayoutParams(-1,px(50)));
+            askFirstChatNotificationPermission();
+        }
         if(refresh&&!busy)runWork(()->{
             NexoConnectChatTransport.syncProfiles(this,client,identity,trusted);
             return NexoConnectChatTransport.sync(this,client,identity,trusted,generation);

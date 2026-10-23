@@ -109,18 +109,41 @@
     return 'move';
   }
   function focusInitialHour(host,iso,minute){
+    // No ocultamos ninguna hora: seguimos mostrando las 24 h y desplazamos
+    // la vista al primer evento, tanto en HOY como al seleccionar una fecha.
     if(host.dataset.tgvFocusedDay===iso)return;
-    host.dataset.tgvFocusedDay=iso;
-    // Mostrar la primera cita o la hora actual, sin recortar la rejilla.
+    const ticket=String((Number(host.dataset.tgvFocusTicket)||0)+1);
+    host.dataset.tgvFocusTicket=ticket;
     const action=()=>{
+      if(host.dataset.tgvFocusTicket!==ticket||host.dataset.tgvDay!==iso||!host.isConnected)return;
       const board=host.querySelector?.('.tgv-board');
-      if(!host.isConnected||!board?.getBoundingClientRect||typeof window.scrollTo!=='function')return;
-      const top=(window.scrollY||0)+board.getBoundingClientRect().top;
-      const target=Math.max(0,top+Math.max(0,minute-45)*PX_PER_MINUTE-120);
-      window.scrollTo({top:target,behavior:'instant'});
+      if(!board?.getBoundingClientRect||!board.getClientRects?.().length)return;
+      // Algunas pantallas tienen un contenedor desplazable; en las demás
+      // el scroll pertenece al documento. El cálculo usa el mismo viewport.
+      let scroller=host.parentElement;
+      while(scroller){
+        const style=typeof getComputedStyle==='function'?getComputedStyle(scroller):null;
+        if(style&&/(auto|scroll)/.test(style.overflowY)&&scroller.scrollHeight>scroller.clientHeight+4)break;
+        scroller=scroller.parentElement;
+      }
+      const rect=board.getBoundingClientRect();
+      const offset=Math.max(0,minute-15)*PX_PER_MINUTE;
+      if(scroller){
+        const origin=scroller.getBoundingClientRect().top;
+        const position=Math.max(0,scroller.scrollTop+rect.top-origin+offset-110);
+        scroller.scrollTo?.({top:position,behavior:'instant'});
+      }else if(typeof window.scrollTo==='function'){
+        const position=Math.max(0,(window.scrollY||0)+rect.top+offset-110);
+        window.scrollTo({top:position,behavior:'instant'});
+      }else return;
+      host.dataset.tgvFocusedDay=iso;
     };
-    if(typeof window.requestAnimationFrame==='function')window.requestAnimationFrame(action);
-    else if(typeof requestAnimationFrame==='function')requestAnimationFrame(action);
+    // La navegación puede ejecutar scrollTo(0,0) durante el render.
+    // Enfocar tras dos frames evita que esa llamada anule el destino.
+    if(typeof window.requestAnimationFrame==='function')
+      window.requestAnimationFrame(()=>window.requestAnimationFrame(action));
+    else if(typeof requestAnimationFrame==='function')
+      requestAnimationFrame(()=>requestAnimationFrame(action));
   }
   function render(host,iso,rawItems){
     if(!host||!iso)return;
@@ -172,7 +195,7 @@
       const row=timed[Number(btn.dataset.tgvIndex)];
       attachDrag(btn,row,iso,host);
     });
-    focusInitialHour(host,iso,timed.length?Math.min(...timed.map(r=>r.start)):clockMinutes(Date.now()));
+    if(timed.length)focusInitialHour(host,iso,Math.min(...timed.map(r=>r.start)));
   }
   /** Abre la ficha única que ya utiliza Nexo, con el apartado Editar plegado. */
   function openExistingDetail(item){
@@ -375,6 +398,7 @@
   }
   function showHome(){
     state.homeTimelineVisible=true;
+    delete document.getElementById('homeTodayTimeGrid')?.dataset.tgvFocusedDay;
     const screen=document.querySelector('.screen[data-screen="today"]');
     screen?.classList.add('home-timeline-mode');
     document.getElementById('homeTodayTimeline')?.classList.remove('hidden');
