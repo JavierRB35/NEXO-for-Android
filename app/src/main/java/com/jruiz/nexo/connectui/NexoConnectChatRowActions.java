@@ -26,7 +26,7 @@ final class NexoConnectChatRowActions {
         FrameLayout frame=new FrameLayout(context);
         frame.setClipChildren(true);
         Button delete=new Button(context);
-        delete.setText("Eliminar");
+        delete.setText("🗑 Eliminar");
         delete.setAllCaps(false);
         delete.setTextColor(Color.WHITE);
         GradientDrawable red=new GradientDrawable();
