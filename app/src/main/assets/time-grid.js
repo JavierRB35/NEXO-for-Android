@@ -125,7 +125,12 @@
   function render(host,iso,rawItems){
     if(!host||!iso)return;
     const bounds=dayBounds(iso);
-    const items=(Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds));
+    // La identidad no depende de la hora: una misma cita puede moverse o pasar a todo el día.
+    // Si la fuente devuelve dos instantáneas de esa identidad, se representa solo una vez.
+    const byIdentity=new Map();
+    (Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds))
+      .forEach(item=>byIdentity.set(eventKey(item),item));
+    const items=[...byIdentity.values()];
     const allDay=items.filter(item=>!isTimed(item));
     const timed=assignColumns(items.filter(isTimed).map(item=>segment(item,bounds)));
     // Toda la jornada, incluso citas de madrugada o a última hora.
@@ -161,13 +166,61 @@
       '</div><p class="tgv-help">Mantén pulsado el centro para mover una cita, o los bordes para cambiar su inicio o final (15 min).</p>';
     host.querySelectorAll('[data-tgv-allday]').forEach(btn=>btn.addEventListener('click',()=>{
       const item=allDay[Number(btn.dataset.tgvAllday)];
-      if(item)openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
+      if(item)showDetail(item);
     }));
     host.querySelectorAll('[data-tgv-index]').forEach(btn=>{
       const row=timed[Number(btn.dataset.tgvIndex)];
       attachDrag(btn,row,iso,host);
     });
     focusInitialHour(host,iso,timed.length?Math.min(...timed.map(r=>r.start)):clockMinutes(Date.now()));
+  }
+  /** Vista resumida de consulta: editar es una decisión explícita, no la acción del toque. */
+  function showDetail(item){
+    if(!item||writing)return;
+    dismissDetail();
+    const id=Number(item.seriesId||item.id),occurrenceAt=Number(item.occurrenceAt||item.dueAt),
+      recurring=isRecurring(item),date=new Date(Number(item.dueAt));
+    const day=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'2-digit',month:'short'}).format(date);
+    const dateDay=two(date.getDate()),month=new Intl.DateTimeFormat('es-ES',{month:'short'}).format(date).replace('.','');
+    const status=item.status==='done'||item.occurrenceStatus==='done'?'Completada':
+      item.status==='cancelled'||item.occurrenceStatus==='cancelled'?'Cancelada':
+      item.status==='postponed'||item.occurrenceStatus==='postponed'?'Pospuesta':'Pendiente';
+    const end=Number(itemEffectiveEndAt(item));
+    const time=isTimed(item)?new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit'}).format(date)+
+      (end>Number(item.dueAt)?' – '+new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit'}).format(new Date(end)):''):'Todo el día';
+    const place=String(item.locationText||item.mapsUrl||'').trim(),body=String(item.body||'').trim();
+    const people=Array.isArray(item.participants)?item.participants.map(p=>String(p?.name||'').trim()).filter(Boolean).join(', '):String(item.participantsText||'').trim();
+    const overlay=document.createElement('div');
+    overlay.className='tgv-detail-backdrop';
+    overlay.innerHTML='<section class="tgv-detail-sheet" role="dialog" aria-modal="true" aria-label="Detalle del evento">'+
+      '<div class="tgv-detail-handle" aria-hidden="true"></div>'+
+      '<button type="button" class="tgv-detail-close" data-tgv-detail-close aria-label="Cerrar detalle">'+uiIcon('close')+'</button>'+
+      '<div class="tgv-detail-top"><div class="tgv-detail-date"><span>'+esc(day.split(' ')[0])+'</span><strong>'+dateDay+'</strong><small>'+esc(month)+'</small></div>'+
+      '<div class="tgv-detail-summary"><h3>'+esc(item.title||'Evento')+'</h3>'+
+      '<span class="tgv-detail-status">'+esc(status)+'</span>'+
+      '<div class="tgv-detail-category" style="--tgv-accent:'+validColor(item)+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+esc(categoryLabel(item.category))+'</div>'+
+      '<div class="tgv-detail-time">'+uiIcon('clock')+'<strong>'+esc(time)+'</strong></div></div></div>'+
+      (place?'<div class="tgv-detail-field">'+uiIcon('pin')+'<span>'+esc(place)+'</span></div>':'')+
+      (people?'<div class="tgv-detail-field">'+uiIcon('users')+'<span>'+esc(people)+'</span></div>':'')+
+      (body&&body!==item.title?'<div class="tgv-detail-description">'+esc(body)+'</div>':'')+
+      (recurring?'<div class="tgv-detail-field">'+uiIcon('calendar')+'<span>Evento recurrente</span></div>':'')+
+      '<div class="tgv-detail-actions"><button type="button" class="secondary-button" data-tgv-detail-full>Ver ficha completa</button>'+
+      '<button type="button" class="primary-button" data-tgv-detail-edit>'+uiIcon('edit')+' Editar</button></div>'+
+      '</section>';
+    document.body.appendChild(overlay);
+    document.body.classList.add('tgv-detail-open');
+    const keydown=e=>{if(e.key==='Escape'){e.preventDefault();close();}};
+    const close=()=>{overlay.remove();document.body.classList.remove('tgv-detail-open');document.removeEventListener('keydown',keydown);};
+    overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+    document.addEventListener('keydown',keydown);
+    overlay.querySelector('[data-tgv-detail-close]').addEventListener('click',close);
+    const openEditor=edit=>{close();openEventInAgenda(id,occurrenceAt,recurring);if(edit){
+      const details=document.querySelector('#modalBody .details-box');
+      if(details)details.open=true;
+    }};
+    overlay.querySelector('[data-tgv-detail-full]').addEventListener('click',()=>openEditor(false));
+    overlay.querySelector('[data-tgv-detail-edit]').addEventListener('click',()=>openEditor(true));
+    overlay.querySelector('[data-tgv-detail-close]').focus();
   }
   function notifyChange(){
     if(state.screen==='calendar')renderCalendar();
@@ -245,7 +298,7 @@
     btn.addEventListener('click',e=>{
       if(btn._tgvSuppressUntil&&Date.now()<btn._tgvSuppressUntil){e.preventDefault();return;}
       if(writing)return;
-      openEventInAgenda(Number(item.seriesId||item.id),Number(item.occurrenceAt||item.dueAt),isRecurring(item));
+      showDetail(item);
     });
     if(writing)return;
     const bounds=dayBounds(iso),originalStart=Number(item.dueAt),
@@ -358,7 +411,9 @@
     if(!Array.isArray(items))items=[];
     host._tgvItems=items;
     section.querySelector('[data-tgv-home-title]').textContent='Hoy · '+new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'}).format(new Date(iso+'T12:00:00'));
-    section.querySelector('[data-tgv-home-count]').textContent=items.length+' evento'+(items.length===1?'':'s');
+    const visibleKeys=new Set(items.filter(item=>item?.dueAt&&visibleInDay(item,bounds)).map(eventKey));
+    const count=visibleKeys.size;
+    section.querySelector('[data-tgv-home-count]').textContent=count+' evento'+(count===1?'':'s');
     render(host,iso,items);
   }
   function showHome(){
@@ -376,5 +431,10 @@
     if(state.screen==='today')renderToday();
     window.scrollTo(0,0);
   }
-  window.NexoTimeGrid={render,renderHome,showHome,hideHome,onSaved,assignColumns,dayBounds};
+  function dismissDetail(){
+    const button=document.querySelector('.tgv-detail-backdrop [data-tgv-detail-close]');
+    if(!button)return false;
+    button.click();return true;
+  }
+  window.NexoTimeGrid={render,renderHome,showHome,hideHome,onSaved,assignColumns,dayBounds,dismissDetail};
 })();
