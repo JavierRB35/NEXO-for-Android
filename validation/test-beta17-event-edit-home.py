@@ -21,11 +21,11 @@ for label in ['Pendiente','Completada','Pospuesta','Cancelada']:
 assert 'function recordEditorActionBar' in js
 assert 'record-form-actions--compact' in js
 item=js[js.index('function openItem(id)'):js.index('function openOccurrence',js.index('function openItem(id)'))]
-assert "recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')" in item
+assert "recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'',eventHasLocation(i)?'eventDetailMapsBtn':'')" in item
 assert item.count("'saveEditBtn'") == 1
 assert 'id="saveEditBtn"' not in item
 occ=js[js.index('function openOccurrence'):js.index('function chooseRecurrenceScope',js.index('function openOccurrence'))]
-assert "recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'')" in occ
+assert "recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'',eventHasLocation(i)?'occDetailMapsBtn':'')" in occ
 assert occ.count("'saveOccurrenceBtn'") == 1
 assert 'id="saveOccurrenceBtn"' not in occ
 assert '<div class="modal-actions wrap-actions"></div>' not in occ
@@ -38,13 +38,17 @@ assert 'id="captureMapPreview"' in html and 'id="captureMapsUrl" type="hidden"' 
 assert 'placeholder="Dirección o enlace de Google Maps"' in html
 for token in ['id="editLocationMapBtn"','id="occLocationMapBtn"','id="editMapsUrl" type="hidden"','id="occMapsUrl" type="hidden"']:
     assert token in js, token
+assert "eventLocationShortcutHtml(i,'eventDetailLocationBtn')" in item
+assert "eventLocationShortcutHtml(i,'occDetailLocationBtn')" in occ
+assert "bindEventMapActions(i,'eventDetailMapsBtn','eventDetailLocationBtn')" in item
+assert "bindEventMapActions(i,'occDetailMapsBtn','occDetailLocationBtn')" in occ
 assert 'function bindEventLocationField' in js
 assert "bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview'" in js
 assert "bindEventLocationField('#editLocation','#editMapsUrl','#editLocationMapBtn')" in item
 assert "bindEventLocationField('#occLocation','#occMapsUrl','#occLocationMapBtn')" in occ
 assert "if(maps)maps.value='';" in js
 assert "item?.locationText||item?.mapsUrl" in js
-assert "if(isGoogleMapsLocation(place)){NexoNative.openPlaceMap(place);return;}" in js
+assert "if(maps||place){NexoNative.openLocationDirections(maps||place);return;}" in js
 assert 'Enlace de Google Maps' not in html
 assert '<label>Enlace de Google Maps' not in item
 assert '<label>Enlace de Google Maps' not in occ
