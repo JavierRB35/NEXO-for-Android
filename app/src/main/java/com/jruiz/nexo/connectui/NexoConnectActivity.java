@@ -20,6 +20,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     private boolean foreground;
     private String renderedMessages="";
     private NexoConnectMessageSelection messageSelection;
+    private final Map<UUID,android.view.View> conversationRows=new HashMap<>();
     private final java.util.Map<UUID,String> drafts=new java.util.HashMap<>();
     private static final int INK=0xff142337,MUTED=0xff526177,GREEN=0xff0f766e,PAPER=0xfff7f9fc;
     private int px(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
