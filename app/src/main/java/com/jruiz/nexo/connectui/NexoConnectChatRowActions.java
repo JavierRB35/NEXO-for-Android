@@ -47,6 +47,7 @@ final class NexoConnectChatRowActions {
             row.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
             options.run();
         };
+        row.setOnLongClickListener(v->{options.run();return true;});
         row.setOnTouchListener((v,event)->{
             switch(event.getActionMasked()){
                 case MotionEvent.ACTION_DOWN:
