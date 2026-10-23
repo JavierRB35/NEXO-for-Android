@@ -205,7 +205,9 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     }
     private void renamePeer(UUID peer){renamePeer(peer,this::people);}
     private void renamePeer(UUID peer,Runnable afterSave){
-        if(identity==null||trusted.findActive(peer)==null)return;
+        try{
+            if(identity==null||trusted==null||trusted.findActive(peer)==null)return;
+        }catch(Exception invalid){showError("No se puede verificar este contacto.");return;}
         EditText input=new EditText(this);input.setSingleLine(true);
         input.setHint("Nombre para ti");
         input.setText(getSharedPreferences("nexo-connect-local-names",0).getString(identity.accountId()+"_"+peer,""));
