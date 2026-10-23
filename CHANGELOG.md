@@ -1,3 +1,10 @@
+## Nexo 3.7.59 — Agenda 24 horas y redimensionamiento desde bordes
+- Inicio → HOY y Calendario: la rejilla muestra de 00:00 a 24:00 y abre junto a las primeras citas/hora actual, sin recortar la madrugada ni la noche.
+- Tarjetas simplificadas: solo horario, icono de categoría, título y, si cabe, una etiqueta; los demás detalles están en la ficha inferior.
+- Pulsación larga sobre el centro: mover cita conservando duración. Arrastre desde borde superior: cambiar solo hora de inicio; desde el inferior: cambiar solo fin. Ajuste cada 15 minutos, vista previa, duración mínima 15 minutos y autodesplazamiento cerca de los extremos de pantalla.
+- Guardado asíncrono con opción Deshacer y reversión tras errores; aparición recurrente aislada. Citas de varios días visibles pero protegidas contra arrastres accidentales.
+- Actualización opcional `versionCode 152`. Misma firma Release, `applicationId` y esquema SQLite 33. Pruebas ampliadas de horario completo, arrastre y redimensionamiento.
+
 ## Nexo 3.7.58 — Agenda diaria por horas (Time-Grid)
 - Inicio → HOY y Calendario muestran los eventos de cada día en una rejilla cronológica de 24 horas, con bloques proporcionales a su duración, colores y barras laterales por categoría y columnas para citas simultáneas.
 - Pulsación abre la ficha inferior; pulsación larga de 300 ms y vibración permiten mover una cita en pasos de 15 minutos. Guardado asíncrono y notificación con Deshacer; recuperación de hora original en caso de error.

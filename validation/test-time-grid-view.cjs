@@ -44,9 +44,15 @@ render(host,'2026-10-23',[
   {id:2,title:'Reunión',category:'Trabajo',hasTime:true,dueAt:day+10*3600000,endAt:day+10*3600000+30*60000},
   {id:3,title:'Día completo',category:'Familia',allDay:true,hasTime:false,dueAt:day,endAt:day+23*3600000},
 ]);
-assert.equal((host.innerHTML.match(/class="tgv-event"/g)||[]).length,2);
+assert.equal((host.innerHTML.match(/class="tgv-event(?:\s|")/g)||[]).length,2);
 assert.match(host.innerHTML,/tgv-all-day-event/);
 assert.match(host.innerHTML,/08:00/);
+assert.match(host.innerHTML,/00:00/);
+assert.match(host.innerHTML,/24:00/);
+assert.doesNotMatch(host.innerHTML,/tgv-event-location|tgv-event-extras|tgv-avatars|tgv-event-description/);
+assert.match(host.innerHTML,/data-tgv-resize="start"/);
+assert.match(host.innerHTML,/data-tgv-resize="end"/);
+assert.match(source,/function focusInitialHour\(/);
 assert.match(host.innerHTML,/left:calc\(50% \+ 3px\)/);
 assert.match(html,/time-grid\.js/);
 assert.match(html,/homeTodayTimeGrid/);
@@ -59,7 +65,7 @@ render(midnightHost,'2026-10-24',[
   {id:11,title:'Hasta medianoche',category:'Trabajo',dueAt:day+22*3600000,
     endAt:day+24*3600000,hasTime:true}
 ]);
-assert.equal((midnightHost.innerHTML.match(/class="tgv-event"/g)||[]).length,0);
+assert.equal((midnightHost.innerHTML.match(/class="tgv-event(?:\s|")/g)||[]).length,0);
 
 // Prueba real del controlador táctil y del ciclo asíncrono/Deshacer con un DOM simulado.
 const fakeTimers=new Map(),writes=[],messages=[];
@@ -147,4 +153,74 @@ assert.equal(writes[3].data.occurrenceAt,day+10*3600000);
 assert.match(android,/service\.updateOccurrence\(move,"single"\)/);
 dragCtx.window.NexoTimeGrid.onSaved(writes[3].id,'{"ok":true}');
 
-console.log('OK: time-grid columns, midnight, drag +15/+30m, recurrence, persistence, undo and rollback');
+
+// Redimensionar por arriba: cambia solo inicio; aumenta duración.
+const edgeTarget=side=>({closest:()=>({dataset:{tgvResize:side}})});
+function resizeGesture(appointment,side,deltaPx){
+  dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[appointment]);
+  dragButton.fire('touchstart',{touches:[{clientY:180}],target:edgeTarget(side)});
+  for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
+  dragButton.fire('touchmove',{touches:[{clientY:180+deltaPx}],preventDefault:noop});
+  dragButton.fire('touchend',{changedTouches:[{clientY:180+deltaPx}]});
+  return writes.at(-1);
+}
+const topAppointment={id:92,category:'Trabajo',title:'Redimensionar arriba',
+  dueAt:day+10*3600000,endAt:day+11*3600000,hasTime:true,durationMinutes:60};
+let resized=resizeGesture(topAppointment,'start',-30*1.6);
+assert.equal(resized.data.dueAt,day+9*3600000+30*60000);
+assert.equal(resized.data.endAt,day+11*3600000);
+assert.equal(resized.data.durationMinutes,90);
+dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
+
+// Redimensionar por abajo: cambia solo final.
+const bottomAppointment={id:93,category:'Trabajo',title:'Redimensionar abajo',
+  dueAt:day+10*3600000,endAt:day+11*3600000,hasTime:true,durationMinutes:60};
+resized=resizeGesture(bottomAppointment,'end',45*1.6);
+assert.equal(resized.data.dueAt,day+10*3600000);
+assert.equal(resized.data.endAt,day+11*3600000+45*60000);
+assert.equal(resized.data.durationMinutes,105);
+dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
+
+// Reducir final respetando la duración mínima de 15 minutos.
+const shrink={id:94,category:'Trabajo',title:'Reducir cita',
+  dueAt:day+10*3600000,endAt:day+11*3600000,hasTime:true,durationMinutes:60};
+resized=resizeGesture(shrink,'end',-120*1.6);
+assert.equal(resized.data.dueAt,day+10*3600000);
+assert.equal(resized.data.endAt,day+10*3600000+15*60000);
+assert.equal(resized.data.durationMinutes,15);
+dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
+
+// Sin límite artificial 08:00–20:00: toda la jornada accesible.
+const early={id:95,category:'Trabajo',title:'Madrugada',
+  dueAt:day+30*60000,endAt:day+90*60000,hasTime:true,durationMinutes:60};
+resized=resizeGesture(early,'start',-120*1.6);
+assert.equal(resized.data.dueAt,day); // 00:00
+assert.equal(resized.data.endAt,day+90*60000);
+dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
+const late={id:96,category:'Trabajo',title:'Noche',
+  dueAt:day+22*3600000,endAt:day+23*3600000,hasTime:true,durationMinutes:60};
+resized=resizeGesture(late,'end',180*1.6);
+assert.equal(resized.data.dueAt,day+22*3600000);
+assert.equal(resized.data.endAt,day+24*3600000); // 24:00
+dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
+
+// Al cancelar un gesto no se escriben cambios en la base.
+const count=writes.length;
+dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[late]);
+dragButton.fire('touchstart',{touches:[{clientY:180}],target:edgeTarget('start')});
+for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
+dragButton.fire('touchcancel',{});
+assert.equal(writes.length,count,'touchcancel no persiste');
+
+// Contenido: una sola etiqueta cuando cabe, sin metadatos de la ficha.
+const largeHost=makeHost();
+render(largeHost,'2026-10-23',[{
+  id:97,title:'Aniversario',category:'Familia',subcategory:'Especial',
+  dueAt:day+12*3600000,endAt:day+15*3600000,hasTime:true,
+  locationText:'No visible aquí',body:'Notas privadas',
+  hasReminder:true,linkCount:3
+}]);
+assert.match(largeHost.innerHTML,/tgv-event-status/);
+assert.doesNotMatch(largeHost.innerHTML,/tgv-event-location|tgv-event-extras|tgv-avatars|tgv-event-description/);
+
+console.log('OK: time-grid 24h, compact cards, move and start/end resize, persistence, undo, recurrence and bounds');
