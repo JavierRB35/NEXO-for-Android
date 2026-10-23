@@ -307,6 +307,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         }catch(Exception e){showError("No se pudieron abrir tus personas.");}
     }
     private void showChats(){showChats(true);}
+    // The local chat-history controls preserve identity and contact pins.
     private void showChats(boolean refresh){
         conversation=null;chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
         LinearLayout root=chatShell("Chat",null,this::finish);ScrollView scroll=new ScrollView(this);LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(px(16),px(16),px(16),px(16));scroll.addView(list);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
