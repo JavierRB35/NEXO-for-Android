@@ -61,7 +61,9 @@
     const status=item.status==='done'||item.occurrenceStatus==='done'?'Completada':
       item.status==='cancelled'||item.occurrenceStatus==='cancelled'?'Cancelada':
       item.status==='postponed'||item.occurrenceStatus==='postponed'?'Pospuesta':'';
-    return status||String(item.subcategory||'').replace(/_/g,' ')||categoryLabel(item.category);
+    const raw=String(item.subcategory||'').trim();
+    const subcategory=raw==='vehicle_reservation'?'Reserva de coche':raw.replace(/_/g,' ');
+    return [status,subcategory||categoryLabel(item.category)].filter(Boolean).join(' · ');
   }
   function fullLabel(item){
     return [item.title,fmtDueItem(item),categoryLabel(item.category),subtitle(item),
