@@ -123,6 +123,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     }
     @Override protected void onInvitationAccepted(){
         getSharedPreferences("nexo-connect-pending-invite",0).edit().remove("payload").apply();
+        broadcastProfile();
         new AlertDialog.Builder(this).setTitle("Contacto añadido")
             .setMessage("La conexión se ha confirmado en este teléfono. Para poder compartir en ambas direcciones, la otra persona debe comprobar también tu código desde Nexo → Personas.")
             .setNegativeButton("Ahora no",null).setPositiveButton("Ver mi código",(d,w)->showOwnQr()).show();
@@ -296,7 +297,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
                     client.verifyStoredPeer(trusted,p.peerId);
                     client.setReceiving(trusted,p.peerId,true);
                     return true;
-                },v->{new AlertDialog.Builder(this)
+                },v->{broadcastProfile();new AlertDialog.Builder(this)
                     .setTitle("Contacto preparado")
                     .setMessage("La identidad coincide y este teléfono puede recibir sus mensajes y fichas. Para compartir también desde el otro móvil, debe confirmar tu código.")
                     .setPositiveButton("Entendido",(d,w)->people()).show();}));
