@@ -28,6 +28,6 @@ assert "if(unexpected.httpStatus!=503)throw unexpected" in pilot
 assert "client.verifyStoredPeer(trusted,id);newlyLinked=false;" in pilot
 assert "if(newlyLinked)client.verifyStoredPeer(trusted,id);" in pilot
 assert "client.setReceiving(trusted,id,true);" in pilot
-assert "button(\"Comprobar conexión\"" in host
+assert "button(\"Comprobar conexión con " in host
 assert "0xff0f766e" in pilot and "0xff0f766e" in ui
 print("Nexo Connect pairing structural guards OK")
