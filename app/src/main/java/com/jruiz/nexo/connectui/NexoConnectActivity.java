@@ -317,10 +317,12 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
             for(var p:peers){String name=contactName(p);var history=NexoConnectChatStore.messages(db,identity.accountId(),p.peerId);var last=history.isEmpty()?null:history.get(history.size()-1);
                 if(last==null&&NexoConnectChatDeletion.wasCleared(db,identity.accountId(),p.peerId))continue;
                 LinearLayout row=new LinearLayout(this);row.setGravity(android.view.Gravity.CENTER_VERTICAL);row.setPadding(px(12),px(12),px(12),px(12));row.setBackground(surface(android.graphics.Color.WHITE,16));LinearLayout.LayoutParams rowParams=new LinearLayout.LayoutParams(-1,-2);rowParams.bottomMargin=px(8);
-                list.addView(NexoConnectChatRowActions.wrap(this,row,
+                android.widget.FrameLayout card=NexoConnectChatRowActions.wrap(this,row,
                     ()->openConversation(p.peerId),
                     ()->showConversationMenu(p.peerId,name),
-                    ()->confirmDeleteConversation(p.peerId,name)),rowParams);
+                    ()->confirmDeleteConversation(p.peerId,name));
+                conversationRows.put(p.peerId,card);
+                list.addView(card,rowParams);
                 row.addView(avatarView(p.peerId,name,48),new LinearLayout.LayoutParams(px(48),px(48)));LinearLayout copy=new LinearLayout(this);copy.setOrientation(LinearLayout.VERTICAL);copy.setPadding(px(12),0,0,0);TextView title=text(name,16,INK);title.setTypeface(null,android.graphics.Typeface.BOLD);copy.addView(title);TextView preview=text(last==null?"Empieza la conversación":(last.outgoing?"Tú: ":"")+last.text,14,MUTED);preview.setMaxLines(2);preview.setEllipsize(android.text.TextUtils.TruncateAt.END);copy.addView(preview);row.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
                 row.setContentDescription(name+(last==null?"":", "+preview.getText()));row.setFocusable(true);row.setOnClickListener(v->openConversation(p.peerId));
             }
