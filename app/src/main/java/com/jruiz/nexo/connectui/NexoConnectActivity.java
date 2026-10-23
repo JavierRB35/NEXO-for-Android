@@ -369,6 +369,14 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     @Override protected void onPause(){foreground=false;handler.removeCallbacks(poll);super.onPause();}
     @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus)markVisibleRead();}
     @Override public void onBackPressed(){if(conversation!=null)showChats();else super.onBackPressed();}
+    private void showConversationMenu(UUID peer,String name){
+        NexoConnectChatDeleteDialogs.showConversationMenu(this,name,
+            ()->confirmDeleteConversation(peer,name));
+    }
+    private void confirmDeleteConversation(UUID peer,String name){
+        NexoConnectChatDeleteDialogs.confirmConversation(this,identity.accountId(),peer,name,
+            ()->{conversation=null;showChats(false);});
+    }
     private void chooseSection(){new AlertDialog.Builder(this).setTitle("¿Qué quieres compartir?").setItems(NexoConnectHostShare.sections(),(d,i)->chooseEntry(NexoConnectHostShare.sectionKinds()[i])).show();}
     private void chooseEntry(String section){try(DatabaseHelper db=new DatabaseHelper(this)){
         var entries=NexoConnectHostShare.list(db,section);String[] names=new String[entries.size()];for(int i=0;i<names.length;i++)names[i]=entries.get(i).title;
