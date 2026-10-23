@@ -595,6 +595,48 @@ public class NexoConnectPilotActivity extends Activity {
         }
     }
     /** Friendly local names: no cloud lookup, no identity or QR key change. */
+    /** Avatar hook for the integrated Nexo host; no unsigned remote image fetches. */
+    protected View contactAvatar(AndroidPeerTrustStore.PeerPin peer){
+        String name=contactName(peer);
+        TextView initial=new TextView(this);
+        initial.setText(name.isEmpty()?"?":name.substring(0,1).toUpperCase(java.util.Locale.ROOT));
+        initial.setTextSize(19);initial.setGravity(android.view.Gravity.CENTER);
+        initial.setTextColor(0xffffffff);initial.setBackgroundColor(0xff0f766e);
+        return initial;
+    }
+    private void chooseVerifiedPeers(List<AndroidPeerTrustStore.PeerPin> peers,
+            java.util.function.Consumer<List<AndroidPeerTrustStore.PeerPin>> chosen){
+        ScrollView scroll=new ScrollView(this);
+        LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(12),dp(8),dp(12),dp(8));scroll.addView(list);
+        final boolean[] checked=new boolean[peers.size()];
+        for(int i=0;i<peers.size();i++){
+            final int index=i;
+            LinearLayout row=new LinearLayout(this);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(8),dp(7),dp(8),dp(7));
+            View photo=contactAvatar(peers.get(i));
+            row.addView(photo,new LinearLayout.LayoutParams(dp(42),dp(42)));
+            CheckBox check=new CheckBox(this);
+            check.setText(contactName(peers.get(i)));
+            check.setTextColor(0xff142337);check.setTextSize(16);
+            check.setButtonTintList(android.content.res.ColorStateList.valueOf(0xff0f766e));
+            check.setPadding(dp(10),0,0,0);
+            check.setOnCheckedChangeListener((button,value)->checked[index]=value);
+            row.addView(check,new LinearLayout.LayoutParams(0,dp(52),1));
+            row.setOnClickListener(v->check.setChecked(!check.isChecked()));
+            list.addView(row);
+        }
+        new AlertDialog.Builder(this).setTitle("¿A quién se la enviamos?")
+            .setView(scroll).setNegativeButton("Cancelar",null)
+            .setPositiveButton("Continuar",(dialog,which)->{
+                List<AndroidPeerTrustStore.PeerPin> selected=new ArrayList<>();
+                for(int i=0;i<peers.size();i++)if(checked[i])selected.add(peers.get(i));
+                if(selected.isEmpty()||selected.size()>NexoConnectSendBatch.MAX_RECIPIENTS){
+                    showError("Selecciona de 1 a "+NexoConnectSendBatch.MAX_RECIPIENTS+" personas.");
+                }else chosen.accept(selected);
+            }).show();
+    }
     protected String contactName(AndroidPeerTrustStore.PeerPin peer) {
         if(peer==null)return "Contacto";
         String fallback="Contacto "+peer.peerId.toString().substring(0,8);
@@ -725,27 +767,7 @@ public class NexoConnectPilotActivity extends Activity {
                     .setPositiveButton("Entendido",null).show();
                 return;
             }
-            final String[] names=new String[peers.size()];
-            final boolean[] checked=new boolean[peers.size()];
-            for(int i=0;i<peers.size();i++)names[i]=contactName(peers.get(i));
-            new AlertDialog.Builder(this)
-                .setTitle("¿A quién se la enviamos?")
-                .setMultiChoiceItems(names,checked,(dialog,which,isChecked)->
-                        checked[which]=isChecked)
-                .setNegativeButton("Cancelar",null)
-                .setPositiveButton("Continuar",(dialog,which)->{
-                    List<AndroidPeerTrustStore.PeerPin> selected=new ArrayList<>();
-                    for(int i=0;i<checked.length;i++)
-                        if(checked[i])selected.add(peers.get(i));
-                    if(selected.isEmpty()){
-                        showError("Elige al menos una persona.");
-                    }else if(selected.size()>NexoConnectSendBatch.MAX_RECIPIENTS){
-                        showError("Elige como máximo "+
-                                NexoConnectSendBatch.MAX_RECIPIENTS+" personas.");
-                    }else{
-                        composeHostEntity(entity,clean,selected);
-                    }
-                }).show();
+            chooseVerifiedPeers(peers,selected->composeHostEntity(entity,clean,selected));
         }catch(Exception rejected){
             new AlertDialog.Builder(this).setTitle("No se puede compartir")
                 .setMessage("Esta ficha no se puede enviar todavía. No se ha enviado nada.")
@@ -835,25 +857,8 @@ public class NexoConnectPilotActivity extends Activity {
                 showError("Añade antes una persona de confianza.");
                 return;
             }
-            String[] names=new String[peers.size()];
-            boolean[] checked=new boolean[peers.size()];
-            for(int i=0;i<peers.size();i++)names[i]=contactName(peers.get(i));
-            new AlertDialog.Builder(this).setTitle("¿A quién se la enviamos?")
-                .setMultiChoiceItems(names,checked,(d,which,isChecked)->
-                        checked[which]=isChecked)
-                .setNegativeButton("Cancelar",null)
-                .setPositiveButton("Continuar",(d,w)->{
-                    List<AndroidPeerTrustStore.PeerPin> selection=new ArrayList<>();
-                    for(int i=0;i<checked.length;i++)
-                        if(checked[i])selection.add(peers.get(i));
-                    if(selection.isEmpty() ||
-                            selection.size()>NexoConnectSendBatch.MAX_RECIPIENTS){
-                        showError("Selecciona de 1 a "+
-                                NexoConnectSendBatch.MAX_RECIPIENTS+" personas.");
-                    }else{
-                        showCompose(selection,proposedTitle,proposedBody);
-                    }
-                }).show();
+            chooseVerifiedPeers(peers,selection->
+                showCompose(selection,proposedTitle,proposedBody));
         }catch(Exception ex){showError("No se pudieron cargar los contactos");}
     }
     private void showCompose(AndroidPeerTrustStore.PeerPin peer) {
