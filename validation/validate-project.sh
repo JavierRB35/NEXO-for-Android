@@ -50,6 +50,7 @@ python validation/test-version-identity.py
 python validation/test-connect-registration-recovery.py
 python validation/test-connect-friendly-pairing.py
 python validation/test-connect-profile-ux.py
+python validation/test-connect-chat-delete.py
 python validation/test-in-app-updates.py
 python validation/test-event-maps-ui.py
 python validation/test-update-critical-policy.py
