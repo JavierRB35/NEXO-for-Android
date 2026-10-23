@@ -29,7 +29,7 @@ assert "nexo_chat_deleted" in deletion and "nexo_chat_cleared" in deletion
 assert "DELETE FROM nexo_chat_outgoing" in deletion
 assert "DELETE FROM nexo_chat_restored" in deletion
 assert "NexoConnectChatDeletion.visibility(db,account,peer)" in store
-assert "NexoConnectChatDeletion.visibility(db,account,peer)" in backup
+assert "NexoConnectChatDeletion.visibility(db,owner,UUID.fromString(peer))" in backup
 assert "if(view.hidden(id,body.getLong(" in backup
 assert "if(NexoConnectChatDeletion.visibility(db,account,peer).hidden" in backup
 assert "client." not in deletion and "supabase" not in deletion.lower()
