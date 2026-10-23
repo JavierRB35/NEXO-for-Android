@@ -635,6 +635,7 @@ function navigate(screen, options={}) {
     if(!window.confirm('Hay vínculos y elementos preparados que todavía no se han guardado. ¿Descartar la preparación y salir?'))return;
     discardPendingRelatedDrafts();
   }
+  const previousScreen=state.screen;
   const route={screen};
   if(screen==='panel'){route.panel=options.panel||state.lastPanel;route.list=options.list??null;}
   if(screen==='save'&&state.screen!=='save')state.captureReturnRoute={...router.current,scrollY:window.scrollY};
@@ -650,6 +651,9 @@ function navigate(screen, options={}) {
       : screen==='more'?'tools'
       : screen;
   $$('.nav-item').forEach(n=>{const selected=n.dataset.nav===active;n.classList.toggle('active',selected);if(selected)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
+  if(screen==='calendar'&&previousScreen!=='calendar'){
+    const grid=$('#calendarDayItems');if(grid)delete grid.dataset.tgvFocusedDay;
+  }
   if(screen==='today')renderToday();
   else if(screen==='more')renderMore();
   else if(screen==='save'){renderCapturePeopleAssignment();updateCaptureReviewMode();}
@@ -2556,6 +2560,7 @@ function renderCalendar(direction=0){
   $$('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>{
     const d=new Date(b.dataset.calendarDay+'T12:00:00');
     state.calendarSelected=b.dataset.calendarDay;
+    const agenda=$('#calendarDayItems');if(agenda)delete agenda.dataset.tgvFocusedDay;
     if(d.getMonth()!==state.calendarMonth.getMonth()||d.getFullYear()!==state.calendarMonth.getFullYear()){
       state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();
     }else{
@@ -4402,6 +4407,16 @@ function beginStartupSequence(startScreen){
   if(!state.startupSplashActive && !$('#startupSplash')) NexoNative.onStartupReadyForUpdates?.();
 }
 
+function refreshChatUnreadBadge(){
+  const badge=$('#chatNavBadge'),button=document.querySelector('[data-nav="chat"]');
+  if(!badge)return;
+  let unread=0;
+  try{unread=Math.max(0,Math.floor(Number(NexoNative.getUnreadChatCount())||0));}catch(_){}
+  badge.textContent=unread>99?'99+':String(unread);
+  badge.classList.toggle('hidden',unread===0);
+  button?.setAttribute('aria-label',unread?'Abrir Chat, '+unread+' mensaje'+(unread===1?'':'s')+' sin leer':'Abrir Chat');
+}
+window.NexoChatBadge={refresh:refreshChatUnreadBadge};
 function init(){
   refreshHeaderDate();
   setInterval(()=>{if(!document.hidden)refreshHeaderDate();},60*1000);
@@ -4413,6 +4428,13 @@ function init(){
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';bindCategorySelectIcon('#captureCategory');
   setInterpretationStatus('idle','Interpretación local preparada');
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else if(b.dataset.nav==='chat')NexoNative.openNexoChat();else navigate(b.dataset.nav,{root:true});}));
+  refreshChatUnreadBadge();
+  try{NexoNative.requestNexoChatRefresh();}catch(_){}
+  setInterval(()=>{if(!document.hidden)refreshChatUnreadBadge();},12000);
+  setInterval(()=>{if(!document.hidden)try{NexoNative.requestNexoChatRefresh();}catch(_){}},45000);
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden){refreshChatUnreadBadge();try{NexoNative.requestNexoChatRefresh();}catch(_){}}
+  });
   $('#globalSearchBtn').addEventListener('click',()=>navigate('search'));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   $('#headerWeatherBtn')?.addEventListener('click',()=>NexoNative.openHeaderWeather());

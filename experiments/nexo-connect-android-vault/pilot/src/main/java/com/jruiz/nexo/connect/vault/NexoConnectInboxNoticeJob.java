@@ -35,12 +35,14 @@ import java.util.UUID;
  */
 public final class NexoConnectInboxNoticeJob extends JobService {
     private static final String TAG="NexoConnectNotice";
-    private static final String CHANNEL="nexo_connect_fichas_lab_v1";
+    private static final String CHANNEL="nexo_connect_chat_v2";
     private static final String PREFS="nexo_connect_notified_deliveries_v1";
     private static final int JOB_ID=146801;
+    private static final int FOREGROUND_JOB_ID=146803;
     private static final int NOTIFICATION_ID=146802;
     private static final long INTERVAL_MS=15L*60*1000;
     private volatile boolean stopped;
+    private static final java.util.concurrent.atomic.AtomicBoolean CHECKING=new java.util.concurrent.atomic.AtomicBoolean(false);
 
     public static void schedule(Context context) {
         if(context==null)throw new IllegalArgumentException("Missing app");
@@ -51,7 +53,7 @@ public final class NexoConnectInboxNoticeJob extends JobService {
                 (NotificationManager)app.getSystemService(Context.NOTIFICATION_SERVICE);
         if(notifications!=null && Build.VERSION.SDK_INT>=26) {
             NotificationChannel channel=new NotificationChannel(
-                    CHANNEL,"Fichas de Nexo Connect",NotificationManager.IMPORTANCE_DEFAULT);
+                    CHANNEL,"Mensajes y fichas de Nexo Connect",NotificationManager.IMPORTANCE_DEFAULT);
             channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
             notifications.createNotificationChannel(channel);
         }
@@ -66,6 +68,21 @@ public final class NexoConnectInboxNoticeJob extends JobService {
         if(jobs.getPendingJob(JOB_ID)==null &&
                 jobs.schedule(scheduled)!=JobScheduler.RESULT_SUCCESS)
             throw new IllegalStateException("Android refused inbox notice job");
+    }
+
+    /** An app-visible refresh: the ordinary periodic 15-minute job remains
+     * scheduled for the background, without a permanent foreground service. */
+    public static void checkSoon(Context context){
+        if(context==null||NexoConnectMigration.blocked(context)||
+                !new NexoConnectSessionVault(context).exists())return;
+        JobScheduler jobs=(JobScheduler)context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        if(jobs==null||jobs.getPendingJob(FOREGROUND_JOB_ID)!=null)return;
+        JobInfo request=new JobInfo.Builder(FOREGROUND_JOB_ID,
+                new ComponentName(context,NexoConnectInboxNoticeJob.class))
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setOverrideDeadline(10000)
+                .build();
+        jobs.schedule(request);
     }
 
     /** Scheduling status, separate from notification permission state. */
@@ -99,7 +116,9 @@ public final class NexoConnectInboxNoticeJob extends JobService {
         stopped=false;
         new Thread(()->{
             try {
-                if(!stopped && permitted(this))checkMetadataAndNotify();
+                if(!stopped&&CHECKING.compareAndSet(false,true)){
+                    try{checkMetadataAndNotify();}finally{CHECKING.set(false);}
+                } // Unread sync is independent of notification consent.
             }catch(Exception unavailable) {
                 // Log class only: no credentials, recipient names or payloads.
                 Log.w(TAG,"Background check unavailable: "+
@@ -138,65 +157,99 @@ public final class NexoConnectInboxNoticeJob extends JobService {
                 session.accountId,local.deviceId(),confirmed.generation,
                 local.signingPrivate());
         JSONArray pending=client.inbox(20,null);
-        if(stopped || pending.length()==0)return;
+        if(stopped)return;
 
+        // Import encrypted chat messages before counting. Incoming message
+        // deliveries leave the server inbox when accepted, so the notification
+        // must use the durable local unread state, not pending.length().
+        java.util.LinkedHashSet<String> candidates=new java.util.LinkedHashSet<>();
+        int unreadChats=0;
         if("com.jruiz.nexo".equals(getPackageName())){
-            // Receipt/profile events must not look like new messages to the user.
+            AndroidPeerTrustStore trust=new AndroidPeerTrustStore(this,session.accountId);
             synchronized(NexoConnectSessionVault.REFRESH_LOCK){
-                NexoConnectChatTransport.sync(this,client,local,new AndroidPeerTrustStore(this,session.accountId),confirmed.generation);
+                NexoConnectChatTransport.sync(this,client,local,trust,confirmed.generation);
             }
-            JSONArray visible=new JSONArray();
             try(android.database.sqlite.SQLiteDatabase db=NexoConnectMigration.inbox(this)){
+                java.util.List<String> unread=NexoConnectChatStore.unreadIds(db,session.accountId,trust);
+                unreadChats=unread.size();
+                candidates.addAll(unread);
                 for(int i=0;i<pending.length();i++){
-                    org.json.JSONObject item=pending.getJSONObject(i);UUID delivery=UUID.fromString(item.getString("deliveryId"));boolean control=false;
-                    try(android.database.Cursor row=db.rawQuery("SELECT i.body FROM nexo_connect_import_receipts r JOIN items i ON i.id=r.local_id WHERE r.delivery_id=? AND r.entity_type='note'",new String[]{delivery.toString()})){
+                    org.json.JSONObject item=pending.getJSONObject(i);
+                    UUID delivery=UUID.fromString(item.getString("deliveryId"));
+                    boolean chat=false;
+                    try(android.database.Cursor row=db.rawQuery(
+                            "SELECT i.body FROM nexo_connect_import_receipts r "+
+                            "JOIN items i ON i.id=r.local_id "+
+                            "WHERE r.delivery_id=? AND r.entity_type='note'",
+                            new String[]{delivery.toString()})){
                         if(row.moveToFirst()){
-                            org.json.JSONObject data=new NexoConnectSealedNoteStore(session.accountId,delivery).read(row.getString(0));
-                            if(NexoConnectChatStore.CATEGORY.equals(data.optString("category")))control=!"message".equals(NexoConnectChatStore.parse(data).getString("kind"));
+                            org.json.JSONObject data=new NexoConnectSealedNoteStore(
+                                    session.accountId,delivery).read(row.getString(0));
+                            chat=NexoConnectChatStore.CATEGORY.equals(data.optString("category"));
                         }
                     }
-                    if(!control)visible.put(item);
+                    // Chat control/profile/read receipts must never alert; a
+                    // chat message is counted only when it remains unread.
+                    if(!chat)candidates.add(delivery.toString());
                 }
             }
-            pending=visible;if(pending.length()==0)return;
+        }else{
+            for(int i=0;i<pending.length();i++)
+                candidates.add(pending.getJSONObject(i).getString("deliveryId"));
         }
+        if(candidates.isEmpty()||stopped||!permitted(this))return;
 
         SharedPreferences preferences=getSharedPreferences(PREFS,Context.MODE_PRIVATE);
         String accountKey="seen:"+session.accountId;
         Set<String> seen=new HashSet<>(
                 preferences.getStringSet(accountKey,new HashSet<>()));
-        List<String> unseen=NexoConnectNotificationLedger.unseenIds(pending,seen);
-        if(unseen.isEmpty() || stopped || !permitted(this))return;
+        java.util.List<String> unseen=new java.util.ArrayList<>();
+        for(String id:candidates)if(!seen.contains(id))unseen.add(id);
+        if(unseen.isEmpty())return;
         NotificationManager manager=
                 (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         if(manager==null)return;
-        Intent open=new Intent().setClassName(getPackageName(),"com.jruiz.nexo".equals(getPackageName())?"com.jruiz.nexo.connectui.NexoConnectActivity":NexoConnectPilotActivity.class.getName())
-                .putExtra(NexoConnectPilotActivity.EXTRA_OPEN_INBOX,true)
+        // Existing installations may already have a scheduled job from the
+        // previous version; create the new channel before posting its first alert.
+        if(Build.VERSION.SDK_INT>=26){
+            NotificationChannel channel=new NotificationChannel(
+                    CHANNEL,"Mensajes y fichas de Nexo Connect",NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+            manager.createNotificationChannel(channel);
+        }
+        boolean chatNotification=unreadChats>0;
+        Intent open=new Intent().setClassName(getPackageName(),
+                "com.jruiz.nexo".equals(getPackageName())?
+                "com.jruiz.nexo.connectui.NexoConnectActivity":
+                NexoConnectPilotActivity.class.getName())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|
                         Intent.FLAG_ACTIVITY_CLEAR_TOP|
                         Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if(chatNotification)open.putExtra("openChat",true);
+        else open.putExtra(NexoConnectPilotActivity.EXTRA_OPEN_INBOX,true);
         PendingIntent tap=PendingIntent.getActivity(this,0,open,
                 PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        String message=unseen.size()==1?
-                "Tienes un mensaje o una ficha nueva":
-                "Tienes "+unseen.size()+" novedades en Nexo";
+        String message=chatNotification?
+                (unreadChats==1?"Tienes un mensaje de chat sin leer":
+                        "Tienes "+unreadChats+" mensajes de chat sin leer"):
+                (unseen.size()==1?"Tienes una ficha nueva":
+                        "Tienes "+unseen.size()+" fichas nuevas");
         Notification notice=new Notification.Builder(this,CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_dialog_email)
                 .setContentTitle("Nexo Connect")
                 .setContentText(message)
                 .setContentIntent(tap)
+                .setCategory(Notification.CATEGORY_MESSAGE)
+                .setNumber(chatNotification?unreadChats:unseen.size())
                 .setAutoCancel(true)
                 .setVisibility(Notification.VISIBILITY_SECRET)
                 .build();
         if(stopped)return;
         manager.notify(NOTIFICATION_ID,notice);
         seen.addAll(unseen);
-        // Bounded metadata memory. Current pending records always retained;
-        // old IDs can be dropped after they leave the 20-entry inbox window.
         if(seen.size()>512) {
             seen.clear();
-            for(int i=0;i<pending.length();i++)
-                seen.add(pending.getJSONObject(i).getString("deliveryId"));
+            seen.addAll(candidates);
         }
         preferences.edit().putStringSet(accountKey,seen).apply();
     }

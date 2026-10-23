@@ -123,6 +123,26 @@ public final class NexoConnectChatStore {
         db.execSQL("INSERT INTO nexo_chat_outgoing VALUES(?,?,?,?,?,?)",new Object[]{delivery.toString(),account.toString(),peer.toString(),sealed,"sending",System.currentTimeMillis()});
     }
     public static void status(SQLiteDatabase db,UUID delivery,String status){db.execSQL("UPDATE nexo_chat_outgoing SET status=CASE WHEN status='read' THEN status ELSE ? END WHERE delivery=?",new Object[]{status,delivery.toString()});}
+    /** Returns only visible, received chat delivery IDs without a local read receipt.
+     * The same filtered history drives conversations, deletions and the bottom badge.
+     * Plaintext never crosses the WebView bridge: callers expose count only. */
+    public static List<String> unreadIds(SQLiteDatabase db,UUID account,
+            AndroidPeerTrustStore trust)throws Exception {
+        schema(db);
+        List<String> unread=new ArrayList<>();
+        for(AndroidPeerTrustStore.PeerPin peer:trust.listActive()){
+            Set<String> read=new HashSet<>();
+            try(Cursor c=db.rawQuery(
+                    "SELECT delivery FROM nexo_chat_reads WHERE account=? AND peer=?",
+                    new String[]{account.toString(),peer.peerId.toString()})){
+                while(c.moveToNext())read.add(c.getString(0));
+            }
+            for(Message item:messages(db,account,peer.peerId)){
+                if(!item.outgoing&&!read.contains(item.delivery))unread.add(item.delivery);
+            }
+        }
+        return unread;
+    }
     public static final class Message {
         public final String delivery,text,status;public final boolean outgoing;public final long time;
         Message(String delivery,String text,String status,boolean out,long time){this.delivery=delivery;this.text=text;this.status=status;outgoing=out;this.time=time;}

@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.60",
-  "notes": "En Hoy y Calendario, al tocar una actividad se abre la ficha habitual de consulta, dejando Editar plegado. Corregida la visualización de citas que terminan a medianoche y evitada la repetición visual de un mismo evento. Actualización opcional."
+  "versionName": "3.7.61",
+  "notes": "En Hoy y Calendario, la agenda se posiciona automáticamente en la primera cita del día. Chat muestra los mensajes sin leer en la barra inferior y permite activar las notificaciones Android; mejorada la comprobación de mensajes recibidos. Actualización opcional."
 }
