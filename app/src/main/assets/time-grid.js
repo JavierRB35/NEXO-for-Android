@@ -67,18 +67,22 @@
   }
   function fullLabel(item){
     return [item.title,fmtDueItem(item),categoryLabel(item.category),subtitle(item),
-      item.locationText||item.mapsUrl||'',item.body||''].filter(Boolean).join(' · ');
+      item.locationText||item.mapsUrl||'',item.body||'',
+      item.recurrence&&item.recurrence!=='none'?'Recurrente':'',
+      item.hasReminder?'Con aviso':'',Number(item.linkCount)>0?item.linkCount+' vínculos':''].filter(Boolean).join(' · ');
   }
   function blockContents(item,row){
     const start=fmtTime(item.dueAt);
     const end=itemEffectiveEndAt(item)>Number(item.dueAt)?fmtTime(itemEffectiveEndAt(item)):'';
     const icon=isVehicleReservation(item)?'car':familyCategoryIcon(item.category);
     const loc=String(item.locationText||item.mapsUrl||'').trim();
+    const extras=[item.hasReminder?uiIcon('bell'):'',Number(item.linkCount)>0?uiIcon('link')+esc(item.linkCount):'',isRecurring(item)?'↻':''].filter(Boolean).join(' ');
     return '<span class="tgv-event-time">'+esc(start)+(end?' – '+esc(end):'')+'</span>'+
       '<span class="tgv-event-title">'+uiIcon(icon)+'<strong>'+esc(item.title||'Evento')+'</strong></span>'+
       '<span class="tgv-event-status">'+esc(subtitle(item))+'</span>'+
       (loc?'<span class="tgv-event-location">'+uiIcon('pin')+esc(loc)+'</span>':'')+
       (item.body?'<span class="tgv-event-description">'+esc(item.body)+'</span>':'')+
+      (extras?'<span class="tgv-event-extras" aria-label="Avisos, vínculos y recurrencia">'+extras+'</span>':'')+
       eventParticipantAvatarsHtml(item,'tgv-avatars');
   }
   function render(host,iso,rawItems){
@@ -221,7 +225,8 @@
       btn.classList.remove('tgv-event--dragging');document.body.classList.remove('tgv-drag-active');
       const next=bounded(startMinutes+(y-startY)/PX_PER_MINUTE);
       btn.style.transform='';
-      if(cancel||next===startMinutes)return;
+      // Una pulsación larga sin desplazamiento no modifica una hora irregular.
+      if(cancel||Math.abs(y-startY)<7||next===startMinutes)return;
       const newDate=new Date(originalStart);
       const originalDate=newDate.toDateString();
       newDate.setHours(Math.floor(next/60),next%60,0,0);
