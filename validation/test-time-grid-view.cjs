@@ -231,4 +231,61 @@ render(largeHost,'2026-10-23',[{
 assert.match(largeHost.innerHTML,/tgv-event-status/);
 assert.doesNotMatch(largeHost.innerHTML,/tgv-event-location|tgv-event-extras|tgv-avatars|tgv-event-description/);
 
+// El rango de un evento termina en exclusiva: fin 00:00 no aparece al día siguiente.
+const coverageStart=app.indexOf('function itemCoversIsoDate(');
+const coverageEnd=app.indexOf('function renderCalendar(',coverageStart);
+assert.ok(coverageStart>0&&coverageEnd>coverageStart,'calendar coverage helper exists');
+const coverageCtx={
+  dayBounds:iso=>({start:new Date(iso+'T00:00:00').getTime(),end:new Date(iso+'T23:59:59.999').getTime()}),
+  itemEffectiveEndAt:item=>item.endAt||item.dueAt
+};
+vm.runInNewContext(app.slice(coverageStart,coverageEnd),coverageCtx);
+assert.equal(coverageCtx.itemCoversIsoDate({dueAt:day+22*3600000,endAt:day+86400000},'2026-10-24'),false);
+assert.equal(coverageCtx.itemCoversIsoDate({dueAt:day+22*3600000,endAt:day+86400000},'2026-10-23'),true);
+assert.equal(coverageCtx.itemCoversIsoDate({dueAt:day,endAt:day,allDay:true},'2026-10-23'),true);
+assert.match(app,/lastDisplayedAt=endAt>startAt\?endAt-1:startAt/);
+
+// Un mismo id/ocurrencia nunca se pinta dos veces aunque llegue duplicado del proveedor.
+const uniqueHost=makeHost(),duplicate={id:198,title:'Mismo evento',dueAt:day+12*3600000,endAt:day+13*3600000,hasTime:true};
+render(uniqueHost,'2026-10-23',[duplicate,{...duplicate}, {...duplicate,title:'Versión actualizada'}]);
+assert.equal((uniqueHost.innerHTML.match(/class="tgv-event(?:\s|")/g)||[]).length,1);
+assert.match(uniqueHost.innerHTML,/Versión actualizada/);
+
+// Tocar una cita solo abre la ficha inferior; el formulario no aparece hasta pulsar Editar.
+const actions={},previewButton={dataset:{tgvIndex:'0'},style:{},classList:{add:noop,remove:noop},
+  addEventListener:(name,handler)=>{(actions['block_'+name] ||= []).push(handler);},
+  setAttribute:noop};
+let previewMarkup='',formOpens=0,overlayRemoved=0;
+const actionButton=name=>({addEventListener:(event,fn)=>{actions[name+'_'+event]=fn;},focus:noop});
+const previewOverlay={
+  className:'',set innerHTML(v){previewMarkup=v;},get innerHTML(){return previewMarkup;},
+  remove:()=>overlayRemoved++,addEventListener:noop,
+  querySelector:selector=>actionButton(selector)
+};
+const previewDocument={
+  body:{appendChild:noop,classList:{add:noop,remove:noop}},
+  createElement:()=>previewOverlay,querySelector:()=>null,
+  addEventListener:noop,removeEventListener:noop
+};
+const previewCtx={...ctx,window:{},document:previewDocument,openEventInAgenda:()=>formOpens++,
+  itemEffectiveEndAt:item=>item.endAt||item.dueAt};
+vm.runInNewContext(source,previewCtx,{filename:'time-grid-preview.js'});
+const previewHost={classList:{add:noop},dataset:{},innerHTML:'',querySelectorAll:selector=>
+  selector==='[data-tgv-index]'?[previewButton]:[]};
+previewCtx.window.NexoTimeGrid.render(previewHost,'2026-10-23',[
+  {id:201,title:'Cita para consultar',category:'Salud / Médico',locationText:'Centro de salud',
+    body:'Vacunación',dueAt:day+12*3600000,endAt:day+13*3600000,hasTime:true}]);
+actions.block_click[0]({preventDefault:noop});
+assert.equal(formOpens,0,'tap must not launch form');
+assert.match(previewMarkup,/tgv-detail-sheet/);
+assert.match(previewMarkup,/Cita para consultar/);
+assert.match(previewMarkup,/Centro de salud/);
+assert.match(previewMarkup,/Vacunación/);
+assert.match(app,/window\.NexoTimeGrid\?\.dismissDetail\?\.\(\)/);
+actions['[data-tgv-detail-edit]_click']();
+assert.equal(formOpens,1,'explicit Edit action launches existing form');
+assert.equal(overlayRemoved,1);
+
+console.log('OK: event identities, day-boundaries and read-only bottom sheet');
+
 console.log('OK: time-grid 24h, compact cards, move and start/end resize, persistence, undo, recurrence and bounds');
