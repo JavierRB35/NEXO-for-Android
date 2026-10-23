@@ -19,7 +19,9 @@
   function clockMinutes(ms){const d=new Date(ms);return d.getHours()*60+d.getMinutes();}
   function validColor(item){return familyCategoryColor(isVehicleReservation(item)?'Vehículos / ITV':item.category);}
   function visibleInDay(item,bounds){
-    return Number(item.dueAt)<bounds.end&&itemEffectiveEndAt(item)>=bounds.start;
+    // El fin del intervalo es exclusivo: una cita acabada a las 00:00 no reaparece mañana.
+    return Number(item.dueAt)<bounds.end&&
+      (itemEffectiveEndAt(item)>bounds.start||Number(item.dueAt)===bounds.start);
   }
   function itemDuration(item){
     const actual=Math.max(0,itemEffectiveEndAt(item)-Number(item.dueAt));
@@ -243,7 +245,7 @@
       if(e.touches.length!==1)return;
       const y=e.touches[0].clientY;
       if(!active){
-        if(Math.abs(y-startY)>9){clearTimeout(timer);timer=0;}
+        if(Math.abs(y-startY)>9){clearTimeout(timer);timer=0;btn._tgvSuppressUntil=Date.now()+650;}
         return;
       }
       e.preventDefault();move(y);
