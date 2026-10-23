@@ -26,7 +26,7 @@ public final class NexoConnectChatTransport {
     /** Send latest encrypted profile after a connection is verified and when re-entering Chat.
      * A one-minute per-contact backoff avoids retry storms if the remote peer is not ready. */
     public static void syncProfiles(Context c,NexoConnectSignedGatewayClient client,
-            NexoConnectLocalPhoneIdentity identity,AndroidPeerTrustStore trust){
+            NexoConnectLocalPhoneIdentity identity,AndroidPeerTrustStore trust)throws Exception{
         long now=System.currentTimeMillis();
         android.content.SharedPreferences prefs=c.getSharedPreferences("nexo-connect-profile-attempts",0);
         for(AndroidPeerTrustStore.PeerPin pin:trust.listActive()){
