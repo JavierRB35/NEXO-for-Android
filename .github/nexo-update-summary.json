@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.62",
-  "notes": "Agenda de HOY y CALENDARIO: los eventos de todo el día permanecen fijados sobre el horario mientras te desplazas; la primera cita con hora se muestra justo debajo. Si hay muchas actividades de todo el día, la franja se desplaza para consultarlas todas. Se conserva la ficha de evento y la edición por gestos. Actualización opcional."
+  "versionName": "3.7.63",
+  "notes": "Nexo Connect: corregida la orientación de las fotografías de perfil al seleccionarlas de la galería. Se respeta el giro y reflejo EXIF antes de recortar y comprimir el avatar, conservando el cifrado y sincronización del perfil. Actualización opcional."
 }
