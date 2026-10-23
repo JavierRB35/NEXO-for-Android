@@ -56,6 +56,11 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         Button arrow=action("‹",back);arrow.setTextSize(28);arrow.setContentDescription("Volver a conversaciones");bar.addView(arrow,new LinearLayout.LayoutParams(px(48),px(48)));
         if(peer!=null){LinearLayout.LayoutParams av=new LinearLayout.LayoutParams(px(40),px(40));av.setMargins(px(4),0,px(12),0);bar.addView(avatarView(peer,title,40),av);}
         LinearLayout identityBox=new LinearLayout(this);identityBox.setOrientation(LinearLayout.VERTICAL);conversationTitle=text(title,20,INK);conversationTitle.setTypeface(null,android.graphics.Typeface.BOLD);identityBox.addView(conversationTitle);identityBox.addView(text(peer==null?"Tus conversaciones":"Nexo",12,MUTED));bar.addView(identityBox,new LinearLayout.LayoutParams(0,-2,1));
+        if(peer!=null){
+            Button rename=action("Editar",()->renamePeer(peer,()->openConversation(peer)));
+            rename.setContentDescription("Editar el nombre de este contacto");
+            bar.addView(rename,new LinearLayout.LayoutParams(px(72),px(48)));
+        }
         root.addView(bar,new LinearLayout.LayoutParams(-1,-2));setContentView(root);column=root;return root;
     }
 
@@ -192,7 +197,8 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         });
         button("Volver a Nexo",this::finish);
     }
-    private void renamePeer(UUID peer){
+    private void renamePeer(UUID peer){renamePeer(peer,this::people);}
+    private void renamePeer(UUID peer,Runnable afterSave){
         if(identity==null||trusted.findActive(peer)==null)return;
         EditText input=new EditText(this);input.setSingleLine(true);
         input.setHint("Nombre para ti");
@@ -204,7 +210,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         d.setOnShowListener(v->d.getButton(-1).setOnClickListener(button->{
             try{NexoConnectChatStore.setLocalAlias(this,identity.accountId(),peer,input.getText().toString());}
             catch(Exception e){input.setError("Nombre de hasta 50 caracteres");return;}
-            d.dismiss();people();
+            d.dismiss();afterSave.run();
         }));d.show();
     }
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
