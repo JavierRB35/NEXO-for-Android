@@ -1779,33 +1779,30 @@ public class MainActivity extends Activity {
     }
 
     private void openLocationDirections(String locationText) {
-        final String place = locationText == null ? "" : locationText.trim();
-        if (place.isEmpty()) {
-            runOnUiThread(() -> Toast.makeText(this, "Este elemento no tiene ubicación", Toast.LENGTH_SHORT).show());
+        // Búsqueda de destino (no inicia navegación sin preguntarlo).
+        // Soporta nombres de lugares, direcciones y enlaces compartidos de Google Maps.
+        final String destination;
+        try {
+            destination = PlaceEntry.mapsUrl(locationText);
+        } catch (IllegalArgumentException e) {
+            runOnUiThread(() -> Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show());
             return;
         }
         runOnUiThread(() -> {
-            // Primera opción: Google Maps con el destino ya preparado para navegar.
+            Uri uri = Uri.parse(destination);
+            // Abrir Google Maps directamente cuando esté disponible.
             try {
-                Intent maps = new Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=" + Uri.encode(place)));
+                Intent maps = new Intent(Intent.ACTION_VIEW, uri);
                 maps.setPackage("com.google.android.apps.maps");
                 startActivity(maps);
                 return;
-            } catch (Exception ignored) {}
-
-            // Respaldo: cualquier aplicación de mapas instalada.
+            } catch (android.content.ActivityNotFoundException | SecurityException ignored) {
+                // Si no está instalado o no admite el enlace, usar el navegador.
+            }
             try {
-                Uri geo = Uri.parse("geo:0,0?q=" + Uri.encode(place));
-                startActivity(new Intent(Intent.ACTION_VIEW, geo));
-                return;
-            } catch (Exception ignored) {}
-
-            // Último respaldo: Google Maps web, sin API key.
-            try {
-                Uri web = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=" + Uri.encode(place));
-                startActivity(new Intent(Intent.ACTION_VIEW, web));
-            } catch (Exception e) {
-                Toast.makeText(this, "No hay una aplicación de mapas disponible", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+            } catch (android.content.ActivityNotFoundException | SecurityException e) {
+                Toast.makeText(this, "No se pudo abrir Google Maps en este dispositivo", Toast.LENGTH_LONG).show();
             }
         });
     }
