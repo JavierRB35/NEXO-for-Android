@@ -3604,3 +3604,27 @@ button.nexo-unified-save>.ui-icon{
 
 /* Fail-closed: debug-only Nexo Connect settings card. */
 #nexoConnectExperimentSection.hidden{display:none!important}
+
+
+/* Acceso a Maps visible sin abrir el editor de una cita. */
+.event-location-shortcut{margin:12px 0 15px}
+.event-location-shortcut__button{
+  display:flex;align-items:center;gap:11px;width:100%;min-width:0;
+  padding:12px 13px;border:1px solid #a9dacc;border-radius:16px;
+  background:#edf8f4;color:#126a60;text-align:left;cursor:pointer;
+}
+.event-location-shortcut__button>.ui-icon:first-child{width:23px;height:23px;flex:0 0 23px}
+.event-location-shortcut__button>.ui-icon:last-child{width:17px;height:17px;flex:0 0 17px;margin-left:auto}
+.event-location-shortcut__button>span{display:grid;gap:3px;min-width:0}
+.event-location-shortcut__button strong{font-size:.91rem;font-weight:850}
+.event-location-shortcut__button small{font-size:.78rem;color:#42655e;overflow-wrap:anywhere}
+.modal-sheet>.record-form-actions--compact>button.event-maps-footer-action{
+  color:#126e62;background:#ebf8f3;border:1px solid #a6d7ca;font-weight:800
+}
+@media(max-width:380px){
+  .modal-sheet>.record-form-actions--compact:has(.event-maps-footer-action){gap:4px;padding-inline:5px}
+  .modal-sheet>.record-form-actions--compact:has(.event-maps-footer-action)>button,
+  .modal-sheet>.record-form-actions--compact:has(.event-maps-footer-action) .record-action-overflow>summary{
+    padding-inline:1px!important;font-size:.68rem
+  }
+}

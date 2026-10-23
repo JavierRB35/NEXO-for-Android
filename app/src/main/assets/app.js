@@ -1723,10 +1723,11 @@ function renderHomeAgenda(){if(state.screen==='calendar')renderCalendarDay();}
 function recordIconAction(icon,label,attrs='',extra=''){
   return `<button type="button" class="icon-action ${extra}" ${attrs} aria-label="${escAttr(label)}" title="${escAttr(label)}">${uiIcon(icon)}</button>`;
 }
-function recordEditorActionBar(saveId,editId,shareId,deleteId,duplicateId=''){
+function recordEditorActionBar(saveId,editId,shareId,deleteId,duplicateId='',mapsId=''){
   return '<div class="record-form-actions record-form-actions--compact">'+
     '<button id="'+editId+'" class="secondary-button" type="button">'+uiIcon('edit')+' Editar</button>'+
     '<button id="'+saveId+'" class="primary-button" type="button" hidden>'+uiIcon('check')+' Guardar</button>'+
+    (mapsId?'<button id="'+mapsId+'" class="secondary-button event-maps-footer-action" type="button" aria-label="Abrir ubicación en Google Maps">'+uiIcon('pin')+' <span>Maps</span></button>':'')+
     '<details class="record-action-overflow"><summary aria-label="Más acciones">'+uiIcon('more')+' <span>Más</span></summary>'+
     '<div class="record-overflow-menu">'+
     '<button id="'+shareId+'" class="secondary-button" type="button">'+uiIcon('share')+' Compartir</button>'+
@@ -1750,6 +1751,9 @@ function bindCompactRecordActions(){
       bar.insertBefore(link,bar.querySelector('.record-action-overflow'));
       if(wrapper&&!wrapper.children.length)wrapper.remove();
     }
+    // Cuatro acciones en este orden: Editar, Vincular, Maps, Más.
+    const mapButton=bar.querySelector('.event-maps-footer-action');
+    if(mapButton)bar.insertBefore(mapButton,bar.querySelector('.record-action-overflow'));
     // El pie queda fuera del contenedor desplazable para que esté siempre visible.
     $('#modal .modal-sheet')?.appendChild(bar);
   }
@@ -2449,13 +2453,28 @@ function isGoogleMapsLocation(value){
     || /^maps\.app\.goo\.gl\//.test(v)
     || /^goo\.gl\/maps\//.test(v);
 }
+function eventHasLocation(item){
+  return !!String(item?.mapsUrl||item?.locationText||'').trim();
+}
+function openEventLocation(item){
+  const destination=String(item?.mapsUrl||item?.locationText||'').trim();
+  if(!destination){toast('Esta cita no tiene ubicación guardada.');return;}
+  NexoNative.openLocationDirections(destination);
+}
+function eventLocationShortcutHtml(item,buttonId){
+  if(!eventHasLocation(item))return '';
+  const name=String(item.locationText||'').trim();
+  const label=name&&!isGoogleMapsLocation(name)?name:'Ubicación guardada';
+  return `<div class="event-location-shortcut"><button id="${buttonId}" class="event-location-shortcut__button" type="button" aria-label="Abrir ubicación de la cita en Google Maps">${uiIcon('pin')}<span><strong>Ver ubicación en Maps</strong><small>${esc(label)}</small></span>${uiIcon('right')}</button></div>`;
+}
+function bindEventMapActions(item,...ids){
+  ids.forEach(id=>$('#'+id)?.addEventListener('click',()=>openEventLocation(item)));
+}
 function openMapsFromFields(locationSelector,mapsSelector){
   const maps=$(mapsSelector)?.value.trim()||'',place=$(locationSelector)?.value.trim()||'';
   // mapsUrl queda oculto únicamente por compatibilidad con eventos antiguos.
   // Mientras siga vigente conserva la precisión del enlace original.
-  if(maps){NexoNative.openExternal(maps);return;}
-  if(isGoogleMapsLocation(place)){NexoNative.openPlaceMap(place);return;}
-  if(place){NexoNative.openLocationDirections(place);return;}
+  if(maps||place){NexoNative.openLocationDirections(maps||place);return;}
   toast('Escribe primero una dirección o ubicación.');
 }
 function bindEventLocationField(locationSelector,mapsSelector,mapButtonSelector,onUserChange=null){
@@ -3246,7 +3265,7 @@ function openAgendaOptions(id,occurrenceAt,recurring){
     closeModal();refreshCurrent();toast(done?'Cita pendiente':'Cita completada');
   });
   $('#agendaPostponeAction')?.addEventListener('click',()=>{closeModal();openPostponeSheet(id,occurrenceAt,recurring);});
-  $('#agendaDirectionsAction')?.addEventListener('click',()=>{closeModal();if(i.mapsUrl)NexoNative.openExternal(String(i.mapsUrl));else NexoNative.openLocationDirections(String(i.locationText));});
+  $('#agendaDirectionsAction')?.addEventListener('click',()=>{closeModal();openEventLocation(i);});
   $('#agendaShareAction').addEventListener('click',()=>{closeModal();openItemShareMenu(id,occurrenceAt,recurring,!!i.dueAt);});
   $('#agendaDuplicateAction')?.addEventListener('click',()=>duplicateCalendarEvent(id,occurrenceAt,recurring));
 }
@@ -3457,9 +3476,10 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'',eventHasLocation(i)?'eventDetailMapsBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
+    ${eventLocationShortcutHtml(i,'eventDetailLocationBtn')}
     ${relatedLinksSectionHtml(id)}
     <details class="details-box"><summary>Editar</summary><div class="detail-grid">
       ${i.type==='event'?'<div class="event-edit-related"><button id="editLinkButton" type="button" class="secondary-button">'+uiIcon('link')+' Vincular / crear</button></div>':''}
@@ -3482,6 +3502,7 @@ function openItem(id){
     <div class="modal-actions wrap-actions">${isAppointmentType(i.type)&&i.dueAt&&i.status!=='done'?'<button id="postponeItemBtn" class="secondary-button">Posponer</button>':''}${url?'<button id="openUrlBtn" class="secondary-button">Abrir enlace</button>':''}</div>`);
 
   bindCompactRecordActions();bindRelatedLinks(id);
+  bindEventMapActions(i,'eventDetailMapsBtn','eventDetailLocationBtn');
   $('#editLinkButton')?.addEventListener('click',()=>openRelatedPicker(id));
   let editParticipantIds=normalizeParticipantIds(i.participantIds||[]);
   renderPersonAssignment('editPeopleChips',editParticipantIds,ids=>{editParticipantIds=ids;});
@@ -3527,10 +3548,11 @@ function openOccurrence(seriesId,occurrenceAt){
   if(i.type==='document'){openDocumentEditor(seriesId);return;}
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,endTime=endTimeForItem(i),originalEndTime=endTime,originalAllDay=allDay,originalVoiceEnabled=!!i.voiceEnabled,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
+  openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'',eventHasLocation(i)?'occDetailMapsBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
     <div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
+    ${eventLocationShortcutHtml(i,'occDetailLocationBtn')}
     ${relatedLinksSectionHtml(seriesId)}
     <details class="details-box"><summary>Editar</summary><div class="detail-grid">
       ${i.type==='event'?'<div class="event-edit-related"><button id="occLinkButton" type="button" class="secondary-button">'+uiIcon('link')+' Vincular / crear</button></div>':''}
@@ -3554,6 +3576,7 @@ function openOccurrence(seriesId,occurrenceAt){
     `);
 
   bindCompactRecordActions();bindRelatedLinks(seriesId);
+  bindEventMapActions(i,'occDetailMapsBtn','occDetailLocationBtn');
   $('#occLinkButton')?.addEventListener('click',()=>openRelatedPicker(seriesId));
   $('#editOccurrenceTopBtn').addEventListener('click',()=>{const details=$('#modalBody .details-box');if(details)details.open=true;$('#occTitle')?.focus();});
   let occParticipantIds=normalizeParticipantIds(i.participantIds||[]);
