@@ -88,11 +88,14 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     @Override protected void showHome(){
         conversation=null;
         if(stage!=READY){showSetup();return;}
-        if(!selectedHandled&&getIntent()!=null&&getIntent().getBooleanExtra("openProfile",false)){
-            selectedHandled=true;showProfile();return;
-        }
-        if(!selectedHandled&&getIntent()!=null&&getIntent().getBooleanExtra("openChat",false)){
-            selectedHandled=true;showChats();return;
+        if(!selectedHandled&&getIntent()!=null){
+            String action=getIntent().getStringExtra("nexoConnectAction");
+            if("profile".equals(action)){selectedHandled=true;showProfile();return;}
+            if("generate".equals(action)){selectedHandled=true;showInvite();return;}
+            if("pair".equals(action)){selectedHandled=true;openScanner();return;}
+            if(getIntent().getBooleanExtra("openChat",false)){
+                selectedHandled=true;showChats();return;
+            }
         }
         screen("Chat y compartir",false);
         String name=NexoConnectChatStore.ownName(this,identity.accountId());
