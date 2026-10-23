@@ -479,7 +479,7 @@ public class NexoConnectPilotActivity extends Activity {
     /**
      * Alternative to scanning with the emulator camera. A selected image is
      * decoded locally; it is NOT proof of identity on its own. The existing
-     * independent dual-SHA-256 verification UI is mandatory before pinning.
+     * independent safety-code check, full-key pinning and consent remain mandatory.
      */
     protected void openImageQr(){
         try{
@@ -517,7 +517,7 @@ public class NexoConnectPilotActivity extends Activity {
                 screen("Invitación privada",true);
                 label("Muestra esta invitación a la persona con la que "+
                       "quieras conectar. Antes de autorizar, los dos deberéis "+
-                      "comprobar los códigos de seguridad por otro medio.",14);
+                      "confirmar un único código de seguridad por llamada o en persona.",14);
                 Bitmap qr=NexoConnectOwnQrView.encodeQrBitmap(
                         invite.qrPayload,Math.max(384,
                                 Math.min(getResources().getDisplayMetrics().widthPixels-50,720)));
