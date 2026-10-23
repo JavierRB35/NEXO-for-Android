@@ -174,7 +174,12 @@
       return;
     }
     notifyChange();
-    if(ctx.isUndo){toast('Cambio de hora deshecho');return;}
+    if(ctx.isUndo){
+      // La operación nativa ha confirmado el Deshacer: el modelo local acompaña a SQLite.
+      ctx.item.dueAt=ctx.request.dueAt;
+      ctx.item.endAt=ctx.request.endAt;
+      toast('Cambio de hora deshecho');return;
+    }
     const newTime=fmtTime(ctx.newStart),saved=ctx.request;
     toast('Hora actualizada a las '+newTime,'Deshacer',()=>{
       if(writing){toast('Hay otra actualización en curso.');return;}
