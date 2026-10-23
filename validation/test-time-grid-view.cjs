@@ -53,4 +53,67 @@ assert.match(html,/homeTodayTimeGrid/);
 assert.match(app,/NexoTimeGrid\.render\(gridHost,iso,items\)/);
 assert.match(android,/moveCalendarEventAsync\(String json, String requestId\)/);
 assert.match(android,/service\.updateOccurrence\(move,"single"\)/);
-console.log('OK: time grid, collisions, all-day and native bindings');
+// No presentar dos veces un evento cuya hora de fin cae a medianoche.
+const midnightHost=makeHost();
+render(midnightHost,'2026-10-24',[
+  {id:11,title:'Hasta medianoche',category:'Trabajo',dueAt:day+22*3600000,
+    endAt:day+24*3600000,hasTime:true}
+]);
+assert.equal((midnightHost.innerHTML.match(/class="tgv-event"/g)||[]).length,0);
+
+// Prueba real del controlador táctil y del ciclo asíncrono/Deshacer con un DOM simulado.
+const fakeTimers=new Map(),writes=[],messages=[];
+let timerId=0,prevented=0,opens=0,refreshes=0,dragButton=null;
+const dragCtx={
+  ...ctx,
+  window:{addEventListener:noop,removeEventListener:noop},
+  document:{body:{classList:{add:noop,remove:noop}}},
+  navigator:{vibrate:noop},state:{screen:'calendar'},
+  setTimeout:fn=>{fakeTimers.set(++timerId,fn);return timerId;},
+  clearTimeout:id=>fakeTimers.delete(id),
+  NexoNative:{moveCalendarEventAsync:(payload,id)=>writes.push({data:JSON.parse(payload),id})},
+  toast:(...args)=>messages.push(args),
+  renderCalendar:()=>{refreshes++;},
+  renderToday:noop,
+  openEventInAgenda:()=>{opens++;}
+};
+vm.runInNewContext(source,dragCtx,{filename:'time-grid.js'});
+const makeButton=()=>{
+  const listeners={},style={};
+  return {
+    dataset:{tgvIndex:'0'},style,
+    classList:{add:noop,remove:noop},setAttribute:noop,
+    addEventListener:(kind,cb)=>{(listeners[kind] ||= []).push(cb);},
+    fire:(kind,e)=>listeners[kind]?.forEach(fn=>fn(e))
+  };
+};
+const dragHost={
+  classList:{add:noop},dataset:{},isConnected:false,_tgvItems:[],
+  innerHTML:'',
+  querySelectorAll:q=>q==='[data-tgv-index]'?[dragButton=makeButton()]:[]
+};
+const movable={
+  id:73,category:'Trabajo',title:'Cita arrastrable',
+  dueAt:day+10*3600000,endAt:day+11*3600000,durationMinutes:60,hasTime:true
+};
+dragHost._tgvItems=[movable];
+dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[movable]);
+dragButton.fire('touchstart',{touches:[{clientY:180}]});
+for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
+dragButton.fire('touchmove',{touches:[{clientY:217.5}],preventDefault:()=>prevented++});
+dragButton.fire('touchend',{changedTouches:[{clientY:217.5}]});
+assert.equal(prevented,1);
+assert.equal(writes.length,1);
+assert.equal(writes[0].data.dueAt,movable.dueAt); // optimistic update
+assert.equal(writes[0].data.endAt,writes[0].data.dueAt+3600000);
+assert.equal(writes[0].data.dueAt,day+10*3600000+30*60000);
+dragCtx.window.NexoTimeGrid.onSaved(writes[0].id,'{"ok":true}');
+assert.equal(messages.at(-1)[1],'Deshacer');
+messages.at(-1)[2]();
+assert.equal(writes.length,2);
+assert.equal(writes[1].data.dueAt,day+10*3600000);
+dragCtx.window.NexoTimeGrid.onSaved(writes[1].id,'{"ok":true}');
+assert.match(messages.at(-1)[0],/deshecho/);
+assert.equal(refreshes,2);
+
+console.log('OK: time-grid columns, calendar edges, 30-min drag, async persistence and undo');
