@@ -1,3 +1,10 @@
+## Nexo 3.7.53 — Maps directamente desde citas y eventos
+- Cuando la cita tiene ubicación, la ficha muestra un bloque diferenciado «Ver ubicación en Maps» y un botón Maps en el pie fijo, junto a Editar, Vincular y Más.
+- Funciona sin abrir Editar y también para citas recurrentes. Si no hay ubicación, se omiten los accesos.
+- Se unifica la apertura de ubicaciones: búsquedas de texto, direcciones y enlaces de Google Maps. La app Google Maps es preferente y el navegador queda como respaldo.
+- Se corrigen los botones Maps de edición y alta, manteniendo enlaces heredados y evitando que un enlace antiguo prevalezca tras cambiar la ubicación.
+- Actualización **opcional**, versionCode 146. Mismo applicationId, certificado oficial y esquema SQLite 33, sin migración ni eliminación de datos.
+
 ## Nexo 3.7.52 — Inicio simplificado y avisos claros
 - Se elimina el bloque «Accesos directos» de Inicio (Notas, Medicación, Listas y Documentos) para dar prioridad al listado «Próximamente» bajo «Lo importante ahora».
 - Todos los módulos eliminados del Inicio siguen disponibles en Herramientas; Notas se conserva además en la navegación inferior.
