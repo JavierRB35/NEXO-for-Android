@@ -52,6 +52,7 @@ public class NexoConnectPilotActivity extends Activity {
     protected boolean busy,replace;
     /** Explicitly selected LAB account flow; never implied by a host share. */
     private boolean hostAccountUi;
+    private boolean retryEmailCodeWithSavedSession;
     protected String accountEmail="",lastMessage="";
     protected NexoConnectEmailOtpClient otp;
     protected NexoConnectSessionVault sessionVault;
@@ -141,7 +142,7 @@ public class NexoConnectPilotActivity extends Activity {
                             failure.getClass().getSimpleName()+
                             "). Comprueba permisos, red y datos; NO reintentes "+
                             "automáticamente envíos inciertos.";
-                    showError("No se ha podido completar. Comprueba tu conexión y vuelve a abrir esta pantalla.");
+                    showError(userFacingAuthError(failure));
                 }else{
                     lastMessage="Operación completada.";
                     callback.done(value);
@@ -149,6 +150,19 @@ public class NexoConnectPilotActivity extends Activity {
             });
         },"nexo-connect-pilot-worker").start();
     }
+    private static String userFacingAuthError(Exception failure){
+        if(failure instanceof NexoConnectEmailOtpClient.AuthException){
+            int status=((NexoConnectEmailOtpClient.AuthException)failure).httpStatus;
+            if(status==429)
+                return "Has solicitado códigos demasiado seguido. El servicio ha limitado los envíos. Espera unos minutos antes de volver a solicitar uno; tu cuenta y los datos de Nexo se conservan.";
+            if(status==400||status==422)
+                return "El servicio no ha aceptado el código o la solicitud. Comprueba el correo y el código recibido; si ha caducado, solicita uno nuevo cuando se permita.";
+            if(status>=500)
+                return "El servicio de verificación no está disponible ahora. No se han borrado tu sesión ni tus datos.";
+        }
+        return "No se ha podido completar la operación. Comprueba tu conexión. Puedes continuar la verificación sin borrar los datos de Nexo.";
+    }
+
     protected void showError(String text){
         new AlertDialog.Builder(this).setTitle("Nexo")
                 .setMessage(text).setPositiveButton("Entendido",(d,w)->{
@@ -175,6 +189,12 @@ public class NexoConnectPilotActivity extends Activity {
         hostAccountUi=true;
         showSetup();
     }
+    /** Non-destructive fallback when a saved session cannot resume. */
+    protected final void openHostEmailReverification(){
+        retryEmailCodeWithSavedSession=true;
+        stage=EMAIL;
+        openHostAccountSetup();
+    }
 
     protected void showSetup(){
         screen("Chat y compartir",false);
@@ -194,45 +214,14 @@ public class NexoConnectPilotActivity extends Activity {
             email.setInputType(InputType.TYPE_CLASS_TEXT|
                     InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
             email.setText(accountEmail);
-            if(sessionVault.exists()){
-                label("Este teléfono tiene una sesión protegida. Entrar no envía correos.",14);
-                button("Entrar",()->{
-                    String address=email.getText().toString().trim();
-                    runWork(()->{
-                        NexoConnectSessionVault.Saved saved=sessionVault.restore();
-                        if(!saved.email.equalsIgnoreCase(address))
-                            throw new SecurityException("El correo no coincide con este teléfono");
-                        // Serialize token rotation with OS background checks.
-                        NexoConnectEmailOtpClient.VerifiedSession restored=
-                                NexoConnectSessionVault.refreshSavedSession(
-                                        getApplicationContext(),otp);
-                        NexoConnectLocalPhoneIdentity local=
-                                NexoConnectLocalPhoneIdentity.openOrCreate(
-                                        getApplicationContext(),restored.accountId);
-                        NexoConnectDeviceRecoveryClient.Outcome status=
-                                new NexoConnectDeviceRecoveryClient(ORIGIN,PUBLIC_KEY,
-                                        restored,restored.accountId,local.deviceId(),
-                                        local.signingPrivate()).checkOnce();
-                        if(status.state!=NexoConnectDeviceRecoveryClient.State.OWN_DEVICE_CONFIRMED)
-                            throw new SecurityException("El teléfono debe volver a verificarse");
-                        return new Object[]{restored,local,status};
-                    },value->{
-                        Object[] out=(Object[])value;
-                        session=(NexoConnectEmailOtpClient.VerifiedSession)out[0];
-                        identity=(NexoConnectLocalPhoneIdentity)out[1];
-                        generation=((NexoConnectDeviceRecoveryClient.Outcome)out[2]).generation;
-                        accountEmail=session.email;
-                        activate();
-                    });
-                });
-                button("Volver a verificar por correo (solo si falla Entrar)",()->{
-                    // Explicit fallback: only wipes the encrypted session, not identity keys.
-                    sessionVault.clear();
-                    stage=EMAIL;
-                    showSetup();
-                });
+            if(sessionVault.exists()&&!retryEmailCodeWithSavedSession){
+                label("Hay una sesión protegida en este teléfono. Si el alta quedó incompleta, Entrar continuará la confirmación del teléfono.",14);
+                button("Entrar / Continuar alta",this::resumeSavedSession);
+                button("Volver a verificar mi correo",this::openHostEmailReverification);
                 return;
             }
+            if(sessionVault.exists())
+                label("Puedes solicitar otro código sin borrar la sesión protegida ni la identidad de este teléfono.",14);
             CheckBox create=new CheckBox(this);
             create.setText("Crear cuenta nueva con este correo");
             column.addView(create);
@@ -322,9 +311,27 @@ public class NexoConnectPilotActivity extends Activity {
             NexoConnectEmailOtpClient.VerifiedSession restored=NexoConnectSessionVault.refreshSavedSession(this,otp);
             NexoConnectLocalPhoneIdentity local=NexoConnectLocalPhoneIdentity.openOrCreate(this,restored.accountId);
             NexoConnectDeviceRecoveryClient.Outcome status=new NexoConnectDeviceRecoveryClient(ORIGIN,PUBLIC_KEY,restored,restored.accountId,local.deviceId(),local.signingPrivate()).checkOnce();
-            if(status.state!=NexoConnectDeviceRecoveryClient.State.OWN_DEVICE_CONFIRMED)throw new SecurityException();
+            if(status.state==NexoConnectDeviceRecoveryClient.State.INCONCLUSIVE)
+                throw new SecurityException("No se pudo comprobar la identidad del teléfono");
             return new Object[]{restored,local,status};
-        },value->{Object[] out=(Object[])value;session=(NexoConnectEmailOtpClient.VerifiedSession)out[0];identity=(NexoConnectLocalPhoneIdentity)out[1];generation=((NexoConnectDeviceRecoveryClient.Outcome)out[2]).generation;activate();});
+        },value->{
+            Object[] out=(Object[])value;
+            session=(NexoConnectEmailOtpClient.VerifiedSession)out[0];
+            identity=(NexoConnectLocalPhoneIdentity)out[1];
+            NexoConnectDeviceRecoveryClient.Outcome status=(NexoConnectDeviceRecoveryClient.Outcome)out[2];
+            accountEmail=session.email;
+            if(status.state==NexoConnectDeviceRecoveryClient.State.OWN_DEVICE_CONFIRMED){
+                generation=status.generation;
+                activate();
+            }else if(status.state==NexoConnectDeviceRecoveryClient.State.NO_REGISTERED_DEVICE||
+                    status.state==NexoConnectDeviceRecoveryClient.State.ANOTHER_DEVICE){
+                // Resuming an incomplete enrollment never sends an OTP or replaces a device.
+                // The user must explicitly request a fresh second OTP and consent.
+                replace=status.state==NexoConnectDeviceRecoveryClient.State.ANOTHER_DEVICE;
+                stage=SECOND;
+                openHostAccountSetup();
+            }else showError("No se ha podido comprobar la identidad del teléfono.");
+        });
     }
     private void activate(){
         try{
