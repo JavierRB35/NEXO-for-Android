@@ -115,5 +115,36 @@ assert.equal(writes[1].data.dueAt,day+10*3600000);
 dragCtx.window.NexoTimeGrid.onSaved(writes[1].id,'{"ok":true}');
 assert.match(messages.at(-1)[0],/deshecho/);
 assert.equal(refreshes,2);
+assert.equal(movable.dueAt,day+10*3600000,'undo restores event in-memory');
 
-console.log('OK: time-grid columns, calendar edges, 30-min drag, async persistence and undo');
+// Un fallo nativo revierte la posición optimista y avisa, sin perder la hora anterior.
+dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[movable]);
+dragButton.fire('touchstart',{touches:[{clientY:180}]});
+for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
+dragButton.fire('touchmove',{touches:[{clientY:198.75}],preventDefault:noop});
+dragButton.fire('touchend',{changedTouches:[{clientY:198.75}]});
+assert.equal(writes.length,3);
+assert.equal(writes[2].data.dueAt,day+10*3600000+15*60000);
+dragCtx.window.NexoTimeGrid.onSaved(writes[2].id,'{"ok":false,"error":"Base de datos ocupada"}');
+assert.equal(movable.dueAt,day+10*3600000);
+assert.match(messages.at(-1)[0],/Base de datos ocupada/);
+
+// Las series solo pueden enviarse al servicio nativo como "esta aparición".
+const rec={
+  id:82,seriesId:82,recurring:true,occurrenceAt:day+10*3600000,
+  dueAt:day+10*3600000,endAt:day+11*3600000,
+  durationMinutes:60,category:'Trabajo',title:'Recurrente',hasTime:true
+};
+dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[rec]);
+dragButton.fire('touchstart',{touches:[{clientY:180}]});
+for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
+dragButton.fire('touchmove',{touches:[{clientY:217.5}],preventDefault:noop});
+dragButton.fire('touchend',{changedTouches:[{clientY:217.5}]});
+assert.equal(writes.length,4);
+assert.equal(writes[3].data.recurring,true);
+assert.equal(writes[3].data.seriesId,82);
+assert.equal(writes[3].data.occurrenceAt,day+10*3600000);
+assert.match(android,/service\.updateOccurrence\(move,"single"\)/);
+dragCtx.window.NexoTimeGrid.onSaved(writes[3].id,'{"ok":true}');
+
+console.log('OK: time-grid columns, midnight, drag +15/+30m, recurrence, persistence, undo and rollback');
