@@ -23,7 +23,7 @@ assert 'Mensajes y fichas de Nexo Connect' in job
 assert 'CHAT_NOTIFICATION_PERMISSION' in activity
 assert 'askFirstChatNotificationPermission()' in activity
 assert 'Activar avisos de mensajes' in activity
-assert 'NexoConnectChatStore.unreadIds(db,identity.accountId,trusted)' in activity
+assert 'NexoConnectChatStore.unreadIds(db,identity.accountId(),trusted)' in activity
 assert '@JavascriptInterface public int getUnreadChatCount()' in main
 assert '@JavascriptInterface public void requestNexoChatRefresh()' in main
 assert 'id="chatNavBadge"' in html

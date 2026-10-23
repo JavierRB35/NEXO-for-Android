@@ -349,7 +349,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         conversation=null;messageSelection=null;conversationRows.clear();chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
         LinearLayout root=chatShell("Chat",null,this::finish);ScrollView scroll=new ScrollView(this);LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(px(16),px(16),px(16),px(16));scroll.addView(list);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){var peers=trusted.listActive();if(peers.isEmpty())list.addView(text("Añade a alguien para empezar a conversar.",16,MUTED));
-            java.util.Set<String> unread=new java.util.HashSet<>(NexoConnectChatStore.unreadIds(db,identity.accountId,trusted));
+            java.util.Set<String> unread=new java.util.HashSet<>(NexoConnectChatStore.unreadIds(db,identity.accountId(),trusted));
             for(var p:peers){String name=contactName(p);var history=NexoConnectChatStore.messages(db,identity.accountId(),p.peerId);var last=history.isEmpty()?null:history.get(history.size()-1);
                 if(last==null&&NexoConnectChatDeletion.wasCleared(db,identity.accountId(),p.peerId))continue;
                 LinearLayout row=new LinearLayout(this);row.setGravity(android.view.Gravity.CENTER_VERTICAL);row.setPadding(px(12),px(12),px(12),px(12));row.setBackground(surface(android.graphics.Color.WHITE,16));LinearLayout.LayoutParams rowParams=new LinearLayout.LayoutParams(-1,-2);rowParams.bottomMargin=px(8);
