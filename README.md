@@ -1,8 +1,10 @@
-# Nexo 3.7.56
+# Nexo 3.7.57
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.56**, `versionCode 149`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **33**.
+Esta versión corresponde a **Nexo 3.7.57**, `versionCode 150`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **33**.
+
+**Nuevo en 3.7.57:** Deslizamiento lateral y pulsación larga para eliminar conversaciones locales con confirmación; selección múltiple de mensajes, eliminación para mí y cancelación con la flecha atrás. Historial descartado oculto tras sincronizar o restaurar, manteniendo cuentas, claves, contactos y recibos de entrega. La operación no elimina mensajes del otro dispositivo.
 
 **Nuevo en 3.7.56:** Nexo Connect incluye Mi perfil con fotografía local reducida, intercambio de avatar por el canal cifrado con contactos verificados, alias privados, dos accesos de vinculación desde Ajustes, y entrada directa a Chat sin pantalla intermedia fugaz. Se conservan claves, E2EE y esquema SQLite.
 

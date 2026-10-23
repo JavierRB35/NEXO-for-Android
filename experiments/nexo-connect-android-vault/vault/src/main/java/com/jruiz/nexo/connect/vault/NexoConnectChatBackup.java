@@ -22,15 +22,15 @@ public final class NexoConnectChatBackup {
     public static boolean hasHistory(Context c)throws Exception{return owner(c)!=null;}
     public static JSONObject snapshot(Context c)throws Exception{
         UUID owner=owner(c);if(owner==null)return null;
-        JSONArray rows=new JSONArray();Set<String> seen=new HashSet<>();
+        JSONArray rows=new JSONArray();Set<String> seen=new HashSet<>();Map<String,NexoConnectChatDeletion.Visibility> visibility=new HashMap<>();
         try(SQLiteDatabase db=NexoConnectMigration.inbox(c)){
             NexoConnectChatStore.schema(db);schema(db);db.beginTransaction();
             try{
                 try(Cursor cur=db.rawQuery("SELECT delivery,peer,body,status,created_at,1 FROM nexo_chat_outgoing WHERE account=? UNION ALL SELECT delivery,peer,body,status,created_at,outgoing FROM nexo_chat_restored WHERE account=?",new String[]{owner.toString(),owner.toString()})){
-                    while(cur.moveToNext())append(rows,seen,owner,cur.getString(0),cur.getString(1),cur.getString(2),cur.getString(3),cur.getLong(4),cur.getInt(5)==1);
+                    while(cur.moveToNext())append(db,visibility,rows,seen,owner,cur.getString(0),cur.getString(1),cur.getString(2),cur.getString(3),cur.getLong(4),cur.getInt(5)==1);
                 }
                 try(Cursor cur=db.rawQuery("SELECT r.delivery_id,r.sender_id,i.body,r.imported_at FROM nexo_connect_import_receipts r JOIN items i ON i.id=r.local_id WHERE r.entity_type='note'",null)){
-                    while(cur.moveToNext())append(rows,seen,owner,cur.getString(0),cur.getString(1),cur.getString(2),"received",cur.getLong(3),false);
+                    while(cur.moveToNext())append(db,visibility,rows,seen,owner,cur.getString(0),cur.getString(1),cur.getString(2),"received",cur.getLong(3),false);
                 }
                 db.setTransactionSuccessful();
             }finally{db.endTransaction();}
@@ -38,11 +38,14 @@ public final class NexoConnectChatBackup {
         JSONObject names=new JSONObject();for(var e:c.getSharedPreferences("nexo-connect-profiles",0).getAll().entrySet())if(e.getKey().startsWith(owner+":"))names.put(e.getKey().substring(37),String.valueOf(e.getValue()));
         return new JSONObject().put("version",1).put("owner",owner.toString()).put("name",NexoConnectChatStore.ownName(c,owner)).put("names",names).put("messages",rows);
     }
-    private static void append(JSONArray rows,Set<String> seen,UUID owner,String id,String peer,String sealed,String status,long at,boolean outgoing)throws Exception{
+    private static void append(SQLiteDatabase db,Map<String,NexoConnectChatDeletion.Visibility> visibility,JSONArray rows,Set<String> seen,UUID owner,String id,String peer,String sealed,String status,long at,boolean outgoing)throws Exception{
         if(!seen.add(id))return;
         JSONObject data=new NexoConnectSealedNoteStore(owner,UUID.fromString(id)).read(sealed);
         if(!NexoConnectChatStore.CATEGORY.equals(data.optString("category")))return;
         JSONObject body=NexoConnectChatStore.parse(data);if(!"message".equals(body.getString("kind")))return;
+        NexoConnectChatDeletion.Visibility view=visibility.get(peer);
+        if(view==null){view=NexoConnectChatDeletion.visibility(db,owner,UUID.fromString(peer));visibility.put(peer,view);}
+        if(view.hidden(id,body.getLong("sentAt")))return;
         rows.put(new JSONObject().put("id",id).put("peer",peer).put("data",data).put("status",status).put("at",at).put("outgoing",outgoing));
     }
     public static byte[] encrypt(JSONObject data,char[] password)throws Exception{
@@ -74,7 +77,7 @@ public final class NexoConnectChatBackup {
     public static void restore(Context c,JSONObject data)throws Exception{
         validate(data);UUID account=UUID.fromString(data.getString("owner"));UUID current=owner(c);if(current!=null&&!current.equals(account))throw new java.io.IOException("Esta copia de chat pertenece a otra cuenta.");
         try(SQLiteDatabase db=NexoConnectMigration.inbox(c)){
-            schema(db);db.beginTransaction();try{JSONArray rows=data.getJSONArray("messages");for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);UUID id=UUID.fromString(row.getString("id"));String sealed=new NexoConnectSealedNoteStore(account,id).sealForChat(row.getJSONObject("data"));db.execSQL("INSERT OR IGNORE INTO nexo_chat_restored VALUES(?,?,?,?,?,?,?)",new Object[]{id.toString(),account.toString(),row.getString("peer"),sealed,row.getString("status"),row.getLong("at"),row.getBoolean("outgoing")?1:0});}db.setTransactionSuccessful();}finally{db.endTransaction();}
+            schema(db);NexoConnectChatDeletion.schema(db);db.beginTransaction();try{JSONArray rows=data.getJSONArray("messages");for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);UUID id=UUID.fromString(row.getString("id"));UUID peer=UUID.fromString(row.getString("peer"));JSONObject chat=NexoConnectChatStore.parse(row.getJSONObject("data"));if(NexoConnectChatDeletion.visibility(db,account,peer).hidden(id.toString(),chat.getLong("sentAt")))continue;String sealed=new NexoConnectSealedNoteStore(account,id).sealForChat(row.getJSONObject("data"));db.execSQL("INSERT OR IGNORE INTO nexo_chat_restored VALUES(?,?,?,?,?,?,?)",new Object[]{id.toString(),account.toString(),peer.toString(),sealed,row.getString("status"),row.getLong("at"),row.getBoolean("outgoing")?1:0});}db.setTransactionSuccessful();}finally{db.endTransaction();}
         }
         var edit=c.getSharedPreferences("nexo-connect-profiles",0).edit().putString("archiveOwner",account.toString()).putString("own:"+account,data.getString("name"));JSONObject names=data.getJSONObject("names");for(Iterator<String> it=names.keys();it.hasNext();){String id=it.next();edit.putString(account+":"+id,names.getString(id));}edit.commit();
     }

@@ -1,3 +1,10 @@
+## Nexo 3.7.57 — Borrado local de conversaciones y mensajes
+- Chat: deslizar la fila a la izquierda revela la papelera roja y mantenerla pulsada abre el menú contextual «Eliminar conversación».
+- Dentro de la conversación: mantener pulsada una burbuja durante un segundo activa la selección, permite añadir mensajes y eliminarlos «para mí» con confirmación.
+- Cancelación de selección con la flecha atrás, resaltado de burbujas, animaciones discretas y Toast de confirmación.
+- Exclusión de mensajes eliminados en sincronización y futuras copias/restauraciones; preserva recibos de entrega, claves, otros contactos y mensajes del interlocutor.
+- Actualización opcional `versionCode 150` y misma firma Release. No realiza desvinculaciones en el servidor.
+
 ## Nexo 3.7.56 — Perfil personal y vinculación integrada
 - Ajustes → Nexo Connect: Mi perfil, Generar vinculación y Vincular dispositivo; conservado el código independiente de seguridad de 16 caracteres junto al QR.
 - Nombre propio y fotografía opcional. La foto se reduce a JPEG pequeño y solo se transmite a contactos verificados mediante la entrega cifrada existente; no se hace pública.
