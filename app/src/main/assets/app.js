@@ -1751,6 +1751,9 @@ function bindCompactRecordActions(){
       bar.insertBefore(link,bar.querySelector('.record-action-overflow'));
       if(wrapper&&!wrapper.children.length)wrapper.remove();
     }
+    // Cuatro acciones en este orden: Editar, Vincular, Maps, Más.
+    const mapButton=bar.querySelector('.event-maps-footer-action');
+    if(mapButton)bar.insertBefore(mapButton,bar.querySelector('.record-action-overflow'));
     // El pie queda fuera del contenedor desplazable para que esté siempre visible.
     $('#modal .modal-sheet')?.appendChild(bar);
   }
