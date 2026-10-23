@@ -4582,7 +4582,6 @@ function refreshHeaderDate(){
   if(target.textContent!==formatted)target.textContent=formatted;
 }
 function navigateBack(){
-  if(window.NexoTimeGrid?.dismissDetail?.())return true;
   if(state.screen==='today'&&state.homeTimelineVisible){window.NexoTimeGrid?.hideHome();return true;}
   // Comprobar ANTES de consumir el historial: cancelar debe dejar la cita intacta.
   if(state.screen==='save'&&state.capturePendingLinks?.length){
