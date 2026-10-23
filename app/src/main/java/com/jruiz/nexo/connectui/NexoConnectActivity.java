@@ -338,8 +338,10 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         messageSelection=new NexoConnectMessageSelection(this,root,identity.accountId(),peer,
             ()->{renderedMessages="";renderMessages(peer);},
             ()->{
+                if(!peer.equals(conversation))return;
                 if(messages!=null){
                     messages.animate().alpha(0.4f).setDuration(110).withEndAction(()->{
+                        if(!peer.equals(conversation))return;
                         if(messages!=null)messages.setAlpha(1f);
                         renderedMessages="";renderMessages(peer);
                     }).start();
