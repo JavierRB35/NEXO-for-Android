@@ -35,6 +35,7 @@ import com.jruiz.nexo.calendar.HolidayCalendarService;
 import com.jruiz.nexo.exchange.NexoExchangeManager;
 import com.jruiz.nexo.backup.NexoBackupManager;
 import com.jruiz.nexo.data.DatabaseHelper;
+import com.jruiz.nexo.data.VehicleRepository;
 import com.jruiz.nexo.data.BookRepository;
 import com.jruiz.nexo.data.MediaRepository;
 import com.jruiz.nexo.reminders.ReminderScheduler;
@@ -2015,6 +2016,41 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
         @JavascriptInterface public String getAppointments() { return db.getAppointments().toString(); }
+        // Mis vehículos: base local y catálogo reutilizable, sin servicios externos.
+        @JavascriptInterface public String getVehicles() { return VehicleRepository.vehicles(db).toString(); }
+        @JavascriptInterface public String saveVehicle(String json) {
+            try { return VehicleRepository.saveVehicle(db,new JSONObject(json)).toString(); }
+            catch(Exception ignored) { return "{\"ok\":false,\"error\":\"No se pudo guardar el vehículo.\"}"; }
+        }
+        @JavascriptInterface public boolean deleteVehicle(long id) { return VehicleRepository.removeVehicle(db,id); }
+        @JavascriptInterface public String getVehicleServices(long id) { return VehicleRepository.services(db,id).toString(); }
+        @JavascriptInterface public String saveVehicleService(String json) {
+            try {
+                JSONObject input=new JSONObject(json);
+                String path=input.optString("attachmentPath","");
+                if(!path.isEmpty())DocumentFiles.requireStored(
+                    new File(getFilesDir(),"attachments"),path);
+                return VehicleRepository.saveService(db,input).toString();
+            }catch(Exception ignored) {
+                return "{\"ok\":false,\"error\":\"Revisa los datos o el adjunto de la actuación.\"}";
+            }
+        }
+        @JavascriptInterface public boolean deleteVehicleService(long id) { return VehicleRepository.removeService(db,id); }
+        @JavascriptInterface public String getVehicleOperations() { return VehicleRepository.customOperations(db).toString(); }
+        @JavascriptInterface public String saveVehicleOperation(String json) {
+            try { return VehicleRepository.saveCustomOperation(db,new JSONObject(json)).toString(); }
+            catch(Exception ignored) { return "{\"ok\":false,\"error\":\"Operación no válida.\"}"; }
+        }
+        @JavascriptInterface public boolean hideVehicleOperation(long id) { return VehicleRepository.hideCustomOperation(db,id); }
+        @JavascriptInterface public String getVehicleDueRules(long id) { return VehicleRepository.dueRules(db,id).toString(); }
+        @JavascriptInterface public String saveVehicleDueRule(String json) {
+            try { return VehicleRepository.saveDueRule(db,new JSONObject(json)).toString(); }
+            catch(Exception ignored) { return "{\"ok\":false,\"error\":\"Vencimiento no válido.\"}"; }
+        }
+        @JavascriptInterface public boolean deleteVehicleDueRule(long vehicleId,String operation) {
+            return VehicleRepository.removeDueRule(db,vehicleId,operation);
+        }
+
         @JavascriptInterface public String getBooks() { return BookRepository.list(db).toString(); }
         @JavascriptInterface public String getBook(long id) { return BookRepository.get(db, id).toString(); }
         @JavascriptInterface public String saveBook(String json) {

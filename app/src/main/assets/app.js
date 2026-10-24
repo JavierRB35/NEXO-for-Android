@@ -427,7 +427,7 @@ function updateFloatingActions(){
   if(state.screen==='about'){voiceVisible=false;addVisible=false;}
   if(['backup','inbox','history'].includes(panel)){voiceVisible=false;addVisible=false;}
   if(panel==='parking'){voiceVisible=false;}
-  if(panel==='books'||panel==='media'){voiceVisible=false;}
+  if(panel==='books'||panel==='media'||panel==='vehicles'){voiceVisible=false;}
   if(panel==='recordings'){voiceVisible=!modalOpen&&!recordingActive;addVisible=false;}
 
   const voiceLabel=
@@ -454,6 +454,7 @@ function updateFloatingActions(){
   const addLabel=
     state.screen==='calendar'?'Nueva cita':
     panel==='appointments'?'Nueva cita':
+    panel==='vehicles'?'Nueva actuación':
     panel==='books'?'Nuevo libro':
      panel==='media'?'Nueva película o serie':
      panel==='notes'?'Nueva nota':
@@ -495,6 +496,7 @@ function applyAgendaVoice(text){
 
 
 function runEventAddFab(){
+  if(state.screen==='panel'&&state.lastPanel==='vehicles'){window.NexoVehicles.openService();return;}
   if(state.screen==='panel'&&state.lastPanel==='books'){window.NexoBooks.openEditor();return;}
   if(state.screen==='panel'&&state.lastPanel==='media'){window.NexoMedia.openEditor();return;}
   if(state.screen==='panel'&&state.lastPanel==='notes'){openNoteComposer();return;}
@@ -2938,7 +2940,8 @@ function openPanel(panel,options={}){
     quotes:['Frases','Citas textuales, autores y referencias · fuera del calendario'],
     notes:['Notas','Anotaciones locales · más recientes primero'],recordings:['Grabaciones','Audio local · reuniones y conversaciones autorizadas'],
     books:['Libros','Tu biblioteca personal · leídos, empezados y pendientes'],
-    media:['Películas y series','Tu filmoteca personal · vistas, viendo y pendientes']
+    media:['Películas y series','Tu filmoteca personal · vistas, viendo y pendientes'],
+    vehicles:['Mis vehículos','Mantenimiento e historial de uno o varios coches']
   }[panel]||['Más',''];
   $('#panelTitle').textContent=cfg[0];$('#panelSubtitle').textContent=cfg[1];$('#panelAction').innerHTML='';
   if(panel==='appointments')renderAppointmentsPanel();
@@ -2955,6 +2958,7 @@ function openPanel(panel,options={}){
   else if(panel==='places') renderPlacesPanel();
   else if(panel==='documents') renderCollectionPanel(panel);
   else if(panel==='parking') renderParkingPanel();
+  else if(panel==='vehicles') window.NexoVehicles.render();
 }
 function renderItemsPanel(items,empty){ $('#panelContent').innerHTML=items.length?`<div class="stack">${items.map(itemCard).join('')}</div>`:`<div class="empty-state">${esc(empty)}</div>`;bindItemButtons($('#panelContent')); }
 
@@ -3731,6 +3735,7 @@ function promoteRecordActions(root){
 }
 
 function openModal(title,html){
+  window.NexoVehicles?.onModalClose?.();
   document.body.classList.remove('note-reading-open');
   discardDocumentDraft();
   if($('#modal').classList.contains('hidden'))state.modalReturnFocus=document.activeElement;
@@ -3751,6 +3756,7 @@ function closeModal(force=false){
   // literal true puede saltarse las protecciones de cierre.
   const forced=force===true;
   if(!forced&&window.NexoBooks?.preventClose?.())return false;
+  window.NexoVehicles?.onModalClose?.();
   if(!forced&&window.NexoMedia?.preventClose?.())return false;
   if(!forced&&guardPlaceEditorClose())return false;
   const noteWasOpen=!!state.noteEditor;
@@ -4202,6 +4208,10 @@ window.NexoUI={
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
   onDocumentFileChosen(raw){
     const result=parseNative(raw,{});
+    if(String(result.request||'').startsWith('vehicle-')){
+      if(!window.NexoVehicles?.onFileChosen?.(result)&&result.file?.path)NexoNative.discardDocumentFile(result.file.path);
+      return;
+    }
     if(String(result.request||'').startsWith('related-')){if(state.relatedDocumentCallback)state.relatedDocumentCallback(result);else if(result.file?.path)NexoNative.discardDocumentFile(result.file.path);return;}
     const editor=state.documentEditor;
     if(!editor||result.request!==editor.request){if(result.file?.path)NexoNative.discardDocumentFile(result.file.path);return;}

@@ -21,7 +21,7 @@ import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "nexo.db";
-    private static final int DB_VERSION = 33;
+    private static final int DB_VERSION = 34;
     private static final String ITEM_SELECT_WITH_REMINDER =
             "SELECT items.*, EXISTS(SELECT 1 FROM reminders reminder_flag WHERE reminder_flag.item_id=items.id) AS has_reminder, " +
             "(SELECT COUNT(*) FROM record_links linked WHERE linked.owner_item_id=items.id " +
@@ -155,6 +155,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         createMedicationTables(db);
         createPeopleTables(db);
         createRecordLinksTable(db);
+        VehicleRepository.createTables(db);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -290,6 +291,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Argumento opcional: migración aditiva sin modificar libros ni películas existentes.
             if (!columnExists(db, "books", "synopsis")) db.execSQL("ALTER TABLE books ADD COLUMN synopsis TEXT NOT NULL DEFAULT ''");
             if (!columnExists(db, "media_items", "synopsis")) db.execSQL("ALTER TABLE media_items ADD COLUMN synopsis TEXT NOT NULL DEFAULT ''");
+        }
+        if (oldVersion < 34) {
+            // Solo tablas nuevas; conserva íntegramente la base anterior.
+            VehicleRepository.createTables(db);
         }
     }
 
@@ -2129,6 +2134,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM items WHERE attachment_path=? LIMIT 1",new String[]{path})) {
             if(c.moveToFirst()) return true;
         }
+        // Las facturas de mantenimiento también son propietarias de su fichero.
+        try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM vehicle_services WHERE attachment_path=? LIMIT 1",new String[]{path})) {
+            if(c.moveToFirst()) return true;
+        }
         // Una captura pendiente también es propietaria del adjunto hasta convertirse o descartarse.
         try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM inbox_captures WHERE attachment_path=? AND status IN ('new','reviewing') LIMIT 1",new String[]{path})) {
             return c.moveToFirst();
@@ -2770,6 +2779,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 if(candidate.exists()) {
                     ContentValues v=new ContentValues();v.put("attachment_path",candidate.getAbsolutePath());
                     sql.update("inbox_captures",v,"id=?",new String[]{String.valueOf(id)});
+                }
+            }
+        } catch(Exception ignored){}
+        // Las rutas absolutas de las facturas de coche también deben sobrevivir
+        // al restaurar una copia .nexo en otro teléfono.
+        try (Cursor c=sql.rawQuery("SELECT id,attachment_path,attachment_name FROM vehicle_services WHERE attachment_path<>''",null)) {
+            while(c.moveToNext()) {
+                String old=c.getString(1), name=c.getString(2);
+                String base=(old==null||old.isBlank())?"":new java.io.File(old).getName();
+                if(base.isBlank()&&name!=null)base=name;
+                if(base.isBlank())continue;
+                java.io.File candidate=new java.io.File(attachmentsDir,base);
+                if(candidate.isFile()){
+                    ContentValues v=new ContentValues();
+                    v.put("attachment_path",candidate.getAbsolutePath());
+                    sql.update("vehicle_services",v,"id=?",new String[]{String.valueOf(c.getLong(0))});
                 }
             }
         } catch(Exception ignored){}

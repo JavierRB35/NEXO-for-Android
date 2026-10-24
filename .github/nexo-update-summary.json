@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.64",
-  "notes": "Nexo Connect: ahora puedes desvincular personas desde la lista de contactos. Se cancela el intercambio de nuevos mensajes y fichas, y se conservan los datos que ya estaban guardados en cada móvil. Actualización opcional."
+  "versionName": "3.7.65",
+  "notes": "Mis vehículos: mantenimiento sencillo para uno o varios coches, operaciones habituales por casillas, operaciones personalizadas reutilizables, historial, facturas y revisiones por fecha o kilómetros. Actualización opcional; no activa avisos Android automáticos."
 }
