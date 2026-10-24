@@ -393,10 +393,8 @@ function overlappingItems(dueAt,durationMinutes=0,excludeId=0){
 
 
 function updateFloatingActions(){
-  // Anclar el micrófono POR ENCIMA de la barra de guardado y no sobre sus botones.
-  const captureBar=$('.screen[data-screen="save"].active .capture-crud-toolbar');
-  if(captureBar?.offsetHeight)document.documentElement.style.setProperty('--nexo-capture-bar-height',Math.ceil(captureBar.getBoundingClientRect().height)+'px');
-  const voice=$('#globalVoiceFab'),add=$('#calendarAddFab');
+  // En formularios el micrófono pertenece a su encabezado; fuera de ellos sigue flotante.
+  const voice=$('#globalVoiceFab'),add=$('#calendarAddFab'),contextualVoice=$('#modalVoiceBtn');
   if(!voice||!add)return;
   const panel=state.screen==='panel'?state.lastPanel:'';
   const modalOpen=!$('#modal')?.classList.contains('hidden')||!$('#confirmModal')?.classList.contains('hidden')||!$('#voiceOverlay')?.classList.contains('hidden');
@@ -449,6 +447,14 @@ function updateFloatingActions(){
     panel==='places'?'Guardar lugar por voz':
     panel==='documents'?'Buscar documento por voz':
     panel==='recordings'?'Iniciar grabación':'Hablar con Nexo';
+
+  // Evitar dos micrófonos y mantener accesible el dictado con el teclado abierto.
+  if(state.screen==='save'||contextualEditorActive)voiceVisible=false;
+  if(contextualVoice){
+    contextualVoice.setAttribute('aria-label',voiceLabel);
+    contextualVoice.setAttribute('title',voiceLabel);
+    contextualVoice.classList.toggle('hidden',!contextualEditorActive);
+  }
 
   const parking=panel==='parking'?parseNative(NexoNative.getLastParking(),{}):{};
   const addLabel=
@@ -3844,6 +3850,9 @@ function applyDisplayMode(mode,save=false){
   if(save)NexoNative.setDisplayMode(m);
 }
 function startManagedDictation(target,opts={}){
+  // Cerrar el teclado antes de mostrar la transcripción, sin cambiar el texto escrito.
+  const focused=document.activeElement;
+  if(focused&&/^(INPUT|TEXTAREA|SELECT)$/.test(focused.tagName))focused.blur();
   state.voiceMode=target;state.managedVoiceTarget=target;state.managedVoiceBase=String(opts.base||'').trim();state.managedVoiceSegments=[];state.managedVoicePartial='';state.managedVoiceListId=Number(opts.listId||0);state.managedVoiceShopping=!!opts.shopping;
   if(target==='journal')state.journalVoiceBase=state.managedVoiceBase;if(target==='medication')state.medicationVoiceBase=state.managedVoiceBase;
   const overlay=$('#voiceOverlay');$('#managedVoiceTitle').textContent=opts.title||'Habla con Nexo';$('#managedVoiceStatus').textContent='Preparando micrófono…';$('#managedVoiceTranscript').textContent=state.managedVoiceBase||opts.hint||'Puedes hablar con normalidad. Pulsa TERMINAR cuando acabes.';$('#managedVoiceStop').disabled=false;$('#managedVoiceStop').textContent='Terminar';overlay.classList.remove('hidden');
@@ -4582,7 +4591,7 @@ function init(){
   $('#captureEndTime').addEventListener('change',()=>markCaptureManual('dateTime'));
   $('#addCaptureAlert').addEventListener('click',()=>openAddAlertOverlay(v=>setCaptureAlerts([...state.captureAlerts,v],true)));
   $('#acceptReminderSuggestion').addEventListener('click',()=>{if(state.captureSuggestedAlert===null)return;setCaptureAlerts([...state.captureAlerts,state.captureSuggestedAlert],true);state.captureSuggestedAlert=null;$('#reminderSuggestion').classList.add('hidden');});
-  $('#voiceCaptureBtn')?.addEventListener('click',()=>startManagedDictation('capture',{base:$('#captureText').value.trim(),title:'DICTAR EN NEXO',hint:'Habla con normalidad y pulsa TERMINAR cuando acabes.'}));
+  $('#voiceCaptureBtn')?.addEventListener('click',runFloatingVoice);
   $('#captureLinkButton')?.addEventListener('click',()=>openRelatedPicker(0));
   $('#saveCaptureBtn').addEventListener('click',saveCapture);$('#clearCaptureBtn').addEventListener('click',()=>clearCapture());$('#chooseFileBtn').addEventListener('click',()=>NexoNative.chooseFile());
   $('#searchBtn')?.addEventListener('click',()=>runSearch());
@@ -4614,6 +4623,7 @@ function init(){
   $$('.quick-action').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.action;if(a==='voice')startManagedDictation('universal',{title:'Habla con Nexo'});else if(a==='quick-task')prepareQuickNoteForType('task');else if(a==='shopping-list')ensureShoppingList();else if(a==='parking')openParkingModal();}));
   $('#panelBack').addEventListener('click',()=>navigateBack());
   $('#managedVoiceStop').addEventListener('click',stopManagedDictation);
+  $('#modalVoiceBtn')?.addEventListener('click',runFloatingVoice);
   $('#modalClose').addEventListener('click',closeModal);$('#modal').addEventListener('click',e=>{if(e.target===$('#modal'))closeModal();});
   $('#confirmCancel').addEventListener('click',()=>{$('#confirmModal').classList.add('hidden');state.confirmAction=null;});
   $('#confirmDelete').addEventListener('click',()=>{const fn=state.confirmAction;state.confirmAction=null;if(fn)fn();});

@@ -34,12 +34,15 @@ assert "if(!document.hidden)refreshHeaderDate();" in js
 fixed = css.split('Nexo 3.7.43 · Acciones inferiores fiables',1)[1]
 assert 'bottom:calc(var(--nexo-bottom-nav-height, 76px) + 1px)' in fixed
 assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in fixed
-# Regresión 3.7.44: las acciones no tienen margen heredado ni quedan bajo el FAB.
+# Regresión 3.7.69: el micrófono se sitúa junto a Captura rápida; nunca tapa Guardar.
 assert 'gap:3px;height:70px;min-height:70px;max-height:70px' in fixed
 assert 'grid-row:auto;grid-column:auto;min-width:0;min-height:70px;margin:0' in fixed
 assert 'body:has(.screen[data-screen="save"].active) .floating-actions' in fixed
-assert 'var(--nexo-capture-bar-height,90px) + 12px' in fixed
-assert "document.documentElement.style.setProperty('--nexo-capture-bar-height'" in js
+assert 'body:has(.screen[data-screen="save"].active) .floating-actions{display:none}' in fixed
+assert 'id="voiceCaptureBtn"' in html
+assert "if(state.screen==='save'||contextualEditorActive)voiceVisible=false;" in js
+assert "$('#voiceCaptureBtn')?.addEventListener('click',runFloatingVoice);" in js
+assert "startManagedDictation('capture-edit'" in js
 assert 'body.nexo-keyboard-visible:has(.screen[data-screen="save"].active) .floating-actions{display:none}' in fixed
 assert 'button.hidden{display:none!important}' in fixed
 assert ':has(input:focus,textarea:focus,select:focus)' not in css
@@ -59,4 +62,4 @@ assert "editor.querySelector('#editLinkButton,#occLinkButton')" in js
 for marker in ('saveEditBtn','saveOccurrenceBtn','openRelatedPicker(id)','openRelatedPicker(seriesId)'):
     assert marker in js, marker
 
-print('Nexo 3.7.44: fecha compacta, barra uniforme, micro fuera de Guardar y editor fijo: OK')
+print('Nexo: fecha compacta, barra uniforme, micro contextual accesible y editor fijo: OK')

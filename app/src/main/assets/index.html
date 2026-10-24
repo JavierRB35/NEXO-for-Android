@@ -171,9 +171,10 @@
         <div id="captureCloneNotice" class="capture-clone-notice hidden" role="status"></div>
         <div class="capture-card">
           <div class="capture-mode-row">
-            <div>
-<strong>Captura rápida</strong><div class="small muted">Escribe aquí o usa «Habla con Nexo» desde el micrófono de las pantallas principales.</div>
+            <div class="capture-mode-copy">
+<strong>Captura rápida</strong><div class="small muted">Escribe aquí o pulsa el micrófono para dictar y ampliar esta captura.</div>
 </div>
+            <button id="voiceCaptureBtn" class="capture-mic-button" type="button" aria-label="Dictar en esta captura" title="Dictar en esta captura"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button>
           </div>
 
           <textarea id="captureText" rows="3" placeholder="Ej. Llamar al seguro el viernes a las 18 h y avisarme una hora antes" aria-label="Describe lo que quieres guardar" class="capture-text"></textarea>
@@ -650,7 +651,10 @@
     <div class="modal-sheet">
       <div class="modal-head">
 <h2 id="modalTitle"></h2>
+<div class="modal-head-actions">
+<button id="modalVoiceBtn" class="contextual-voice-button hidden" type="button" aria-label="Dictar en este formulario" title="Dictar en este formulario"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-mic"></use></svg></button>
 <button id="modalClose" class="icon-button" aria-label="Cerrar"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-close"></use></svg></button>
+</div>
 </div>
       <div id="modalBody"></div>
     </div>
