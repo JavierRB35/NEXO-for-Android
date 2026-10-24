@@ -4,7 +4,7 @@ import sqlite3
 
 root = Path(__file__).resolve().parents[1]
 db = (root / "app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java").read_text()
-assert "DB_VERSION = 33" in db
+assert "DB_VERSION = 34" in db
 assert "if (oldVersion < 33)" in db
 
 for table, second in (("books", "author"), ("media_items", "creator")):
