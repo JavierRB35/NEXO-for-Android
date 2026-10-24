@@ -95,27 +95,30 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
         }
         button("Seguir usando Nexo sin cuenta",this::finish);return true;
     }
+    // Nexo Connect no longer has a "Chat y compartir" navigation hub.
+    // Settings deep links return to Nexo when finished; Chat stays in the bottom bar.
+    private boolean launchedFromSettings(){
+        Intent intent=getIntent();
+        return intent!=null && intent.hasExtra("nexoConnectAction");
+    }
     @Override protected void showHome(){
         conversation=null;
         if(stage!=READY){showSetup();return;}
-        if(!selectedHandled&&getIntent()!=null){
+        if(!selectedHandled && getIntent()!=null){
             String action=getIntent().getStringExtra("nexoConnectAction");
             if("profile".equals(action)){selectedHandled=true;showProfile();return;}
+            if("code".equals(action)){selectedHandled=true;showOwnQr();return;}
             if("generate".equals(action)){selectedHandled=true;showInvite();return;}
             if("pair".equals(action)){selectedHandled=true;openScanner();return;}
+            if("invitation".equals(action)){selectedHandled=true;openImageQr();return;}
+            if("people".equals(action)){selectedHandled=true;people();return;}
             if(getIntent().getBooleanExtra("openChat",false)){
                 selectedHandled=true;showChats();return;
             }
         }
-        screen("Chat y compartir",false);
-        String name=NexoConnectChatStore.ownName(this,identity.accountId());
-        label(name.isEmpty()?"Elige cómo quieres que te conozcan":name,20);
-        button("Chat",this::showChats);
-        button("Compartir una ficha",this::chooseSection);
-        button("Recibidos",()->{screen("Recibidos",true);button("Buscar nuevas fichas",this::showInbox);button("Ver fichas recibidas",this::showReceivedNotes);});
-        button("Personas",this::people);
-        button("Mi perfil",this::showProfile);
-        button("Volver a Nexo",this::finish);
+        if(launchedFromSettings()){finish();return;}
+        // Chat without an explicit action also opens directly, never through a hub.
+        showChats();
     }
     @Override protected void onVerifiedPilotReady(){
         if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
@@ -273,32 +276,42 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
             }
         }catch(Exception e){showError("No se pudo abrir el historial.");}
     }
+    /** Only contacts are managed here; identity and invitations live in Settings. */
     private void people(){
-        conversation=null;screen("Nexo Connect",true);
-        label("Conecta con otra persona de forma segura. Comprueba su código de 16 caracteres por teléfono o en persona.",16);
-        button("Generar vinculación",this::showInvite);
-        button("Vincular dispositivo",this::openScanner);
-        button("Abrir invitación recibida",this::openImageQr);
-        button("Mi código de seguridad",this::showOwnQr);
+        conversation=null;
+        screen("Mis personas",true);
         try{
             var peers=trusted.listActive();
-            label(peers.isEmpty()?"Aún no hay personas guardadas.":"Mis personas",19);
+            label(peers.isEmpty()?
+                "Todavía no hay personas vinculadas. Puedes invitar desde Ajustes → Nexo Connect.":
+                peers.size()==1?"1 persona autorizada":peers.size()+" personas autorizadas",14);
             for(var p:peers){
-                LinearLayout person=new LinearLayout(this);
-                person.setGravity(android.view.Gravity.CENTER_VERTICAL);
-                LinearLayout.LayoutParams item=new LinearLayout.LayoutParams(-1,-2);
-                item.bottomMargin=px(8);
-                person.setPadding(px(10),px(8),px(10),px(8));
-                person.setBackground(surface(0xffffffff,14));
-                column.addView(person,item);
-                person.addView(avatarView(p.peerId,contactName(p),40),new LinearLayout.LayoutParams(px(40),px(40)));
-                TextView contact=text(contactName(p),17,INK);
-                contact.setTypeface(null,android.graphics.Typeface.BOLD);
-                contact.setPadding(px(12),0,0,0);
-                person.addView(contact,new LinearLayout.LayoutParams(0,-2,1));
-                Button alias=action("Editar nombre",()->renamePeer(p.peerId));
-                person.addView(alias);
-                button("Comprobar conexión con "+contactName(p),()->runWork(()->{
+                String name=contactName(p);
+                LinearLayout card=new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setPadding(px(12),px(12),px(12),px(12));
+                card.setBackground(surface(0xffffffff,14));
+                LinearLayout.LayoutParams cardParams=new LinearLayout.LayoutParams(-1,-2);
+                cardParams.bottomMargin=px(10);
+                column.addView(card,cardParams);
+
+                LinearLayout info=new LinearLayout(this);
+                info.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                card.addView(info,new LinearLayout.LayoutParams(-1,-2));
+                info.addView(avatarView(p.peerId,name,42),
+                    new LinearLayout.LayoutParams(px(42),px(42)));
+                TextView label=text(name,17,INK);
+                label.setTypeface(null,android.graphics.Typeface.BOLD);
+                label.setPadding(px(12),0,0,0);
+                info.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+
+                LinearLayout actions=new LinearLayout(this);
+                actions.setPadding(0,px(8),0,px(8));
+                card.addView(actions);
+                Button edit=action("Editar nombre",()->renamePeer(p.peerId));
+                edit.setContentDescription("Editar nombre de "+name);
+                actions.addView(edit,new LinearLayout.LayoutParams(0,px(48),1));
+                Button check=action("Comprobar",()->runWork(()->{
                     client.verifyStoredPeer(trusted,p.peerId);
                     client.setReceiving(trusted,p.peerId,true);
                     return true;
@@ -306,10 +319,18 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
                     .setTitle("Contacto preparado")
                     .setMessage("La identidad coincide y este teléfono puede recibir sus mensajes y fichas. Para compartir también desde el otro móvil, debe confirmar tu código.")
                     .setPositiveButton("Entendido",(d,w)->people()).show();}));
-                button("Desvincular a "+contactName(p),
-                    ()->confirmUnlink(p,this::people));
+                check.setContentDescription("Comprobar conexión con "+name);
+                actions.addView(check,new LinearLayout.LayoutParams(0,px(48),1));
+
+                Button unlink=action("Desvincular",()->confirmUnlink(p,this::people));
+                unlink.setContentDescription("Desvincular a "+name);
+                unlink.setTextColor(0xffae2727);
+                android.graphics.drawable.GradientDrawable danger=surface(0xfffff5f5,11);
+                danger.setStroke(px(1),0xffedb9b9);
+                unlink.setBackground(danger);
+                card.addView(unlink,new LinearLayout.LayoutParams(-1,px(48)));
             }
-        }catch(Exception e){showError("No se pudieron abrir tus personas.");}
+        }catch(Exception error){showError("No se pudieron abrir tus personas.");}
     }
     private void configureChatNotices(){
         if(android.os.Build.VERSION.SDK_INT>=33 &&
@@ -350,7 +371,7 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     private void showChats(boolean refresh){
         conversation=null;messageSelection=null;conversationRows.clear();chatHistory=null;if(NexoConnectChatStore.ownName(this,identity.accountId()).isEmpty()){editName();return;}
         LinearLayout root=chatShell("Chat",null,this::finish);ScrollView scroll=new ScrollView(this);LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(px(16),px(16),px(16),px(16));scroll.addView(list);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){var peers=trusted.listActive();if(peers.isEmpty())list.addView(text("Añade a alguien para empezar a conversar.",16,MUTED));
+        try(SQLiteDatabase db=NexoConnectMigration.inbox(this)){var peers=trusted.listActive();if(peers.isEmpty())list.addView(text("Para conectar con alguien, abre Ajustes → Nexo Connect → Mis personas.",16,MUTED));
             java.util.Set<String> unread=new java.util.HashSet<>(NexoConnectChatStore.unreadIds(db,identity.accountId(),trusted));
             for(var p:peers){String name=contactName(p);var history=NexoConnectChatStore.messages(db,identity.accountId(),p.peerId);var last=history.isEmpty()?null:history.get(history.size()-1);
                 if(last==null&&NexoConnectChatDeletion.wasCleared(db,identity.accountId(),p.peerId))continue;
@@ -374,7 +395,6 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
                 row.setContentDescription(name+(last==null?"":", "+preview.getText())+(unreadForPeer>0?", "+unreadForPeer+" sin leer":""));row.setFocusable(true);row.setOnClickListener(v->openConversation(p.peerId));
             }
         }catch(Exception e){showError("No se pudieron abrir las conversaciones.");}
-        Button add=action("Añadir persona",this::people);root.addView(add,new LinearLayout.LayoutParams(-1,px(56)));
         if(!NexoConnectInboxNoticeJob.permitted(this)){
             Button notices=action("Activar avisos de mensajes",this::configureChatNotices);
             root.addView(notices,new LinearLayout.LayoutParams(-1,px(50)));
