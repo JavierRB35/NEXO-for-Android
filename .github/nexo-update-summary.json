@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.70",
-  "notes": "Nuevo botón Compartir Nexo en Ajustes → General: abre el menú de compartir Android con un enlace permanente a la última versión disponible para instalar Nexo. No envía datos personales, contenido de Nexo ni contactos y no establece vinculaciones Nexo Connect. Actualización opcional."
+  "versionName": "3.7.71",
+  "notes": "Calendario más cómodo: al abrirlo aparece primero el mes actual y el día de hoy. La agenda horaria se desplaza de forma independiente y muestra directamente la primera cita, con los eventos de todo el día fijos. Al consultar una cita y volver, se conserva la posición. Actualización opcional."
 }

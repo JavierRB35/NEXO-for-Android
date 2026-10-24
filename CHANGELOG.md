@@ -1,3 +1,14 @@
+## Nexo 3.7.71 — Calendario mensual visible y navegación sin saltos
+- La pestaña Calendario abre por el mes actual, con hoy seleccionado, sin desplazar automáticamente toda la página hasta la agenda horaria.
+- La agenda de 24 horas tiene desplazamiento independiente y enfoca su primera cita. Los eventos «Todo el día» permanecen fijos en su cabecera.
+- Al abrir y cerrar una ficha, se conserva la posición previa de la agenda. Inicio mantiene su funcionamiento habitual.
+- Actualización opcional `versionCode 164`, mismo `applicationId com.jruiz.nexo`, identidad Release y base de datos SQLite 34. Sin migración de datos ni cambios en SDK, JDK o Gradle.
+- Añadida regresión de navegación y foco de agenda a la validación del proyecto.
+
+## Nexo 3.7.70 — Compartir el enlace de instalación
+- Ajustes → General incorpora Compartir Nexo mediante el menú de compartir de Android, sin enviar datos personales ni establecer vinculaciones Connect.
+- Versión oficial opcional `versionCode 163`, misma firma y esquema SQLite 34.
+
 ## Nexo 3.7.69 — Micrófono visible durante la edición
 - Citas y Captura rápida: botón de dictado en el extremo superior derecho de la tarjeta, alcanzable incluso con el teclado abierto; deja de depender del botón flotante oculto por el teclado.
 - Notas, Cuaderno, Frases, Medicación, Lugares y Documentos: micrófono contextual en el encabezado del editor; conserva el contenido previo y permite ampliar el dictado sin crear registros al iniciarlo.
