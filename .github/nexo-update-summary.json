@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.63",
-  "notes": "Nexo Connect: corregida la orientación de las fotografías de perfil al seleccionarlas de la galería. Se respeta el giro y reflejo EXIF antes de recortar y comprimir el avatar, conservando el cifrado y sincronización del perfil. Actualización opcional."
+  "versionName": "3.7.64",
+  "notes": "Mis vehículos: mantenimiento sencillo de varios coches con operaciones marcadas mediante casillas, catálogo reutilizable, historial por fecha y kilómetros, costes y facturas. Permite repetir mantenimientos y programar revisiones por fecha o kilometraje. Actualización opcional; no activa avisos push automáticos."
 }
