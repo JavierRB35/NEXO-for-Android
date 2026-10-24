@@ -704,7 +704,10 @@ function navigate(screen, options={}) {
   else if(screen==='search')runSearch();
   updateFloatingActions();
   const target=router.key(route);
-  requestAnimationFrame(()=>{if(router.key(router.current)===target)window.scrollTo(0,moved.scrollY);});
+  // Entrar en Calendario debe empezar por el mes, no por la primera cita.
+  // Volver desde una ruta anterior conserva su posición explícita.
+  const destinationScroll=screen==='calendar'&&previousScreen!=='calendar'&&options.scrollY===undefined?0:moved.scrollY;
+  requestAnimationFrame(()=>{if(router.key(router.current)===target)window.scrollTo(0,destinationScroll);});
 }
 
 // The badge counts the same pending items as Inbox, including captures.
@@ -4490,7 +4493,7 @@ function init(){
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';bindCategorySelectIcon('#captureCategory');
   setInterpretationStatus('idle','Interpretación local preparada');
-  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else if(b.dataset.nav==='chat')NexoNative.openNexoChat();else navigate(b.dataset.nav,{root:true});}));
+  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else if(b.dataset.nav==='chat')NexoNative.openNexoChat();else if(b.dataset.nav==='calendar'){resetCalendarToToday();navigate('calendar',{root:true,scrollY:0});}else navigate(b.dataset.nav,{root:true});}));
   refreshChatUnreadBadge();
   try{NexoNative.requestNexoChatRefresh();}catch(_){}
   setInterval(()=>{if(!document.hidden)refreshChatUnreadBadge();},12000);
