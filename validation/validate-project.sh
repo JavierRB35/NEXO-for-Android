@@ -77,6 +77,7 @@ python validation/test-vehicle-reservation-calendar.py
 python validation/test-release-config.py
 python validation/test-calendar-swipe.py
 python validation/test-about-calendar-startup.py
+python validation/test-product-catalog.py
 python validation/test-calendar-nonrecurring-range.py
 python validation/test-home-familia-parity.py
 python validation/test-beta11-polish.py

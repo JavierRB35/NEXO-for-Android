@@ -597,6 +597,36 @@ function runFloatingVoice(){
 function getAboutInfo(){
   try{return parseNative(NexoNative.getAboutInfo(),{});}catch(_){return {};}
 }
+/** Read-only inventory packaged into the signed APK and version-checked in CI. */
+function renderProductCatalog(){
+  const root=$('#aboutProductCatalog'),count=$('#aboutCatalogCount'),version=$('#aboutCatalogVersion');
+  if(!root)return;
+  const catalog=window.NexoProductCatalog;
+  if(!catalog||!Array.isArray(catalog.sections)||!catalog.sections.length){
+    root.innerHTML='<p class="muted">El catálogo de esta versión no está disponible.</p>';
+    return;
+  }
+  const groups=catalog.sections;
+  const modules=groups.reduce((sum,group)=>sum+(group.modules?.length||0),0);
+  if(count)count.textContent=modules+' módulos';
+  root.innerHTML=groups.map((group,index)=>`
+    <details class="about-catalog-group" ${index===0?'open':''}>
+      <summary>
+        <span class="about-catalog-group-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-${escAttr(group.icon||'grid')}"></use></svg></span>
+        <span class="about-catalog-group-title"><strong>${esc(group.title)}</strong><small>${group.modules.length} módulos</small></span>
+        <svg class="ui-icon about-catalog-chevron" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+      </summary>
+      <div class="about-catalog-items">
+        ${group.modules.map(module=>`
+          <article class="about-catalog-item">
+            <h3>${esc(module.title)}</h3>
+            <p>${esc(module.description)}</p>
+            <ul>${module.features.map(feature=>`<li>${esc(feature)}</li>`).join('')}</ul>
+          </article>`).join('')}
+      </div>
+    </details>`).join('');
+  if(version)version.textContent='Catálogo incluido en Nexo v'+String(catalog.versionName||'')+'. Algunas funciones requieren permisos, conexión o configuración previa.';
+}
 function renderAbout(){
   const info=getAboutInfo(),version=String(info.versionName||NexoNative.getAppVersion?.()||'').trim();
   if(version)document.querySelectorAll('[data-app-version]').forEach(el=>{el.textContent='v'+version;el.setAttribute('aria-label','Versión '+version);});
@@ -608,6 +638,7 @@ function renderAbout(){
   set('#aboutDevice',info.device);
   set('#aboutAndroidSdk',info.androidSdk);
   renderUpdateStatus(NexoNative.getUpdateStatus());
+  renderProductCatalog();
 }
 function renderUpdateStatus(raw){
   const info=parseNative(raw,{});

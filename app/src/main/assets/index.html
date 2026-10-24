@@ -543,7 +543,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.66</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.67</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -556,11 +556,11 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.66</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.67</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>
-    <p class="about-intro">Organiza tu agenda, notas, documentos, grabaciones y otra información personal desde un único lugar.</p>
+    <p class="about-intro">Nexo reúne tus herramientas de organización personal, información, movilidad y comunicación privada en una sola aplicación Android.</p>
   </section>
 
   <section class="about-card">
@@ -568,6 +568,20 @@
     <p id="updateStatusAbout" class="small muted" role="status">Todavía no se han buscado actualizaciones.</p>
     <button id="checkUpdatesAbout" class="secondary-button" type="button">Buscar actualizaciones</button>
     <p class="small muted">Solo APK oficiales firmadas y verificadas. Tus datos permanecen en el dispositivo.</p>
+  </section>
+
+  <section class="about-card about-catalog" aria-labelledby="aboutCatalogTitle">
+    <div class="about-catalog-head">
+      <div>
+        <h2 id="aboutCatalogTitle">Todo lo que puedes hacer con Nexo</h2>
+        <p class="small muted">Guía completa de módulos y funciones, revisada con cada versión.</p>
+      </div>
+      <span id="aboutCatalogCount" class="about-catalog-count" aria-label="Número de módulos"></span>
+    </div>
+    <div id="aboutProductCatalog" class="about-catalog-list" aria-live="polite">
+      <p class="small muted">Cargando funciones de Nexo…</p>
+    </div>
+    <p id="aboutCatalogVersion" class="about-catalog-foot muted"></p>
   </section>
 
   <section class="about-card">
@@ -581,7 +595,7 @@
 
   <section class="about-card">
     <h2>Desarrollo</h2>
-    <p><strong>Desarrollado por Carlos Javier Ruiz Bermúdez</strong></p>
+    <p class="about-developer-name"><strong>Desarrollado por Carlos Javier Ruiz Bermúdez</strong></p>
     <p class="muted">Proyecto creado para simplificar la gestión de información personal y familiar.</p>
     <p class="about-copyright">© 2026</p>
   </section>
@@ -660,6 +674,6 @@
   <div id="toast" class="toast hidden" aria-live="polite">
 <span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button>
 </div>
-  <script src="navigation.js"></script><script src="app.js"></script><script src="time-grid.js"></script><script src="books.js"></script><script src="media.js"></script><script src="vehicles.js"></script>
+  <script src="navigation.js"></script><script src="nexo-product-catalog.js"></script><script src="app.js"></script><script src="time-grid.js"></script><script src="books.js"></script><script src="media.js"></script><script src="vehicles.js"></script>
 </body>
 </html>

@@ -2660,6 +2660,42 @@ body.startup-loading #app{visibility:hidden}
 .about-copy-button{width:100%;margin-top:13px}
 
 
+/* Catálogo del producto: navegación plegable para móvil, detalles accesibles. */
+.about-catalog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.about-catalog-head h2{margin:0 0 5px}
+.about-catalog-head p{margin:0;line-height:1.45}
+.about-catalog-count{flex:0 0 auto;white-space:nowrap;padding:5px 8px;border-radius:999px;
+  background:#eaf6f0;color:#116850;font-size:.72rem;font-weight:800}
+.about-catalog-list{display:grid;gap:9px}
+.about-catalog-group{border:1px solid #dfe6e6;border-radius:15px;overflow:hidden;background:#fff}
+.about-catalog-group>summary{display:flex;align-items:center;gap:10px;list-style:none;
+  padding:13px 11px;cursor:pointer;min-height:57px}
+.about-catalog-group>summary::-webkit-details-marker{display:none}
+.about-catalog-group>summary:focus-visible{outline:3px solid #168b70;outline-offset:-3px}
+.about-catalog-group-icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
+  flex:0 0 36px;background:#eaf5f2;color:#168165}
+.about-catalog-group-icon .ui-icon{width:20px;height:20px}
+.about-catalog-group-title{flex:1;min-width:0;display:grid;gap:3px;line-height:1.3}
+.about-catalog-group-title strong{font-size:.9rem}
+.about-catalog-group-title small{font-size:.75rem;color:var(--muted)}
+.about-catalog-chevron{width:17px;height:17px;transition:transform .2s;color:#64748b}
+.about-catalog-group[open] .about-catalog-chevron{transform:rotate(90deg)}
+.about-catalog-group[open]>summary{background:#f7fbf9;border-bottom:1px solid #e4ece8}
+.about-catalog-items{padding:1px 12px 5px}
+.about-catalog-item{padding:13px 0;border-bottom:1px solid #edf0ef}
+.about-catalog-item:last-child{border-bottom:0}
+.about-catalog-item h3{margin:0 0 5px;font-size:.91rem}
+.about-catalog-item p{margin:0 0 7px;color:#5c6977;font-size:.79rem;line-height:1.5}
+.about-catalog-item ul{margin:0;padding-left:19px;display:grid;gap:5px}
+.about-catalog-item li{font-size:.79rem;line-height:1.45;color:#344454}
+.about-catalog-item li::marker{color:#138166}
+.about-catalog-foot{font-size:.77rem;line-height:1.45;margin:11px 1px 0}
+.about-developer-name{font-size:.9rem}
+@media(max-width:370px){
+  .about-catalog-head{flex-direction:column;align-items:flex-start}
+  .about-catalog-count{align-self:flex-start}
+}
+
 /* Nexo · Documentos con gestión visual equivalente a Nexo Familia */
 #documentList{display:grid;gap:12px}
 .document-card.document-card--family{
