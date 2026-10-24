@@ -9,7 +9,7 @@ media=(root/'app/src/main/java/com/jruiz/nexo/data/MediaRepository.java').read_t
 books_js=(root/'app/src/main/assets/books.js').read_text()
 media_js=(root/'app/src/main/assets/media.js').read_text()
 
-assert "DB_VERSION = 33" in db and "if (oldVersion < 32)" in db
+assert "DB_VERSION = 34" in db and "if (oldVersion < 32)" in db
 for table in ("books", "media_items"):
     assert f'columnExists(db, "{table}", "category")' in db
     assert f'ALTER TABLE {table} ADD COLUMN category TEXT NOT NULL DEFAULT' in db

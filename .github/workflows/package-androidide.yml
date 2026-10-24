@@ -47,6 +47,9 @@ jobs:
         shell: bash
         run: sh ./prepare-transcription-runtime.sh
 
+      - name: Install full-suite runtime test dependency
+        run: npm install --no-save --ignore-scripts jsdom@26.1.0
+
       - name: Validate UI structure
         shell: bash
         run: |
@@ -77,6 +80,7 @@ jobs:
           node validation/test-event-editor-related-drafts.cjs
           node --check validation/test-save-icon-only.cjs
           node --check app/src/main/assets/app.js
+          sh validation/validate-project.sh
 
       - name: Compile debug APK
         shell: bash
