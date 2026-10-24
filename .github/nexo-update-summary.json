@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.64",
-  "notes": "Mis vehículos: mantenimiento sencillo de varios coches con operaciones marcadas mediante casillas, catálogo reutilizable, historial por fecha y kilómetros, costes y facturas. Permite repetir mantenimientos y programar revisiones por fecha o kilometraje. Actualización opcional; no activa avisos push automáticos."
+  "versionName": "3.7.65",
+  "notes": "Mis vehículos: mantenimiento sencillo para uno o varios coches, operaciones habituales por casillas, operaciones personalizadas reutilizables, historial, facturas y revisiones por fecha o kilómetros. Actualización opcional; no activa avisos Android automáticos."
 }
