@@ -333,6 +333,41 @@ public class NexoConnectSignedGatewayClientTest {
         }catch(SecurityException expected){}
     }
 
+    @Test public void unlinkRequiresConsentAndFailedServerCallKeepsPin() throws Exception {
+        Fixture f=new Fixture();
+        AndroidPeerTrustStore store=new AndroidPeerTrustStore(
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                        .getTargetContext(),ACCOUNT);
+        UUID peer=UUID.randomUUID();
+        byte[] signing=new byte[32],encryption=new byte[32];
+        new java.security.SecureRandom().nextBytes(signing);
+        new java.security.SecureRandom().nextBytes(encryption);
+        AndroidPeerTrustStore.PeerPin pin=new AndroidPeerTrustStore.PeerPin(
+                peer,1,signing,encryption,true);
+        store.saveQrConfirmed(AndroidPeerTrustStore.encodeQr(pin),
+                pin.signingFingerprint(),pin.encryptionFingerprint(),true);
+
+        try{
+            f.client.unlinkRemotelyAndLocally(store,peer,false);
+            fail("Unlink without confirmation");
+        }catch(SecurityException expected){}
+        assertTrue(f.fake.actions.isEmpty());
+        assertNotNull(store.findActive(peer));
+
+        f.fake.failSigned=true;
+        try{
+            f.client.unlinkRemotelyAndLocally(store,peer,true);
+            fail("Remote unlink was not confirmed");
+        }catch(NexoConnectSignedGatewayClient.TransportException expected){
+            assertEquals(503,expected.httpStatus);
+        }
+        assertEquals(2,f.fake.actions.size());
+        assertEquals("challenge",f.fake.actions.get(0));
+        assertEquals("contact/unlink",f.fake.actions.get(1));
+        assertNotNull("Local trust cannot be dropped on uncertain server failure",
+                store.findActive(peer));
+    }
+
     @Test public void rejectsTamperedResponseId() throws Exception {
         Fixture f=new Fixture();
         f.fake.statusOnAction=403;

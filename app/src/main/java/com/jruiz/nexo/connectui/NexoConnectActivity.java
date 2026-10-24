@@ -306,6 +306,8 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
                     .setTitle("Contacto preparado")
                     .setMessage("La identidad coincide y este teléfono puede recibir sus mensajes y fichas. Para compartir también desde el otro móvil, debe confirmar tu código.")
                     .setPositiveButton("Entendido",(d,w)->people()).show();}));
+                button("Desvincular a "+contactName(p),
+                    ()->confirmUnlink(p,this::people));
             }
         }catch(Exception e){showError("No se pudieron abrir tus personas.");}
     }
