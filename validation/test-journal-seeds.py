@@ -16,7 +16,7 @@ if not all(src.startswith('Inspirada en:') for _,_,src,_ in entries):
 for legacy in ('seedJournalLibrary(', 'seedJournalPragmaticLibrary('):
     if legacy in s:
         raise SystemExit('Queda una llamada/método de biblioteca antigua: '+legacy)
-if 'DB_VERSION = 33' not in s:
+if 'DB_VERSION = 34' not in s:
     raise SystemExit('DB_VERSION no es 26')
 if 'source LIKE ? OR source LIKE ? OR source=? OR source LIKE ?' not in s:
     raise SystemExit('No se localiza la migración selectiva de semillas antiguas')
