@@ -3516,11 +3516,8 @@ body.startup-loading #app{visibility:hidden}
 .screen[data-screen="save"] .capture-crud-toolbar .ghost-button{
   background:#f2f4f2;border:1px solid #dce4df;color:#42554c
 }
-/* La voz sigue disponible, pero nunca tapa Guardar: se coloca sobre el pie fijo. */
-body:has(.screen[data-screen="save"].active) .floating-actions{
-  bottom:calc(var(--nexo-bottom-nav-height,76px) + var(--nexo-capture-bar-height,90px) + 12px);
-  z-index:31
-}
+/* En Captura rápida el micrófono vive en la cabecera, no sobre la barra inferior. */
+body:has(.screen[data-screen="save"].active) .floating-actions{display:none}
 /* No usar :focus como indicador de teclado. Un foco puede persistir tras cerrar el IME. */
 body.nexo-keyboard-visible .screen[data-screen="save"] .capture-crud-toolbar{display:none}
 body.nexo-keyboard-visible:has(.screen[data-screen="save"].active) .floating-actions{display:none}
@@ -3688,3 +3685,33 @@ button.nexo-unified-save>.ui-icon{
 .nav-item[data-nav="chat"]{position:relative}
 .chat-nav-badge{position:absolute;z-index:2;top:1px;left:calc(50% + 6px);min-width:20px;height:20px;padding:0 4px;border:2px solid #fff;border-radius:999px;background:#c72e44;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.14)}
 .chat-nav-badge.hidden{display:none!important}
+
+/* Dictado contextual: accesible al escribir y al abrir el teclado Android. */
+.screen[data-screen="save"] .capture-mode-row{
+  flex-wrap:nowrap;
+  align-items:flex-start;
+  padding-right:14px;
+}
+.screen[data-screen="save"] .capture-mode-copy{flex:1 1 auto;min-width:0}
+.screen[data-screen="save"] .capture-mic-button,
+.contextual-voice-button{
+  display:grid;place-items:center;
+  flex:0 0 52px;width:52px;height:52px;min-width:52px;min-height:52px;
+  padding:0;border:1px solid #d5e2dc;border-radius:15px;
+  background:#fff;color:var(--primary);
+  box-shadow:0 4px 14px rgba(20,72,54,.10);
+  cursor:pointer;
+}
+.screen[data-screen="save"] .capture-mic-button .ui-icon,
+.contextual-voice-button .ui-icon{width:25px;height:25px}
+.screen[data-screen="save"] .capture-mic-button:active,
+.contextual-voice-button:active{background:var(--primary-soft)}
+.screen[data-screen="save"] .capture-mic-button:focus-visible,
+.contextual-voice-button:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.modal-head-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.contextual-voice-button.hidden{display:none!important}
+/* El encabezado del editor no desaparece al desplazarse para escribir. */
+.modal-head:has(> .modal-head-actions > .contextual-voice-button:not(.hidden)){
+  position:sticky;top:0;z-index:10;background:#fff;
+  padding-block:8px;
+}
