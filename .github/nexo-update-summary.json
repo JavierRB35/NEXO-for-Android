@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.63",
-  "notes": "Nexo Connect: corregida la orientación de las fotografías de perfil al seleccionarlas de la galería. Se respeta el giro y reflejo EXIF antes de recortar y comprimir el avatar, conservando el cifrado y sincronización del perfil. Actualización opcional."
+  "versionName": "3.7.64",
+  "notes": "Nexo Connect: ahora puedes desvincular personas desde la lista de contactos. Se cancela el intercambio de nuevos mensajes y fichas, y se conservan los datos que ya estaban guardados en cada móvil. Actualización opcional."
 }
