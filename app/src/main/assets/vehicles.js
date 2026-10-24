@@ -63,7 +63,7 @@
     const overdue = byDate<0 || (remaining!==null && remaining<0);
     const today = byDate===0 || remaining===0;
     if(overdue||today)return {cls:'vehicle-due--late',name:overdue?'Vencido':'Corresponde ahora'};
-    const soonDate = rule.dueDate && rule.dueDate<=new Date(Date.now()+30*86400000).toLocaleDateString('sv-SE');
+    const soonDate = rule.dueDate && rule.dueDate<=(() => {const d=new Date();d.setDate(d.getDate()+30);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');})();
     const soonKm = remaining!==null && remaining<=1000;
     if(soonDate || soonKm)return {cls:'vehicle-due--soon',name:'Próximo'};
     return {cls:'',name:'Programado'};
@@ -73,7 +73,7 @@
   }
   function render(){
     const root=document.getElementById('panelContent');
-    if(!root || window.state.screen!=='panel' || window.state.lastPanel!=='vehicles')return;
+    if(!root || !document.querySelector('.screen[data-screen="panel"].active') || document.getElementById('panelTitle')?.textContent!=='Mis vehículos')return;
     const list=vehicles(),id=selectedId(),vehicle=list.find(v=>n(v.id)===id);
     const action=document.getElementById('panelAction');
     if(action)action.innerHTML='<button class="secondary-button" type="button" id="vehicleNew">+ Vehículo</button>';
