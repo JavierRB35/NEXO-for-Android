@@ -325,6 +325,13 @@
     </button>
     <div class="settings-accordion__body">
       <div class="settings-card settings-card--embedded"><label>Al abrir Nexo<select id="startScreen"><option value="today">Mostrar Inicio</option><option value="calendar">Abrir el calendario</option></select></label><label>Mi lista de compra<select id="preferredShoppingList"><option value="0">Elegir al pulsar Mi compra</option></select></label></div>
+      <div class="settings-card settings-card--embedded settings-security-actions">
+        <button id="shareNexoApp" class="secondary-button settings-security-action" type="button" aria-label="Compartir Nexo con otra persona">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg>
+          <span class="settings-security-action__text"><strong>Compartir Nexo</strong><small>Enviar el enlace de instalación · Sin compartir tus datos</small></span>
+          <svg class="ui-icon settings-security-action__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -544,7 +551,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.69</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.70</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -557,7 +564,7 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.69</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.70</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>

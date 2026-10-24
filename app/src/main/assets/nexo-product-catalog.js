@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.69",
-  "releaseNotes": "Dictado más cómodo: el micrófono de Captura rápida aparece arriba al crear citas y sigue accesible con el teclado abierto. En Notas, Cuaderno, Frases, Medicación, Lugares y Documentos también está en la cabecera. El texto escrito se conserva al añadir voz. Actualización opcional.",
+  "versionName": "3.7.70",
+  "releaseNotes": "Nuevo botón Compartir Nexo en Ajustes → General: abre el menú de compartir Android con un enlace permanente a la última versión disponible para instalar Nexo. No envía datos personales, contenido de Nexo ni contactos y no establece vinculaciones Nexo Connect. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -275,7 +275,8 @@ window.NexoProductCatalog = {
           "features": [
             "Comprobación de la última versión disponible",
             "Instalación de APK oficiales firmadas con confirmación de Android",
-            "Información de versión, compilación y diagnóstico técnico"
+            "Información de versión, compilación y diagnóstico técnico",
+            "Compartir enlace público a la última versión sin transferir datos personales ni establecer conexiones"
           ]
         }
       ]

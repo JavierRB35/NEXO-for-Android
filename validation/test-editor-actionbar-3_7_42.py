@@ -34,7 +34,7 @@ assert "if(!document.hidden)refreshHeaderDate();" in js
 fixed = css.split('Nexo 3.7.43 · Acciones inferiores fiables',1)[1]
 assert 'bottom:calc(var(--nexo-bottom-nav-height, 76px) + 1px)' in fixed
 assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in fixed
-# Regresión 3.7.69: el micrófono se sitúa junto a Captura rápida; nunca tapa Guardar.
+# Regresión 3.7.70: el micrófono se sitúa junto a Captura rápida; nunca tapa Guardar.
 assert 'gap:3px;height:70px;min-height:70px;max-height:70px' in fixed
 assert 'grid-row:auto;grid-column:auto;min-width:0;min-height:70px;margin:0' in fixed
 assert 'body:has(.screen[data-screen="save"].active) .floating-actions' in fixed
