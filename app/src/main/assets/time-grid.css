@@ -52,7 +52,16 @@
 .tgv-all-day-event small{font-size:.72rem;color:#526480;overflow-wrap:anywhere}
 .tgv-no-events{position:absolute;left:65px;top:55px;right:8px;font-size:.87rem;color:#677791;text-align:center;pointer-events:none}
 .tgv-help{margin:12px 0 0 56px;font-size:.72rem;line-height:1.35;color:#758399}
-#calendarDayItems.tgv-host{display:block!important}
+/* Calendario mensual permanece arriba; solo la agenda horaria tiene scroll propio. */
+#calendarDayItems.tgv-host{
+  display:block!important;
+  height:min(55dvh,540px);
+  min-height:280px;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+}
 #calendarDayItems.tgv-host>.tgv-board{width:100%}
 #calendarDayItems.tgv-host .tgv-event-layer{left:55px}
 @media(max-width:420px){
