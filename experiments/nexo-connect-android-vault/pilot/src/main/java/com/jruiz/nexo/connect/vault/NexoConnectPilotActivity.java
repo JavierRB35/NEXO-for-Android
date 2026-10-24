@@ -679,6 +679,41 @@ public class NexoConnectPilotActivity extends Activity {
             }).show();
     }
 
+    /** Remove a linked person both from the server and from local QR trust.
+     *  Never confuse a local-only pin revocation with a remote unlink.
+     */
+    protected final void confirmUnlink(AndroidPeerTrustStore.PeerPin person,
+            Runnable onFinished) {
+        if(stage!=READY || client==null || trusted==null || person==null ||
+                onFinished==null) {
+            showError("Nexo Connect no está preparado para desvincular.");
+            return;
+        }
+        final UUID peer=person.peerId;
+        final String name=contactName(person);
+        new AlertDialog.Builder(this)
+            .setTitle("¿Desvincular a "+name+"?")
+            .setMessage("Se revocará la vinculación en ambas direcciones y se cancelarán los envíos pendientes. Ya no podréis enviaros mensajes ni fichas.\n\n"+
+                "El historial y las fichas ya guardadas en cualquiera de los móviles NO se borrarán. "+
+                "Si os vinculáis de nuevo, tendréis que verificar otra vez los códigos de seguridad.")
+            .setNegativeButton("Cancelar",null)
+            .setPositiveButton("Desvincular",(dialog,which)->runWork(()->{
+                if(trusted.findActive(peer)==null)
+                    throw new SecurityException("Contact is no longer locally trusted");
+                // This method calls the signed server endpoint FIRST and only
+                // revokes the local pin after a validated remote success.
+                client.unlinkRemotelyAndLocally(trusted,peer,true);
+                return peer;
+            },done->new AlertDialog.Builder(this)
+                .setTitle("Persona desvinculada")
+                .setMessage(name+" ya no está entre tus personas autorizadas. "+
+                    "Los datos guardados anteriormente en cada móvil se conservan.")
+                .setPositiveButton("Entendido",(d,w)->onFinished.run())
+                .setOnCancelListener(d->onFinished.run())
+                .show()))
+            .show();
+    }
+
     protected void showContacts(){
         try{
             List<AndroidPeerTrustStore.PeerPin> peers=trusted.listActive();
@@ -711,6 +746,8 @@ public class NexoConnectPilotActivity extends Activity {
                     client.setReceiving(trusted,p.peerId,true);return p.peerId;
                 },v->{lastMessage="Recepción autorizada para ese contacto.";showHome();}));
                 button("Compartir una nota con este contacto",()->showCompose(p));
+                button("Desvincular a "+contactName(p),
+                    ()->confirmUnlink(p,this::showContacts));
             }
         }catch(Exception ex){showError("No se pudo leer el almacén QR");}
     }
