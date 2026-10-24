@@ -2134,6 +2134,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM items WHERE attachment_path=? LIMIT 1",new String[]{path})) {
             if(c.moveToFirst()) return true;
         }
+        // Las facturas de mantenimiento también son propietarias de su fichero.
+        try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM vehicle_services WHERE attachment_path=? LIMIT 1",new String[]{path})) {
+            if(c.moveToFirst()) return true;
+        }
         // Una captura pendiente también es propietaria del adjunto hasta convertirse o descartarse.
         try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM inbox_captures WHERE attachment_path=? AND status IN ('new','reviewing') LIMIT 1",new String[]{path})) {
             return c.moveToFirst();
@@ -2775,6 +2779,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 if(candidate.exists()) {
                     ContentValues v=new ContentValues();v.put("attachment_path",candidate.getAbsolutePath());
                     sql.update("inbox_captures",v,"id=?",new String[]{String.valueOf(id)});
+                }
+            }
+        } catch(Exception ignored){}
+        // Las rutas absolutas de las facturas de coche también deben sobrevivir
+        // al restaurar una copia .nexo en otro teléfono.
+        try (Cursor c=sql.rawQuery("SELECT id,attachment_path,attachment_name FROM vehicle_services WHERE attachment_path<>''",null)) {
+            while(c.moveToNext()) {
+                String old=c.getString(1), name=c.getString(2);
+                String base=(old==null||old.isBlank())?"":new java.io.File(old).getName();
+                if(base.isBlank()&&name!=null)base=name;
+                if(base.isBlank())continue;
+                java.io.File candidate=new java.io.File(attachmentsDir,base);
+                if(candidate.isFile()){
+                    ContentValues v=new ContentValues();
+                    v.put("attachment_path",candidate.getAbsolutePath());
+                    sql.update("vehicle_services",v,"id=?",new String[]{String.valueOf(c.getLong(0))});
                 }
             }
         } catch(Exception ignored){}
