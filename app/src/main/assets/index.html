@@ -367,20 +367,51 @@
   <section class="settings-accordion hidden" id="nexoConnectExperimentSection" data-settings-accordion="nexoConnect">
     <button class="settings-accordion__summary" type="button" data-settings-section="nexoConnect" aria-expanded="false">
       <span class="settings-accordion__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-shield"></use></svg></span>
-      <span class="settings-accordion__label"><strong>Nexo Connect</strong><small>Tu perfil, contactos y vinculación</small></span>
+      <span class="settings-accordion__label"><strong>Nexo Connect</strong><small>Identidad, vinculación y personas autorizadas</small></span>
       <svg class="ui-icon settings-accordion__chevron" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
     </button>
     <div class="settings-accordion__body hidden">
-      <div class="settings-card settings-card--embedded">
-        <p class="small muted">Gestiona tu identidad y conecta con personas de confianza. Solo tus contactos verificados reciben tu nombre y fotografía cifrados.</p>
-        <button class="secondary-button" id="nexoConnectProfileOpen" type="button">Mi perfil · nombre y fotografía</button>
-        <div class="scope-buttons">
-          <button class="primary-button" id="nexoConnectGenerateOpen" type="button">Generar vinculación</button>
-          <button class="secondary-button" id="nexoConnectPairOpen" type="button">Vincular dispositivo</button>
+      <div class="settings-card settings-card--embedded settings-connect-panel">
+        <p class="small muted settings-connect-intro">Administra tu identidad y las personas de confianza. Chat e Inbox permanecen en la barra inferior.</p>
+        <h3 class="settings-connect-title">Mi identidad</h3>
+        <div class="settings-security-actions settings-connect-group">
+          <button class="secondary-button settings-security-action" id="nexoConnectProfileOpen" type="button">
+            <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-users"></use></svg>
+            <span class="settings-security-action__text"><strong>Mi perfil</strong><small>Nombre y fotografía</small></span>
+            <svg class="ui-icon settings-security-action__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+          </button>
+          <button class="secondary-button settings-security-action" id="nexoConnectCodeOpen" type="button">
+            <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-shield"></use></svg>
+            <span class="settings-security-action__text"><strong>Mi código de seguridad</strong><small>Comprobar mi identidad</small></span>
+            <svg class="ui-icon settings-security-action__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+          </button>
         </div>
-        <p class="small muted">En persona: escanea el QR. A distancia: envía la invitación privada. Confirmad el código de seguridad de 16 caracteres por llamada o en persona. El código aislado no sustituye una invitación.</p>
-        <button class="secondary-button" id="nexoConnectPilotOpen" type="button">Mis contactos y recibidos</button>
-        <button class="secondary-button" id="nexoConnectEmbeddedOpen" type="button">Compartir una ficha cifrada</button>
+        <h3 class="settings-connect-title">Vinculación</h3>
+        <div class="settings-security-actions settings-connect-group">
+          <button class="secondary-button settings-security-action" id="nexoConnectGenerateOpen" type="button">
+            <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-plus"></use></svg>
+            <span class="settings-security-action__text"><strong>Generar vinculación</strong><small>Invitar a otra persona de forma segura</small></span>
+            <svg class="ui-icon settings-security-action__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+          </button>
+          <button class="secondary-button settings-security-action" id="nexoConnectPairOpen" type="button">
+            <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-link"></use></svg>
+            <span class="settings-security-action__text"><strong>Vincular dispositivo</strong><small>Escanear una invitación QR</small></span>
+            <svg class="ui-icon settings-security-action__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+          </button>
+          <button class="secondary-button settings-security-action" id="nexoConnectInvitationOpen" type="button">
+            <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg>
+            <span class="settings-security-action__text"><strong>Abrir invitación recibida</strong><small>Seleccionar una invitación guardada</small></span>
+            <svg class="ui-icon settings-security-action__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+          </button>
+        </div>
+        <h3 class="settings-connect-title">Gestión de contactos</h3>
+        <div class="settings-security-actions settings-connect-group">
+          <button class="secondary-button settings-security-action" id="nexoConnectPeopleOpen" type="button">
+            <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-users"></use></svg>
+            <span class="settings-security-action__text"><strong>Mis personas</strong><small>Consultar, editar, verificar y desvincular</small></span>
+            <svg class="ui-icon settings-security-action__arrow" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+          </button>
+        </div>
       </div>
     </div>
   </section>
