@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.68",
-  "releaseNotes": "Acerca de Nexo: las novedades de cada versión aparecen dentro de la aplicación y coinciden con las publicadas en Updates. Textos de privacidad más claros sobre datos locales, Nexo Connect, voz y servicios externos. Se conserva el catálogo de 26 módulos y 62 funciones. Actualización opcional.",
+  "versionName": "3.7.69",
+  "releaseNotes": "Dictado más cómodo: el micrófono de Captura rápida aparece arriba al crear citas y sigue accesible con el teclado abierto. En Notas, Cuaderno, Frases, Medicación, Lugares y Documentos también está en la cabecera. El texto escrito se conserva al añadir voz. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
