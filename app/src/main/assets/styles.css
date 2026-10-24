@@ -2661,6 +2661,8 @@ body.startup-loading #app{visibility:hidden}
 
 
 /* Catálogo del producto: navegación plegable para móvil, detalles accesibles. */
+.about-release-notes{color:var(--text);line-height:1.6;margin:2px 0 9px;
+  padding:12px 13px;border-radius:13px;background:#f3f7f5;border:1px solid #e3ebe6}
 .about-catalog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
 .about-catalog-head h2{margin:0 0 5px}
 .about-catalog-head p{margin:0;line-height:1.45}
