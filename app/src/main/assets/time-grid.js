@@ -120,7 +120,9 @@
       if(!board?.getBoundingClientRect||!board.getClientRects?.().length)return;
       // Algunas pantallas tienen un contenedor desplazable; en las demás
       // el scroll pertenece al documento. El cálculo usa el mismo viewport.
-      let scroller=host.parentElement;
+      // En Calendario desplazar solo la agenda de 24 h, nunca el calendario mensual.
+      // En Inicio se mantiene el desplazamiento del documento.
+      let scroller=host;
       while(scroller){
         const style=typeof getComputedStyle==='function'?getComputedStyle(scroller):null;
         if(style&&/(auto|scroll)/.test(style.overflowY)&&scroller.scrollHeight>scroller.clientHeight+4)break;
@@ -133,7 +135,8 @@
       const allDayHeight=Math.max(0,allDay?.getBoundingClientRect?.().height||0);
       // La primera cita horaria debe quedar visible DEBAJO de los eventos
       // de todo el día (anclados bajo la cabecera), no oculta tras ellos.
-      const visibleInset=headerHeight+12+(allDayHeight?allDayHeight+12:0);
+      const ownCalendarScroll=scroller===host&&host.id==='calendarDayItems';
+      const visibleInset=(ownCalendarScroll?0:headerHeight)+12+(allDayHeight?allDayHeight+12:0);
       const offset=Math.max(0,minute-8)*PX_PER_MINUTE;
       if(scroller){
         const origin=scroller.getBoundingClientRect().top;
@@ -190,7 +193,9 @@
     // Una sola referencia de altura para la cabecera sticky y la franja fija.
     const topBar=document.querySelector?.('.topbar');
     const topBarHeight=Math.max(0,Math.ceil(topBar?.getBoundingClientRect?.().height||0));
-    host.style?.setProperty?.('--tgv-top-offset',(topBarHeight+6)+'px');
+    // La franja «Todo el día» se fija dentro de la agenda desplazable.
+    // En Inicio continúa fijada bajo la cabecera principal.
+    host.style?.setProperty?.('--tgv-top-offset',host.id==='calendarDayItems'?'0px':(topBarHeight+6)+'px');
     host.innerHTML=(allDay.length?'<div class="tgv-all-day" role="region" aria-label="Eventos de todo el día"><span class="tgv-all-day-label">Todo el día · '+allDay.length+' evento'+(allDay.length===1?'':'s')+'</span>'+allDay.map((item,index)=>
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'" title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr('Abrir '+fullLabel(item))+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</div>':'')+
