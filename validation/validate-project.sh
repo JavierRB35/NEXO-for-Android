@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 node --check app/src/main/assets/app.js
 node --check app/src/main/assets/time-grid.js
 node validation/test-time-grid-view.cjs
+node validation/test-share-nexo-install.cjs
 node validation/test-duplicate-events.cjs
 node validation/test-link-icon-and-top-crud.cjs
 node validation/test-event-editor-related-drafts.cjs

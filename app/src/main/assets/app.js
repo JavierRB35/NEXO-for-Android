@@ -2854,6 +2854,16 @@ function renderWeatherPlaceResults(response){
   }));
 }
 
+const NEXO_PUBLIC_DOWNLOAD_URL='https://github.com/JavierRB35/nexo-android-updates/releases/latest';
+function shareNexoApp(){
+  const message='Te comparto Nexo, una aplicación Android para organizar tus citas, notas y tu día.\n\n'+
+    'Descarga siempre la última versión desde:\n'+NEXO_PUBLIC_DOWNLOAD_URL+'\n\n'+
+    'En la página, abre «Assets» y descarga el archivo .apk.\n'+
+    'La aplicación se instala de forma independiente, sin compartir mis datos ni vincular Nexo Connect.';
+  try{NexoNative.sharePlainText('Nexo · Descargar aplicación',message);}
+  catch(_){toast('No se pudo abrir el menú para compartir Nexo.');}
+}
+
 function renderMore(){
   $('#startScreen').value=String(NexoNative.getStartScreen()||'today');
   const lists=parseNative(NexoNative.getLists(),[]),preferred=Number(NexoNative.getPreferredShoppingList())||0;
@@ -4490,6 +4500,7 @@ function init(){
   });
   $('#globalSearchBtn').addEventListener('click',()=>navigate('search'));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
+  $('#shareNexoApp')?.addEventListener('click',shareNexoApp);
   $('#headerWeatherBtn')?.addEventListener('click',()=>NexoNative.openHeaderWeather());
   $('#weatherLocationMode')?.addEventListener('change',e=>{
     const mode=e.target.value;

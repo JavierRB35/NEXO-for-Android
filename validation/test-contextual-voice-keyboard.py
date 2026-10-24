@@ -1,4 +1,4 @@
-"""Nexo 3.7.69: el dictado no depende del FAB oculto por el teclado."""
+"""Nexo 3.7.70: el dictado no depende del FAB oculto por el teclado."""
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -32,4 +32,4 @@ assert "if(focused&&/^(INPUT|TEXTAREA|SELECT)$/.test(focused.tagName))focused.bl
 assert 'body:has(.screen[data-screen="save"].active) .floating-actions{display:none}' in css
 assert ".contextual-voice-button.hidden{display:none!important}" in css
 assert "position:sticky;top:0;z-index:10" in css
-print("Nexo 3.7.69: dictado accesible con teclado en Citas y editores: OK")
+print("Nexo 3.7.70: dictado accesible con teclado en Citas y editores: OK")
