@@ -15,8 +15,8 @@ assert "versionName '3.7.62'" in gradle
 assert 'v3.7.62' in html
 assert 'APP_NAME="Nexo_3_7_62"' in script
 assert 'assembleRelease' in script and 'apksigner' in script
-assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 33' in db
+assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 34' in db
 assert 'manifest.put("appVersion", BuildConfig.VERSION_NAME);' in backup
 assert not seed.exists(), 'La APK no debe volver a incluir una snapshot familiar privada'
 assert 'validatePayload(payload, events, rules)' in importer
-print('Nexo 3.7.62, versionCode 155, applicationId, BD 33 y snapshot privada retirada: OK')
+print('Nexo 3.7.62, versionCode 155, applicationId, BD 34 y snapshot privada retirada: OK')
