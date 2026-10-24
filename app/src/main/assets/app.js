@@ -609,6 +609,9 @@ function renderProductCatalog(){
   const groups=catalog.sections;
   const modules=groups.reduce((sum,group)=>sum+(group.modules?.length||0),0);
   if(count)count.textContent=modules+' módulos';
+  // Plain-text output: notes are packaged with the APK and never interpreted as HTML.
+  const releaseNotes=$('#aboutReleaseNotes');
+  if(releaseNotes)releaseNotes.textContent=String(catalog.releaseNotes||'Esta versión no incluye un resumen de cambios.');
   root.innerHTML=groups.map((group,index)=>`
     <details class="about-catalog-group" ${index===0?'open':''}>
       <summary>

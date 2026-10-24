@@ -1,7 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.67",
+  "versionName": "3.7.68",
+  "releaseNotes": "Acerca de Nexo: las novedades de cada versión aparecen dentro de la aplicación y coinciden con las publicadas en Updates. Textos de privacidad más claros sobre datos locales, Nexo Connect, voz y servicios externos. Se conserva el catálogo de 26 módulos y 62 funciones. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
