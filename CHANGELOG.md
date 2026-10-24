@@ -1,3 +1,8 @@
+## Nexo 3.7.69 — Micrófono visible durante la edición
+- Citas y Captura rápida: botón de dictado en el extremo superior derecho de la tarjeta, alcanzable incluso con el teclado abierto; deja de depender del botón flotante oculto por el teclado.
+- Notas, Cuaderno, Frases, Medicación, Lugares y Documentos: micrófono contextual en el encabezado del editor; conserva el contenido previo y permite ampliar el dictado sin crear registros al iniciarlo.
+- Cambio de interfaz: `versionCode 162`, actualización opcional, misma firma Release, `applicationId` y esquema SQLite 34.
+
 ## Nexo 3.7.59 — Agenda 24 horas y redimensionamiento desde bordes
 - Inicio → HOY y Calendario: la rejilla muestra de 00:00 a 24:00 y abre junto a las primeras citas/hora actual, sin recortar la madrugada ni la noche.
 - Tarjetas simplificadas: solo horario, icono de categoría, título y, si cabe, una etiqueta; los demás detalles están en la ficha inferior.
