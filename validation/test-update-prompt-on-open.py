@@ -35,6 +35,6 @@ assert 'setPeriodic(24L * 60 * 60 * 1000)' in job
 assert 'isInstalledSignatureOfficial(activity)' in manager
 assert 'hasOfficialSigner(pkg)' in manager
 assert 'release.sha256.equals(hex(digest.digest()))' in manager
-assert "versionCode 158" in gradle
-assert "versionName '3.7.65'" in gradle
-print('Nexo 3.7.65: aviso al abrir, sin duplicados, y seguridad conservada: OK')
+assert "versionCode 159" in gradle
+assert "versionName '3.7.66'" in gradle
+print('Nexo 3.7.66: aviso al abrir, sin duplicados, y seguridad conservada: OK')

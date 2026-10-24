@@ -4474,23 +4474,16 @@ function init(){
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
   $('#nexoChatOpen')?.addEventListener('click',()=>NexoNative.openNexoChat());
-  [['#nexoConnectProfileOpen','profile'],['#nexoConnectGenerateOpen','generate'],['#nexoConnectPairOpen','pair']]
+  // Connect setup links directly to a single native screen; no hub in between.
+  [['#nexoConnectProfileOpen','profile'],['#nexoConnectCodeOpen','code'],
+   ['#nexoConnectGenerateOpen','generate'],['#nexoConnectPairOpen','pair'],
+   ['#nexoConnectInvitationOpen','invitation'],['#nexoConnectPeopleOpen','people']]
     .forEach(([id,action])=>$(id)?.addEventListener('click',()=>{
-      try{NexoNative.openNexoConnectSettings(action);}
-      catch(_){toast('No se pudo abrir Nexo Connect.');}
+      try{
+        if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;
+        NexoNative.openNexoConnectSettings(action);
+      }catch(_){toast('No se pudo abrir Nexo Connect.');}
     }));
-  $('#nexoConnectEmbeddedOpen')?.addEventListener('click',()=>{
-    try{
-      if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;
-      NexoNative.openNexoConnectEmbedded();
-    }catch(_){toast('No se pudo abrir Connect integrado');}
-  });
-  $('#nexoConnectPilotOpen')?.addEventListener('click',()=>{
-    try{
-      if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;
-      NexoNative.openNexoConnectPilot();
-    }catch(_){toast('No se pudo abrir Nexo Connect Pruebas');}
-  });
   $('#peopleAddBtn')?.addEventListener('click',()=>openPersonEditor());
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
