@@ -11,6 +11,8 @@ node validation/test-save-icon-only.cjs
 node validation/test-fixed-actionbar-runtime.cjs
 node --check app/src/main/assets/books.js
 node --check app/src/main/assets/media.js
+node --check app/src/main/assets/vehicles.js
+python validation/test-vehicle-maintenance.py
 python validation/test-media-library.py
 python validation/test-synopsis.py
 python validation/test-library-categories.py
