@@ -1,3 +1,9 @@
+## Nexo 3.7.73 — Nexo Vivo, Mediterráneo y Noche
+- Ajustes → Apariencia incorpora tres temas de color seleccionables. La elección se aplica al instante, se guarda de forma local y se restablece al abrir Nexo.
+- Más color en cabecera, Inicio, Herramientas, calendario, tarjetas y botones; modo Noche con superficies oscuras legibles.
+- Transiciones discretas y respeto a la preferencia Android de reducir animaciones. Sin cambios de flujo, navegación, calendario, gestos, permisos, alertas ni datos.
+- Actualización opcional `versionCode 166`, mismo `applicationId`, firma Release y esquema SQLite 34.
+
 ## Nexo 3.7.72 — Nueva cita desde la agenda horaria
 - Mantener pulsado unos 450 ms sobre una hora libre crea un borrador de cita con el día seleccionado y el tramo horario de 60 minutos, incluso 23:00–00:00 del día siguiente.
 - Mantener pulsado sobre una cita existente conserva los gestos habituales para moverla y ajustar por separado inicio o final (15 min). No se guardan borradores automáticamente.
