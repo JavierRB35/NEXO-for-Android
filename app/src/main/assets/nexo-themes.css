@@ -1,6 +1,7 @@
 /* Nexo Vivo · EXCLUSIVAMENTE presentación. No altera dimensiones, navegación ni gestos. */
 /* Variables de tema: el color de las categorías del calendario NO se redefine. */
 :root[data-nexo-theme="vivo"]{
+  --nx-card-blue:#F0F6FF;--nx-card-green:#EEFAF5;--nx-card-coral:#FFF3F1;--nx-card-sun:#FFF9E9;--nx-card-violet:#F6F2FF;
   color-scheme:light;
   --bg:#F6F8FF;--card:#FFFFFF;--text:#18304C;--navy:#18304C;
   --muted:#52647F;--line:#DCE5F5;--primary:#2563EB;--blue:#2563EB;
@@ -13,6 +14,7 @@
   --nx-border:#DCE5F5;--nx-grid:#F1F5FC;
 }
 :root[data-nexo-theme="mediterraneo"]{
+  --nx-card-blue:#EFF9F7;--nx-card-green:#F2FAEC;--nx-card-coral:#FFF0E9;--nx-card-sun:#FFF6E1;--nx-card-violet:#F7F1FF;
   color-scheme:light;
   --bg:#FFFAF1;--card:#FFFFFF;--text:#30475B;--navy:#30475B;
   --muted:#536373;--line:#EADFCB;--primary:#126E76;--blue:#126E76;
@@ -25,6 +27,7 @@
   --nx-border:#EADFCB;--nx-grid:#FFF5E8;
 }
 :root[data-nexo-theme="noche"]{
+  --nx-card-blue:#293C57;--nx-card-green:#26443F;--nx-card-coral:#423645;--nx-card-sun:#3E3A34;--nx-card-violet:#363550;
   color-scheme:dark;
   --bg:#152237;--card:#23334B;--text:#F0F5FF;--navy:#101B2D;
   --muted:#BAC8DB;--line:#455772;--primary:#9BC1FF;--blue:#9BC1FF;
@@ -215,4 +218,70 @@
 }
 @media(max-width:360px){
   .nexo-theme-picker{gap:5px}.nexo-theme-option{padding:9px 6px}.nexo-theme-option strong{font-size:.75rem}
+}
+
+/* 3.7.74: acentos suaves para Inicio y Herramientas.
+ * No modifica alturas, distribución, eventos ni colores de categorías. */
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n+1),
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+1),
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+1){
+  background:var(--nx-card-blue)
+}
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n+2),
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+2),
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+2){
+  background:var(--nx-card-green)
+}
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n),
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+3),
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+3){
+  background:var(--nx-card-coral)
+}
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+4),
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+4){
+  background:var(--nx-card-sun)
+}
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+5),
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+5){
+  background:var(--nx-card-violet)
+}
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+1) .module-card__icon{background:var(--primary-soft);color:var(--primary)}
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+2) .module-card__icon{background:var(--green-soft);color:var(--nx-accent-two)}
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+3) .module-card__icon{background:var(--nx-card-coral);color:var(--nx-accent-three)}
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+4) .module-card__icon{background:var(--nx-card-sun);color:var(--nx-accent-four)}
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+5) .module-card__icon{background:var(--nx-card-violet);color:var(--nx-accent-five)}
+
+/* Cabecera con una línea multicolor discreta; sin añadir alto ni alterar el sticky. */
+:root[data-nexo-theme] .topbar{
+  background-image:linear-gradient(90deg,var(--primary),var(--nx-accent-two),var(--nx-accent-three),var(--nx-accent-four),var(--nx-accent-five));
+  background-position:left bottom;
+  background-repeat:no-repeat;
+  background-size:100% 2px
+}
+/* El día de hoy también debe contrastar en Noche: blanco sobre el azul
+ * pastel incumplía contraste cuando hoy no estaba seleccionado. */
+:root[data-nexo-theme] .calendar-day.today .day-number{
+  background:var(--primary);
+  color:var(--nx-on-primary)
+}
+:root[data-nexo-theme] .calendar-day.today:not(.selected){border-color:var(--primary)}
+
+/* Ícono de búsqueda: el CSS anterior fijaba un azul muy oscuro.
+ * En Noche quedaba casi invisible sobre el campo oscuro. */
+:root[data-nexo-theme] .family-home-search>.ui-icon{color:var(--primary)}
+:root[data-nexo-theme] .family-home-search input{color:var(--text)}
+:root[data-nexo-theme] [data-settings-accordion="appearance"] .settings-accordion__icon{
+  background:var(--nx-card-violet);
+  color:var(--nx-accent-five)
+}
+:root[data-nexo-theme] .nav-item.active>.ui-icon{border-radius:10px}
+
+/* Agenda horaria oscura: textos secundarios y etiquetas legibles.
+ * El acento original de cada cita se conserva. */
+:root[data-nexo-theme="noche"] .tgv-all-day-event small{color:var(--muted)}
+:root[data-nexo-theme="noche"] .tgv-event-status{background:var(--nx-surface-2);color:var(--text)}
+@media(max-width:420px){
+  :root[data-nexo-theme="noche"] .tgv-board{
+    background:linear-gradient(90deg,var(--nx-grid) 0 50px,var(--nx-surface) 50px 100%)
+  }
 }
