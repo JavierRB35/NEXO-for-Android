@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.71",
-  "releaseNotes": "Calendario más cómodo: al abrirlo aparece primero el mes actual y el día de hoy. La agenda horaria se desplaza de forma independiente y muestra directamente la primera cita, con los eventos de todo el día fijos. Al consultar una cita y volver, se conserva la posición. Actualización opcional.",
+  "versionName": "3.7.72",
+  "releaseNotes": "Ahora puedes mantener pulsada una hora vacía de la agenda para preparar una nueva cita con la fecha y el horario ya seleccionados. Las citas existentes siguen pudiendo arrastrarse y ajustarse como antes. No se guarda nada hasta que lo confirmes. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -27,7 +27,8 @@ window.NexoProductCatalog = {
             "Vistas mensual y cronológica con citas, tareas y eventos",
             "Horas, ubicaciones, categorías, personas, recurrencias y recordatorios",
             "Festivos y acceso a Google Maps desde los eventos",
-            "Calendario mensual visible y agenda horaria con desplazamiento independiente, regreso sin saltos"
+            "Calendario mensual visible y agenda horaria con desplazamiento independiente, regreso sin saltos",
+            "Mantener pulsada una franja horaria libre prepara una cita; las citas existentes pueden arrastrarse"
           ]
         },
         {
