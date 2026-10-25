@@ -265,7 +265,7 @@
       hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+
       (!timed.length?'<div class="tgv-no-events">No hay eventos con hora para este día.</div>':'')+
       '</div><p class="tgv-help">Mantén pulsado un espacio vacío para crear una cita en esa hora. Sobre una cita existente, mantén pulsado el centro para moverla o sus bordes para cambiar su duración (15 min).</p>';
-    attachEmptySlotCreate(host.querySelector('.tgv-board'),iso);
+    attachEmptySlotCreate(host.querySelector?.('.tgv-board'),iso);
     host.querySelectorAll('[data-tgv-allday]').forEach(btn=>btn.addEventListener('click',()=>{
       const item=allDay[Number(btn.dataset.tgvAllday)];
       if(item)openExistingDetail(item);
