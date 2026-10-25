@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.73",
-  "releaseNotes": "Nexo estrena tres temas visuales seleccionables en Ajustes → Apariencia: Vivo, Mediterráneo y Noche. Cambia los colores al instante y recuerda tu elección en este teléfono. Las citas, gestos, categorías, avisos y demás funciones siguen igual. Actualización opcional.",
+  "versionName": "3.7.74",
+  "releaseNotes": "Más alegría visual en los tres temas de Nexo: tarjetas con cinco acentos suaves en Inicio y Herramientas, cabecera multicolor discreta y contraste mejorado para la fecha actual, el buscador y la agenda del modo Noche. Selecciona el tema en Ajustes → Apariencia. Funciones y gestos sin cambios; actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
