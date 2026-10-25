@@ -92,4 +92,44 @@ app.buttons[2].handlers.click();
 assert.equal(app.theme.get(),'noche','Sin almacenamiento sigue funcionando durante la sesión');
 assert.ok(html.includes('data-settings-accordion="display"'),'El control de tamaño sigue intacto');
 assert.ok(html.includes('data-settings-accordion="security"'),'Las funciones de seguridad siguen intactas');
+
+/* Contraste WCAG AA (texto normal) de las combinaciones principales de cada tema. */
+function luminance(hex){
+  const rgb=[0,2,4].map(i=>parseInt(hex.slice(i+1,i+3),16)/255)
+    .map(x=>x<=0.04045?x/12.92:Math.pow((x+0.055)/1.055,2.4));
+  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+}
+function contrast(a,b){
+  const x=luminance(a),y=luminance(b);
+  return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);
+}
+for(const name of names){
+  const head=':root[data-nexo-theme="'+name+'"]{';
+  const from=css.indexOf(head);
+  assert.ok(from>=0,'Tema '+name+' no existe');
+  const block=css.slice(from+head.length,css.indexOf('}',from));
+  const get=token=>{
+    const value=block.match(new RegExp('--'+token+':(#[0-9a-fA-F]{6})'));
+    assert.ok(value,'Falta token '+token+' en '+name);
+    return value[1];
+  };
+  assert.ok(contrast(get('primary'),get('nx-on-primary'))>=4.5,name+': botón primario legible');
+  assert.ok(contrast(get('text'),get('bg'))>=4.5,name+': texto principal legible');
+  assert.ok(contrast(get('muted'),get('nx-surface'))>=4.5,name+': texto secundario legible');
+  for(const tint of ['blue','green','coral','sun','violet']){
+    assert.match(block,new RegExp('--nx-card-'+tint+':#[0-9a-fA-F]{6}'),
+      name+': falta el fondo suave '+tint);
+  }
+}
+assert.ok(css.includes(':root[data-nexo-theme] .calendar-day.today .day-number{'),
+  'Hoy no seleccionado debe usar color de texto adecuado también en Noche');
+assert.ok(css.includes('color:var(--nx-on-primary)'),
+  'En Noche el azul claro de hoy requiere texto oscuro');
+assert.ok(css.includes(':root[data-nexo-theme] .family-home-search>.ui-icon{color:var(--primary)}'),
+  'Icono de búsqueda legible en tema Noche');
+assert.ok(css.includes(':root[data-nexo-theme="noche"] .tgv-all-day-event small{color:var(--muted)}'),
+  'Texto secundario legible en eventos de todo el día');
+assert.ok(css.includes('@media(max-width:420px)'),
+  'La rejilla horaria debe adaptarse también a móviles estrechos');
+
 console.log('OK: 3 temas, selector único, persistencia visual, estado accesible, fallback, modo oscuro y gestos intactos');
