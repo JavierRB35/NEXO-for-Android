@@ -1,3 +1,10 @@
+## Nexo 3.7.75 — Más color y legibilidad en los tres temas
+- Tarjetas de Inicio, Herramientas e información familiar con cinco tonos suaves distintos y una línea cromática discreta de 2 px bajo la cabecera, sin modificar alturas ni distribución.
+- Mejora de contraste del día actual del calendario, icono del buscador y textos secundarios de agenda del tema Noche. Conservadas las mejoras visuales y WCAG AA previas.
+- Selector en Ajustes → Apariencia con Vivo, Mediterráneo y Noche; memoria local del tema y animaciones reducidas según preferencia Android.
+- Exclusivamente CSS visual. Sin cambios en navegación, gestos, alarmas, fichas, permisos, firma Release, SQLite 34 ni versiones AndroidIDE.
+- Actualización opcional `versionCode 168`.
+
 ## Nexo 3.7.74 — Pulido de los tres temas visuales
 - Corrige paneles y barras de edición claros heredados cuando está seleccionado el tema Noche. Solo se modifican los colores de fondo, texto y borde.
 - Mejora el contraste de acentos de Vivo y Mediterráneo según WCAG AA en las superficies principales.
