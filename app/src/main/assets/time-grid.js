@@ -117,7 +117,7 @@
     return {start,end:start+60};
   }
   function attachEmptySlotCreate(board,iso){
-    if(!board||typeof prepareTimeGridAppointment!=='function')return;
+    if(!board||typeof board.addEventListener!=='function'||typeof prepareTimeGridAppointment!=='function')return;
     let gesture=null,timer=0,lastTouch=0;
     const existingEvent=target=>!!target?.closest?.('[data-tgv-index], [data-tgv-allday]');
     const cancel=()=>{if(timer)clearTimeout(timer);timer=0;gesture=null;};
