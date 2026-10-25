@@ -53,7 +53,7 @@ function execute(saved,denyStorage=false){
   const doc={
     readyState:'loading',
     documentElement:{dataset:{}},
-    querySelector(s){const n=s.match(/^meta\\[name="([^"]+)"\\]$/);return n?meta[n[1]]:null;},
+    querySelector(s){const n=s.match(/^meta\[name="([^"]+)"\]$/);return n?meta[n[1]]:null;},
     querySelectorAll(s){return s==='[data-nexo-theme-choice]'?buttons:[];},
     addEventListener(event,fn){domEvents[event]=fn;}
   };
