@@ -1,3 +1,9 @@
+## Nexo 3.7.72 — Nueva cita desde la agenda horaria
+- Mantener pulsado unos 450 ms sobre una hora libre crea un borrador de cita con el día seleccionado y el tramo horario de 60 minutos, incluso 23:00–00:00 del día siguiente.
+- Mantener pulsado sobre una cita existente conserva los gestos habituales para moverla y ajustar por separado inicio o final (15 min). No se guardan borradores automáticamente.
+- Desplazar la agenda, tocar brevemente o cancelar un gesto no abre nuevas citas. Compatible con Inicio y Calendario.
+- Actualización opcional, `versionCode 165`. Misma firma Release, applicationId, SQLite 34 y entorno AndroidIDE. Pruebas específicas incorporadas a CI.
+
 ## Nexo 3.7.71 — Calendario mensual visible y navegación sin saltos
 - La pestaña Calendario abre por el mes actual, con hoy seleccionado, sin desplazar automáticamente toda la página hasta la agenda horaria.
 - La agenda de 24 horas tiene desplazamiento independiente y enfoca su primera cita. Los eventos «Todo el día» permanecen fijos en su cabecera.
