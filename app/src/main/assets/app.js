@@ -2248,7 +2248,7 @@ function prepareQuickNoteForType(type='event',date=''){
  * Mantiene el día elegido, incluso si no es hoy, y resuelve 23:00-00:00.
  */
 function prepareTimeGridAppointment(iso,startMinute,endMinute){
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(iso||'')))return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||'')))return;
   if(!Number.isInteger(startMinute)||!Number.isInteger(endMinute)||
      startMinute<0||endMinute>1440||endMinute-startMinute!==60)return;
   if(state.screen!=='calendar'&&!(state.screen==='today'&&state.homeTimelineVisible))return;
