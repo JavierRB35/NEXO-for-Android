@@ -6,10 +6,12 @@
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#FFFFFF">
   <title>Nexo</title>
+  <script src="nexo-themes.js"></script>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="time-grid.css">
   <link rel="stylesheet" href="vehicles.css">
+  <link rel="stylesheet" href="nexo-themes.css">
 <style>
 [data-nav="inbox"]{position:relative}
 .inbox-nav-badge{position:absolute;top:2px;left:calc(50% + 5px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#c62828;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;pointer-events:none}
@@ -465,6 +467,35 @@
           <button id="peopleAddBtn" class="primary-button" type="button"><svg class="ui-icon"><use href="#nx-icon-plus"></use></svg> Añadir persona</button>
         </div>
         <div id="peopleSettingsList" class="people-settings-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="settings-accordion" data-settings-accordion="appearance">
+    <button class="settings-accordion__summary" type="button" data-settings-section="appearance" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-sun"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Apariencia</strong><small>Tres estilos de color para Nexo</small></span>
+      <svg class="ui-icon settings-accordion__chevron" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded">
+        <h2>Elige tu Nexo</h2>
+        <p class="nexo-theme-intro">Solo cambia el aspecto. Tus datos, categorías, gestos y avisos funcionan exactamente igual.</p>
+        <div class="nexo-theme-picker" role="group" aria-label="Tema visual de Nexo">
+          <button class="nexo-theme-option" type="button" data-nexo-theme-choice="vivo" aria-pressed="false">
+            <span class="nexo-theme-swatch" aria-hidden="true"><i style="background:#2563EB"></i><i style="background:#138B74"></i><i style="background:#F36D65"></i></span>
+            <strong>Vivo</strong><small>Fresco y alegre</small>
+          </button>
+          <button class="nexo-theme-option" type="button" data-nexo-theme-choice="mediterraneo" aria-pressed="false">
+            <span class="nexo-theme-swatch" aria-hidden="true"><i style="background:#126E76"></i><i style="background:#E99B23"></i><i style="background:#E76F51"></i></span>
+            <strong>Mediterráneo</strong><small>Cálido y luminoso</small>
+          </button>
+          <button class="nexo-theme-option" type="button" data-nexo-theme-choice="noche" aria-pressed="false">
+            <span class="nexo-theme-swatch" aria-hidden="true"><i style="background:#152237"></i><i style="background:#9BC1FF"></i><i style="background:#78DEC1"></i></span>
+            <strong>Noche</strong><small>Oscuro y sereno</small>
+          </button>
+        </div>
+        <p class="small muted">El tema se aplica al instante y queda guardado en este teléfono. Se respetan las preferencias de movimiento reducido de Android.</p>
       </div>
     </div>
   </section>

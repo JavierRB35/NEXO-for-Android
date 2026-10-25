@@ -1,0 +1,218 @@
+/* Nexo Vivo · EXCLUSIVAMENTE presentación. No altera dimensiones, navegación ni gestos. */
+/* Variables de tema: el color de las categorías del calendario NO se redefine. */
+:root[data-nexo-theme="vivo"]{
+  color-scheme:light;
+  --bg:#F6F8FF;--card:#FFFFFF;--text:#18304C;--navy:#18304C;
+  --muted:#52647F;--line:#DCE5F5;--primary:#2563EB;--blue:#2563EB;
+  --blue-soft:#E9F1FF;--green:#138B74;--green-soft:#E5F8F2;
+  --surface-soft:#F0F5FF;--primary-soft:#E9F1FF;--amber:#986100;--red:#B42335;
+  --shadow:0 4px 16px rgba(35,76,140,.07);
+  --nx-surface:#FFFFFF;--nx-surface-2:#F0F5FF;--nx-elevated:#FFFFFF;
+  --nx-on-primary:#FFFFFF;--nx-accent-two:#138B74;--nx-accent-three:#C64B43;
+  --nx-accent-four:#9D6B0F;--nx-accent-five:#7856BE;--nx-header:#FFFFFF;
+  --nx-border:#DCE5F5;--nx-grid:#F1F5FC;
+}
+:root[data-nexo-theme="mediterraneo"]{
+  color-scheme:light;
+  --bg:#FFFAF1;--card:#FFFFFF;--text:#30475B;--navy:#30475B;
+  --muted:#536373;--line:#EADFCB;--primary:#126E76;--blue:#126E76;
+  --blue-soft:#DCF2F0;--green:#147D64;--green-soft:#E8F5E9;
+  --surface-soft:#FFF4E4;--primary-soft:#DCF2F0;--amber:#926100;--red:#AD3540;
+  --shadow:0 4px 16px rgba(118,80,37,.07);
+  --nx-surface:#FFFFFF;--nx-surface-2:#FFF3DF;--nx-elevated:#FFFFFF;
+  --nx-on-primary:#FFFFFF;--nx-accent-two:#C18313;--nx-accent-three:#BA4937;
+  --nx-accent-four:#8760B7;--nx-accent-five:#2775AD;--nx-header:#FFFDF8;
+  --nx-border:#EADFCB;--nx-grid:#FFF5E8;
+}
+:root[data-nexo-theme="noche"]{
+  color-scheme:dark;
+  --bg:#152237;--card:#23334B;--text:#F0F5FF;--navy:#101B2D;
+  --muted:#BAC8DB;--line:#455772;--primary:#9BC1FF;--blue:#9BC1FF;
+  --blue-soft:#314C72;--green:#78DEC1;--green-soft:#264F4A;
+  --surface-soft:#2A3D56;--primary-soft:#314C72;--amber:#FFD481;--red:#EF6C80;
+  --shadow:0 5px 20px rgba(0,0,0,.20);
+  --nx-surface:#23334B;--nx-surface-2:#2A3D56;--nx-elevated:#2E415A;
+  --nx-on-primary:#101F33;--nx-accent-two:#78DEC1;--nx-accent-three:#FFA48F;
+  --nx-accent-four:#FFD481;--nx-accent-five:#C6A7FF;--nx-header:#1C2B42;
+  --nx-border:#455772;--nx-grid:#1D2B40;
+}
+/* Bases: las dimensiones existentes, la agenda y los colores de categorías se conservan. */
+:root[data-nexo-theme] body,
+:root[data-nexo-theme] #app,
+:root[data-nexo-theme] .screen,
+:root[data-nexo-theme] .screen.family-home{background:var(--bg);color:var(--text)}
+:root[data-nexo-theme] .topbar{
+  background:var(--nx-header);border-bottom-color:var(--nx-border);
+  box-shadow:0 2px 14px rgba(21,43,74,.035)
+}
+:root[data-nexo-theme] .bottom-nav{
+  background:var(--nx-header);border-top-color:var(--nx-border);
+  box-shadow:0 -3px 16px rgba(21,43,74,.035)
+}
+:root[data-nexo-theme] .brand,
+:root[data-nexo-theme] .screen-heading h1{color:var(--text)}
+:root[data-nexo-theme] .home-pulse-card,
+:root[data-nexo-theme] .module-grid--family-info .module-card,
+:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(n),
+:root[data-nexo-theme] .tools-grid .module-tile,
+:root[data-nexo-theme] .upcoming-card,
+:root[data-nexo-theme] .note-card{
+  background:var(--nx-surface);color:var(--text);
+  border-color:var(--nx-border);box-shadow:var(--shadow)
+}
+:root[data-nexo-theme] .family-home-search,
+:root[data-nexo-theme] .capture-card,
+:root[data-nexo-theme] .calendar-card,
+:root[data-nexo-theme] .settings-accordion,
+:root[data-nexo-theme] .about-card{
+  background:var(--nx-surface);color:var(--text);
+  border-color:var(--nx-border);box-shadow:var(--shadow)
+}
+:root[data-nexo-theme] .calendar-card{background:var(--nx-surface-2)}
+:root[data-nexo-theme] .calendar-day,
+:root[data-nexo-theme] .calendar-day:nth-child(7n),
+:root[data-nexo-theme] .calendar-day:nth-child(7n-1){
+  background:var(--nx-surface);color:var(--text);border-color:var(--nx-border)
+}
+:root[data-nexo-theme] .calendar-day.selected{
+  background:var(--primary-soft);border-color:var(--primary)
+}
+:root[data-nexo-theme] .calendar-day.outside-month:not(.selected){
+  background:var(--nx-surface-2);color:var(--muted)
+}
+:root[data-nexo-theme] .calendar-day.selected .day-number{
+  background:var(--primary);color:var(--nx-on-primary)
+}
+:root[data-nexo-theme] .calendar-weekdays{color:var(--muted)}
+:root[data-nexo-theme] .nav-item.active{color:var(--primary);box-shadow:inset 0 -3px var(--primary)}
+:root[data-nexo-theme] .nav-item.active .ui-icon{background:var(--primary-soft)}
+:root[data-nexo-theme] .primary-button,
+:root[data-nexo-theme] .fab-add,
+:root[data-nexo-theme] .mini-button.primary{background:var(--primary);color:var(--nx-on-primary);border-color:var(--primary)}
+:root[data-nexo-theme] .secondary-button,
+:root[data-nexo-theme] .mini-button:not(.primary),
+:root[data-nexo-theme] .tgv-back{background:var(--nx-surface-2);color:var(--text);border-color:var(--nx-border)}
+:root[data-nexo-theme] .settings-accordion--open .settings-accordion__summary{background:var(--nx-surface-2)}
+:root[data-nexo-theme] .settings-accordion__body{border-top-color:var(--nx-border)}
+:root[data-nexo-theme] .fab-voice{background:var(--nx-surface);color:var(--primary);border-color:var(--nx-border)}
+:root[data-nexo-theme] :where(.design-empty,.calendar-icon-guide,.classification-preview,.note-save-status,.recording-info-card){
+  background:var(--nx-surface-2);border-color:var(--nx-border);color:var(--text)
+}
+:root[data-nexo-theme] :where(.note-card-preview,.small.muted,.settings-accordion__label small){
+  color:var(--muted)
+}
+/* Tres acentos de Inicio y Herramientas; nada afecta a la semántica de categorías. */
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n+1) .home-pulse-card__icon,
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+1)>.ui-icon{
+  background:var(--primary-soft);color:var(--primary)
+}
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n+2) .home-pulse-card__icon,
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+2)>.ui-icon{
+  background:var(--green-soft);color:var(--nx-accent-two)
+}
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n) .home-pulse-card__icon,
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+3)>.ui-icon{
+  background:var(--nx-surface-2);color:var(--nx-accent-three)
+}
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+4)>.ui-icon{
+  background:var(--nx-surface-2);color:var(--nx-accent-four)
+}
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+5)>.ui-icon{
+  background:var(--nx-surface-2);color:var(--nx-accent-five)
+}
+:root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile,.module-grid--family-info .module-card){
+  transition:background-color 170ms ease,border-color 170ms ease,box-shadow 170ms ease
+}
+:root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile):active{filter:brightness(.96)}
+/* Formulario de Apariencia: piezas puramente visuales, sin nuevas rutas. */
+.nexo-theme-intro{margin:6px 0 12px;font-size:.84rem;color:var(--muted)}
+.nexo-theme-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nexo-theme-option{
+  display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;
+  min-height:122px;padding:10px 8px;
+  border:2px solid var(--nx-border);border-radius:16px;
+  background:var(--nx-surface);color:var(--text);text-align:left;
+  transition:border-color 160ms ease,background-color 160ms ease,box-shadow 160ms ease
+}
+.nexo-theme-option.is-selected{
+  border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-soft);
+  background:var(--nx-surface-2)
+}
+.nexo-theme-swatch{display:flex;align-items:center;gap:4px}
+.nexo-theme-swatch i{display:block;flex:1;height:19px;min-width:0;border-radius:6px}
+.nexo-theme-option strong{display:block;font-size:.82rem;line-height:1.2}
+.nexo-theme-option small{display:block;font-size:.72rem;line-height:1.25;color:var(--muted)}
+.nexo-theme-option.is-selected strong::before{content:'✓ ';color:var(--primary);font-weight:900}
+.nexo-theme-option:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+/* Formularios claros y superficies coherentes con el tema sin cambiar validaciones ni foco. */
+:root[data-nexo-theme] :where(input:not([type="checkbox"]):not([type="radio"]),textarea,select,.date-wrap){
+  background:var(--nx-surface);color:var(--text);border-color:var(--nx-border)
+}
+:root[data-nexo-theme] input::placeholder,:root[data-nexo-theme] textarea::placeholder{
+  color:var(--muted);opacity:1
+}
+/* Noche requiere anular blancos explícitos heredados, sin modificar componentes funcionales. */
+:root[data-nexo-theme="noche"] :where(
+  .modal-sheet,.voice-sheet,.about-hero,.about-card,.settings-card,.settings-accordion__summary,
+  .settings-security-action,.menu-row,.task-row,.list-row,.history-row,
+  .item-card,.journal-card,.document-card,.place-card,.med-card,.recording-card,
+  .integration-card,.future-card,.list-entry,.note-card,.capture-card,.capture-mode-row,
+  .calendar-toolbar,.calendar-day-title,.calendar-icon-guide,.calendar-card,
+  .capture-details,.detail-body,.detail-grid,.med-dose-row,.med-safety,
+  .alert-editor,.date-wrap,.calendar-viewport,.form-grid,.about-points,
+  .event-location-shortcut__button,.event-location-shortcut,.recording-live-card,
+  .quote-card,.book-card,.media-card,.parking-home-card,.journal-prompt,.startup-splash
+){
+  background-color:var(--nx-surface);color:var(--text);
+  border-color:var(--nx-border)
+}
+:root[data-nexo-theme="noche"] :where(.modal-sheet,.voice-sheet,.startup-splash){background:var(--bg)}
+:root[data-nexo-theme="noche"] :where(.detail-body,.med-safety,.alert-editor,.note-save-status,.calendar-icon-guide){background:var(--nx-surface-2)}
+:root[data-nexo-theme="noche"] :where(.calendar-day,.calendar-day:nth-child(7n),.calendar-day:nth-child(7n-1)){background:var(--nx-surface)}
+:root[data-nexo-theme="noche"] :where(.settings-accordion__summary,.calendar-toolbar button,.secondary-button,.mini-button,.back-button,.icon-action,.icon-button,.ghost-button,.query-chips button){
+  color:var(--text);border-color:var(--nx-border)
+}
+:root[data-nexo-theme="noche"] :where(.settings-accordion__label strong,.about-card h2,.section-heading h2,.tool-group h2,.panel-header h1,.modal-head h2,.note-card-head strong){
+  color:var(--text)
+}
+:root[data-nexo-theme="noche"] :where(.tgv-board){
+  background:linear-gradient(90deg,var(--nx-grid) 0 55px,var(--nx-surface) 55px 100%)
+}
+:root[data-nexo-theme="noche"] :where(.tgv-hour span){
+  background:var(--nx-grid);color:var(--muted)
+}
+:root[data-nexo-theme="noche"] :where(.tgv-hour){border-top-color:var(--nx-border)}
+:root[data-nexo-theme="noche"] :where(.tgv-all-day,.tgv-all-day-label){
+  background:var(--nx-surface);border-color:var(--nx-border);color:var(--text)
+}
+:root[data-nexo-theme="noche"] :where(.tgv-all-day-event){
+  background:var(--nx-elevated);color:var(--text);border-color:var(--nx-border);
+  border-left-color:var(--tgv-accent)
+}
+:root[data-nexo-theme="noche"] :where(.tgv-event){
+  background:color-mix(in srgb,var(--tgv-accent) 23%,var(--nx-surface));
+  color:var(--text);
+  border-color:color-mix(in srgb,var(--tgv-accent) 52%,var(--nx-surface));
+  border-left-color:var(--tgv-accent)
+}
+:root[data-nexo-theme="noche"] :where(.tgv-no-events,.tgv-help){color:var(--muted)}
+/* Mantener legibles los avisos y errores: jamás cambiar su significado por tema. */
+:root[data-nexo-theme="noche"] .danger-button.solid{background:#B42335;color:#FFFFFF}
+:root[data-nexo-theme="noche"] :where(.chat-nav-badge,.inbox-nav-badge){background:#BF3045;color:#FFFFFF}
+/* Animación mínima para entradas de fichas emergentes: nunca sobre la agenda que se arrastra. */
+@media(prefers-reduced-motion:no-preference){
+  :root[data-nexo-theme] .modal:not(.hidden)>.modal-sheet{
+    animation:nexo-visual-sheet-in 155ms ease-out both
+  }
+  @keyframes nexo-visual-sheet-in{
+    from{opacity:.92;translate:0 8px}
+    to{opacity:1;translate:0 0}
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .nexo-theme-option,:root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile,.module-grid--family-info .module-card){transition:none!important}
+  :root[data-nexo-theme] .modal>.modal-sheet{animation:none!important}
+}
+@media(max-width:360px){
+  .nexo-theme-picker{gap:5px}.nexo-theme-option{padding:9px 6px}.nexo-theme-option strong{font-size:.75rem}
+}
