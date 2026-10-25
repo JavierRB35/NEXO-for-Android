@@ -1,3 +1,10 @@
+## Nexo 3.7.74 — Pulido visual de Vivo, Mediterráneo y Noche
+- Inicio y Herramientas usan tarjetas de cinco tonos suaves distintos, mejorando la personalidad visual sin cambiar la disposición de botones ni el significado de categorías.
+- Cabecera con línea multicolor de 2 px, sin alterar dimensiones.
+- Contraste mejorado en el día actual del calendario (tema Noche), el icono de búsqueda y los textos secundarios de la agenda horaria. Rejilla oscura adaptada al ancho real en móviles estrechos.
+- Comprobaciones automatizadas WCAG AA para colores de texto de las tres paletas.
+- Actualización opcional `versionCode 167`, misma firma Release, permisos, gestos, `applicationId` y esquema SQLite 34.
+
 ## Nexo 3.7.73 — Nexo Vivo, Mediterráneo y Noche
 - Ajustes → Apariencia incorpora tres temas de color seleccionables. La elección se aplica al instante, se guarda de forma local y se restablece al abrir Nexo.
 - Más color en cabecera, Inicio, Herramientas, calendario, tarjetas y botones; modo Noche con superficies oscuras legibles.
