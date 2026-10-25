@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.72",
-  "releaseNotes": "Ahora puedes mantener pulsada una hora vacía de la agenda para preparar una nueva cita con la fecha y el horario ya seleccionados. Las citas existentes siguen pudiendo arrastrarse y ajustarse como antes. No se guarda nada hasta que lo confirmes. Actualización opcional.",
+  "versionName": "3.7.73",
+  "releaseNotes": "Nexo estrena tres temas visuales seleccionables en Ajustes → Apariencia: Vivo, Mediterráneo y Noche. Cambia los colores al instante y recuerda tu elección en este teléfono. Las citas, gestos, categorías, avisos y demás funciones siguen igual. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -267,7 +267,8 @@ window.NexoProductCatalog = {
           "features": [
             "Pantalla inicial, tamaño de visualización y personas",
             "Ubicación del tiempo, entrada de datos y calidad de transcripción",
-            "Permisos y opciones de avisos"
+            "Permisos y opciones de avisos",
+            "Temas Vivo, Mediterráneo y Noche seleccionables en Ajustes → Apariencia, con preferencia local"
           ]
         },
         {
