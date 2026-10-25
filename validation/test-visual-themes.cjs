@@ -92,4 +92,42 @@ app.buttons[2].handlers.click();
 assert.equal(app.theme.get(),'noche','Sin almacenamiento sigue funcionando durante la sesión');
 assert.ok(html.includes('data-settings-accordion="display"'),'El control de tamaño sigue intacto');
 assert.ok(html.includes('data-settings-accordion="security"'),'Las funciones de seguridad siguen intactas');
+// Auditoría de contraste WCAG AA para texto y acentos sobre las superficies principales.
+function themeTokens(name){
+  const start=css.indexOf(':root[data-nexo-theme="'+name+'"]{');
+  assert.ok(start>=0);
+  const chunk=css.slice(start,css.indexOf('}',start));
+  return Object.fromEntries([...chunk.matchAll(/(--[a-z-]+):\s*(#[0-9A-Fa-f]{6})/g)].map(m=>[m[1],m[2]]));
+}
+function luminance(hex){
+  const linear=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)
+    .map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4));
+  return .2126*linear[0]+.7152*linear[1]+.0722*linear[2];
+}
+function contrast(a,b){
+  const x=luminance(a),y=luminance(b);
+  return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
+}
+for(const name of names){
+  const p=themeTokens(name);
+  const pairs=[
+    ['--text','--bg'],['--text','--nx-surface'],
+    ['--muted','--nx-surface'],['--primary','--nx-on-primary'],
+    ['--nx-accent-two','--nx-surface']
+  ];
+  for(const [fg,bg] of pairs){
+    assert.ok(contrast(p[fg],p[bg])>=4.5,
+      name+': contraste insuficiente '+fg+' sobre '+bg);
+  }
+}
+// Las hojas heredadas contienen barras y menús blancos; también necesitan Noche.
+for(const selector of [
+  '.home-tool-surface','.record-overflow-menu',
+  '.screen[data-screen="save"] .capture-crud-toolbar',
+  '.contextual-voice-button','.transcription-quality-card',
+  '.calendar-weekdays'
+])assert.ok(css.includes(selector),'Falta adaptación oscura para '+selector);
+assert.match(css,/@media\(max-width:420px\)\{[\s\S]*?data-nexo-theme="noche"\] \.tgv-board\{[\s\S]*?50px/,
+  'El fondo móvil Noche debe respetar la banda horaria existente de 50 px');
+console.log('OK: accesibilidad de contraste, paneles nocturnos y banda horaria móvil');
 console.log('OK: 3 temas, selector único, persistencia visual, estado accesible, fallback, modo oscuro y gestos intactos');
