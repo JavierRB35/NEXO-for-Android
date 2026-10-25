@@ -2244,6 +2244,34 @@ function prepareQuickNoteForType(type='event',date=''){
   setTimeout(()=>$('#captureText').focus(),80);
 }
 
+/** Prepara una cita sin guardarla a partir de la franja horaria pulsada.
+ * Mantiene el día elegido, incluso si no es hoy, y resuelve 23:00-00:00.
+ */
+function prepareTimeGridAppointment(iso,startMinute,endMinute){
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(iso||'')))return;
+  if(!Number.isInteger(startMinute)||!Number.isInteger(endMinute)||
+     startMinute<0||endMinute>1440||endMinute-startMinute!==60)return;
+  if(state.screen!=='calendar'&&!(state.screen==='today'&&state.homeTimelineVisible))return;
+  prepareQuickNoteForType('event',iso);
+  if(state.screen!=='save')return;
+  const localDate=new Date(iso+'T12:00:00');
+  if(Number.isNaN(localDate.getTime()))return;
+  const nextDay=endMinute===1440;
+  if(nextDay)localDate.setDate(localDate.getDate()+1);
+  const format=minute=>String(Math.floor(minute/60)%24).padStart(2,'0')+':'+String(minute%60).padStart(2,'0');
+  $('#captureDate').value=iso;
+  $('#captureEndDate').value=nextDay?isoDateLocal(localDate):iso;
+  $('#captureAllDay').checked=false;
+  $('#captureTime').value=format(startMinute);
+  $('#captureEndTime').value=format(endMinute);
+  markCaptureManual('dateTime'); // El dictado posterior no reemplaza el horario elegido.
+  syncCaptureAllDay(false);
+  refreshCaptureAlertEditor();
+  $('#captureSubtitle').textContent='Horario seleccionado: '+format(startMinute)+' – '+format(endMinute)+
+    (nextDay?' del día siguiente':'')+'. Completa el título y guarda cuando quieras.';
+  setTimeout(()=>{if(state.screen==='save')$('#captureTitle')?.focus();},100);
+}
+
 function startVoiceCapture(pinnedDate='',pinnedType='') { state.voiceMode='capture'; const existing=(!pinnedDate&&state.screen==='save')?($('#captureText')?.value.trim()||''):''; state.voiceBaseText=existing;state.voicePinnedDate=pinnedDate||'';state.voicePinnedType=pinnedType||state.capturePinnedType||'event';navigate('save'); if(pinnedDate){state.capturePinnedDate=pinnedDate;state.capturePinnedType=pinnedType||'';state.captureReturn='today';clearCapture(true);state.voiceBaseText='';$('#captureDate').value=pinnedDate;$('#captureEndDate').value=pinnedDate;if(pinnedType)$('#captureType').value=pinnedType;refreshCaptureAlertEditor();} setInterpretationStatus('listening','Escuchando… puedes hacer una pausa corta'); NexoNative.startVoiceInput(); }
 
 function analyzeCapture(options={}) {
