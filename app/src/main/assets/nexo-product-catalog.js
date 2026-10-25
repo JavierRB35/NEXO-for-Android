@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.74",
-  "releaseNotes": "Mejora visual de los temas de Nexo: mayor contraste de iconos en Vivo y Mediterráneo, superficies coherentes en modo Noche y rejilla horaria ajustada para pantallas pequeñas. Selección en Ajustes → Apariencia. Sin cambios en funciones, gestos, datos ni avisos. Actualización opcional.",
+  "versionName": "3.7.75",
+  "releaseNotes": "Interfaz más alegre en Vivo, Mediterráneo y Noche: tarjetas con colores suaves, cabecera multicolor discreta y mejoras de legibilidad en calendario, buscador y agenda de Noche. Los tres temas se eligen en Ajustes → Apariencia. Funciones, gestos y datos sin cambios. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
