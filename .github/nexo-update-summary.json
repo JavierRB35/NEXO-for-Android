@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.71",
-  "notes": "Calendario más cómodo: al abrirlo aparece primero el mes actual y el día de hoy. La agenda horaria se desplaza de forma independiente y muestra directamente la primera cita, con los eventos de todo el día fijos. Al consultar una cita y volver, se conserva la posición. Actualización opcional."
+  "versionName": "3.7.72",
+  "notes": "Ahora puedes mantener pulsada una hora vacía de la agenda para preparar una nueva cita con la fecha y el horario ya seleccionados. Las citas existentes siguen pudiendo arrastrarse y ajustarse como antes. No se guarda nada hasta que lo confirmes. Actualización opcional."
 }
