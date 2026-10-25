@@ -1,3 +1,9 @@
+## Nexo 3.7.74 — Pulido de los tres temas visuales
+- Corrige paneles y barras de edición claros heredados cuando está seleccionado el tema Noche. Solo se modifican los colores de fondo, texto y borde.
+- Mejora el contraste de acentos de Vivo y Mediterráneo según WCAG AA en las superficies principales.
+- Ajusta el color de la banda horaria de Noche para respetar los 50 px del calendario original en pantallas estrechas, sin alterar gestos ni posiciones de citas.
+- Actualización opcional `versionCode 167`, con la misma firma Release y esquema SQLite 34. Sin cambios de lógica, datos, navegación ni avisos.
+
 ## Nexo 3.7.73 — Nexo Vivo, Mediterráneo y Noche
 - Ajustes → Apariencia incorpora tres temas de color seleccionables. La elección se aplica al instante, se guarda de forma local y se restablece al abrir Nexo.
 - Más color en cabecera, Inicio, Herramientas, calendario, tarjetas y botones; modo Noche con superficies oscuras legibles.
