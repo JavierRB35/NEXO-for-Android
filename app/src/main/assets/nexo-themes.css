@@ -8,7 +8,7 @@
   --surface-soft:#F0F5FF;--primary-soft:#E9F1FF;--amber:#986100;--red:#B42335;
   --shadow:0 4px 16px rgba(35,76,140,.07);
   --nx-surface:#FFFFFF;--nx-surface-2:#F0F5FF;--nx-elevated:#FFFFFF;
-  --nx-on-primary:#FFFFFF;--nx-accent-two:#138B74;--nx-accent-three:#C64B43;
+  --nx-on-primary:#FFFFFF;--nx-accent-two:#0E7866;--nx-accent-three:#C64B43;
   --nx-accent-four:#9D6B0F;--nx-accent-five:#7856BE;--nx-header:#FFFFFF;
   --nx-border:#DCE5F5;--nx-grid:#F1F5FC;
 }
@@ -20,7 +20,7 @@
   --surface-soft:#FFF4E4;--primary-soft:#DCF2F0;--amber:#926100;--red:#AD3540;
   --shadow:0 4px 16px rgba(118,80,37,.07);
   --nx-surface:#FFFFFF;--nx-surface-2:#FFF3DF;--nx-elevated:#FFFFFF;
-  --nx-on-primary:#FFFFFF;--nx-accent-two:#C18313;--nx-accent-three:#BA4937;
+  --nx-on-primary:#FFFFFF;--nx-accent-two:#986000;--nx-accent-three:#BA4937;
   --nx-accent-four:#8760B7;--nx-accent-five:#2775AD;--nx-header:#FFFDF8;
   --nx-border:#EADFCB;--nx-grid:#FFF5E8;
 }
@@ -215,4 +215,48 @@
 }
 @media(max-width:360px){
   .nexo-theme-picker{gap:5px}.nexo-theme-option{padding:9px 6px}.nexo-theme-option strong{font-size:.75rem}
+}
+
+/* Auditoría visual 3.7.73: evitar paneles claros heredados en el tema Noche.
+   Únicamente fondos, texto y bordes; no se altera la geometría ni los gestos. */
+:root[data-nexo-theme="noche"] :is(
+  .home-capture-bar,.home-tool-surface,.backup-card,.family-result-card,
+  .transcription-quality-card,.transcription-quality-card.is-disabled,
+  .gmail-connect-card,.parking-panel-card,.weather-place-choice,
+  .journal-filter-row button,.journal-preview,.journal-date-badge,
+  .journal-toolbar input,.list-voice-items span,.record-overflow-menu,
+  .record-action-overflow>summary,.list-card-menu,.recording-meta span,
+  .calendar-weekdays,.multi-time-row input[type="time"],
+  .journal-compose-flags .switch-row,.journal-card-flag--revisit
+){
+  background-color:var(--nx-surface);color:var(--text);
+  border-color:var(--nx-border)
+}
+:root[data-nexo-theme="noche"] :is(
+  .home-command-card .secondary-button,
+  .home-action-row button:not(.primary-button):not(.home-talk-button)
+){
+  background-color:var(--nx-surface-2);color:var(--text);
+  border-color:var(--nx-border)
+}
+/* Las barras de edición deben integrarse con el fondo oscuro, sin cambiar
+   su posición sticky ni sus botones de acción. */
+:root[data-nexo-theme="noche"] .screen[data-screen="save"] .capture-crud-toolbar,
+:root[data-nexo-theme="noche"] .modal-sheet>.record-form-actions--compact,
+:root[data-nexo-theme="noche"] .modal-head:has(>.modal-head-actions>.contextual-voice-button:not(.hidden)){
+  background:var(--nx-surface);color:var(--text);
+  border-color:var(--nx-border)
+}
+:root[data-nexo-theme="noche"] .screen[data-screen="save"] .capture-crud-toolbar .ghost-button,
+:root[data-nexo-theme="noche"] .contextual-voice-button,
+:root[data-nexo-theme="noche"] .document-card__actions .icon-action{
+  background:var(--nx-surface-2);color:var(--text);
+  border-color:var(--nx-border)
+}
+/* La misma anchura de banda horaria del calendario existente en móviles
+   estrechos (50 px). Los eventos mantienen su posición y sus gestos. */
+@media(max-width:420px){
+  :root[data-nexo-theme="noche"] .tgv-board{
+    background:linear-gradient(90deg,var(--nx-grid) 0 50px,var(--nx-surface) 50px 100%)
+  }
 }
