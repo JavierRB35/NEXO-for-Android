@@ -129,5 +129,23 @@ for(const selector of [
 ])assert.ok(css.includes(selector),'Falta adaptación oscura para '+selector);
 assert.match(css,/@media\(max-width:420px\)\{[\s\S]*?data-nexo-theme="noche"\] \.tgv-board\{[\s\S]*?50px/,
   'El fondo móvil Noche debe respetar la banda horaria existente de 50 px');
+
+/* 3.7.74: comprobar paletas suaves y contraste del día actual. */
+for(const name of names){
+  const tokens=themeTokens(name);
+  for(const tint of ['blue','green','coral','sun','violet'])
+    assert.match(tokens['--nx-card-'+tint]||'',/^#[0-9A-Fa-f]{6}$/,
+      name+': falta un tono suave '+tint);
+}
+assert.ok(css.includes(':root[data-nexo-theme] .calendar-day.today .day-number{'),
+  'El día de hoy debe contrastar también en Noche aunque no esté seleccionado');
+assert.ok(css.includes('color:var(--nx-on-primary)'),
+  'El azul claro de Noche requiere texto oscuro');
+assert.ok(css.includes('.family-home-search>.ui-icon{color:var(--primary)}'),
+  'Icono de búsqueda visible en Noche');
+assert.ok(css.includes('.tgv-all-day-event small{color:var(--muted)}'),
+  'Texto secundario de agenda visible en Noche');
+assert.ok(!css.includes('touch-action:'),'El tema no debe modificar gestos');
+
 console.log('OK: accesibilidad de contraste, paneles nocturnos y banda horaria móvil');
 console.log('OK: 3 temas, selector único, persistencia visual, estado accesible, fallback, modo oscuro y gestos intactos');
