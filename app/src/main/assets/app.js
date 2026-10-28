@@ -4571,6 +4571,22 @@ function init(){
     }));
   $('#peopleAddBtn')?.addEventListener('click',()=>openPersonEditor());
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
+  // Los accesos de Inicio reutilizan las rutas reales. Los saltos solo desplazan
+  // la página; no alteran el historial del router ni el calendario.
+  $('#homeDirectory')?.addEventListener('click',event=>{
+    const button=event.target.closest?.('button[data-home-jump],button[data-home-action]');
+    if(!button)return;
+    const jump=button.dataset.homeJump;
+    if(jump){
+      const target=document.getElementById(jump);
+      if(!target)return;
+      const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
+      return;
+    }
+    if(button.dataset.homeAction==='chat')NexoNative.openNexoChat();
+    else if(button.dataset.homeAction==='shopping')ensureShoppingList();
+  });
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
   $('#homeTimeGridBack')?.addEventListener('click',()=>window.NexoTimeGrid?.hideHome());
   $('#homeTomorrowCard')?.addEventListener('click',openHomeTomorrow);
