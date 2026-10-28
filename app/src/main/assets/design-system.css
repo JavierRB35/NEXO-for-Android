@@ -66,8 +66,8 @@ button:active{filter:brightness(.94)}
 .home-directory-intro .home-directory-eyebrow{margin:0 0 3px;color:var(--primary);font-size:.7rem;font-weight:800;letter-spacing:.07em}
 .home-directory-intro h1{margin:0;color:var(--text);font-size:1.35rem;line-height:1.25;letter-spacing:-.02em}
 .home-directory-intro>p:last-child{margin:5px 0 0;color:var(--muted);font-size:.83rem;line-height:1.4}
-.home-directory-jumps{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:2px 2px 8px;scrollbar-width:thin}
-.home-directory-jumps button{flex:0 0 auto;min-height:44px;max-width:210px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text);font:inherit;font-size:.78rem;font-weight:700;line-height:1.2;white-space:normal}
+.home-directory-jumps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 2px 5px}
+.home-directory-jumps button{min-width:0;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);font:inherit;font-size:.76rem;font-weight:700;line-height:1.2;white-space:normal}
 .home-directory-jumps button:active{background:var(--blue-soft)}
 .home-directory-group{--home-group-color:#0e766e;--home-group-soft:#e7f5f1;scroll-margin-top:86px;padding:12px;border:1px solid var(--line);border-top:3px solid var(--home-group-color);border-radius:17px;background:#fff}
 .home-directory-group--organiza{--home-group-color:#08776a;--home-group-soft:#e2f4f0}
@@ -89,6 +89,7 @@ button:active{filter:brightness(.94)}
 .home-directory-tile:focus-visible,.home-directory-jumps button:focus-visible{outline:3px solid var(--home-group-color,var(--primary));outline-offset:2px}
 .home-directory + .home-section--pulse{margin-top:26px}
 @media(max-width:380px){
+  .home-directory-jumps{grid-template-columns:repeat(2,minmax(0,1fr))}
   .home-directory-group{padding:10px}
   .home-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   .home-directory-tile{min-height:75px;flex-direction:row;justify-content:flex-start;gap:7px;padding:7px;text-align:left}
