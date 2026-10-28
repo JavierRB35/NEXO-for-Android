@@ -57,10 +57,153 @@
   </section>
 
   <div id="homeDashboardContent">
+    <!-- Directorio permanente: las funciones son accesibles sin pasar por Tools. -->
+    <section id="homeDirectory" class="home-directory" aria-labelledby="homeDirectoryTitle">
+      <div class="home-directory-intro">
+        <p class="home-directory-eyebrow">TODAS TUS FUNCIONES</p>
+        <h1 id="homeDirectoryTitle">¿Qué necesitas hacer?</h1>
+        <p>Entra directamente en cualquier apartado. Están agrupados según su utilidad.</p>
+      </div>
+      <nav class="home-directory-jumps" aria-label="Ir a un grupo de funciones">
+        <button type="button" data-home-jump="homeGroup-organiza">Organiza tu día</button>
+        <button type="button" data-home-jump="homeGroup-escribe">Escribe y guarda</button>
+        <button type="button" data-home-jump="homeGroup-ocio">Lectura y ocio</button>
+        <button type="button" data-home-jump="homeGroup-personal">Salud y movilidad</button>
+        <button type="button" data-home-jump="homeGroup-sistema">Consulta y ajustes</button>
+      </nav>
+      <section id="homeGroup-organiza" class="home-directory-group home-directory-group--organiza" aria-labelledby="homeGroupTitle-organiza">
+        <div class="home-directory-group__head">
+          <span class="home-directory-group__number" aria-hidden="true">01</span>
+          <div><h2 id="homeGroupTitle-organiza">Organiza tu día</h2><p>Calendario, citas, mensajes y listas</p></div>
+        </div>
+        <div class="home-directory-grid">
+        <button class="home-directory-tile" type="button" data-nav="calendar" aria-label="Abrir Calendario: Mes y días">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Calendario</strong><small>Mes y días</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="appointments" aria-label="Abrir Agenda: Citas y tareas">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-tasks"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Agenda</strong><small>Citas y tareas</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="lists" aria-label="Abrir Listas: Compras y más">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-list"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Listas</strong><small>Compras y más</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-home-action="shopping" aria-label="Abrir Lista de compra: Acceso rápido">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-cart"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Lista de compra</strong><small>Acceso rápido</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="inbox" aria-label="Abrir Inbox: Pendiente de revisar">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-inbox"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Inbox</strong><small>Pendiente de revisar</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-home-action="chat" aria-label="Abrir Chat: Conversaciones">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-chat"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Chat</strong><small>Conversaciones</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-nav="save" aria-label="Abrir Nueva captura: Guardar algo nuevo">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-plus"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Nueva captura</strong><small>Guardar algo nuevo</small></span>
+        </button>
+        </div>
+      </section>
+      <section id="homeGroup-escribe" class="home-directory-group home-directory-group--escribe" aria-labelledby="homeGroupTitle-escribe">
+        <div class="home-directory-group__head">
+          <span class="home-directory-group__number" aria-hidden="true">02</span>
+          <div><h2 id="homeGroupTitle-escribe">Escribe y guarda</h2><p>Tus ideas, documentos y audios</p></div>
+        </div>
+        <div class="home-directory-grid">
+        <button class="home-directory-tile" type="button" data-panel="notes" aria-label="Abrir Notas: Anotaciones">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-note"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Notas</strong><small>Anotaciones</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="recordings" aria-label="Abrir Grabaciones: Audio y transcripción">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-audio"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Grabaciones</strong><small>Audio y transcripción</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="documents" aria-label="Abrir Documentos: Archivos guardados">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-file"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Documentos</strong><small>Archivos guardados</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="journal" aria-label="Abrir Cuaderno: Reflexiones">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-book"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Cuaderno</strong><small>Reflexiones</small></span>
+        </button>
+        </div>
+      </section>
+      <section id="homeGroup-ocio" class="home-directory-group home-directory-group--ocio" aria-labelledby="homeGroupTitle-ocio">
+        <div class="home-directory-group__head">
+          <span class="home-directory-group__number" aria-hidden="true">03</span>
+          <div><h2 id="homeGroupTitle-ocio">Lectura y ocio</h2><p>Biblioteca y recuerdos para consultar</p></div>
+        </div>
+        <div class="home-directory-grid">
+        <button class="home-directory-tile" type="button" data-panel="books" aria-label="Abrir Libros: Biblioteca">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-book"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Libros</strong><small>Biblioteca</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="media" aria-label="Abrir Películas y series: Filmoteca">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-film"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Películas y series</strong><small>Filmoteca</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="quotes" aria-label="Abrir Frases: Citas favoritas">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-quote"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Frases</strong><small>Citas favoritas</small></span>
+        </button>
+        </div>
+      </section>
+      <section id="homeGroup-personal" class="home-directory-group home-directory-group--personal" aria-labelledby="homeGroupTitle-personal">
+        <div class="home-directory-group__head">
+          <span class="home-directory-group__number" aria-hidden="true">04</span>
+          <div><h2 id="homeGroupTitle-personal">Salud y movilidad</h2><p>Información útil para el día a día</p></div>
+        </div>
+        <div class="home-directory-grid">
+        <button class="home-directory-tile" type="button" data-panel="medications" aria-label="Abrir Medicación: Tomas y tratamientos">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pill"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Medicación</strong><small>Tomas y tratamientos</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="vehicles" aria-label="Abrir Vehículos: Mantenimiento">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-car"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Vehículos</strong><small>Mantenimiento</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="places" aria-label="Abrir Lugares: Sitios guardados">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Lugares</strong><small>Sitios guardados</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="parking" aria-label="Abrir Aparcamiento: Dónde está el coche">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-car"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Aparcamiento</strong><small>Dónde está el coche</small></span>
+        </button>
+        </div>
+      </section>
+      <section id="homeGroup-sistema" class="home-directory-group home-directory-group--sistema" aria-labelledby="homeGroupTitle-sistema">
+        <div class="home-directory-group__head">
+          <span class="home-directory-group__number" aria-hidden="true">05</span>
+          <div><h2 id="homeGroupTitle-sistema">Consulta y ajustes</h2><p>Encuentra contenido y gestiona Nexo</p></div>
+        </div>
+        <div class="home-directory-grid">
+        <button class="home-directory-tile" type="button" data-nav="search" aria-label="Abrir Buscar: Todo Nexo">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-search"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Buscar</strong><small>Todo Nexo</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="history" aria-label="Abrir Historial: Actividad reciente">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-history"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Historial</strong><small>Actividad reciente</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-nav="more" aria-label="Abrir Ajustes: Preferencias">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-settings"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Ajustes</strong><small>Preferencias</small></span>
+        </button>
+        <button class="home-directory-tile" type="button" data-panel="backup" aria-label="Abrir Copias: Guardar y restaurar">
+          <svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg>
+          <span class="home-directory-tile__copy"><strong>Copias</strong><small>Guardar y restaurar</small></span>
+        </button>
+        </div>
+      </section>
+    </section>
     <section class="home-section family-home-section home-section--pulse" aria-labelledby="homeNowTitle">
       <div class="section-heading family-section-heading">
         <div>
-          <h2 id="homeNowTitle">Lo importante ahora</h2>
+          <h2 id="homeNowTitle">Tu agenda de un vistazo</h2>
         </div>
       </div>
       <div class="home-pulse-grid">
