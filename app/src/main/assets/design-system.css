@@ -58,3 +58,43 @@ button:active{filter:brightness(.94)}
 #homeNowTitle{font-size:1rem;text-transform:none;letter-spacing:0;color:var(--primary);font-weight:700}
 .bottom-nav{grid-template-columns:minmax(48px,1fr) minmax(max-content,1.2fr) repeat(4,minmax(48px,1fr))}
 .bottom-nav .nav-item small{font-size:.75rem}
+
+/* Nexo Inicio · directorio visible de funciones.
+   Sección independiente de los indicadores de agenda y del catálogo Tools. */
+.home-directory{display:grid;gap:12px;margin-top:16px}
+.home-directory-intro{padding:3px 2px 0}
+.home-directory-intro .home-directory-eyebrow{margin:0 0 3px;color:var(--primary);font-size:.7rem;font-weight:800;letter-spacing:.07em}
+.home-directory-intro h1{margin:0;color:var(--text);font-size:1.35rem;line-height:1.25;letter-spacing:-.02em}
+.home-directory-intro>p:last-child{margin:5px 0 0;color:var(--muted);font-size:.83rem;line-height:1.4}
+.home-directory-jumps{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:2px 2px 8px;scrollbar-width:thin}
+.home-directory-jumps button{flex:0 0 auto;min-height:44px;max-width:210px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text);font:inherit;font-size:.78rem;font-weight:700;line-height:1.2;white-space:normal}
+.home-directory-jumps button:active{background:var(--blue-soft)}
+.home-directory-group{--home-group-color:#0e766e;--home-group-soft:#e7f5f1;scroll-margin-top:86px;padding:12px;border:1px solid var(--line);border-top:3px solid var(--home-group-color);border-radius:17px;background:#fff}
+.home-directory-group--organiza{--home-group-color:#08776a;--home-group-soft:#e2f4f0}
+.home-directory-group--escribe{--home-group-color:#2854b8;--home-group-soft:#e8efff}
+.home-directory-group--ocio{--home-group-color:#7140b6;--home-group-soft:#f1e9fc}
+.home-directory-group--personal{--home-group-color:#9b5a13;--home-group-soft:#fff2dc}
+.home-directory-group--sistema{--home-group-color:#495c72;--home-group-soft:#edf1f6}
+.home-directory-group__head{display:flex;gap:9px;align-items:center;margin-bottom:10px}
+.home-directory-group__number{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;color:var(--home-group-color);background:var(--home-group-soft);font-size:.8rem;font-weight:800}
+.home-directory-group__head h2{margin:0;color:var(--text);font-size:1rem;font-weight:800;line-height:1.3}
+.home-directory-group__head p{margin:2px 0 0;color:var(--muted);font-size:.73rem;line-height:1.3}
+.home-directory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.home-directory-tile{min-width:0;min-height:97px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 5px;border:1px solid var(--line);border-radius:13px;background:var(--bg);color:var(--text);font:inherit;text-align:center;overflow-wrap:anywhere}
+.home-directory-tile>.ui-icon{box-sizing:content-box;flex:0 0 auto;width:22px;height:22px;padding:8px;border-radius:11px;background:var(--home-group-soft);color:var(--home-group-color)}
+.home-directory-tile__copy{display:grid;gap:2px;min-width:0;width:100%}
+.home-directory-tile__copy strong{font-size:.79rem;font-weight:750;line-height:1.2}
+.home-directory-tile__copy small{font-size:.67rem;line-height:1.2;color:var(--muted)}
+.home-directory-tile:active{background:var(--home-group-soft)}
+.home-directory-tile:focus-visible,.home-directory-jumps button:focus-visible{outline:3px solid var(--home-group-color,var(--primary));outline-offset:2px}
+.home-directory + .home-section--pulse{margin-top:26px}
+@media(max-width:380px){
+  .home-directory-group{padding:10px}
+  .home-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .home-directory-tile{min-height:75px;flex-direction:row;justify-content:flex-start;gap:7px;padding:7px;text-align:left}
+  .home-directory-tile>.ui-icon{width:20px;height:20px;padding:7px}
+  .home-directory-tile__copy strong{font-size:.77rem}
+  .home-directory-tile__copy small{font-size:.65rem}
+}
+@media(min-width:600px){.home-directory-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.home-directory-tile{min-height:108px}}
+@media(prefers-reduced-motion:reduce){.home-directory-jumps{scroll-behavior:auto}}
