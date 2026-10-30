@@ -324,3 +324,10 @@
  * El acento original de cada cita se conserva. */
 :root[data-nexo-theme="noche"] .tgv-all-day-event small{color:var(--muted)}
 :root[data-nexo-theme="noche"] .tgv-event-status{background:var(--nx-surface-2);color:var(--text)}
+
+/* Línea del instante actual: el tema Noche utiliza coral claro y texto oscuro
+   para conservar legibilidad sin modificar eventos ni gestos. */
+:root[data-nexo-theme="noche"]{
+  --tgv-now-color:#FB7185;
+  --tgv-now-ink:#152237
+}
