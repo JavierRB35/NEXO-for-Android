@@ -1,3 +1,9 @@
+## Nexo 3.7.77 — Publicación corregida de la línea de hora actual
+- Reintento seguro de la versión 3.7.76: se acortó el resumen para el actualizador a menos de 360 caracteres, según contrato de publicación.
+- Mantiene exactamente las mejoras de agenda diaria de la versión anterior: línea roja/coral del momento presente, enfoque con 45 min de contexto y actualización sin saltos.
+- Sin cambios funcionales ni en la firma oficial, permisos o esquema SQLite.
+- Actualización opcional `versionCode 170`.
+
 ## Nexo 3.7.76 — Línea de hora actual en agenda diaria
 - Agenda horaria de **hoy**: línea horizontal roja/coral cruzando todo el horario exactamente donde corresponde a la hora real, con etiqueta HH:MM y sin interceptar toques.
 - Al acceder a la agenda de hoy, desplazamiento automático hasta la hora presente con unos 45 minutos anteriores visibles arriba; en Calendario solo se mueve el panel horario, no el mes.
