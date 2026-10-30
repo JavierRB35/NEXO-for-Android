@@ -7,6 +7,18 @@ job = (root / "app/src/main/java/com/jruiz/nexo/updates/NexoUpdateJob.java").rea
 publisher = (root / ".github/workflows/publish-public-updates.yml").read_text()
 policy = json.loads((root / ".github/nexo-update-policy.json").read_text())
 gradle = (root / "app/build.gradle").read_text()
+summary = json.loads((root / ".github/nexo-update-summary.json").read_text(encoding="utf-8"))
+notes = summary.get("notes")
+assert summary.get("versionName") == "3.7.76", "El resumen debe coincidir con la versión Release"
+assert isinstance(notes, str) and 40 <= len(notes.strip()) <= 360, (
+    "El resumen de cambios debe contener entre 40 y 360 caracteres"
+)
+assert not any(mark in notes for mark in ("#", "**", "`", "\n", "\r")), (
+    "El aviso público debe ser texto sencillo, sin Markdown ni saltos de línea"
+)
+assert "github.ref_type == 'tag' && inputs.tag || github.sha" in publisher, (
+    "En publicaciones desde main usar metadatos del mismo commit firmado"
+)
 
 assert policy == {"critical": False, "reason": ""}, "3.7.76 debe publicarse como opcional"
 assert "versionCode 169" in gradle and "versionName '3.7.76'" in gradle
