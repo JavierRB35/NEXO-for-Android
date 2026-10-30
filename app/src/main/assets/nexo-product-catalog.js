@@ -2,7 +2,7 @@
 window.NexoProductCatalog = {
   "schemaVersion": 1,
   "versionName": "3.7.76",
-  "releaseNotes": "La agenda diaria de hoy muestra una línea horizontal con la hora actual y se abre cerca de ella, dejando unos 45 minutos visibles por encima. La línea se actualiza automáticamente sin desplazar la pantalla mientras la consultas. En días distintos de hoy se mantiene el enfoque anterior. Los gestos de arrastre, redimensionado y nueva cita siguen igual. Actualización opcional.",
+  "releaseNotes": "La agenda diaria de hoy muestra una línea con la hora actual y se abre dejando 45 minutos anteriores visibles. La línea avanza con el reloj sin mover el calendario cuando lo desplazas. En otros días no aparece. Se mantienen los gestos para crear, mover y ajustar citas. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
