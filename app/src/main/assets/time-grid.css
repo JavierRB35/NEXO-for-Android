@@ -13,6 +13,27 @@
 .tgv-hour{position:absolute;left:0;right:0;z-index:0;height:0;border-top:1px dotted #c7d6e6;pointer-events:none}
 .tgv-hour span{position:absolute;left:0;top:-9px;width:51px;padding-right:7px;text-align:right;color:#546985;font-size:.78rem;font-variant-numeric:tabular-nums;background:#f8fafc}
 .tgv-event-layer{position:absolute;top:0;bottom:0;left:56px;right:0}
+/* La hora actual es una referencia visual, nunca una capa táctil.
+   La línea cruza citas y huecos sin interceptar pulsaciones ni arrastres. */
+.tgv-now-marker{
+  position:absolute;left:0;right:0;height:0;z-index:8;
+  border-top:2px solid var(--tgv-now-color,#C62842);
+  pointer-events:none;user-select:none;-webkit-user-select:none
+}
+.tgv-now-marker::after{
+  content:"";position:absolute;left:53px;top:-5px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--tgv-now-color,#C62842)
+}
+.tgv-now-label{
+  position:absolute;left:2px;top:-12px;width:46px;
+  box-sizing:border-box;padding:2px 3px;border-radius:6px;
+  background:var(--tgv-now-color,#C62842);
+  color:var(--tgv-now-ink,#FFFFFF);
+  font-size:.71rem;font-weight:800;line-height:18px;
+  text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap
+}
+
 .tgv-event{position:absolute;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px;overflow:hidden;border:1px solid color-mix(in srgb,var(--tgv-accent) 28%,#fff);border-left:5px solid var(--tgv-accent);background:#f5f9ff;background:color-mix(in srgb,var(--tgv-accent) 13%,#fff);border-radius:9px;color:#17243c;padding:9px 7px 6px;text-align:left;touch-action:pan-y;box-shadow:0 1px 3px rgba(20,39,68,.055)}
 .tgv-event:focus-visible,.tgv-all-day-event:focus-visible{outline:2px solid #254ebb;outline-offset:2px}
 .tgv-event--dragging{z-index:10!important;box-shadow:0 6px 20px rgba(19,36,68,.22);border-style:solid;opacity:.96}
@@ -68,6 +89,8 @@
   .tgv-head h2{font-size:1.22rem}
   .tgv-board{background:linear-gradient(90deg,#f8fafc 0 50px,#fff 50px 100%)}
   .tgv-hour span{width:47px;font-size:.75rem;padding-right:5px}
+  .tgv-now-marker::after{left:48px}
+  .tgv-now-label{width:43px;left:2px;font-size:.68rem}
   .tgv-event-layer,#calendarDayItems.tgv-host .tgv-event-layer{left:51px}
   .tgv-event{border-left-width:4px;padding:8px 5px 4px;gap:2px}
   .tgv-event--compact{padding:6px 4px 2px}

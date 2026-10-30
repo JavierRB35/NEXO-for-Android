@@ -7,6 +7,7 @@ node validation/test-time-grid-view.cjs
 node validation/test-visual-themes.cjs
 node validation/test-time-grid-slot-create.cjs
 node validation/test-calendar-scroll-focus.cjs
+node validation/test-calendar-now-line.cjs
 node validation/test-share-nexo-install.cjs
 node validation/test-duplicate-events.cjs
 node validation/test-link-icon-and-top-crud.cjs
