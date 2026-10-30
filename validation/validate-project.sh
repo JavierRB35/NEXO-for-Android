@@ -55,6 +55,7 @@ python validation/test-transcription-quality.py
 python validation/test-temporal-status.py
 python validation/test-related-links.py
 node validation/test-list-quick-runtime.cjs
+python validation/test-release-summary.py
 python validation/test-version-identity.py
 python validation/test-contextual-voice-keyboard.py
 python validation/test-connect-registration-recovery.py
