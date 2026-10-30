@@ -3,12 +3,38 @@
   'use strict';
   const PX_PER_MINUTE=1.6;
   const SNAP_MINUTES=15;
+  const NOW_CONTEXT_MINUTES=45; // Al abrir hoy, mostrar 45 minutos antes de la hora actual.
   const pending=new Map();
   let nextRequest=0;
   let writing=false;
 
   function two(n){return String(n).padStart(2,'0');}
   function hhmm(n){return two(Math.floor(n/60))+':'+two(n%60);}
+  function localIso(date){return date.getFullYear()+'-'+two(date.getMonth()+1)+'-'+two(date.getDate());}
+  function isToday(iso,now){return iso===localIso(now||new Date());}
+  function minuteNow(date){return date.getHours()*60+date.getMinutes()+date.getSeconds()/60;}
+  function nowMarkup(iso,now){
+    if(!isToday(iso,now))return '';
+    const minute=minuteNow(now),clock=hhmm(Math.floor(minute));
+    return '<div class="tgv-now-marker" role="img" aria-label="Hora actual: '+clock+'" style="top:'+(minute*PX_PER_MINUTE)+'px">'+
+      '<span class="tgv-now-label">'+clock+'</span></div>';
+  }
+  function refreshNowMarker(host,now){
+    const marker=host.querySelector?.('.tgv-now-marker');
+    if(!marker)return;
+    const today=isToday(host.dataset.tgvDay,now);
+    if(marker.style)marker.style.display=today?'':'none';
+    if(!today)return;
+    const minute=minuteNow(now),clock=hhmm(Math.floor(minute));
+    if(marker.style)marker.style.top=(minute*PX_PER_MINUTE)+'px';
+    marker.setAttribute?.('aria-label','Hora actual: '+clock);
+    const label=marker.querySelector?.('.tgv-now-label');
+    if(label&&label.textContent!==clock)label.textContent=clock;
+  }
+  function refreshNowMarkers(){
+    const now=new Date();
+    document.querySelectorAll?.('.tgv-host[data-tgv-day]').forEach(host=>refreshNowMarker(host,now));
+  }
   function isTimed(item){return !!Number(item.dueAt)&&item.allDay!==true&&item.hasTime!==false;}
   function isRecurring(item){return !!item.recurring||(!!item.recurrence&&item.recurrence!=='none');}
   function eventKey(item){return String(item.seriesId||item.id)+':'+String(item.occurrenceAt||0);}
@@ -199,7 +225,12 @@
       // de todo el día (anclados bajo la cabecera), no oculta tras ellos.
       const ownCalendarScroll=scroller===host&&host.id==='calendarDayItems';
       const visibleInset=(ownCalendarScroll?0:headerHeight)+12+(allDayHeight?allDayHeight+12:0);
-      const offset=Math.max(0,minute-8)*PX_PER_MINUTE;
+      // Hoy se centra en la hora REAL, no en la primera cita de la jornada.
+      // Dejar 45 minutos de contexto arriba; en fechas distintas se conserva
+      // el foco previo sobre la primera cita y no aparece la línea de «ahora».
+      const today=isToday(iso);
+      const targetMinute=today?minuteNow(new Date()):minute;
+      const offset=Math.max(0,targetMinute-(today?NOW_CONTEXT_MINUTES:8))*PX_PER_MINUTE;
       if(scroller){
         const origin=scroller.getBoundingClientRect().top;
         const position=Math.max(0,scroller.scrollTop+rect.top-origin+offset-visibleInset);
@@ -262,7 +293,7 @@
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'" title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr('Abrir '+fullLabel(item))+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</div>':'')+
       '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas, de 00:00 a 24:00. Mantén pulsado un espacio vacío para crear una cita.">'+
-      hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+
+      hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+nowMarkup(iso,new Date())+
       (!timed.length?'<div class="tgv-no-events">No hay eventos con hora para este día.</div>':'')+
       '</div><p class="tgv-help">Mantén pulsado un espacio vacío para crear una cita en esa hora. Sobre una cita existente, mantén pulsado el centro para moverla o sus bordes para cambiar su duración (15 min).</p>';
     attachEmptySlotCreate(host.querySelector?.('.tgv-board'),iso);
@@ -491,5 +522,13 @@
     if(state.screen==='today')renderToday();
     window.scrollTo(0,0);
   }
+  // Actualizar solo la línea (sin reconstruir citas ni mover el scroll manual).
+  // Al volver del segundo plano corregir también el paso de los minutos.
+  if(typeof setInterval==='function')setInterval(()=>{
+    if(typeof document==='undefined'||document.hidden)return;
+    refreshNowMarkers();
+  },30000);
+  if(typeof document!=='undefined'&&typeof document.addEventListener==='function')
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshNowMarkers();});
   window.NexoTimeGrid={render,renderHome,showHome,hideHome,onSaved,assignColumns,dayBounds};
 })();
