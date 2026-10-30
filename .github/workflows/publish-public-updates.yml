@@ -22,10 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout release tag
+      # En los lanzamientos desde main, leer el resumen del mismo commit
+      # que validó y firmó la APK. La etiqueta del Release puede haberse
+      # creado en una ejecución anterior fallida y apuntar a metadatos viejos.
+      # Los lanzamientos activados por etiqueta siguen siendo reproducibles.
+      - name: Checkout signed release metadata
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ github.ref_type == 'tag' && inputs.tag || github.sha }}
 
       - name: Verify release identity
         id: version
