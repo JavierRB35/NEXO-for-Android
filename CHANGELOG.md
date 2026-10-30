@@ -1,3 +1,11 @@
+## Nexo 3.7.76 — Línea de hora actual en agenda diaria
+- Agenda horaria de **hoy**: línea horizontal roja/coral cruzando todo el horario exactamente donde corresponde a la hora real, con etiqueta HH:MM y sin interceptar toques.
+- Al acceder a la agenda de hoy, desplazamiento automático hasta la hora presente con unos 45 minutos anteriores visibles arriba; en Calendario solo se mueve el panel horario, no el mes.
+- Actualización cada 30 segundos y al volver de segundo plano; una vez situado, no persigue al usuario ni mueve la agenda si desplaza manualmente.
+- En días distintos de hoy no se muestra la línea; se conserva la lógica anterior que sitúa la agenda en su primera cita.
+- Sin cambios a creación por pulsación larga, movimiento y redimensionado de citas, base de datos, permisos, firma ni SDK.
+- Actualización opcional `versionCode 169`; regresión nueva `test-calendar-now-line.cjs`.
+
 ## Nexo 3.7.75 — Más color y legibilidad en los tres temas
 - Tarjetas de Inicio, Herramientas e información familiar con cinco tonos suaves distintos y una línea cromática discreta de 2 px bajo la cabecera, sin modificar alturas ni distribución.
 - Mejora de contraste del día actual del calendario, icono del buscador y textos secundarios de agenda del tema Noche. Conservadas las mejoras visuales y WCAG AA previas.
