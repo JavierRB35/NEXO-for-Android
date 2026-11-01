@@ -1,0 +1,62 @@
+name: Nexo · APK firmado (solo compilación)
+
+on:
+  push:
+    branches: ['build/author-logo-apk-20261101']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: SDK Android 34
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
+      - name: Comprobar firma permanente y recurso visual
+        env:
+          KEY_B64: ${{ secrets.NEXO_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.NEXO_STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -s app/src/main/assets/creator_mark.png
+          test -n "$KEY_B64" && test -n "$STORE_PASS"
+          printf '%s' "$KEY_B64" | base64 --decode > "$RUNNER_TEMP/nexo-release.p12"
+          chmod 600 "$RUNNER_TEMP/nexo-release.p12"
+          ACTUAL_CERT_SHA256="$(keytool -exportcert -keystore "$RUNNER_TEMP/nexo-release.p12" -storetype PKCS12 -storepass "$STORE_PASS" -alias nexo-release -rfc | openssl x509 -noout -fingerprint -sha256 | sed 's/.*=//' | tr -d ':\r\n' | tr '[:lower:]' '[:upper:]')"
+          test "$ACTUAL_CERT_SHA256" = "595799E351233418F05BC5053E42B3AFF439D677FFBB0F59A1D92E29D15FEC48"
+      - name: Preparar recursos de transcripción
+        run: sh prepare-transcription-runtime.sh
+      - name: Compilar APK Release firmado (sin batería de tests)
+        env:
+          JAVA_OPTS: -Xmx768m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
+          NEXO_RELEASE_KEYSTORE: ${{ runner.temp }}/nexo-release.p12
+          NEXO_STORE_PASSWORD: ${{ secrets.NEXO_STORE_PASSWORD }}
+          NEXO_KEY_PASSWORD: ${{ secrets.NEXO_KEY_PASSWORD }}
+        run: gradle assembleRelease --no-daemon --max-workers=1
+      - name: Comprobar APK y firma
+        run: |
+          set -euo pipefail
+          test -s app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/Nexo-v3.7.78-author-logo.apk
+          sha256sum dist/*.apk > dist/Nexo-v3.7.78-author-logo.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexo-APK-firmado-autor-logo
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
