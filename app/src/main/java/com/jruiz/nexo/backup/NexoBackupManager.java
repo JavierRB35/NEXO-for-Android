@@ -7,6 +7,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 
 import com.jruiz.nexo.data.DatabaseHelper;
 
@@ -38,47 +39,51 @@ public final class NexoBackupManager {
         return "Nexo_Backup_" + stamp + ".nexo";
     }
 
-    /** Crea y escribe una copia en el URI elegido mediante el selector de archivos de Android. */
+    /** Writes one complete backup over the selected SAF document and verifies it by read-back. */
     public static JSONObject exportToUri(Context context, DatabaseHelper db, Uri destination) throws Exception { return exportToUri(context, db, destination, null); }
     public static JSONObject exportToUri(Context context, DatabaseHelper db, Uri destination, char[] password) throws Exception {
-        File temp = new File(context.getCacheDir(), "nexo_export_" + System.currentTimeMillis() + ".nexo");
+        File stage = new File(context.getFilesDir(), "nexo-export-" + System.nanoTime());
+        if (!stage.mkdirs()) throw new IOException("No se pudo preparar la copia temporal privada.");
+        File archive = new File(stage, "Nexo.nexo");
+        File readback = new File(stage, "verificacion.nexo");
         try {
-            JSONObject info = createBackupFile(context, db, temp, password);
-            try (InputStream in = new BufferedInputStream(new FileInputStream(temp));
-                 OutputStream out = new BufferedOutputStream(requireOutput(context, destination))) {
+            JSONObject info = createBackupFile(context, db, archive, password);
+            inspectFile(archive, true); // Do not touch the only destination before validating the archive.
+            try (ParcelFileDescriptor fd = context.getContentResolver().openFileDescriptor(destination, "wt")) {
+                if (fd == null) throw new IOException("No se puede abrir el archivo de destino.");
+                try (InputStream in = new BufferedInputStream(new FileInputStream(archive));
+                     OutputStream out = new BufferedOutputStream(new FileOutputStream(fd.getFileDescriptor()))) {
+                    copy(in, out);
+                    out.flush();
+                    fd.getFileDescriptor().sync();
+                }
+            }
+            try (InputStream in = context.getContentResolver().openInputStream(destination);
+                 OutputStream out = new BufferedOutputStream(new FileOutputStream(readback))) {
+                if (in == null) throw new IOException("No se pudo leer la copia guardada.");
                 copy(in, out);
             }
+            if (!sha256(archive).equals(sha256(readback)))
+                throw new IOException("La ubicación no ha guardado correctamente la copia.");
+            inspectFile(readback, true);
             info.put("ok", true);
             return info;
         } finally {
-            //noinspection ResultOfMethodCallIgnored
-            temp.delete();
+            deleteTree(stage);
         }
     }
 
     /** Crea una copia interna; se usa también como red de seguridad antes de restaurar. */
     public static JSONObject createBackupFile(Context context, DatabaseHelper db, File output) throws Exception { return createBackupFile(context, db, output, null); }
     public static JSONObject createBackupFile(Context context, DatabaseHelper db, File output, char[] password) throws Exception {
-        File work = new File(context.getCacheDir(), "nexo_backup_work_" + System.currentTimeMillis());
+        File work = new File(context.getFilesDir(), "nexo_backup_work_" + System.nanoTime());
         if (!work.mkdirs()) throw new IOException("No se pudo preparar la copia");
         File dbSnapshot = new File(work, "nexo.db");
         try {
-            // No hay escrituras automáticas en segundo plano. Cerramos SQLite unos milisegundos para
-            // copiar un único fichero consistente y evitar depender de WAL/-shm en la copia.
-            synchronized (db) {
-                try {
-                    SQLiteDatabase sql = db.getWritableDatabase();
-                    try (Cursor c = sql.rawQuery("PRAGMA wal_checkpoint(FULL)", null)) { if (c.moveToFirst()) { /* checkpoint */ } }
-                } catch (Exception ignored) {}
-                db.close();
-                File live = context.getDatabasePath(DatabaseHelper.databaseName());
-                if (!live.exists()) {
-                    // Forzamos creación si todavía no existía.
-                    db.getWritableDatabase();
-                    db.close();
-                }
-                copyFile(context.getDatabasePath(DatabaseHelper.databaseName()), dbSnapshot);
-            }
+            // Online SQLite snapshot: no raw copy of a live WAL and no closing the app's helper.
+            db.getWritableDatabase(); // Ensure schema exists before taking a snapshot.
+            File live = context.getDatabasePath(DatabaseHelper.databaseName());
+            snapshotDatabase(live, dbSnapshot, db);
 
             ArrayList<EntrySource> sources = new ArrayList<>();
             sources.add(new EntrySource(DB_ENTRY, dbSnapshot));
@@ -289,6 +294,46 @@ public final class NexoBackupManager {
             preview.put("ok", true);
             return preview;
         }
+    }
+
+    /** Consistent SQLite snapshot; legacy mode is kept only for SQLite before 3.27. */
+    static void snapshotDatabase(File live,File snapshot,DatabaseHelper helper) throws Exception {
+        File parent=snapshot.getParentFile();
+        if(parent==null||!parent.isDirectory())throw new IOException("No existe la carpeta temporal privada.");
+        if(!live.isFile())throw new IOException("No se encontró la base de datos de Nexo.");
+        SQLiteDatabase sql=SQLiteDatabase.openDatabase(live.getPath(),null,SQLiteDatabase.OPEN_READWRITE);
+        try {
+            try(Cursor check=sql.rawQuery("PRAGMA quick_check",null)){
+                if(!check.moveToFirst()||!"ok".equalsIgnoreCase(check.getString(0)))
+                    throw new IOException("La base de datos actual no supera la comprobación de integridad.");
+            }
+            if(supportsVacuumInto(sql)){
+                sql.execSQL("VACUUM INTO '"+snapshot.getPath().replace("'","''")+"'");
+            }else{
+                sql.close();
+                sql=null;
+                synchronized(helper){
+                    SQLiteDatabase writer=helper.getWritableDatabase();
+                    try(Cursor checkpoint=writer.rawQuery("PRAGMA wal_checkpoint(FULL)",null)){
+                        if(checkpoint.moveToFirst()&&checkpoint.getInt(0)!=0)
+                            throw new IOException("No se pudo confirmar la base SQLite antes de copiar.");
+                    }
+                    helper.close();
+                    copyFile(live,snapshot);
+                }
+            }
+        }finally{if(sql!=null)sql.close();}
+        if(!snapshot.isFile()||snapshot.length()==0)
+            throw new IOException("SQLite no creó la instantánea de Nexo.");
+        verifySqlite(snapshot);
+    }
+    private static boolean supportsVacuumInto(SQLiteDatabase sql){
+        try(Cursor c=sql.rawQuery("SELECT sqlite_version()",null)){
+            if(!c.moveToFirst())return false;
+            String[] parts=c.getString(0).split("\\.");
+            int major=Integer.parseInt(parts[0]),minor=Integer.parseInt(parts[1]);
+            return major>3||(major==3&&minor>=27);
+        }catch(Exception ignored){return false;}
     }
 
     private static void verifySqlite(File file) throws Exception {
