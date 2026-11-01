@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.77",
-  "releaseNotes": "Nexo incorpora una copia automática en un único archivo .nexo elegido por ti. Al abrir la aplicación solo lo actualiza si hay cambios y comprueba la integridad del archivo guardado. El chat se cifra con una contraseña protegida en el teléfono. Las grabaciones se exportan por separado. Actualización opcional.",
+  "versionName": "3.7.78",
+  "releaseNotes": "Corrige la pantalla de Copia de seguridad en Android: el texto vuelve a ocupar el ancho disponible y los botones aparecen debajo, sin desbordarse. Se mantiene la copia automática en un único archivo .nexo, la verificación del archivo y el cifrado del chat. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

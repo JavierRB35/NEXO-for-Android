@@ -3267,8 +3267,8 @@ function renderBackupPanel(){
     <div class="backup-card">
       <div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div>
       <div class="backup-copy"><strong>Copia automática en un único archivo</strong>
-        <p>Elige una ubicación y Nexo mantendrá allí una sola copia <b>.nexo</b>. Se comprueba al guardarla y, cada vez que abras la aplicación, solo se actualizará si detecta cambios.</p>
-        <p>Incluye fichas, listas, avisos, adjuntos y conversaciones cifradas. <strong>Las grabaciones se exportan por separado</strong> desde Grabaciones.</p>
+        <p>Elige una ubicación una sola vez. Nexo actualizará el mismo archivo <b>.nexo</b> al abrirse si hay cambios y comprobará que se guardó correctamente.</p>
+        <p>Incluye tus datos, adjuntos y conversaciones cifradas. <strong>Los audios se exportan por separado.</strong></p>
         <div class="small muted">${configured?'Ubicación configurada.':'Sin destino configurado: elige dónde guardar la copia.'}</div>
         <div class="small muted">${last?`Última copia verificada: ${esc(fmtDate(last,true))}`:'Aún no hay ninguna copia verificada.'}</div>
         ${running?'<div class="small muted">Creando y comprobando la copia…</div>':''}
@@ -3276,7 +3276,7 @@ function renderBackupPanel(){
         ${chatPresent?`<div class="small muted">${chatPassword?'Contraseña del chat protegida en este dispositivo.':'Configura una contraseña para incluir y proteger el chat automáticamente.'}</div>`:''}
         <div class="small muted">${esc(backupStatLine(stats))}</div>
       </div>
-      <div class="stack-actions">
+      <div class="backup-actions">
         <button id="backupChooseBtn" class="secondary-button">${configured?'Cambiar ubicación':'Elegir ubicación'}</button>
         <button id="backupExportBtn" class="primary-button">${configured?'Crear copia ahora':'Configurar copia'}</button>
         ${chatPresent?`<button id="backupPasswordBtn" class="secondary-button">${chatPassword?'Cambiar contraseña del chat':'Proteger conversaciones'}</button>`:''}
