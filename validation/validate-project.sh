@@ -24,6 +24,7 @@ python validation/test-library-categories.py
 python validation/test-books-compact.py
 python validation/test-books-full.py
 python3 validation/test-auto-backup.py
+python3 validation/test-backup-responsive.py
 python validation/test-places-library.py
 python validation/test-weather-header.py
 node validation/test-weather-startup-runtime.mjs
