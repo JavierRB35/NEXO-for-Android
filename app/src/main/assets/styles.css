@@ -2555,6 +2555,10 @@ body.startup-loading #app{visibility:hidden}
 .startup-splash__credit{
   position:relative;z-index:1;align-self:end;color:#596c98;font-size:clamp(.76rem,3vw,.9rem);
   font-weight:550;letter-spacing:.015em;text-align:center;padding:0 12px 2px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.startup-splash__author-mark{
+  display:block;width:38px;height:38px;object-fit:contain;flex:0 0 auto;
 }
 @media(max-height:680px){
   .startup-splash{padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:calc(18px + env(safe-area-inset-bottom))}
