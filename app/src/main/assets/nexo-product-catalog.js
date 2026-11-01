@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.76",
-  "releaseNotes": "La agenda diaria de hoy muestra una línea con la hora actual y se abre dejando 45 minutos anteriores visibles. La línea avanza con el reloj sin mover el calendario cuando lo desplazas. En otros días no aparece. Se mantienen los gestos para crear, mover y ajustar citas. Actualización opcional.",
+  "versionName": "3.7.77",
+  "releaseNotes": "Nexo incorpora una copia automática en un único archivo .nexo elegido por ti. Al abrir la aplicación solo lo actualiza si hay cambios y comprueba la integridad del archivo guardado. El chat se cifra con una contraseña protegida en el teléfono. Las grabaciones se exportan por separado. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
