@@ -34,6 +34,8 @@ import com.jruiz.nexo.calendar.CalendarWatchScheduler;
 import com.jruiz.nexo.calendar.HolidayCalendarService;
 import com.jruiz.nexo.exchange.NexoExchangeManager;
 import com.jruiz.nexo.backup.NexoBackupManager;
+import com.jruiz.nexo.backup.NexoAutoBackup;
+import com.jruiz.nexo.backup.NexoBackupPasswordStore;
 import com.jruiz.nexo.data.DatabaseHelper;
 import com.jruiz.nexo.data.VehicleRepository;
 import com.jruiz.nexo.data.BookRepository;
@@ -99,6 +101,7 @@ public class MainActivity extends Activity {
     private static final int REQ_GMAIL_SIGN_IN = 113;
     private static final int REQ_SMS = 114;
     private static final int REQ_NEXO_FAMILIA_IMPORT = 115;
+    private static final int REQ_BACKUP_EXISTING = 116;
     private String pendingDocumentRequest = "";
     private String pendingDocumentExportPath = "";
 
@@ -164,6 +167,10 @@ public class MainActivity extends Activity {
         NexoUpdateJob.schedule(this);
         setupWebView();
         handleIncomingIntent(getIntent());
+        NexoAutoBackup.backupAsync(this,db,false,(result,details,error)->{
+            if(error!=null&&NexoAutoBackup.failureCount(this)>=3&&!isFinishing()&&!isDestroyed())
+                Toast.makeText(this,"La copia automática de Nexo necesita atención. Revisa Ajustes.",Toast.LENGTH_LONG).show();
+        });
     }
 
     @Override protected void onResume() {
@@ -865,18 +872,87 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void chooseBackupExport() {
-        runOnUiThread(() -> {
-            try {
-                Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+    /** Existing Export button now updates the configured single file. */
+    private void chooseBackupExport(){
+        if(!NexoAutoBackup.configured(this)){chooseBackupLocation();return;}
+        NexoAutoBackup.backupAsync(this,db,true,this::showManualBackupResult);
+        Toast.makeText(this,"Creando y verificando la copia…",Toast.LENGTH_SHORT).show();
+    }
+    private void chooseBackupLocation(){
+        runOnUiThread(()->new android.app.AlertDialog.Builder(this)
+            .setTitle("Archivo único de Nexo")
+            // Android AlertDialog cannot show both setMessage() and setItems().
+            .setItems(new String[]{"Crear archivo en una ubicación","Elegir copia .nexo existente"},(dialog,choice)->{
+                Intent i=new Intent(choice==0?Intent.ACTION_CREATE_DOCUMENT:Intent.ACTION_OPEN_DOCUMENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("application/zip");
-                i.putExtra(Intent.EXTRA_TITLE, NexoBackupManager.suggestedFileName());
-                i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                startActivityForResult(i, REQ_BACKUP_EXPORT);
-            } catch (Exception e) {
-                jsCallback("onBackupError", "No se pudo abrir el selector para guardar la copia.");
+                i.setType(choice==0?"application/zip":"*/*");
+                i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_READ_URI_PERMISSION|
+                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                if(choice==0)i.putExtra(Intent.EXTRA_TITLE,"Nexo.nexo");
+                try{startActivityForResult(i,choice==0?REQ_BACKUP_EXPORT:REQ_BACKUP_EXISTING);}
+                catch(Exception failure){jsCallback("onBackupError","No se pudo abrir el selector de archivos.");}
+            }).setNegativeButton("Cancelar",null).show());
+    }
+    private void selectedBackupDocument(Uri uri,int flags,boolean existing){
+        if(existing){
+            new Thread(()->{
+                try{
+                    // Never silently overwrite an unrelated file chosen from the document picker.
+                    NexoBackupManager.inspect(this,uri);
+                    runOnUiThread(()->saveBackupDestination(uri,flags));
+                }catch(Exception failure){
+                    jsCallback("onBackupError","Selecciona una copia .nexo válida: "+
+                        cleanBackupError(failure,"Archivo no reconocido."));
+                }
+            },"nexo-backup-choose-existing").start();
+        }else saveBackupDestination(uri,flags);
+    }
+    private void saveBackupDestination(Uri uri,int flags){
+        Runnable save=()->{
+            try{
+                NexoAutoBackup.selectDestination(this,uri,flags,db,this::showManualBackupResult);
+                Toast.makeText(this,"Destino elegido. Creando y verificando la copia…",Toast.LENGTH_SHORT).show();
+            }catch(Exception failure){
+                jsCallback("onBackupError",cleanBackupError(failure,"No se pudo configurar el archivo."));
             }
+        };
+        if(backupHasLocalChat()&&!NexoBackupPasswordStore.configured(this)){
+            backupPassword(false,password->{
+                try{
+                    NexoBackupPasswordStore.save(this,password);
+                    NexoAutoBackup.passwordChanged(this);
+                    save.run();
+                }catch(Exception failure){
+                    jsCallback("onBackupError",cleanBackupError(failure,"No se pudo proteger la contraseña."));
+                }finally{java.util.Arrays.fill(password,'\0');}
+            });
+        }else save.run();
+    }
+    private void showManualBackupResult(NexoAutoBackup.Result result,JSONObject details,String error){
+        if(isFinishing()||isDestroyed())return;
+        if(error!=null){
+            jsCallback("onBackupError",cleanBackupError(new IOException(error),"La copia ha fallado."));
+        }else if(result==NexoAutoBackup.Result.SAVED){
+            jsCallbackJson("onBackupExported",details);
+        }else if(result==NexoAutoBackup.Result.RESTORING){
+            jsCallback("onBackupError","Espera a que termine la restauración.");
+        }else if(result==NexoAutoBackup.Result.DESTINATION_CHANGED){
+            jsCallback("onBackupError","La ubicación ha cambiado. Se utilizará el nuevo archivo.");
+        }else if(result==NexoAutoBackup.Result.UNCHANGED){
+            Toast.makeText(this,"La copia ya está actualizada",Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void configureBackupPassword(){
+        backupPassword(false,password->{
+            try{
+                NexoBackupPasswordStore.save(this,password);
+                NexoAutoBackup.passwordChanged(this);
+                Toast.makeText(this,"Contraseña protegida en este teléfono",Toast.LENGTH_LONG).show();
+                if(NexoAutoBackup.configured(this))
+                    NexoAutoBackup.backupAsync(this,db,true,this::showManualBackupResult);
+            }catch(Exception failure){
+                jsCallback("onBackupError",cleanBackupError(failure,"No se pudo guardar la contraseña."));
+            }finally{java.util.Arrays.fill(password,'\0');}
         });
     }
 
@@ -905,23 +981,6 @@ public class MainActivity extends Activity {
     }
     private boolean backupHasLocalChat(){try{return com.jruiz.nexo.connect.vault.NexoConnectChatBackup.hasHistory(this);}catch(Exception e){return true;}}
     private boolean restoreIncludesChat;
-    private void exportBackupTo(Uri uri) {
-        if(backupHasLocalChat()){backupPassword(false,p->exportBackupTo(uri,p));return;}
-        exportBackupTo(uri,null);
-    }
-    private void exportBackupTo(Uri uri,char[] password) {
-        new Thread(() -> {
-            try {
-                JSONObject info = NexoBackupManager.exportToUri(this, db, uri,password);
-                getSharedPreferences("nexo_backup", MODE_PRIVATE).edit()
-                        .putLong("lastExportAt", info.optLong("createdAt", System.currentTimeMillis())).apply();
-                jsCallbackJson("onBackupExported", info);
-            } catch (Exception e) {
-                jsCallback("onBackupError", cleanBackupError(e, "No se pudo crear la copia de seguridad."));
-            }
-            finally {if(password!=null)java.util.Arrays.fill(password,'\0');}
-        }, "nexo-backup-export").start();
-    }
 
     private void inspectBackup(Uri uri) {
         new Thread(() -> {
@@ -942,9 +1001,15 @@ public class MainActivity extends Activity {
         confirmRestoreBackup(null);
     }
     private void confirmRestoreBackup(char[] password) {
+        if(NexoAutoBackup.isRunning()){
+            if(password!=null)java.util.Arrays.fill(password,'\0');
+            jsCallback("onBackupError","Espera a que termine la copia en curso antes de restaurar.");
+            return;
+        }
         final Uri uri = pendingRestoreUri;
         if (uri == null) { jsCallback("onBackupError", "Selecciona primero una copia de Nexo."); return; }
         pendingRestoreUri = null;
+        NexoAutoBackup.setRestoring(true);
         new Thread(() -> {
             try {
                 // Cancelamos avisos del estado actual antes de reemplazarlo.
@@ -960,9 +1025,9 @@ public class MainActivity extends Activity {
                 JSONArray meds=db.getMedications("","active");
                 for(int i=0;i<meds.length();i++){JSONObject m=meds.optJSONObject(i);if(m!=null)MedicationScheduler.scheduleNext(this,db,m.optLong("id"),System.currentTimeMillis()-1);}
                 MedicationScheduler.restorePendingRepeats(this,db);
+                NexoAutoBackup.restored(this);
                 getSharedPreferences("nexo_backup", MODE_PRIVATE).edit()
                         .putLong("lastRestoreAt", System.currentTimeMillis())
-                        .putLong("lastExportAt", result.optLong("createdAt",0))
                         .putLong("restoredBackupCreatedAt", result.optLong("createdAt",0)).apply();
                 jsCallbackJson("onBackupRestored", result);
             } catch (Exception e) {
@@ -975,7 +1040,10 @@ public class MainActivity extends Activity {
                 } catch(Exception ignored){}
                 jsCallback("onBackupError", cleanBackupError(e, "No se pudo restaurar la copia."));
             }
-            finally {if(password!=null)java.util.Arrays.fill(password,'\0');}
+            finally {
+                NexoAutoBackup.setRestoring(false);
+                if(password!=null)java.util.Arrays.fill(password,'\0');
+            }
         }, "nexo-backup-restore").start();
     }
 
@@ -987,6 +1055,11 @@ public class MainActivity extends Activity {
             o.put("lastRestoreAt",p.getLong("lastRestoreAt",0));
             o.put("restoredBackupCreatedAt",p.getLong("restoredBackupCreatedAt",0));
             o.put("stats",db.getBackupStats());
+            o.put("configured",NexoAutoBackup.configured(this));
+            o.put("lastError",NexoAutoBackup.lastError(this));
+            o.put("running",NexoAutoBackup.isRunning());
+            o.put("chatPasswordConfigured",NexoBackupPasswordStore.configured(this));
+            o.put("chatPresent",backupHasLocalChat());
         } catch(Exception ignored){}
         return o;
     }
@@ -1208,8 +1281,9 @@ public class MainActivity extends Activity {
             if (resultCode == RESULT_OK && data != null && data.getData() != null) importNexoFamiliaFrom(data.getData());
             return;
         }
-        if (requestCode == REQ_BACKUP_EXPORT) {
-            if (resultCode == RESULT_OK && data != null && data.getData() != null) exportBackupTo(data.getData());
+        if (requestCode == REQ_BACKUP_EXPORT || requestCode == REQ_BACKUP_EXISTING) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null)
+                selectedBackupDocument(data.getData(),data.getFlags(),requestCode == REQ_BACKUP_EXISTING);
             return;
         }
         if (requestCode == REQ_BACKUP_RESTORE) {
@@ -2625,6 +2699,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void cancelSharedImport() { MainActivity.this.cancelSharedImport(); }
         @JavascriptInterface public String getBackupStatus() { return backupStatus().toString(); }
         @JavascriptInterface public void exportBackup() { chooseBackupExport(); }
+        @JavascriptInterface public void chooseBackupLocation() { MainActivity.this.chooseBackupLocation(); }
+        @JavascriptInterface public void configureBackupPassword() { MainActivity.this.configureBackupPassword(); }
         @JavascriptInterface public void chooseBackupRestore() { MainActivity.this.chooseBackupRestore(); }
         @JavascriptInterface public void confirmRestoreBackup() { MainActivity.this.confirmRestoreBackup(); }
         @JavascriptInterface public String getRecordingStatus() { return RecordingService.status().toString(); }
