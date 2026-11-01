@@ -3261,14 +3261,35 @@ function renderBackupPanel(){
         <div class="stack-actions family-sync-actions"><button id="nexoFamiliaLinkBtn" class="primary-button">Vincular Nexo Familia</button></div>
       </div>`;
 
+  const configured=!!b.configured,chatPresent=!!b.chatPresent,chatPassword=!!b.chatPasswordConfigured;
+  const backupError=String(b.lastError||''),running=!!b.running;
   $('#panelContent').innerHTML=`<div class="backup-stack">
-    <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div><div class="backup-copy"><strong>Exportar copia</strong><p>Guarda tus fichas, listas, avisos, adjuntos y conversaciones en un archivo <b>.nexo</b>. El chat se protege con la contraseña que elijas. <strong>Las grabaciones no se incluyen.</strong> Expórtalas por separado desde Grabaciones.</p><div class="small muted">${last?`Última copia: ${esc(fmtDate(last,true))}`:'Aún no has creado ninguna copia.'}</div><div class="small muted">${esc(backupStatLine(stats))}</div></div><button id="backupExportBtn" class="primary-button">Exportar copia</button></div>
+    <div class="backup-card">
+      <div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div>
+      <div class="backup-copy"><strong>Copia automática en un único archivo</strong>
+        <p>Elige una ubicación y Nexo mantendrá allí una sola copia <b>.nexo</b>. Se comprueba al guardarla y, cada vez que abras la aplicación, solo se actualizará si detecta cambios.</p>
+        <p>Incluye fichas, listas, avisos, adjuntos y conversaciones cifradas. <strong>Las grabaciones se exportan por separado</strong> desde Grabaciones.</p>
+        <div class="small muted">${configured?'Ubicación configurada.':'Sin destino configurado: elige dónde guardar la copia.'}</div>
+        <div class="small muted">${last?`Última copia verificada: ${esc(fmtDate(last,true))}`:'Aún no hay ninguna copia verificada.'}</div>
+        ${running?'<div class="small muted">Creando y comprobando la copia…</div>':''}
+        ${backupError?`<div class="family-sync-warning">La copia necesita atención: ${esc(backupError)}</div>`:''}
+        ${chatPresent?`<div class="small muted">${chatPassword?'Contraseña del chat protegida en este dispositivo.':'Configura una contraseña para incluir y proteger el chat automáticamente.'}</div>`:''}
+        <div class="small muted">${esc(backupStatLine(stats))}</div>
+      </div>
+      <div class="stack-actions">
+        <button id="backupChooseBtn" class="secondary-button">${configured?'Cambiar ubicación':'Elegir ubicación'}</button>
+        <button id="backupExportBtn" class="primary-button">${configured?'Crear copia ahora':'Configurar copia'}</button>
+        ${chatPresent?`<button id="backupPasswordBtn" class="secondary-button">${chatPassword?'Cambiar contraseña del chat':'Proteger conversaciones'}</button>`:''}
+      </div>
+    </div>
     <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg></div><div class="backup-copy"><strong>Restaurar copia</strong><p>Selecciona un archivo <b>.nexo</b> desde el teléfono, la nube, USB u otra ubicación disponible.</p><div class="small muted">${restored?`Última restauración: ${esc(fmtDate(restored,true))}`:'La restauración sustituye el contenido actual por el de la copia.'}</div></div><button id="backupRestoreBtn" class="secondary-button">Restaurar copia</button></div>
     ${familyCard}
     <div class="backup-security"><strong>Seguridad de la vinculación</strong><p>Nexo usa Supabase Auth como un usuario normal de Nexo Familia. Supabase aplica los mismos permisos y reglas RLS que en la aplicación familiar.</p></div>
   </div>`;
 
-  $('#backupExportBtn').addEventListener('click',()=>{toast('Elige dónde guardar la copia.');NexoNative.exportBackup();});
+  $('#backupChooseBtn').addEventListener('click',()=>{NexoNative.chooseBackupLocation();});
+  $('#backupExportBtn').addEventListener('click',()=>{toast(configured?'Comprobando la copia en el archivo elegido…':'Elige dónde guardar la copia.');NexoNative.exportBackup();});
+  if(chatPresent)$('#backupPasswordBtn').addEventListener('click',()=>{NexoNative.configureBackupPassword();});
   $('#backupRestoreBtn').addEventListener('click',()=>{toast('Selecciona una copia .nexo para revisarla antes de restaurar.');NexoNative.chooseBackupRestore();});
 
   if(connected){
