@@ -1,12 +1,14 @@
 'use strict';
 
-const CATEGORIES = ['Familia','Cumpleaños','Santo / Onomástica','Salud / Médico','Analítica','Farmacia','Colegio / Estudios','Trabajo','Viaje','Vacaciones','Casa','Vehículos / ITV','Seguros','Trámites','Tarea / Recado','Compras','Ocio / Social','Deporte','Recordatorio','Otro'];
+const CATEGORIES = ['Familia','Cumpleaños','Santo / Onomástica','Mi salud','Acompañar (salud)','Analítica','Farmacia','Colegio / Estudios','Trabajo','Viaje','Vacaciones','Casa','Vehículos / ITV','Seguros','Trámites','Tarea / Recado','Compras','Ocio / Social','Deporte','Recordatorio','Otro'];
 const LEGACY_CATEGORY_MAP = {
   Personal:'Familia',
   Coche:'Vehículos / ITV',
   Viajes:'Viaje',
-  Salud:'Salud / Médico',
-  Medicamentos:'Salud / Médico',
+  Salud:'Mi salud',
+  // Alias de lectura: conservar las categorías históricas sin modificar la base de datos.
+  'Salud / Médico':'Mi salud',
+  Medicamentos:'Mi salud',
   Finanzas:'Trámites',
   Ocio:'Ocio / Social',
   Restaurantes:'Ocio / Social',
@@ -69,7 +71,8 @@ const CATEGORY_ICONS=Object.freeze({
   'familia':'users',
   'cumpleanos':'cake',
   'santo / onomastica':'calendar-heart',
-  'salud / medico':'heart-pulse',
+  'mi salud':'heart-pulse',
+  'acompanar (salud)':'hand-heart',
   'analitica':'syringe-blood',
   'farmacia':'pill',
   'colegio / estudios':'graduation',
@@ -91,7 +94,8 @@ const CATEGORY_COLORS=Object.freeze({
   'familia':'#7C3AED',
   'cumpleanos':'#D81B60',
   'santo / onomastica':'#A16207',
-  'salud / medico':'#DC2626',
+  'mi salud':'#DC2626',
+  'acompanar (salud)':'#168FBB',
   'analitica':'#7F1D1D',
   'farmacia':'#0F766E',
   'colegio / estudios':'#2563EB',
@@ -112,7 +116,7 @@ const CATEGORY_COLORS=Object.freeze({
 function familyCategoryColor(category){return CATEGORY_COLORS[familyNorm(categoryLabel(category))]||'#475569';}
 function familyNorm(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();}
 function familyCategoryIcon(category){return CATEGORY_ICONS[familyNorm(categoryLabel(category))]||'shapes';}
-function categoryIconLabel(category){return '<span class="category-icon-label">'+uiIcon(familyCategoryIcon(category))+'<span>'+esc(categoryLabel(category))+'</span></span>';}
+function categoryIconLabel(category){return '<span class="category-icon-label" style="--event-category-color:'+familyCategoryColor(category)+'">'+uiIcon(familyCategoryIcon(category))+'<span>'+esc(categoryLabel(category))+'</span></span>';}
 function updateCategorySelectIcon(select){if(!select)return;const preview=select.nextElementSibling;if(preview?.classList.contains('category-select-preview'))preview.innerHTML=categoryIconLabel(select.value);}
 function bindCategorySelectIcon(selector){const select=$(selector);if(!select)return;if(!select.nextElementSibling?.classList.contains('category-select-preview')){const preview=document.createElement('span');preview.className='category-select-preview';select.insertAdjacentElement('afterend',preview);select.addEventListener('change',()=>updateCategorySelectIcon(select));}updateCategorySelectIcon(select);}
 function localDateKeyFromMs(ms){return ms?isoDateLocal(new Date(Number(ms))):'';}
@@ -135,7 +139,7 @@ function familySearchCandidateForItem(item,todayStart){
   const involved=item.participantsText?'Personas: '+item.participantsText:'';
   const detail=[categoryLabel(item.category),involved,item.locationText,eventDate,historical?'Finalizado':''].filter(Boolean).join(' · ');
   return {kind:'item',id:Number(item.seriesId||item.id),occurrenceAt:recurring?next:0,recurring,type,title:String(item.title||type),detail,
-    searchText:[item.title,item.body,item.originalText,item.category,item.subcategory,item.tags,item.locationText,item.participantsText,item.attachmentName,'agenda','personas','involucrado'].filter(Boolean).join(' '),
+    searchText:[item.title,item.body,item.originalText,item.category,categoryLabel(item.category),item.subcategory,item.tags,item.locationText,item.participantsText,item.attachmentName,'agenda','personas','involucrado'].filter(Boolean).join(' '),
     sortDate:eventDate||'',historical,raw:item};
 }
 function buildFamilyStyleSearchIndex(){
@@ -2077,7 +2081,7 @@ function itemCard(i) {
   const done=(i.status==='done'||i.occurrenceStatus==='done'),cancelled=i.status==='cancelled';
   return `<div class="item-card ${done?'item-done':''}" role="button" tabindex="0" data-item-card-open="${id}" data-item-card-occurrence="${occ}" data-item-card-recurring="${recurring?'1':'0'}">
     <div class="item-top"><div class="item-title">${esc(i.title)}</div><div class="record-card-actions">${recordIconAction('edit','Editar',open)}${recordIconAction('share','Compartir',`data-share-item="${id}" data-share-occurrence="${occ}" data-share-recurring="${recurring?'1':'0'}" data-share-has-date="${i.dueAt?'1':'0'}"`)}${recordIconAction('trash','Eliminar',`data-card-delete-item="${id}" data-card-delete-occurrence="${occ}" data-card-delete-recurring="${recurring?'1':'0'}"`,'icon-action--danger')}</div></div>
-    <div class="item-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag event-time-meta">${eventReminderBellHtml(i,'event-reminder-indicator--time')}${esc(due)}</span>`:''}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':cancelled?'<span class="meta-tag done-tag">Cancelada</span>':''}</div>
+    <div class="item-meta"><span class="pill category-pill" style="--event-category-color:${familyCategoryColor(i.category)}">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${due?`<span class="meta-tag event-time-meta">${eventReminderBellHtml(i,'event-reminder-indicator--time')}${esc(due)}</span>`:''}${recurring?`<span class="meta-tag recurrence-tag">↻ ${esc(recurrenceLabel(i.recurrence))}</span>`:''}${done?'<span class="meta-tag done-tag">Realizada</span>':cancelled?'<span class="meta-tag done-tag">Cancelada</span>':''}</div>
     ${i.body&&i.body!==i.title?`<div class="item-body">${esc(i.body)}</div>`:''}
     ${i.locationText?`<div class="item-location"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-pin"></use></svg> ${esc(i.locationText)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--item')}
@@ -3591,7 +3595,7 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'',eventHasLocation(i)?'eventDetailMapsBtn':'')}<div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'',eventHasLocation(i)?'eventDetailMapsBtn':'')}<div class="detail-meta"><span class="pill category-pill" style="--event-category-color:${familyCategoryColor(i.category)}">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${eventLocationShortcutHtml(i,'eventDetailLocationBtn')}
@@ -3664,7 +3668,7 @@ function openOccurrence(seriesId,occurrenceAt){
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,endTime=endTimeForItem(i),originalEndTime=endTime,originalAllDay=allDay,originalVoiceEnabled=!!i.voiceEnabled,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
   openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'',eventHasLocation(i)?'occDetailMapsBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
-    <div class="detail-meta"><span class="pill category-pill">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
+    <div class="detail-meta"><span class="pill category-pill" style="--event-category-color:${familyCategoryColor(i.category)}">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
     ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
     ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
     ${eventLocationShortcutHtml(i,'occDetailLocationBtn')}
