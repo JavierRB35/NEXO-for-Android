@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.81",
-  "releaseNotes": "Las fichas de citas muestran fecha, horario, motivo, estado y avisos de un vistazo. Editar está arriba y Maps y Vínculos ocupan menos espacio. También se aplica a citas repetidas. Tus datos se conservan. Actualización opcional.",
+  "versionName": "3.7.82",
+  "releaseNotes": "El calendario muestra completas las siete columnas en pantallas pequeñas. Los títulos de nuevas citas conservan mejor la acción que dictas, como cancelar una reunión o pedir un presupuesto. Tus citas guardadas no cambian. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

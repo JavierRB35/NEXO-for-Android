@@ -1,5 +1,7 @@
 package com.jruiz.nexo.core;
 
+import com.jruiz.nexo.core.title.AppointmentTitleEngine;
+
 /** The general capture always creates an appointment; parsers only suggest its fields. */
 public final class AppointmentParser {
     private AppointmentParser() {}
@@ -19,6 +21,12 @@ public final class AppointmentParser {
 
         if (result.description.isBlank()) result.description = text;
         result.title = LocalTitleEngine.derive(text, "event", result.category, result.locationText, result.description);
+        AppointmentTitleEngine.Selection title = AppointmentTitleEngine.derive(text, result.title, result.category, result.locationText);
+        result.title = title.title();
+        if (title.needsReview()) {
+            result.needsReview = true;
+            result.warnings.add(AppointmentTitleEngine.REVIEW_WARNING);
+        }
         return result;
     }
 }

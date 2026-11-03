@@ -19,6 +19,7 @@ javac -encoding UTF-8 -d "$TMP" \
   app/src/main/java/com/jruiz/nexo/core/LocalTitleEngine.java \
   app/src/main/java/com/jruiz/nexo/core/RuleClassifier.java \
   app/src/main/java/com/jruiz/nexo/core/AppointmentParser.java \
+  app/src/main/java/com/jruiz/nexo/core/title/*.java \
   app/src/main/java/com/jruiz/nexo/core/PlaceEntry.java \
   app/src/main/java/com/jruiz/nexo/core/DocumentEntry.java \
   app/src/main/java/com/jruiz/nexo/documents/DocumentFiles.java \

@@ -22,7 +22,7 @@ assert 'familyCategoryIcon(item.category)' in js
 assert 'familyCategoryColor(item.category)' in js
 assert 'categoryIconLabel(select.value)' in js
 assert 'DB_VERSION = 34' in (root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf8')
-assert 'versionCode 174' in (root/'app/build.gradle').read_text(encoding='utf8')
+assert 'versionCode 175' in (root/'app/build.gradle').read_text(encoding='utf8')
 symbol='<symbol id="nx-icon-syringe-blood"'+html.split('<symbol id="nx-icon-syringe-blood"',1)[1].split('</symbol>',1)[0]+'</symbol>'
 root_svg=ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg">'+symbol+'</svg>')
 children=list(root_svg)[0]
