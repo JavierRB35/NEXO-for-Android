@@ -8,9 +8,10 @@ place=(root/'app/src/main/java/com/jruiz/nexo/core/PlaceEntry.java').read_text(e
 
 for token in (
     "function eventLocationShortcutHtml(item,buttonId)",
+    "function eventDetailOverviewHtml(item,alerts,locationButtonId,statusOverride='')",
     "function bindEventMapActions(item,...ids)",
-    "eventLocationShortcutHtml(i,'eventDetailLocationBtn')",
-    "eventLocationShortcutHtml(i,'occDetailLocationBtn')",
+    "eventDetailOverviewHtml(i,originalAlerts,'eventDetailLocationBtn')",
+    "eventDetailOverviewHtml(i,occAlerts,'occDetailLocationBtn',currentState)",
     "eventHasLocation(i)?'eventDetailMapsBtn':''",
     "eventHasLocation(i)?'occDetailMapsBtn':''",
     "bindEventMapActions(i,'eventDetailMapsBtn','eventDetailLocationBtn')",

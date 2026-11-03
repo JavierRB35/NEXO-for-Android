@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.80",
-  "releaseNotes": "Separa tus citas médicas («Mi salud») de las citas en las que acompañas a familiares («Acompañar (salud)»). Ambas categorías tienen iconos y colores distintos en Agenda y Calendario. Tus datos se conservan. Actualización opcional.",
+  "versionName": "3.7.81",
+  "releaseNotes": "Las fichas de citas muestran fecha, horario, motivo, estado y avisos de un vistazo. Editar está arriba y Maps y Vínculos ocupan menos espacio. También se aplica a citas repetidas. Tus datos se conservan. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

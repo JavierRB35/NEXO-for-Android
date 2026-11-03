@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.80",
-  "notes": "Separa tus citas médicas («Mi salud») de las citas en las que acompañas a familiares («Acompañar (salud)»). Ambas categorías tienen iconos y colores distintos en Agenda y Calendario. Tus datos se conservan. Actualización opcional."
+  "versionName": "3.7.81",
+  "notes": "Las fichas de citas muestran fecha, horario, motivo, estado y avisos de un vistazo. Editar está arriba y Maps y Vínculos ocupan menos espacio. También se aplica a citas repetidas. Tus datos se conservan. Actualización opcional."
 }

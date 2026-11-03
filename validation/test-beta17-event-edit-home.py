@@ -38,8 +38,8 @@ assert 'id="captureMapPreview"' in html and 'id="captureMapsUrl" type="hidden"' 
 assert 'placeholder="Dirección o enlace de Google Maps"' in html
 for token in ['id="editLocationMapBtn"','id="occLocationMapBtn"','id="editMapsUrl" type="hidden"','id="occMapsUrl" type="hidden"']:
     assert token in js, token
-assert "eventLocationShortcutHtml(i,'eventDetailLocationBtn')" in item
-assert "eventLocationShortcutHtml(i,'occDetailLocationBtn')" in occ
+assert "eventDetailOverviewHtml(i,originalAlerts,'eventDetailLocationBtn')" in item
+assert "eventDetailOverviewHtml(i,occAlerts,'occDetailLocationBtn',currentState)" in occ
 assert "bindEventMapActions(i,'eventDetailMapsBtn','eventDetailLocationBtn')" in item
 assert "bindEventMapActions(i,'occDetailMapsBtn','occDetailLocationBtn')" in occ
 assert 'function bindEventLocationField' in js
@@ -80,6 +80,6 @@ assert launcher_foreground.stat().st_size > 1000
 assert '@drawable/ic_launcher_foreground' in launcher_xml and '@drawable/ic_launcher_foreground' in launcher_round_xml
 assert '@color/nexo_launcher_background' in launcher_xml and '@color/nexo_launcher_background' in launcher_round_xml
 assert '<color name="nexo_launcher_background">#F4FBFF</color>' in colors
-assert 'v3.7.80' in html
+assert 'v3.7.81' in html
 
 print('Beta17: criterios de aceptación + mes de Inicio + branding actual OK')
