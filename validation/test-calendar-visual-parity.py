@@ -8,12 +8,14 @@ html=(root/'app/src/main/assets/index.html').read_text(encoding='utf-8')
 
 palette=js.split('const CATEGORY_COLORS=Object.freeze({',1)[1].split('});',1)[0]
 tones=dict(re.findall(r"'([^']+)':'(#[0-9A-Fa-f]{6})'",palette))
-assert len(tones)==20, f'Faltan colores para las 20 categorías: {len(tones)}'
-assert len(set(tones.values()))==20, 'Cada categoría debe tener un color propio'
-assert tones['familia']!=tones['salud / medico']
+assert len(tones)==21, f'Faltan colores para las 21 categorías: {len(tones)}'
+assert len(set(tones.values()))==21, 'Cada categoría debe tener un color propio'
+assert tones['familia']!=tones['mi salud']
 assert tones['analitica']=='#7F1D1D'
-assert tones['analitica']!=tones['salud / medico']
+assert tones['analitica']!=tones['mi salud']
 assert tones['casa']!=tones['cumpleanos']
+assert tones['mi salud']=='#DC2626'
+assert tones['acompanar (salud)']=='#168FBB'
 
 home=js.split('function homeUpcomingCard(item){',1)[1].split('function bindHomeUpcoming',1)[0]
 agenda=js.split('function agendaCard(i,showDate=false){',1)[1].split('function prepareHomeCapture',1)[0]
@@ -42,5 +44,5 @@ assert '.calendar-category-marker,.calendar-day.selected .calendar-category-mark
 assert '.calendar-icon-legend__item .ui-icon' in css
 assert '.upcoming-card--past' in css
 assert 'attachMonthSwipe(document.querySelector' in js
-assert 'aria-label="Iconos de las 20 categorías"' in html
-print('Calendario 3.7.20: 20 colores, tarjetas homogéneas, sin acciones y +N: OK')
+assert 'aria-label="Iconos de las 21 categorías"' in html
+print('Calendario: 21 colores, tarjetas homogéneas, sin acciones y +N: OK')
