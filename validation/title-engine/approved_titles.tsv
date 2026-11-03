@@ -1,0 +1,569 @@
+id	input	expected_title	review
+T001-1	Tengo cita con el dentista para revisar el implante dental el 16 de diciembre de 2026 a las diez y media.	Revisión del implante dental	false
+T001-2	Voy al dentista porque me tienen que revisar el implante dental mañana por la tarde a las 18:30.	Revisión del implante dental	false
+T001-3	Recuérdame: Tengo cita con el dentista para revisar el implante dental el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión del implante dental	false
+T001-4	Voy al dentista porque me tienen que revisar el implante dental el 18/12/2026 a las 09:45 en Clínica Dental Centro; avísame el día anterior.	Revisión del implante dental	false
+T002-1	Tengo consulta médica por el dolor de espalda el 16 de diciembre de 2026 a las diez y media.	Consulta por el dolor de espalda	false
+T002-2	Voy al médico para consultar lo del dolor de espalda mañana por la tarde a las 18:30.	Consulta por dolor de espalda	false
+T002-3	Recuérdame: Tengo consulta médica por el dolor de espalda el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Consulta por el dolor de espalda	false
+T002-4	Voy al médico para consultar lo del dolor de espalda el 18/12/2026 a las 09:45 en Centro de Salud Norte; avísame el día anterior.	Consulta por dolor de espalda	false
+T003-1	Cita con enfermería para revisar la tensión arterial el 16 de diciembre de 2026 a las diez y media.	Revisión de la tensión arterial	false
+T003-2	Acudo al centro de salud para controlar la tensión mañana por la tarde a las 18:30.	Control de la tensión	false
+T003-3	Recuérdame: Cita con enfermería para revisar la tensión arterial el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión de la tensión arterial	false
+T003-4	Acudo al centro de salud para controlar la tensión el 18/12/2026 a las 09:45 en Centro de Salud Ruzafa; avísame el día anterior.	Control de la tensión	false
+T004-1	Tengo cita para ponerme la vacuna de la gripe el 16 de diciembre de 2026 a las diez y media.	Vacunación contra la gripe	false
+T004-2	Voy a vacunarme contra la gripe mañana por la tarde a las 18:30.	Vacunación contra la gripe	false
+T004-3	Recuérdame: Tengo cita para ponerme la vacuna de la gripe el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Vacunación contra la gripe	false
+T004-4	Voy a vacunarme contra la gripe el 18/12/2026 a las 09:45 en Centro de Salud Norte; avísame el día anterior.	Vacunación contra la gripe	false
+T005-1	Tengo revisión oftalmológica de la vista el 16 de diciembre de 2026 a las diez y media.	Revisión oftalmológica de la vista	false
+T005-2	Voy al oftalmólogo para que me revisen la vista mañana por la tarde a las 18:30.	Revisión de la vista	false
+T005-3	Recuérdame: Tengo revisión oftalmológica de la vista el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión oftalmológica de la vista	false
+T005-4	Voy al oftalmólogo para que me revisen la vista el 18/12/2026 a las 09:45 en Clínica Oftalmológica Valencia; avísame el día anterior.	Revisión de la vista	false
+T006-1	Tengo que ir al hospital para recoger los resultados del TAC el 16 de diciembre de 2026 a las diez y media.	Recoger los resultados del TAC	false
+T006-2	Voy a recoger el informe del TAC en el hospital mañana por la tarde a las 18:30.	Recoger el informe del TAC en el hospital	false
+T006-3	Recuérdame: Tengo que ir al hospital para recoger los resultados del TAC el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger los resultados del TAC	false
+T006-4	Voy a recoger el informe del TAC en el hospital el 18/12/2026 a las 09:45 en Hospital La Fe; avísame el día anterior.	Recoger el informe del TAC en el hospital	false
+T007-1	Tengo cita para hacerme una analítica de sangre el 16 de diciembre de 2026 a las diez y media.	Analítica de sangre	false
+T007-2	Voy al laboratorio para que me saquen sangre mañana por la tarde a las 18:30.	Extracción de sangre	false
+T007-3	Recuérdame: Tengo cita para hacerme una analítica de sangre el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Analítica de sangre	false
+T007-4	Voy al laboratorio para que me saquen sangre el 18/12/2026 a las 09:45 en Laboratorio Valencia; avísame el día anterior.	Extracción de sangre	false
+T008-1	Tengo una resonancia magnética de la rodilla el 16 de diciembre de 2026 a las diez y media.	Resonancia magnética de la rodilla	false
+T008-2	Me van a hacer una resonancia de la rodilla mañana por la tarde a las 18:30.	Resonancia de la rodilla	false
+T008-3	Recuérdame: Tengo una resonancia magnética de la rodilla el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Resonancia magnética de la rodilla	false
+T008-4	Me van a hacer una resonancia de la rodilla el 18/12/2026 a las 09:45 en Hospital General; avísame el día anterior.	Resonancia de la rodilla	false
+T009-1	Cita para una ecografía abdominal el 16 de diciembre de 2026 a las diez y media.	Ecografía abdominal	false
+T009-2	Me van a realizar una ecografía del abdomen mañana por la tarde a las 18:30.	Ecografía del abdomen	false
+T009-3	Recuérdame: Cita para una ecografía abdominal el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Ecografía abdominal	false
+T009-4	Me van a realizar una ecografía del abdomen el 18/12/2026 a las 09:45 en Centro Diagnóstico; avísame el día anterior.	Ecografía del abdomen	false
+T010-1	Tengo que entregar una muestra de orina en el laboratorio el 16 de diciembre de 2026 a las diez y media.	Entregar una muestra de orina en el laboratorio	false
+T010-2	Voy al centro médico a llevar una muestra de orina mañana por la tarde a las 18:30.	Llevar una muestra de orina	false
+T010-3	Recuérdame: Tengo que entregar una muestra de orina en el laboratorio el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Entregar una muestra de orina en el laboratorio	false
+T010-4	Voy al centro médico a llevar una muestra de orina el 18/12/2026 a las 09:45 en Laboratorio Clínico; avísame el día anterior.	Llevar una muestra de orina	false
+T011-1	Tengo que acompañar a mi madre al cardiólogo el 16 de diciembre de 2026 a las diez y media.	Acompañar a mi madre al cardiólogo	false
+T011-2	Voy con mi madre a su cita de cardiología mañana por la tarde a las 18:30.	Acompañar a mi madre a consulta de cardiología	false
+T011-3	Recuérdame: Tengo que acompañar a mi madre al cardiólogo el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Acompañar a mi madre al cardiólogo	false
+T011-4	Voy con mi madre a su cita de cardiología el 18/12/2026 a las 09:45 en Hospital Clínico; avísame el día anterior.	Acompañar a mi madre a consulta de cardiología	false
+T012-1	Hemos quedado para comer con los primos el 16 de diciembre de 2026 a las diez y media.	Comida con los primos	false
+T012-2	Tenemos una comida familiar con los primos mañana por la tarde a las 18:30.	Comida familiar con los primos	false
+T012-3	Recuérdame: Hemos quedado para comer con los primos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Comida con los primos	false
+T012-4	Tenemos una comida familiar con los primos el 18/12/2026 a las 09:45 en Casa Familiar; avísame el día anterior.	Comida familiar con los primos	false
+T013-1	Voy a visitar a los abuelos el 16 de diciembre de 2026 a las diez y media.	Visita a los abuelos	false
+T013-2	Tenemos que ir a ver a los abuelos mañana por la tarde a las 18:30.	Visita a los abuelos	false
+T013-3	Recuérdame: Voy a visitar a los abuelos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Visita a los abuelos	false
+T013-4	Tenemos que ir a ver a los abuelos el 18/12/2026 a las 09:45 en Casa de los abuelos; avísame el día anterior.	Visita a los abuelos	false
+T014-1	Tengo que recoger a mi hija del colegio el 16 de diciembre de 2026 a las diez y media.	Recoger a mi hija del colegio	false
+T014-2	Voy a buscar a mi hija a la salida del colegio mañana por la tarde a las 18:30.	Buscar a mi hija a la salida del colegio	false
+T014-3	Recuérdame: Tengo que recoger a mi hija del colegio el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger a mi hija del colegio	false
+T014-4	Voy a buscar a mi hija a la salida del colegio el 18/12/2026 a las 09:45 en Colegio Público; avísame el día anterior.	Buscar a mi hija a la salida del colegio	false
+T015-1	Tenemos reunión familiar para organizar las vacaciones el 16 de diciembre de 2026 a las diez y media.	Reunión familiar para organizar las vacaciones	false
+T015-2	Vamos a hablar en familia de las vacaciones mañana por la tarde a las 18:30.	Hablar en familia de las vacaciones	false
+T015-3	Recuérdame: Tenemos reunión familiar para organizar las vacaciones el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión familiar para organizar las vacaciones	false
+T015-4	Vamos a hablar en familia de las vacaciones el 18/12/2026 a las 09:45 en Casa Familiar; avísame el día anterior.	Hablar en familia de las vacaciones	false
+T016-1	He quedado a cenar con Marta y Javier el 16 de diciembre de 2026 a las diez y media.	Cena con Marta y Javier	false
+T016-2	Vamos a cenar con Marta y Javier mañana por la tarde a las 18:30.	Cena con Marta y Javier	false
+T016-3	Recuérdame: He quedado a cenar con Marta y Javier el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Cena con Marta y Javier	false
+T016-4	Vamos a cenar con Marta y Javier el 18/12/2026 a las 09:45 en Restaurante La Plaza; avísame el día anterior.	Cena con Marta y Javier	false
+T017-1	He quedado para tomar café con Ana el 16 de diciembre de 2026 a las diez y media.	Café con Ana	false
+T017-2	Voy a ver a Ana para tomar un café mañana por la tarde a las 18:30.	Café con Ana	false
+T017-3	Recuérdame: He quedado para tomar café con Ana el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Café con Ana	false
+T017-4	Voy a ver a Ana para tomar un café el 18/12/2026 a las 09:45 en Cafetería Central; avísame el día anterior.	Café con Ana	false
+T018-1	Haremos una excursión con los amigos el 16 de diciembre de 2026 a las diez y media.	Excursión con los amigos	false
+T018-2	Hemos quedado con los amigos para ir de excursión mañana por la tarde a las 18:30.	Excursión con los amigos	false
+T018-3	Recuérdame: Haremos una excursión con los amigos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Excursión con los amigos	false
+T018-4	Hemos quedado con los amigos para ir de excursión el 18/12/2026 a las 09:45 en Parque Natural; avísame el día anterior.	Excursión con los amigos	false
+T019-1	Tengo una partida de cartas con Pedro el 16 de diciembre de 2026 a las diez y media.	Partida de cartas con Pedro	false
+T019-2	He quedado con Pedro para jugar a las cartas mañana por la tarde a las 18:30.	Jugar a las cartas con Pedro	false
+T019-3	Recuérdame: Tengo una partida de cartas con Pedro el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Partida de cartas con Pedro	false
+T019-4	He quedado con Pedro para jugar a las cartas el 18/12/2026 a las 09:45 en Club Social; avísame el día anterior.	Jugar a las cartas con Pedro	false
+T020-1	Vamos a celebrar la jubilación de Luis el 16 de diciembre de 2026 a las diez y media.	Celebrar la jubilación de Luis	false
+T020-2	Tengo la celebración de jubilación de Luis mañana por la tarde a las 18:30.	Celebración de jubilación de Luis	false
+T020-3	Recuérdame: Vamos a celebrar la jubilación de Luis el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Celebrar la jubilación de Luis	false
+T020-4	Tengo la celebración de jubilación de Luis el 18/12/2026 a las 09:45 en Salón de Eventos; avísame el día anterior.	Celebración de jubilación de Luis	false
+T021-1	Tengo una reunión para hablar del presupuesto de la reforma el 16 de diciembre de 2026 a las diez y media.	Reunión sobre presupuesto de la reforma	false
+T021-2	He quedado con el proveedor para revisar el presupuesto de la reforma mañana por la tarde a las 18:30.	Revisión del presupuesto de la reforma con el proveedor	false
+T021-3	Recuérdame: Tengo una reunión para hablar del presupuesto de la reforma el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión sobre presupuesto de la reforma	false
+T021-4	He quedado con el proveedor para revisar el presupuesto de la reforma el 18/12/2026 a las 09:45 en Oficina Central; avísame el día anterior.	Revisión del presupuesto de la reforma con el proveedor	false
+T022-1	Tengo que presentar el informe de ventas el 16 de diciembre de 2026 a las diez y media.	Presentar el informe de ventas	false
+T022-2	Voy a hacer la presentación del informe comercial de ventas mañana por la tarde a las 18:30.	Presentación del informe comercial de ventas	false
+T022-3	Recuérdame: Tengo que presentar el informe de ventas el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Presentar el informe de ventas	false
+T022-4	Voy a hacer la presentación del informe comercial de ventas el 18/12/2026 a las 09:45 en Oficina Central; avísame el día anterior.	Presentación del informe comercial de ventas	false
+T023-1	Tenemos reunión para revisar los márgenes comerciales el 16 de diciembre de 2026 a las diez y media.	Reunión para revisar los márgenes comerciales	false
+T023-2	Voy a analizar los márgenes comerciales con el equipo mañana por la tarde a las 18:30.	Análisis de los márgenes comerciales con el equipo	false
+T023-3	Recuérdame: Tenemos reunión para revisar los márgenes comerciales el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión para revisar los márgenes comerciales	false
+T023-4	Voy a analizar los márgenes comerciales con el equipo el 18/12/2026 a las 09:45 en Sala de Reuniones; avísame el día anterior.	Análisis de los márgenes comerciales con el equipo	false
+T024-1	He convocado una reunión para planificar el inventario anual el 16 de diciembre de 2026 a las diez y media.	Reunión para planificar el inventario anual	false
+T024-2	Nos reuniremos para organizar el recuento de inventario anual mañana por la tarde a las 18:30.	Organizar el recuento de inventario anual	false
+T024-3	Recuérdame: He convocado una reunión para planificar el inventario anual el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión para planificar el inventario anual	false
+T024-4	Nos reuniremos para organizar el recuento de inventario anual el 18/12/2026 a las 09:45 en Almacén Central; avísame el día anterior.	Organizar el recuento de inventario anual	false
+T025-1	Tengo una entrevista con un candidato de logística el 16 de diciembre de 2026 a las diez y media.	Entrevista con un candidato de logística	false
+T025-2	Voy a entrevistar a una persona para el puesto de logística mañana por la tarde a las 18:30.	Entrevistar a una persona para el puesto de logística	false
+T025-3	Recuérdame: Tengo una entrevista con un candidato de logística el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Entrevista con un candidato de logística	false
+T025-4	Voy a entrevistar a una persona para el puesto de logística el 18/12/2026 a las 09:45 en Oficina Central; avísame el día anterior.	Entrevistar a una persona para el puesto de logística	false
+T026-1	Tengo que renovar el seguro del hogar el 16 de diciembre de 2026 a las diez y media.	Renovación del seguro del hogar	false
+T026-2	Voy al banco para gestionar la renovación de la póliza de hogar mañana por la tarde a las 18:30.	Gestión de la renovación de la póliza de hogar	false
+T026-3	Recuérdame: Tengo que renovar el seguro del hogar el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Renovación del seguro del hogar	false
+T026-4	Voy al banco para gestionar la renovación de la póliza de hogar el 18/12/2026 a las 09:45 en Oficina Bancaria; avísame el día anterior.	Gestión de la renovación de la póliza de hogar	false
+T027-1	Tengo reunión con el banco para revisar las condiciones de la hipoteca el 16 de diciembre de 2026 a las diez y media.	Revisión de las condiciones de la hipoteca	false
+T027-2	Voy a preguntar al banco por las condiciones hipotecarias mañana por la tarde a las 18:30.	Preguntar al banco por las condiciones hipotecarias	false
+T027-3	Recuérdame: Tengo reunión con el banco para revisar las condiciones de la hipoteca el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión de las condiciones de la hipoteca	false
+T027-4	Voy a preguntar al banco por las condiciones hipotecarias el 18/12/2026 a las 09:45 en Sucursal Bancaria; avísame el día anterior.	Preguntar al banco por las condiciones hipotecarias	false
+T028-1	Tengo cita para firmar la escritura de compraventa el 16 de diciembre de 2026 a las diez y media.	Firma de escritura de compraventa	false
+T028-2	Voy al notario para la firma de la escritura de compraventa mañana por la tarde a las 18:30.	Firma de la escritura de compraventa	false
+T028-3	Recuérdame: Tengo cita para firmar la escritura de compraventa el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Firma de escritura de compraventa	false
+T028-4	Voy al notario para la firma de la escritura de compraventa el 18/12/2026 a las 09:45 en Notaría Centro; avísame el día anterior.	Firma de la escritura de compraventa	false
+T029-1	Tengo que presentar la declaración de la renta el 16 de diciembre de 2026 a las diez y media.	Presentar la declaración de la renta	false
+T029-2	Voy a entregar la declaración anual de la renta mañana por la tarde a las 18:30.	Entregar la declaración anual de la renta	false
+T029-3	Recuérdame: Tengo que presentar la declaración de la renta el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Presentar la declaración de la renta	false
+T029-4	Voy a entregar la declaración anual de la renta el 18/12/2026 a las 09:45 en Agencia Tributaria; avísame el día anterior.	Entregar la declaración anual de la renta	false
+T030-1	Voy a revisar el recibo del IBI el 16 de diciembre de 2026 a las diez y media.	Revisión del recibo del IBI	false
+T030-2	Tengo cita en el ayuntamiento para preguntar por el IBI mañana por la tarde a las 18:30.	Tengo cita en el ayuntamiento para preguntar por el IBI	false
+T030-3	Recuérdame: Voy a revisar el recibo del IBI el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión del recibo del IBI	false
+T030-4	Tengo cita en el ayuntamiento para preguntar por el IBI el 18/12/2026 a las 09:45 en Ayuntamiento; avísame el día anterior.	Tengo cita en el ayuntamiento para preguntar por el IBI	false
+T031-1	Tengo que llevar el coche al taller para cambiar los neumáticos el 16 de diciembre de 2026 a las diez y media.	Cambiar los neumáticos	false
+T031-2	Voy al taller porque toca sustituir las ruedas del coche mañana por la tarde a las 18:30.	Sustituir las ruedas del coche	false
+T031-3	Recuérdame: Tengo que llevar el coche al taller para cambiar los neumáticos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Cambiar los neumáticos	false
+T031-4	Voy al taller porque toca sustituir las ruedas del coche el 18/12/2026 a las 09:45 en Taller Mecánico; avísame el día anterior.	Sustituir las ruedas del coche	false
+T032-1	Tengo cita para pasar la ITV del coche el 16 de diciembre de 2026 a las diez y media.	Pasar la ITV del coche	false
+T032-2	Voy a la estación de ITV con el coche mañana por la tarde a las 18:30.	ITV del coche	false
+T032-3	Recuérdame: Tengo cita para pasar la ITV del coche el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Pasar la ITV del coche	false
+T032-4	Voy a la estación de ITV con el coche el 18/12/2026 a las 09:45 en Estación ITV; avísame el día anterior.	ITV del coche	false
+T033-1	Tengo que llevar el coche para revisar los frenos el 16 de diciembre de 2026 a las diez y media.	Revisión de los frenos	false
+T033-2	Voy al mecánico porque quiero comprobar los frenos del vehículo mañana por la tarde a las 18:30.	Comprobar los frenos del vehículo	false
+T033-3	Recuérdame: Tengo que llevar el coche para revisar los frenos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión de los frenos	false
+T033-4	Voy al mecánico porque quiero comprobar los frenos del vehículo el 18/12/2026 a las 09:45 en Taller Mecánico; avísame el día anterior.	Comprobar los frenos del vehículo	false
+T034-1	Voy a renovar el seguro del coche el 16 de diciembre de 2026 a las diez y media.	Renovación del seguro del coche	false
+T034-2	Tengo cita con la aseguradora para renovar la póliza del automóvil mañana por la tarde a las 18:30.	Renovación de la póliza del automóvil	false
+T034-3	Recuérdame: Voy a renovar el seguro del coche el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Renovación del seguro del coche	false
+T034-4	Tengo cita con la aseguradora para renovar la póliza del automóvil el 18/12/2026 a las 09:45 en Aseguradora; avísame el día anterior.	Renovación de la póliza del automóvil	false
+T035-1	Tengo que recoger el coche del taller el 16 de diciembre de 2026 a las diez y media.	Recoger el coche del taller	false
+T035-2	Voy a buscar el vehículo que dejé en el taller mañana por la tarde a las 18:30.	Buscar el vehículo que dejé en el taller	false
+T035-3	Recuérdame: Tengo que recoger el coche del taller el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger el coche del taller	false
+T035-4	Voy a buscar el vehículo que dejé en el taller el 18/12/2026 a las 09:45 en Taller Mecánico; avísame el día anterior.	Buscar el vehículo que dejé en el taller	false
+T036-1	Viene el técnico para reparar la caldera el 16 de diciembre de 2026 a las diez y media.	Reparación de la caldera	false
+T036-2	Tengo cita con el instalador por la reparación de la caldera mañana por la tarde a las 18:30.	Reparación de la caldera	false
+T036-3	Recuérdame: Viene el técnico para reparar la caldera el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reparación de la caldera	false
+T036-4	Tengo cita con el instalador por la reparación de la caldera el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Reparación de la caldera	false
+T037-1	Vienen a medir las ventanas del salón el 16 de diciembre de 2026 a las diez y media.	Medición de las ventanas del salón	false
+T037-2	He quedado con el carpintero para tomar medidas de las ventanas del salón mañana por la tarde a las 18:30.	Tomar medidas de las ventanas del salón con el carpintero	false
+T037-3	Recuérdame: Vienen a medir las ventanas del salón el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Medición de las ventanas del salón	false
+T037-4	He quedado con el carpintero para tomar medidas de las ventanas del salón el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Tomar medidas de las ventanas del salón con el carpintero	false
+T038-1	Tengo cita para instalar el aire acondicionado el 16 de diciembre de 2026 a las diez y media.	Instalación del aire acondicionado	false
+T038-2	Vendrá el instalador a poner el aire acondicionado mañana por la tarde a las 18:30.	Instalación del aire acondicionado	false
+T038-3	Recuérdame: Tengo cita para instalar el aire acondicionado el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Instalación del aire acondicionado	false
+T038-4	Vendrá el instalador a poner el aire acondicionado el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Instalación del aire acondicionado	false
+T039-1	Viene el fontanero para revisar una fuga de agua el 16 de diciembre de 2026 a las diez y media.	Revisión de una fuga de agua	false
+T039-2	Tengo que enseñar al fontanero la pérdida de agua mañana por la tarde a las 18:30.	Enseñar al fontanero la pérdida de agua	false
+T039-3	Recuérdame: Viene el fontanero para revisar una fuga de agua el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión de una fuga de agua	false
+T039-4	Tengo que enseñar al fontanero la pérdida de agua el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Enseñar al fontanero la pérdida de agua	false
+T040-1	Tenemos la entrega del sofá nuevo el 16 de diciembre de 2026 a las diez y media.	Entrega del sofá nuevo	false
+T040-2	Vienen los transportistas con el sofá que compramos mañana por la tarde a las 18:30.	Vienen los transportistas con el sofá que compramos	false
+T040-3	Recuérdame: Tenemos la entrega del sofá nuevo el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Entrega del sofá nuevo	false
+T040-4	Vienen los transportistas con el sofá que compramos el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Vienen los transportistas con el sofá que compramos	false
+T041-1	Tengo que coger el tren a Madrid el 16 de diciembre de 2026 a las diez y media.	Tren a Madrid	false
+T041-2	Sale mi tren hacia Madrid mañana por la tarde a las 18:30.	Tren hacia Madrid	false
+T041-3	Recuérdame: Tengo que coger el tren a Madrid el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Tren a Madrid	false
+T041-4	Sale mi tren hacia Madrid el 18/12/2026 a las 09:45 en Estación Joaquín Sorolla; avísame el día anterior.	Tren hacia Madrid	false
+T042-1	Tengo que facturar para el vuelo a Roma el 16 de diciembre de 2026 a las diez y media.	Facturación del vuelo a Roma	false
+T042-2	Voy al aeropuerto a hacer el check-in del vuelo de Roma mañana por la tarde a las 18:30.	Facturación del vuelo a Roma	false
+T042-3	Recuérdame: Tengo que facturar para el vuelo a Roma el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Facturación del vuelo a Roma	false
+T042-4	Voy al aeropuerto a hacer el check-in del vuelo de Roma el 18/12/2026 a las 09:45 en Aeropuerto de Valencia; avísame el día anterior.	Facturación del vuelo a Roma	false
+T043-1	Tengo que recoger el coche de alquiler el 16 de diciembre de 2026 a las diez y media.	Recoger el coche de alquiler	false
+T043-2	Voy a buscar el vehículo alquilado mañana por la tarde a las 18:30.	Recogida del vehículo alquilado	false
+T043-3	Recuérdame: Tengo que recoger el coche de alquiler el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger el coche de alquiler	false
+T043-4	Voy a buscar el vehículo alquilado el 18/12/2026 a las 09:45 en Aeropuerto de Valencia; avísame el día anterior.	Recogida del vehículo alquilado	false
+T044-1	Tenemos visita guiada al museo del Prado el 16 de diciembre de 2026 a las diez y media.	Visita guiada al museo del Prado	false
+T044-2	Vamos al Prado para realizar la visita guiada mañana por la tarde a las 18:30.	Visita guiada	false
+T044-3	Recuérdame: Tenemos visita guiada al museo del Prado el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Visita guiada al museo del Prado	false
+T044-4	Vamos al Prado para realizar la visita guiada el 18/12/2026 a las 09:45 en Museo del Prado; avísame el día anterior.	Visita guiada al Museo del Prado	false
+T045-1	Tengo que hacer el registro de entrada en el hotel el 16 de diciembre de 2026 a las diez y media.	Hacer el registro de entrada en el hotel	false
+T045-2	Voy a hacer el check-in del alojamiento mañana por la tarde a las 18:30.	Hacer el check-in del alojamiento	false
+T045-3	Recuérdame: Tengo que hacer el registro de entrada en el hotel el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Hacer el registro de entrada en el hotel	false
+T045-4	Voy a hacer el check-in del alojamiento el 18/12/2026 a las 09:45 en Hotel Central; avísame el día anterior.	Hacer el check-in del alojamiento	false
+T046-1	Hemos reservado una comida por nuestro aniversario el 16 de diciembre de 2026 a las diez y media.	Comida por nuestro aniversario	false
+T046-2	Vamos a celebrar el aniversario comiendo fuera mañana por la tarde a las 18:30.	Comida de aniversario	false
+T046-3	Recuérdame: Hemos reservado una comida por nuestro aniversario el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Comida por nuestro aniversario	false
+T046-4	Vamos a celebrar el aniversario comiendo fuera el 18/12/2026 a las 09:45 en Restaurante Jardín; avísame el día anterior.	Comida de aniversario	false
+T047-1	Tengo una cena de empresa el 16 de diciembre de 2026 a las diez y media.	Cena de empresa	false
+T047-2	Vamos a reunirnos para la cena de la empresa mañana por la tarde a las 18:30.	Cena de la empresa	false
+T047-3	Recuérdame: Tengo una cena de empresa el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Cena de empresa	false
+T047-4	Vamos a reunirnos para la cena de la empresa el 18/12/2026 a las 09:45 en Restaurante Centro; avísame el día anterior.	Cena de la empresa	false
+T048-1	He quedado a comer con proveedores el 16 de diciembre de 2026 a las diez y media.	Comida con proveedores	false
+T048-2	Tenemos una comida de trabajo con proveedores mañana por la tarde a las 18:30.	Comida de trabajo con proveedores	false
+T048-3	Recuérdame: He quedado a comer con proveedores el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Comida con proveedores	false
+T048-4	Tenemos una comida de trabajo con proveedores el 18/12/2026 a las 09:45 en Restaurante Navarro; avísame el día anterior.	Comida de trabajo con proveedores	false
+T049-1	Tengo que reservar una mesa para el cumpleaños el 16 de diciembre de 2026 a las diez y media.	Reserva de una mesa para el cumpleaños	false
+T049-2	Voy al restaurante para gestionar la reserva del cumpleaños mañana por la tarde a las 18:30.	Gestionar la reserva del cumpleaños	false
+T049-3	Recuérdame: Tengo que reservar una mesa para el cumpleaños el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reserva de una mesa para el cumpleaños	false
+T049-4	Voy al restaurante para gestionar la reserva del cumpleaños el 18/12/2026 a las 09:45 en Restaurante Familiar; avísame el día anterior.	Gestionar la reserva del cumpleaños	false
+T050-1	He quedado a desayunar con antiguos compañeros el 16 de diciembre de 2026 a las diez y media.	Desayuno con antiguos compañeros	false
+T050-2	Nos reuniremos para desayunar con los antiguos compañeros mañana por la tarde a las 18:30.	Nos reuniremos para desayunar con los antiguos compañeros	false
+T050-3	Recuérdame: He quedado a desayunar con antiguos compañeros el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Desayuno con antiguos compañeros	false
+T050-4	Nos reuniremos para desayunar con los antiguos compañeros el 18/12/2026 a las 09:45 en Cafetería Sur; avísame el día anterior.	Nos reuniremos para desayunar con los antiguos compañeros	false
+T051-1	Tengo tutoría escolar para hablar de matemáticas el 16 de diciembre de 2026 a las diez y media.	Tutoría escolar sobre matemáticas	false
+T051-2	Voy al colegio a reunirme con el tutor por las matemáticas mañana por la tarde a las 18:30.	Reunión con el tutor por las matemáticas	false
+T051-3	Recuérdame: Tengo tutoría escolar para hablar de matemáticas el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Tutoría escolar sobre matemáticas	false
+T051-4	Voy al colegio a reunirme con el tutor por las matemáticas el 18/12/2026 a las 09:45 en Colegio Público; avísame el día anterior.	Reunión con el tutor por las matemáticas	false
+T052-1	Tengo un examen de inglés el 16 de diciembre de 2026 a las diez y media.	Examen de inglés	false
+T052-2	Me examino de inglés mañana por la tarde a las 18:30.	Examen de inglés	false
+T052-3	Recuérdame: Tengo un examen de inglés el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Examen de inglés	false
+T052-4	Me examino de inglés el 18/12/2026 a las 09:45 en Academia de Idiomas; avísame el día anterior.	Examen de inglés	false
+T053-1	Tengo que presentar el proyecto final del curso el 16 de diciembre de 2026 a las diez y media.	Presentar el proyecto final del curso	false
+T053-2	Voy a defender el trabajo final de estudios mañana por la tarde a las 18:30.	Defensa del trabajo final de estudios	false
+T053-3	Recuérdame: Tengo que presentar el proyecto final del curso el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Presentar el proyecto final del curso	false
+T053-4	Voy a defender el trabajo final de estudios el 18/12/2026 a las 09:45 en Universidad; avísame el día anterior.	Defensa del trabajo final de estudios	false
+T054-1	Tengo una clase práctica de conducción el 16 de diciembre de 2026 a las diez y media.	Clase práctica de conducción	false
+T054-2	Voy a hacer prácticas de conducir mañana por la tarde a las 18:30.	Prácticas de conducción	false
+T054-3	Recuérdame: Tengo una clase práctica de conducción el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Clase práctica de conducción	false
+T054-4	Voy a hacer prácticas de conducir el 18/12/2026 a las 09:45 en Autoescuela; avísame el día anterior.	Prácticas de conducción	false
+T055-1	Tengo reunión de padres del colegio el 16 de diciembre de 2026 a las diez y media.	Reunión de padres del colegio	false
+T055-2	Voy a la reunión de familias que organiza el colegio mañana por la tarde a las 18:30.	Reunión de familias que organiza el colegio	false
+T055-3	Recuérdame: Tengo reunión de padres del colegio el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión de padres del colegio	false
+T055-4	Voy a la reunión de familias que organiza el colegio el 18/12/2026 a las 09:45 en Colegio Público; avísame el día anterior.	Reunión de familias que organiza el colegio	false
+T056-1	Tengo un entrenamiento de pádel el 16 de diciembre de 2026 a las diez y media.	Entrenamiento de pádel	false
+T056-2	Voy a entrenar al pádel mañana por la tarde a las 18:30.	Entrenamiento de pádel	false
+T056-3	Recuérdame: Tengo un entrenamiento de pádel el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Entrenamiento de pádel	false
+T056-4	Voy a entrenar al pádel el 18/12/2026 a las 09:45 en Club Deportivo; avísame el día anterior.	Entrenamiento de pádel	false
+T057-1	Voy al partido de fútbol de mi hijo el 16 de diciembre de 2026 a las diez y media.	Partido de fútbol de mi hijo	false
+T057-2	Tengo que acompañar a mi hijo a su partido de fútbol mañana por la tarde a las 18:30.	Acompañar a mi hijo a su partido de fútbol	false
+T057-3	Recuérdame: Voy al partido de fútbol de mi hijo el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Partido de fútbol de mi hijo	false
+T057-4	Tengo que acompañar a mi hijo a su partido de fútbol el 18/12/2026 a las 09:45 en Campo Municipal; avísame el día anterior.	Acompañar a mi hijo a su partido de fútbol	false
+T058-1	Me he inscrito a la carrera popular de diez kilómetros el 16 de diciembre de 2026 a las diez y media.	Carrera popular de diez kilómetros	false
+T058-2	Voy a participar en una carrera de 10 kilómetros mañana por la tarde a las 18:30.	Carrera de 10 kilómetros	false
+T058-3	Recuérdame: Me he inscrito a la carrera popular de diez kilómetros el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Carrera popular de diez kilómetros	false
+T058-4	Voy a participar en una carrera de 10 kilómetros el 18/12/2026 a las 09:45 en Parque Urbano; avísame el día anterior.	Carrera de 10 kilómetros	false
+T059-1	Tengo cita para revisar la bicicleta el 16 de diciembre de 2026 a las diez y media.	Revisión de la bicicleta	false
+T059-2	Voy a llevar la bici para que la revisen mañana por la tarde a las 18:30.	Revisión de la bici	false
+T059-3	Recuérdame: Tengo cita para revisar la bicicleta el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión de la bicicleta	false
+T059-4	Voy a llevar la bici para que la revisen el 18/12/2026 a las 09:45 en Tienda de Bicicletas; avísame el día anterior.	Revisión de la bici	false
+T060-1	Tengo sesión de fisioterapia el 16 de diciembre de 2026 a las diez y media.	Sesión de fisioterapia	false
+T060-2	Voy al fisioterapeuta para una sesión mañana por la tarde a las 18:30.	Voy al fisioterapeuta para una sesión	false
+T060-3	Recuérdame: Tengo sesión de fisioterapia el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Sesión de fisioterapia	false
+T060-4	Voy al fisioterapeuta para una sesión el 18/12/2026 a las 09:45 en Clínica Fisio; avísame el día anterior.	Voy al fisioterapeuta para una sesión	false
+T061-1	Tengo cita para renovar el DNI el 16 de diciembre de 2026 a las diez y media.	Renovación del DNI	false
+T061-2	Voy a la comisaría para hacer la renovación del DNI mañana por la tarde a las 18:30.	Renovación del DNI	false
+T061-3	Recuérdame: Tengo cita para renovar el DNI el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Renovación del DNI	false
+T061-4	Voy a la comisaría para hacer la renovación del DNI el 18/12/2026 a las 09:45 en Comisaría Central; avísame el día anterior.	Renovación del DNI	false
+T062-1	Tengo que recoger un paquete en Correos el 16 de diciembre de 2026 a las diez y media.	Recoger un paquete en Correos	false
+T062-2	Voy a Correos a buscar un envío mañana por la tarde a las 18:30.	Recogida de un envío en Correos	false
+T062-3	Recuérdame: Tengo que recoger un paquete en Correos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger un paquete en Correos	false
+T062-4	Voy a Correos a buscar un envío el 18/12/2026 a las 09:45 en Oficina de Correos; avísame el día anterior.	Recogida de un envío en Correos	false
+T063-1	Tengo cita para solicitar el certificado digital el 16 de diciembre de 2026 a las diez y media.	Solicitar el certificado digital	false
+T063-2	Voy a tramitar el certificado digital mañana por la tarde a las 18:30.	Tramitar el certificado digital	false
+T063-3	Recuérdame: Tengo cita para solicitar el certificado digital el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Solicitar el certificado digital	false
+T063-4	Voy a tramitar el certificado digital el 18/12/2026 a las 09:45 en Punto de Atención; avísame el día anterior.	Tramitar el certificado digital	false
+T064-1	Tengo que consultar una factura de electricidad el 16 de diciembre de 2026 a las diez y media.	Consulta sobre una factura de electricidad	false
+T064-2	Voy a la oficina de atención para reclamar información de la factura de luz mañana por la tarde a las 18:30.	Reclamar información de la factura de luz	false
+T064-3	Recuérdame: Tengo que consultar una factura de electricidad el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Consulta sobre una factura de electricidad	false
+T064-4	Voy a la oficina de atención para reclamar información de la factura de luz el 18/12/2026 a las 09:45 en Oficina de Atención; avísame el día anterior.	Reclamar información de la factura de luz	false
+T065-1	Tengo cita para renovar el pasaporte el 16 de diciembre de 2026 a las diez y media.	Renovación del pasaporte	false
+T065-2	Voy a la comisaría a renovar mi pasaporte mañana por la tarde a las 18:30.	Renovación de mi pasaporte	false
+T065-3	Recuérdame: Tengo cita para renovar el pasaporte el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Renovación del pasaporte	false
+T065-4	Voy a la comisaría a renovar mi pasaporte el 18/12/2026 a las 09:45 en Comisaría Central; avísame el día anterior.	Renovación de mi pasaporte	false
+T066-1	Tengo cita para vacunar a mi perro el 16 de diciembre de 2026 a las diez y media.	Vacunación de mi perro	false
+T066-2	Voy al veterinario para que pongan la vacuna al perro mañana por la tarde a las 18:30.	Vacunación de perro	false
+T066-3	Recuérdame: Tengo cita para vacunar a mi perro el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Vacunación de mi perro	false
+T066-4	Voy al veterinario para que pongan la vacuna al perro el 18/12/2026 a las 09:45 en Clínica Veterinaria; avísame el día anterior.	Vacunación de perro	false
+T067-1	Tengo cita para revisar al gato en el veterinario el 16 de diciembre de 2026 a las diez y media.	Revisión del gato en el veterinario	false
+T067-2	Voy con mi gato a una revisión veterinaria mañana por la tarde a las 18:30.	Revisión veterinaria del gato	false
+T067-3	Recuérdame: Tengo cita para revisar al gato en el veterinario el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión del gato en el veterinario	false
+T067-4	Voy con mi gato a una revisión veterinaria el 18/12/2026 a las 09:45 en Clínica Veterinaria; avísame el día anterior.	Revisión veterinaria del gato	false
+T068-1	Tengo que recoger la medicación de mi mascota el 16 de diciembre de 2026 a las diez y media.	Recoger la medicación de mi mascota	false
+T068-2	Voy a buscar las medicinas del animal mañana por la tarde a las 18:30.	Recogida de las medicinas del animal	false
+T068-3	Recuérdame: Tengo que recoger la medicación de mi mascota el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger la medicación de mi mascota	false
+T068-4	Voy a buscar las medicinas del animal el 18/12/2026 a las 09:45 en Clínica Veterinaria; avísame el día anterior.	Recogida de las medicinas del animal	false
+T069-1	Tengo cita para cortarle el pelo al perro el 16 de diciembre de 2026 a las diez y media.	Tengo cita para cortarle el pelo al perro	false
+T069-2	Llevo al perro a la peluquería canina mañana por la tarde a las 18:30.	Llevo al perro a la peluquería canina	false
+T069-3	Recuérdame: Tengo cita para cortarle el pelo al perro el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Tengo cita para cortarle el pelo al perro	false
+T069-4	Llevo al perro a la peluquería canina el 18/12/2026 a las 09:45 en Peluquería Canina; avísame el día anterior.	Llevo al perro a la peluquería canina	false
+T070-1	Voy a controlar el peso del gato el 16 de diciembre de 2026 a las diez y media.	Control del peso del gato	false
+T070-2	Tengo revisión veterinaria para pesar al gato mañana por la tarde a las 18:30.	Revisión veterinaria para pesar al gato	false
+T070-3	Recuérdame: Voy a controlar el peso del gato el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Control del peso del gato	false
+T070-4	Tengo revisión veterinaria para pesar al gato el 18/12/2026 a las 09:45 en Clínica Veterinaria; avísame el día anterior.	Revisión veterinaria para pesar al gato	false
+T071-1	Es el cumpleaños de Ana el 16 de diciembre de 2026 a las diez y media.	Cumpleaños de Ana	false
+T071-2	Celebramos el cumpleaños de Ana mañana por la tarde a las 18:30.	Cumpleaños de Ana	false
+T071-3	Recuérdame: Es el cumpleaños de Ana el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Cumpleaños de Ana	false
+T071-4	Celebramos el cumpleaños de Ana el 18/12/2026 a las 09:45 en Casa de Ana; avísame el día anterior.	Cumpleaños de Ana	false
+T072-1	Es el cumpleaños de Javier el 16 de diciembre de 2026 a las diez y media.	Cumpleaños de Javier	false
+T072-2	Tenemos el cumpleaños de Javier mañana por la tarde a las 18:30.	Cumpleaños de Javier	false
+T072-3	Recuérdame: Es el cumpleaños de Javier el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Cumpleaños de Javier	false
+T072-4	Tenemos el cumpleaños de Javier el 18/12/2026 a las 09:45 en Casa de Javier; avísame el día anterior.	Cumpleaños de Javier	false
+T073-1	Es el cumpleaños de mi madre el 16 de diciembre de 2026 a las diez y media.	Cumpleaños de mi madre	false
+T073-2	Vamos a celebrar el cumpleaños de mi madre mañana por la tarde a las 18:30.	Celebración del cumpleaños de mi madre	false
+T073-3	Recuérdame: Es el cumpleaños de mi madre el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Cumpleaños de mi madre	false
+T073-4	Vamos a celebrar el cumpleaños de mi madre el 18/12/2026 a las 09:45 en Casa Familiar; avísame el día anterior.	Celebración del cumpleaños de mi madre	false
+T074-1	Tenemos una fiesta de cumpleaños infantil el 16 de diciembre de 2026 a las diez y media.	Fiesta de cumpleaños	false
+T074-2	Voy a la fiesta de cumpleaños de los niños mañana por la tarde a las 18:30.	Fiesta de cumpleaños de los niños	false
+T074-3	Recuérdame: Tenemos una fiesta de cumpleaños infantil el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Fiesta de cumpleaños	false
+T074-4	Voy a la fiesta de cumpleaños de los niños el 18/12/2026 a las 09:45 en Parque de Bolas; avísame el día anterior.	Fiesta de cumpleaños de los niños	false
+T075-1	Tengo que preparar un regalo de cumpleaños para Marta el 16 de diciembre de 2026 a las diez y media.	Preparar un regalo de cumpleaños para Marta	false
+T075-2	Voy a comprar un regalo de cumpleaños de Marta mañana por la tarde a las 18:30.	Compra de un regalo de cumpleaños de Marta	false
+T075-3	Recuérdame: Tengo que preparar un regalo de cumpleaños para Marta el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Preparar un regalo de cumpleaños para Marta	false
+T075-4	Voy a comprar un regalo de cumpleaños de Marta el 18/12/2026 a las 09:45 en Centro Comercial; avísame el día anterior.	Compra de un regalo de cumpleaños de Marta	false
+T076-1	Tenemos entradas para un concierto de música clásica el 16 de diciembre de 2026 a las diez y media.	Concierto de música clásica	false
+T076-2	Voy a asistir al concierto de música clásica mañana por la tarde a las 18:30.	Concierto de música clásica	false
+T076-3	Recuérdame: Tenemos entradas para un concierto de música clásica el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Concierto de música clásica	false
+T076-4	Voy a asistir al concierto de música clásica el 18/12/2026 a las 09:45 en Auditorio; avísame el día anterior.	Concierto de música clásica	false
+T077-1	Voy a ver una exposición de fotografía el 16 de diciembre de 2026 a las diez y media.	Ver una exposición de fotografía	false
+T077-2	Tenemos una visita a la exposición fotográfica mañana por la tarde a las 18:30.	Visita a la exposición fotográfica	false
+T077-3	Recuérdame: Voy a ver una exposición de fotografía el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Ver una exposición de fotografía	false
+T077-4	Tenemos una visita a la exposición fotográfica el 18/12/2026 a las 09:45 en Galería de Arte; avísame el día anterior.	Visita a la exposición fotográfica	false
+T078-1	Vamos al estreno de una obra de teatro el 16 de diciembre de 2026 a las diez y media.	Vamos al estreno de una obra de teatro	false
+T078-2	Tenemos entradas para el estreno teatral mañana por la tarde a las 18:30.	Estreno teatral	false
+T078-3	Recuérdame: Vamos al estreno de una obra de teatro el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Vamos al estreno de una obra de teatro	false
+T078-4	Tenemos entradas para el estreno teatral el 18/12/2026 a las 09:45 en Teatro Principal; avísame el día anterior.	Estreno teatral	false
+T079-1	Tengo una presentación de libro el 16 de diciembre de 2026 a las diez y media.	Presentación de libro	false
+T079-2	Voy a asistir a la presentación de un libro mañana por la tarde a las 18:30.	Presentación de un libro	false
+T079-3	Recuérdame: Tengo una presentación de libro el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Presentación de libro	false
+T079-4	Voy a asistir a la presentación de un libro el 18/12/2026 a las 09:45 en Biblioteca; avísame el día anterior.	Presentación de un libro	false
+T080-1	Vamos al cine con amigos el 16 de diciembre de 2026 a las diez y media.	Ir al cine con amigos	false
+T080-2	He quedado con amigos para ver una película en el cine mañana por la tarde a las 18:30.	Ver una película en el cine con amigos	false
+T080-3	Recuérdame: Vamos al cine con amigos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Ir al cine con amigos	false
+T080-4	He quedado con amigos para ver una película en el cine el 18/12/2026 a las 09:45 en Cines Centro; avísame el día anterior.	Ver una película en el cine con amigos	false
+T081-1	Tengo que comprar material escolar el 16 de diciembre de 2026 a las diez y media.	Compra de material escolar	false
+T081-2	Voy a la tienda a buscar útiles del colegio mañana por la tarde a las 18:30.	Buscar material escolar	false
+T081-3	Recuérdame: Tengo que comprar material escolar el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Compra de material escolar	false
+T081-4	Voy a la tienda a buscar útiles del colegio el 18/12/2026 a las 09:45 en Papelería; avísame el día anterior.	Buscar material escolar	false
+T082-1	Tengo que recoger un pedido en la tienda el 16 de diciembre de 2026 a las diez y media.	Recoger un pedido en la tienda	false
+T082-2	Voy a buscar mi pedido online mañana por la tarde a las 18:30.	Recogida de mi pedido online	false
+T082-3	Recuérdame: Tengo que recoger un pedido en la tienda el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger un pedido en la tienda	false
+T082-4	Voy a buscar mi pedido online el 18/12/2026 a las 09:45 en Tienda Centro; avísame el día anterior.	Recogida de mi pedido online	false
+T083-1	Voy a comprar medicamentos en la farmacia el 16 de diciembre de 2026 a las diez y media.	Compra de medicamentos en la farmacia	false
+T083-2	Tengo que pasar por la farmacia a comprar medicinas mañana por la tarde a las 18:30.	Compra de medicinas en farmacia	false
+T083-3	Recuérdame: Voy a comprar medicamentos en la farmacia el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Compra de medicamentos en la farmacia	false
+T083-4	Tengo que pasar por la farmacia a comprar medicinas el 18/12/2026 a las 09:45 en Farmacia; avísame el día anterior.	Compra de medicinas en farmacia	false
+T084-1	He quedado para elegir electrodomésticos el 16 de diciembre de 2026 a las diez y media.	Elección de electrodomésticos	false
+T084-2	Voy a comparar aparatos para la cocina mañana por la tarde a las 18:30.	Comparación de aparatos para la cocina	false
+T084-3	Recuérdame: He quedado para elegir electrodomésticos el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Elección de electrodomésticos	false
+T084-4	Voy a comparar aparatos para la cocina el 18/12/2026 a las 09:45 en Tienda Electrodomésticos; avísame el día anterior.	Comparación de aparatos para la cocina	false
+T085-1	Voy a devolver una prenda de ropa el 16 de diciembre de 2026 a las diez y media.	Devolver una prenda de ropa	false
+T085-2	Tengo que ir a la tienda para hacer una devolución mañana por la tarde a las 18:30.	Devolución	false
+T085-3	Recuérdame: Voy a devolver una prenda de ropa el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Devolver una prenda de ropa	false
+T085-4	Tengo que ir a la tienda para hacer una devolución el 18/12/2026 a las 09:45 en Tienda Moda; avísame el día anterior.	Devolución	false
+T086-1	Tengo reunión de vecinos para tratar la reparación del ascensor el 16 de diciembre de 2026 a las diez y media.	Reunión de vecinos sobre reparación del ascensor	false
+T086-2	Voy a hablar con la comunidad sobre la avería del ascensor mañana por la tarde a las 18:30.	Hablar con la comunidad sobre la avería del ascensor	false
+T086-3	Recuérdame: Tengo reunión de vecinos para tratar la reparación del ascensor el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión de vecinos sobre reparación del ascensor	false
+T086-4	Voy a hablar con la comunidad sobre la avería del ascensor el 18/12/2026 a las 09:45 en Sala Comunitaria; avísame el día anterior.	Hablar con la comunidad sobre la avería del ascensor	false
+T087-1	Tenemos junta ordinaria de propietarios el 16 de diciembre de 2026 a las diez y media.	Junta ordinaria de propietarios	false
+T087-2	Asisto a la reunión ordinaria de propietarios mañana por la tarde a las 18:30.	Reunión ordinaria de propietarios	false
+T087-3	Recuérdame: Tenemos junta ordinaria de propietarios el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Junta ordinaria de propietarios	false
+T087-4	Asisto a la reunión ordinaria de propietarios el 18/12/2026 a las 09:45 en Finca; avísame el día anterior.	Reunión ordinaria de propietarios	false
+T088-1	Tengo que revisar las zonas comunes de la finca el 16 de diciembre de 2026 a las diez y media.	Revisión de las zonas comunes de la finca	false
+T088-2	Voy a inspeccionar las instalaciones comunes del edificio mañana por la tarde a las 18:30.	Inspección de las instalaciones comunes del edificio	false
+T088-3	Recuérdame: Tengo que revisar las zonas comunes de la finca el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión de las zonas comunes de la finca	false
+T088-4	Voy a inspeccionar las instalaciones comunes del edificio el 18/12/2026 a las 09:45 en Edificio; avísame el día anterior.	Inspección de las instalaciones comunes del edificio	false
+T089-1	Tenemos reunión para comparar presupuestos comunitarios el 16 de diciembre de 2026 a las diez y media.	Reunión para comparar presupuestos comunitarios	false
+T089-2	Voy a discutir los presupuestos de la comunidad de vecinos mañana por la tarde a las 18:30.	Discutir los presupuestos de la comunidad de vecinos	false
+T089-3	Recuérdame: Tenemos reunión para comparar presupuestos comunitarios el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión para comparar presupuestos comunitarios	false
+T089-4	Voy a discutir los presupuestos de la comunidad de vecinos el 18/12/2026 a las 09:45 en Sala Comunitaria; avísame el día anterior.	Discutir los presupuestos de la comunidad de vecinos	false
+T090-1	Tengo que entregar unas llaves al administrador el 16 de diciembre de 2026 a las diez y media.	Entregar unas llaves al administrador	false
+T090-2	Voy a darle las llaves al administrador de la finca mañana por la tarde a las 18:30.	Darle las llaves al administrador de la finca	false
+T090-3	Recuérdame: Tengo que entregar unas llaves al administrador el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Entregar unas llaves al administrador	false
+T090-4	Voy a darle las llaves al administrador de la finca el 18/12/2026 a las 09:45 en Administración de Fincas; avísame el día anterior.	Darle las llaves al administrador de la finca	false
+T091-1	Tengo que actualizar las contraseñas el 16 de diciembre de 2026 a las diez y media.	Actualización de contraseñas	false
+T091-2	Voy a cambiar las claves de acceso mañana por la tarde a las 18:30.	Cambio de claves de acceso	false
+T091-3	Recuérdame: Tengo que actualizar las contraseñas el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Actualización de contraseñas	false
+T091-4	Voy a cambiar las claves de acceso el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Cambio de claves de acceso	false
+T092-1	Tengo videollamada con soporte técnico el 16 de diciembre de 2026 a las diez y media.	Videollamada con soporte técnico	false
+T092-2	Voy a hacer una llamada por vídeo con el servicio técnico mañana por la tarde a las 18:30.	Videollamada con el servicio técnico	false
+T092-3	Recuérdame: Tengo videollamada con soporte técnico el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Videollamada con soporte técnico	false
+T092-4	Voy a hacer una llamada por vídeo con el servicio técnico el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Videollamada con el servicio técnico	false
+T093-1	Tengo que revisar la copia de seguridad el 16 de diciembre de 2026 a las diez y media.	Revisión de la copia de seguridad	false
+T093-2	Voy a comprobar si funciona el backup de datos mañana por la tarde a las 18:30.	Comprobación de copia de seguridad	false
+T093-3	Recuérdame: Tengo que revisar la copia de seguridad el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Revisión de la copia de seguridad	false
+T093-4	Voy a comprobar si funciona el backup de datos el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Comprobación de copia de seguridad	false
+T094-1	Tengo que renovar el dominio web el 16 de diciembre de 2026 a las diez y media.	Renovación del dominio web	false
+T094-2	Voy a pagar la renovación del dominio de internet mañana por la tarde a las 18:30.	Pagar la renovación del dominio de internet	false
+T094-3	Recuérdame: Tengo que renovar el dominio web el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Renovación del dominio web	false
+T094-4	Voy a pagar la renovación del dominio de internet el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Pagar la renovación del dominio de internet	false
+T095-1	Tengo que configurar un móvil nuevo el 16 de diciembre de 2026 a las diez y media.	Configurar un móvil nuevo	false
+T095-2	Voy a preparar el teléfono recién comprado mañana por la tarde a las 18:30.	Preparar el teléfono recién comprado	false
+T095-3	Recuérdame: Tengo que configurar un móvil nuevo el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Configurar un móvil nuevo	false
+T095-4	Voy a preparar el teléfono recién comprado el 18/12/2026 a las 09:45 en Casa; avísame el día anterior.	Preparar el teléfono recién comprado	false
+T096-1	Tengo que recoger las fotografías reveladas el 16 de diciembre de 2026 a las diez y media.	Recoger las fotografías reveladas	false
+T096-2	Voy a buscar las fotos impresas mañana por la tarde a las 18:30.	Recogida de las fotos impresas	false
+T096-3	Recuérdame: Tengo que recoger las fotografías reveladas el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Recoger las fotografías reveladas	false
+T096-4	Voy a buscar las fotos impresas el 18/12/2026 a las 09:45 en Tienda Fotografía; avísame el día anterior.	Recogida de las fotos impresas	false
+T097-1	Tengo que entregar los libros en la biblioteca el 16 de diciembre de 2026 a las diez y media.	Entregar los libros en la biblioteca	false
+T097-2	Voy a devolver los libros prestados mañana por la tarde a las 18:30.	Devolución de libros prestados	false
+T097-3	Recuérdame: Tengo que entregar los libros en la biblioteca el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Entregar los libros en la biblioteca	false
+T097-4	Voy a devolver los libros prestados el 18/12/2026 a las 09:45 en Biblioteca Municipal; avísame el día anterior.	Devolución de libros prestados	false
+T098-1	Tenemos una reunión para organizar la documentación de la herencia el 16 de diciembre de 2026 a las diez y media.	Reunión para organizar la documentación de la herencia	false
+T098-2	He quedado para revisar los papeles de la herencia mañana por la tarde a las 18:30.	Revisión de los papeles de la herencia	false
+T098-3	Recuérdame: Tenemos una reunión para organizar la documentación de la herencia el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Reunión para organizar la documentación de la herencia	false
+T098-4	He quedado para revisar los papeles de la herencia el 18/12/2026 a las 09:45 en Gestoría; avísame el día anterior.	Revisión de los papeles de la herencia	false
+T099-1	Tengo cita para consultar el presupuesto de la mudanza el 16 de diciembre de 2026 a las diez y media.	Consulta sobre el presupuesto de la mudanza	false
+T099-2	Voy a hablar con la empresa de mudanzas de su presupuesto mañana por la tarde a las 18:30.	Hablar con la empresa de mudanzas de su presupuesto	false
+T099-3	Recuérdame: Tengo cita para consultar el presupuesto de la mudanza el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Consulta sobre el presupuesto de la mudanza	false
+T099-4	Voy a hablar con la empresa de mudanzas de su presupuesto el 18/12/2026 a las 09:45 en Empresa de Mudanzas; avísame el día anterior.	Hablar con la empresa de mudanzas de su presupuesto	false
+T100-1	Tengo que llevar ropa para donarla a la asociación el 16 de diciembre de 2026 a las diez y media.	Llevar ropa para donarla a la asociación	false
+T100-2	Voy a entregar prendas de ropa a una entidad solidaria mañana por la tarde a las 18:30.	Entregar prendas de ropa a una entidad solidaria	false
+T100-3	Recuérdame: Tengo que llevar ropa para donarla a la asociación el jueves 19 de noviembre de 2026 a las 11:15; avísame una hora antes.	Llevar ropa para donarla a la asociación	false
+T100-4	Voy a entregar prendas de ropa a una entidad solidaria el 18/12/2026 a las 09:45 en Centro Social; avísame el día anterior.	Entregar prendas de ropa a una entidad solidaria	false
+V6H001-1	Tengo que renovar el carné de la biblioteca el 21 de enero de 2027 a las diez y media.	Renovación del carné de la biblioteca	false
+V6H001-2	Voy a la biblioteca para renovar mi carné de lector mañana por la tarde a las 18:30.	Renovación de mi carné de lector	false
+V6H001-3	Recuérdame: Tengo que renovar el carné de la biblioteca el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Renovación del carné de la biblioteca	false
+V6H001-4	Voy a la biblioteca para renovar mi carné de lector el 23/01/2027 a las 09:45 en Biblioteca Municipal; avísame el día anterior.	Renovación de mi carné de lector	false
+V6H002-1	Tengo que recoger las gafas graduadas de la óptica el 21 de enero de 2027 a las diez y media.	Recoger las gafas graduadas de la óptica	false
+V6H002-2	Voy a la óptica para recoger las gafas nuevas mañana por la tarde a las 18:30.	Recoger las gafas nuevas	false
+V6H002-3	Recuérdame: Tengo que recoger las gafas graduadas de la óptica el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Recoger las gafas graduadas de la óptica	false
+V6H002-4	Voy a la óptica para recoger las gafas nuevas el 23/01/2027 a las 09:45 en Óptica Central; avísame el día anterior.	Recoger las gafas nuevas	false
+V6H003-1	Tenemos junta de vecinos para hablar de la rampa de acceso el 21 de enero de 2027 a las diez y media.	Junta de vecinos sobre la rampa de acceso	false
+V6H003-2	Voy a una reunión vecinal sobre la instalación de una rampa de accesibilidad mañana por la tarde a las 18:30.	Reunión vecinal sobre la instalación de una rampa de accesibilidad	false
+V6H003-3	Recuérdame: Tenemos junta de vecinos para hablar de la rampa de acceso el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Junta de vecinos sobre la rampa de acceso	false
+V6H003-4	Voy a una reunión vecinal sobre la instalación de una rampa de accesibilidad el 23/01/2027 a las 09:45 en Local de la Comunidad; avísame el día anterior.	Reunión vecinal sobre la instalación de una rampa de accesibilidad	false
+V6H004-1	Tengo cita en enfermería para curarme la herida de la mano el 21 de enero de 2027 a las diez y media.	Cura de la herida de la mano	false
+V6H004-2	Voy al centro de salud para que me curen la herida en la mano mañana por la tarde a las 18:30.	Cura de la herida en la mano	false
+V6H004-3	Recuérdame: Tengo cita en enfermería para curarme la herida de la mano el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Cura de la herida de la mano	false
+V6H004-4	Voy al centro de salud para que me curen la herida en la mano el 23/01/2027 a las 09:45 en Centro de Salud; avísame el día anterior.	Cura de la herida en la mano	false
+V6H005-1	Tenemos una sesión de fotografías familiares el 21 de enero de 2027 a las diez y media.	Sesión de fotografías familiares	false
+V6H005-2	Vamos al estudio para hacer fotos de toda la familia mañana por la tarde a las 18:30.	Hacer fotos de toda la familia	false
+V6H005-3	Recuérdame: Tenemos una sesión de fotografías familiares el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Sesión de fotografías familiares	false
+V6H005-4	Vamos al estudio para hacer fotos de toda la familia el 23/01/2027 a las 09:45 en Estudio Fotográfico; avísame el día anterior.	Hacer fotos de toda la familia	false
+V6H006-1	Tengo que pagar la matrícula del máster el 21 de enero de 2027 a las diez y media.	Pagar la matrícula del máster	false
+V6H006-2	Voy a la universidad para abonar la matrícula de este curso mañana por la tarde a las 18:30.	La universidad para abonar la matrícula de este curso	false
+V6H006-3	Recuérdame: Tengo que pagar la matrícula del máster el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Pagar la matrícula del máster	false
+V6H006-4	Voy a la universidad para abonar la matrícula de este curso el 23/01/2027 a las 09:45 en Universidad; avísame el día anterior.	La universidad para abonar la matrícula de este curso	false
+V6H007-1	Tengo que entregar los documentos de la solicitud de beca el 21 de enero de 2027 a las diez y media.	Entregar los documentos de la solicitud de beca	false
+V6H007-2	Voy a secretaría para presentar los papeles de la beca mañana por la tarde a las 18:30.	Presentar los papeles de la beca	false
+V6H007-3	Recuérdame: Tengo que entregar los documentos de la solicitud de beca el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Entregar los documentos de la solicitud de beca	false
+V6H007-4	Voy a secretaría para presentar los papeles de la beca el 23/01/2027 a las 09:45 en Secretaría Académica; avísame el día anterior.	Presentar los papeles de la beca	false
+V6H008-1	Tengo cita para revisar la caldera de gas el 21 de enero de 2027 a las diez y media.	Revisión de la caldera de gas	false
+V6H008-2	Viene el técnico a comprobar la caldera de casa mañana por la tarde a las 18:30.	Comprobación de la caldera de casa	false
+V6H008-3	Recuérdame: Tengo cita para revisar la caldera de gas el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Revisión de la caldera de gas	false
+V6H008-4	Viene el técnico a comprobar la caldera de casa el 23/01/2027 a las 09:45 en Vivienda; avísame el día anterior.	Comprobación de la caldera de casa	false
+V6H009-1	Tenemos una reunión para coordinar las entregas con proveedores el 21 de enero de 2027 a las diez y media.	Reunión para coordinar las entregas con proveedores	false
+V6H009-2	Voy a reunirme con los proveedores para organizar los suministros mañana por la tarde a las 18:30.	Reunión con los proveedores para organizar los suministros	false
+V6H009-3	Recuérdame: Tenemos una reunión para coordinar las entregas con proveedores el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Reunión para coordinar las entregas con proveedores	false
+V6H009-4	Voy a reunirme con los proveedores para organizar los suministros el 23/01/2027 a las 09:45 en Oficina; avísame el día anterior.	Reunión con los proveedores para organizar los suministros	false
+V6H010-1	Tengo que recoger la tarjeta de transporte que solicité el 21 de enero de 2027 a las diez y media.	Recoger la tarjeta de transporte que solicité	false
+V6H010-2	Voy a la oficina de movilidad para buscar mi nueva tarjeta de transporte mañana por la tarde a las 18:30.	Buscar mi nueva tarjeta de transporte	false
+V6H010-3	Recuérdame: Tengo que recoger la tarjeta de transporte que solicité el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Recoger la tarjeta de transporte que solicité	false
+V6H010-4	Voy a la oficina de movilidad para buscar mi nueva tarjeta de transporte el 23/01/2027 a las 09:45 en Oficina de Movilidad; avísame el día anterior.	Buscar mi nueva tarjeta de transporte	false
+V6H011-1	Me he apuntado a un taller de cerámica el 21 de enero de 2027 a las diez y media.	Me he apuntado a un taller de cerámica	false
+V6H011-2	Tengo clase práctica para aprender a modelar barro mañana por la tarde a las 18:30.	Clase práctica para aprender a modelar barro	false
+V6H011-3	Recuérdame: Me he apuntado a un taller de cerámica el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Me he apuntado a un taller de cerámica	false
+V6H011-4	Tengo clase práctica para aprender a modelar barro el 23/01/2027 a las 09:45 en Centro Cultural; avísame el día anterior.	Clase práctica para aprender a modelar barro	false
+V6H012-1	Tengo que recoger un paquete en el punto de entrega el 21 de enero de 2027 a las diez y media.	Recoger un paquete en el punto de entrega	false
+V6H012-2	Voy a buscar un envío que ha llegado a la taquilla de recogida mañana por la tarde a las 18:30.	Buscar un envío que ha llegado a la taquilla de recogida	false
+V6H012-3	Recuérdame: Tengo que recoger un paquete en el punto de entrega el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Recoger un paquete en el punto de entrega	false
+V6H012-4	Voy a buscar un envío que ha llegado a la taquilla de recogida el 23/01/2027 a las 09:45 en Punto de Recogida; avísame el día anterior.	Buscar un envío que ha llegado a la taquilla de recogida	false
+V6H013-1	Tengo entrevista para incorporarme al voluntariado de la asociación el 21 de enero de 2027 a las diez y media.	Entrevista para incorporarme al voluntariado de la asociación	false
+V6H013-2	Voy a hablar con la coordinadora para entrar en el grupo de voluntarios mañana por la tarde a las 18:30.	Hablar con la coordinadora para entrar en el grupo de voluntarios	false
+V6H013-3	Recuérdame: Tengo entrevista para incorporarme al voluntariado de la asociación el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Entrevista para incorporarme al voluntariado de la asociación	false
+V6H013-4	Voy a hablar con la coordinadora para entrar en el grupo de voluntarios el 23/01/2027 a las 09:45 en Asociación; avísame el día anterior.	Hablar con la coordinadora para entrar en el grupo de voluntarios	false
+V6H014-1	Tengo cita con el veterinario para desparasitar al conejo el 21 de enero de 2027 a las diez y media.	Desparasitación del conejo	false
+V6H014-2	Voy a la clínica para que desparasiten a mi conejo mañana por la tarde a las 18:30.	La clínica para que desparasiten a mi conejo	false
+V6H014-3	Recuérdame: Tengo cita con el veterinario para desparasitar al conejo el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Desparasitación del conejo	false
+V6H014-4	Voy a la clínica para que desparasiten a mi conejo el 23/01/2027 a las 09:45 en Clínica Veterinaria; avísame el día anterior.	La clínica para que desparasiten a mi conejo	false
+V6H015-1	Viene el técnico a reparar la persiana del salón el 21 de enero de 2027 a las diez y media.	Reparación de la persiana del salón	false
+V6H015-2	Tengo que estar en casa para que arreglen la persiana del salón mañana por la tarde a las 18:30.	Estar en casa para que arreglen la persiana del salón	false
+V6H015-3	Recuérdame: Viene el técnico a reparar la persiana del salón el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Reparación de la persiana del salón	false
+V6H015-4	Tengo que estar en casa para que arreglen la persiana del salón el 23/01/2027 a las 09:45 en Domicilio; avísame el día anterior.	Estar en casa para que arreglen la persiana del salón	false
+V6H016-1	Tenemos una visita al instituto para la jornada de puertas abiertas el 21 de enero de 2027 a las diez y media.	Visita al instituto para la jornada de puertas abiertas	false
+V6H016-2	Vamos al instituto a conocer las instalaciones en la jornada de puertas abiertas mañana por la tarde a las 18:30.	Vamos al instituto a conocer las instalaciones en la jornada de puertas	false
+V6H016-3	Recuérdame: Tenemos una visita al instituto para la jornada de puertas abiertas el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Visita al instituto para la jornada de puertas abiertas	false
+V6H016-4	Vamos al instituto a conocer las instalaciones en la jornada de puertas abiertas el 23/01/2027 a las 09:45 en Instituto; avísame el día anterior.	Vamos al instituto a conocer las instalaciones en la jornada de puertas	false
+V6H017-1	Tenemos que preparar el menú de la celebración familiar el 21 de enero de 2027 a las diez y media.	Preparar el menú de la celebración familiar	false
+V6H017-2	Voy a organizar la comida de la fiesta con mis hermanos mañana por la tarde a las 18:30.	Organizar la comida de la fiesta con mis hermanos	false
+V6H017-3	Recuérdame: Tenemos que preparar el menú de la celebración familiar el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Preparar el menú de la celebración familiar	false
+V6H017-4	Voy a organizar la comida de la fiesta con mis hermanos el 23/01/2027 a las 09:45 en Casa Familiar; avísame el día anterior.	Organizar la comida de la fiesta con mis hermanos	false
+V6H018-1	Tengo que inscribirme en la carrera popular de diez kilómetros el 21 de enero de 2027 a las diez y media.	Inscripción en la carrera popular de diez kilómetros	false
+V6H018-2	Voy a apuntarme a la prueba de diez kilómetros del barrio mañana por la tarde a las 18:30.	Inscripción en la prueba de diez kilómetros del barrio	false
+V6H018-3	Recuérdame: Tengo que inscribirme en la carrera popular de diez kilómetros el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Inscripción en la carrera popular de diez kilómetros	false
+V6H018-4	Voy a apuntarme a la prueba de diez kilómetros del barrio el 23/01/2027 a las 09:45 en Polideportivo; avísame el día anterior.	Inscripción en la prueba de diez kilómetros del barrio	false
+V6H019-1	Tengo que entregar las llaves del piso nuevo el 21 de enero de 2027 a las diez y media.	Entregar las llaves del piso nuevo	false
+V6H019-2	Voy a dar las llaves de la vivienda a los nuevos inquilinos mañana por la tarde a las 18:30.	Dar las llaves de la vivienda a los nuevos inquilinos	false
+V6H019-3	Recuérdame: Tengo que entregar las llaves del piso nuevo el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Entregar las llaves del piso nuevo	false
+V6H019-4	Voy a dar las llaves de la vivienda a los nuevos inquilinos el 23/01/2027 a las 09:45 en Nueva Vivienda; avísame el día anterior.	Dar las llaves de la vivienda a los nuevos inquilinos	false
+V6H020-1	Tengo una inspección de la instalación eléctrica de casa el 21 de enero de 2027 a las diez y media.	Inspección de la instalación eléctrica de casa	false
+V6H020-2	Vendrá el electricista a comprobar el cuadro eléctrico mañana por la tarde a las 18:30.	Comprobación del cuadro eléctrico	false
+V6H020-3	Recuérdame: Tengo una inspección de la instalación eléctrica de casa el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Inspección de la instalación eléctrica de casa	false
+V6H020-4	Vendrá el electricista a comprobar el cuadro eléctrico el 23/01/2027 a las 09:45 en Vivienda; avísame el día anterior.	Comprobación del cuadro eléctrico	false
+V6H021-1	Tengo que comparar las tarifas eléctricas para cambiar de compañía el 21 de enero de 2027 a las diez y media.	Comparación de las tarifas eléctricas para cambiar de compañía	false
+V6H021-2	Voy a revisar varias ofertas de suministro eléctrico para elegir proveedor mañana por la tarde a las 18:30.	Revisión de varias ofertas de suministro eléctrico para elegir proveedor	false
+V6H021-3	Recuérdame: Tengo que comparar las tarifas eléctricas para cambiar de compañía el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Comparación de las tarifas eléctricas para cambiar de compañía	false
+V6H021-4	Voy a revisar varias ofertas de suministro eléctrico para elegir proveedor el 23/01/2027 a las 09:45 en Casa; avísame el día anterior.	Revisión de varias ofertas de suministro eléctrico para elegir proveedor	false
+V6H022-1	Tengo que copiar las fotos al disco duro externo el 21 de enero de 2027 a las diez y media.	Copiar las fotos al disco duro externo	false
+V6H022-2	Voy a pasar las fotografías familiares a una unidad externa mañana por la tarde a las 18:30.	Pasar las fotografías familiares a una unidad externa	false
+V6H022-3	Recuérdame: Tengo que copiar las fotos al disco duro externo el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Copiar las fotos al disco duro externo	false
+V6H022-4	Voy a pasar las fotografías familiares a una unidad externa el 23/01/2027 a las 09:45 en Despacho; avísame el día anterior.	Pasar las fotografías familiares a una unidad externa	false
+V6H023-1	Tengo que cambiar el titular del recibo del agua el 21 de enero de 2027 a las diez y media.	Cambiar el titular del recibo del agua	false
+V6H023-2	Voy a la oficina de aguas para poner la factura a otro nombre mañana por la tarde a las 18:30.	Poner la factura a otro nombre	false
+V6H023-3	Recuérdame: Tengo que cambiar el titular del recibo del agua el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Cambiar el titular del recibo del agua	false
+V6H023-4	Voy a la oficina de aguas para poner la factura a otro nombre el 23/01/2027 a las 09:45 en Oficina de Aguas; avísame el día anterior.	Poner la factura a otro nombre	false
+V6H024-1	Tenemos reunión de vecinos para tratar el ruido por la noche el 21 de enero de 2027 a las diez y media.	Reunión de vecinos sobre ruido	false
+V6H024-2	Voy a una junta de comunidad para hablar de las molestias nocturnas mañana por la tarde a las 18:30.	Junta de comunidad sobre las molestias nocturnas	false
+V6H024-3	Recuérdame: Tenemos reunión de vecinos para tratar el ruido por la noche el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Reunión de vecinos sobre ruido	false
+V6H024-4	Voy a una junta de comunidad para hablar de las molestias nocturnas el 23/01/2027 a las 09:45 en Salón Comunitario; avísame el día anterior.	Junta de comunidad sobre las molestias nocturnas	false
+V6H025-1	Tengo que recoger el diploma del curso de idiomas el 21 de enero de 2027 a las diez y media.	Recoger el diploma del curso de idiomas	false
+V6H025-2	Voy a la academia para buscar el certificado del curso mañana por la tarde a las 18:30.	Buscar el certificado del curso	false
+V6H025-3	Recuérdame: Tengo que recoger el diploma del curso de idiomas el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Recoger el diploma del curso de idiomas	false
+V6H025-4	Voy a la academia para buscar el certificado del curso el 23/01/2027 a las 09:45 en Academia de Idiomas; avísame el día anterior.	Buscar el certificado del curso	false
+V6H026-1	Tengo cita de fisioterapia para tratar el hombro derecho el 21 de enero de 2027 a las diez y media.	Fisioterapia para tratar el hombro derecho	false
+V6H026-2	Voy al fisio para hacer ejercicios de rehabilitación del hombro mañana por la tarde a las 18:30.	Hacer ejercicios de rehabilitación del hombro	false
+V6H026-3	Recuérdame: Tengo cita de fisioterapia para tratar el hombro derecho el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Fisioterapia para tratar el hombro derecho	false
+V6H026-4	Voy al fisio para hacer ejercicios de rehabilitación del hombro el 23/01/2027 a las 09:45 en Centro de Fisioterapia; avísame el día anterior.	Hacer ejercicios de rehabilitación del hombro	false
+V6H027-1	Tengo cita para donar sangre el 21 de enero de 2027 a las diez y media.	Donación de sangre	false
+V6H027-2	Voy al centro de transfusiones para hacer una donación de sangre mañana por la tarde a las 18:30.	Donación de sangre	false
+V6H027-3	Recuérdame: Tengo cita para donar sangre el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Donación de sangre	false
+V6H027-4	Voy al centro de transfusiones para hacer una donación de sangre el 23/01/2027 a las 09:45 en Centro de Transfusiones; avísame el día anterior.	Donación de sangre	false
+V6H028-1	Tenemos que montar los muebles de la oficina el 21 de enero de 2027 a las diez y media.	Montar los muebles de la oficina	false
+V6H028-2	Voy al despacho para ensamblar las mesas nuevas mañana por la tarde a las 18:30.	Montaje de las mesas nuevas	false
+V6H028-3	Recuérdame: Tenemos que montar los muebles de la oficina el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Montar los muebles de la oficina	false
+V6H028-4	Voy al despacho para ensamblar las mesas nuevas el 23/01/2027 a las 09:45 en Oficina Nueva; avísame el día anterior.	Montaje de las mesas nuevas	false
+V6H029-1	Tenemos una cena de despedida de un compañero del equipo el 21 de enero de 2027 a las diez y media.	Cena de despedida de un compañero del equipo	false
+V6H029-2	Voy a cenar con los compañeros para despedir a Marcos mañana por la tarde a las 18:30.	Cena con los compañeros para despedir a Marcos	false
+V6H029-3	Recuérdame: Tenemos una cena de despedida de un compañero del equipo el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Cena de despedida de un compañero del equipo	false
+V6H029-4	Voy a cenar con los compañeros para despedir a Marcos el 23/01/2027 a las 09:45 en Restaurante Centro; avísame el día anterior.	Cena con los compañeros para despedir a Marcos	false
+V6H030-1	Tengo que dejar las maletas en la consigna de la estación el 21 de enero de 2027 a las diez y media.	Dejar las maletas en la consigna de la estación	false
+V6H030-2	Voy a guardar el equipaje en las taquillas de consigna mañana por la tarde a las 18:30.	Guardar el equipaje en las taquillas de consigna	false
+V6H030-3	Recuérdame: Tengo que dejar las maletas en la consigna de la estación el viernes 22 de enero de 2027 a las 11:15; avísame dos horas antes.	Dejar las maletas en la consigna de la estación	false
+V6H030-4	Voy a guardar el equipaje en las taquillas de consigna el 23/01/2027 a las 09:45 en Estación de Tren; avísame el día anterior.	Guardar el equipaje en las taquillas de consigna	false
+A01	Tengo que cancelar la reunión con el asesor mañana a las 17:00.	Cancelar la reunión con el asesor	false
+A02	Necesito aplazar la entrevista de selección mañana a las 12:00.	Aplazar la entrevista de selección	false
+A03	Debo confirmar la reserva para el cumpleaños de Inés el 18/12/2026 a las 10:00.	Confirmar la reserva para el cumpleaños de Inés	false
+A04	Tenemos que presupuestar la reparación del ascensor mañana a las 16:00.	Presupuestar la reparación del ascensor	false
+A05	Quiero rechazar la oferta del seguro del coche mañana a las 11:00.	Rechazar la oferta del seguro del coche	false
+A06	Voy a posponer la visita al museo mañana a las 09:00.	Posponer la visita al museo	false
+A07	Necesito fotografiar la factura para reclamar el cobro mañana a las 18:00.	Fotografiar la factura para reclamar el cobro	false
+A08	Tengo que traducir el informe para preparar la reunión mañana a las 14:00.	Traducir el informe para preparar la reunión	false
+N01	No renovar la suscripción de música mañana a las 10:00.	No renovar la suscripción de música	false
+N02	Tengo que comprar leche sin lactosa mañana a las 18:00.	Comprar leche sin lactosa	false
+N03	Necesito reparar la impresora, no comprar otra mañana a las 16:00.	Reparar la impresora, no comprar otra	false
+N04	No cancelar la cita del podólogo mañana a las 11:00.	No cancelar la cita del podólogo	false
+N05	Tengo que reservar una mesa sin menú degustación mañana a las 13:00.	Reservar una mesa sin menú degustación	false
+N06	Debo enviar el borrador, no el contrato firmado mañana a las 09:00.	Enviar el borrador, no el contrato firmado	false
+N07	No comprar entradas sino solicitar el reembolso mañana a las 12:00.	No comprar entradas sino solicitar el reembolso	false
+N08	Necesito no borrar las fotos del viaje mañana a las 19:00.	No borrar las fotos del viaje	false
+R01	Tengo que entregar el informe a Lucía mañana a las 10:00.	Entregar el informe a Lucía	false
+R02	Voy a recoger el portátil de mi hermana mañana a las 18:00.	Recoger el portátil de mi hermana	false
+R03	Tengo que devolver las llaves al casero mañana a las 11:00.	Devolución de llaves al casero	false
+R04	Necesito pedir a Pablo el justificante del pago mañana a las 09:00.	Pedir a Pablo el justificante del pago	false
+R05	Tengo que acompañar a mi padre al audiólogo mañana a las 12:00.	Acompañar a mi padre al audiólogo	false
+R06	Tenemos que enviar la invitación de la boda a Nuria mañana a las 17:00.	Enviar la invitación de la boda a Nuria	false
+R07	Voy a recoger a Mateo del conservatorio mañana a las 20:00.	Recoger a Mateo del conservatorio	false
+R08	Necesito autorizar a Elena para recoger el paquete mañana a las 16:00.	Autorizar a Elena para recoger el paquete	false
+P01	Tengo que comparar presupuestos para reparar el tejado mañana a las 10:00.	Comparación de presupuestos para reparar el tejado	false
+P02	Tenemos una reunión para decidir el calendario de guardias mañana a las 11:00.	Reunión para decidir el calendario de guardias	false
+P03	Voy al taller para que revisen los frenos mañana a las 09:00.	Revisión de los frenos	false
+P04	Tengo cita para revisar la rodilla izquierda mañana a las 12:00.	Revisión de la rodilla izquierda	false
+P05	Tengo que llamar al electricista para pedir presupuesto mañana a las 16:00.	Llamar al electricista para pedir presupuesto	false
+P06	Necesito medir el hueco para comprar el frigorífico mañana a las 18:00.	Medir el hueco para comprar el frigorífico	false
+P07	Voy a solicitar una cita para renovar el pasaporte mañana a las 10:00.	Solicitar una cita para renovar el pasaporte	false
+P08	Tenemos que ensayar la presentación para la entrevista mañana a las 17:00.	Ensayar la presentación para la entrevista	false
+C01	Tengo cita con el dentista para revisar la corona mañana a las 10:00.	Revisión de la corona	false
+C02	Tenemos una cena de despedida de Carmen mañana a las 21:00.	Cena de despedida de Carmen	false
+C03	Tengo que pagar la factura del agua mañana a las 11:00.	Pagar la factura del agua	false
+C04	Voy a donar sangre mañana a las 09:00.	Donar sangre	false
+C05	Tengo que renovar el abono de transporte mañana a las 12:00.	Renovación del abono de transporte	false
+C06	Tenemos una reunión de equipo sobre las vacaciones mañana a las 13:00.	Reunión de equipo sobre las vacaciones	false
+C07	Tengo cita para reparar la pantalla del móvil mañana a las 16:00.	Reparación de la pantalla del móvil	false
+C08	Voy a recoger un paquete en Correos mañana a las 18:00.	Recoger un paquete en Correos	false
+M01	Recuérdame: Tengo que cancelar la visita del tasador el 19 de diciembre de 2026 a las 12:30; avísame una hora antes.	Cancelar la visita del tasador	false
+M02	Necesito aplazar la tutoría el viernes 18 de diciembre de 2026 a las diez y media.	Aplazar la tutoría	false
+M03	Tengo que confirmar la reunión mañana por la tarde a las 18:30 en Oficina Central.	Confirmar la reunión	false
+M04	No renovar el seguro el 21/12/2026 a las 09:45; avísame el día anterior.	No renovar el seguro	false
+M05	Tengo que comprar el libro Mañana será otro día mañana a las 17:00.	Compra del libro será otro día	false
+M06	Tenemos una reunión para tratar el ruido por la noche mañana a las 18:00.	Reunión sobre ruido	false
+M07	Tengo que reservar la sala para el curso de las diez mañana a las 08:00.	Reservar la sala para el curso de las diez	false
+M08	Necesito cancelar la suscripción el 17/12/2026 a las 10:00 en Casa.	Cancelar la suscripción	false

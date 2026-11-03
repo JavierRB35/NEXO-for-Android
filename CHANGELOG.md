@@ -1,3 +1,10 @@
+## Nexo 3.7.82 — Calendario completo y títulos de citas
+
+- Las siete columnas del calendario se adaptan al ancho disponible sin recortar el domingo.
+- Integra el motor local de títulos validado V8.1 solo en AppointmentParser; conserva el texto original y respeta títulos editados y registros existentes.
+- Las instrucciones largas se conservan completas y requieren revisión; no se eliminan alertas del parser.
+- Sin cambios de base de datos, firma, SDK, Gradle ni mecanismo de actualización. VersionCode 175; actualización opcional.
+
 ## Nexo 3.7.81 — Fichas de citas centradas en la información
 - Fecha, día de la semana, horario, descripción, estado y avisos configurados visibles sin abrir el editor, también en apariciones recurrentes.
 - Editar destacado junto al título. Vínculos desplegables y Maps compactos; se conservan las acciones de compartir, duplicar, posponer y eliminar.

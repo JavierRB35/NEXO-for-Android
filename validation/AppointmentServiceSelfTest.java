@@ -30,7 +30,7 @@ public final class AppointmentServiceSelfTest {
             DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(new Context(),db);JSONObject result=service.classifyAppointment("Dentista el 31 de febrero a las 10:00");check("event".equals(result.optString("type")),"Type changed");check(result.optBoolean("needsReview"),"Invalid date warning was silenced");check(result.optBoolean("invalidDate"),"Invalid date flag lost");check(!result.optString("reason").isBlank(),"Review reason lost");
         });
         scenario("Explicitly cleared fields win over the original dictation",()->{
-            DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(new Context(),db);JSONObject p=draft("Cita mañana a las diez en Clínica Norte").put("title","Título corregido").put("body","").put("dueAt",0).put("locationText","").put("recurrence","none");JSONObject result=service.saveCapture(p);check(result.optBoolean("ok"),"Save failed");JSONObject i=db.getItem(result.optLong("id"));check(i.optLong("dueAt")==0&&!i.optBoolean("hasTime"),"Date restored");check(i.optString("body").isEmpty()&&i.optString("locationText").isEmpty(),"Cleared text restored");check("event".equals(i.optString("type"))&&"pending".equals(i.optString("status")),"Wrong canonical identity");
+            DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(new Context(),db);JSONObject p=draft("Cita mañana a las diez en Clínica Norte").put("title","Título corregido").put("body","").put("dueAt",0).put("locationText","").put("recurrence","none");JSONObject result=service.saveCapture(p);check(result.optBoolean("ok"),"Save failed");JSONObject i=db.getItem(result.optLong("id"));check(i.optLong("dueAt")==0&&!i.optBoolean("hasTime"),"Date restored");check(i.optString("body").isEmpty()&&i.optString("locationText").isEmpty(),"Cleared text restored");check("Título corregido".equals(i.optString("title")),"Manual title overwritten");check("event".equals(i.optString("type"))&&"pending".equals(i.optString("status")),"Wrong canonical identity");
         });
         scenario("Missing optional fields still receive parser suggestions",()->{
             DatabaseHelper db=new DatabaseHelper();NexoService service=new NexoService(new Context(),db);String text="Dentista el 22 de abril de 2030 a las 16:00 en Clínica Norte";RuleClassifier.Result r=AppointmentParser.parse(text);JSONObject out=service.saveCapture(draft(text));JSONObject item=db.getItem(out.optLong("id"));check(out.optBoolean("ok"),"Save failed");check(item.optLong("dueAt")==r.dueAt&&item.optString("locationText").equals(r.locationText),"Suggestions missing");
@@ -52,6 +52,12 @@ public final class AppointmentServiceSelfTest {
         });
         scenario("A failed update does not schedule notifications",()->{
             NexoService service=new NexoService(new Context(),new DatabaseHelper());check(!service.updateItem(new JSONObject().put("id",999).put("status","done")).optBoolean("ok"),"Missing item accepted");check(ReminderScheduler.scheduled.isEmpty()&&ReminderScheduler.cancelled.isEmpty(),"Unrelated notification changed");
+        });
+        scenario("Long explicit negation remains reviewable without a date",()->{
+            String text="No borrar los documentos originales de las reparaciones de la vivienda ni las fotografías de los daños de la habitación";
+            JSONObject r=new NexoService(new Context(),new DatabaseHelper()).classifyAppointment(text);
+            check(r.optBoolean("needsReview"),"Long title review was cleared");
+            check(text.equals(r.optString("title")),"Negation or object truncated");
         });
         System.out.println("Appointment parser/service: "+passed+" scenarios passed");
     }

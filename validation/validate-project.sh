@@ -40,6 +40,7 @@ sh validation/test-medication-repeat-policy.sh
 sh validation/test-note-title-engine.sh
 sh validation/test-recording-naming.sh
 sh validation/test-appointments.sh
+sh validation/test-appointment-titles.sh
 python validation/test-appointment-query.py
 python validation/test-place-query.py
 python validation/test-document-query.py

@@ -1,5 +1,7 @@
 package com.jruiz.nexo.core;
 
+import com.jruiz.nexo.core.title.AppointmentTitleEngine;
+
 import android.content.Context;
 
 import com.jruiz.nexo.data.DatabaseHelper;
@@ -133,7 +135,8 @@ public class NexoService {
 
         // Una cita puede guardarse voluntariamente sin fecha. Eso no es lo mismo
         // que haber escrito una fecha/hora que el parser no ha podido interpretar.
-        if (r.dueAt <= 0 && !r.invalidDate && !r.invalidTime && !r.ambiguousTime) {
+        if (r.dueAt <= 0 && !r.invalidDate && !r.invalidTime && !r.ambiguousTime
+                && !r.warnings.contains(AppointmentTitleEngine.REVIEW_WARNING)) {
             r.needsReview = false;
             if ("Falta la fecha de la cita".equals(r.reason)) r.reason = "Cita sin fecha";
         }
