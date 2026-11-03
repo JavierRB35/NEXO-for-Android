@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.79",
-  "releaseNotes": "Incorpora el logotipo transparente de Carlos Javier Ruiz Bermúdez en la pantalla de inicio como firma discreta del autor. Se mantienen las funciones de Nexo. Actualización opcional.",
+  "versionName": "3.7.80",
+  "releaseNotes": "Separa tus citas médicas («Mi salud») de las citas en las que acompañas a familiares («Acompañar (salud)»). Ambas categorías tienen iconos y colores distintos en Agenda y Calendario. Tus datos se conservan. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

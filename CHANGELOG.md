@@ -1,3 +1,8 @@
+## Nexo 3.7.80 — Mi salud y acompañamiento familiar
+- Nuevas categorías «Mi salud» (corazón rojo) y «Acompañar (salud)» (mano con corazón azul), distinguibles en agenda, calendario y fichas.
+- Los registros históricos «Salud / Médico» se visualizan como «Mi salud» sin migración ni modificación masiva de datos.
+- Mismos permisos, base de datos SQLite 34, firma Release y entorno AndroidIDE. Actualización opcional con `versionCode 173`.
+
 ## Nexo 3.7.76 — Línea de hora actual en agenda diaria
 - Agenda horaria de **hoy**: línea horizontal roja/coral cruzando todo el horario exactamente donde corresponde a la hora real, con etiqueta HH:MM y sin interceptar toques.
 - Al acceder a la agenda de hoy, desplazamiento automático hasta la hora presente con unos 45 minutos anteriores visibles arriba; en Calendario solo se mueve el panel horario, no el mes.
