@@ -38,8 +38,8 @@ assert 'id="captureMapPreview"' in html and 'id="captureMapsUrl" type="hidden"' 
 assert 'placeholder="Dirección o enlace de Google Maps"' in html
 for token in ['id="editLocationMapBtn"','id="occLocationMapBtn"','id="editMapsUrl" type="hidden"','id="occMapsUrl" type="hidden"']:
     assert token in js, token
-assert "eventLocationShortcutHtml(i,'eventDetailLocationBtn')" in item
-assert "eventLocationShortcutHtml(i,'occDetailLocationBtn')" in occ
+assert "eventDetailOverviewHtml(i,originalAlerts,'eventDetailLocationBtn')" in item
+assert "eventDetailOverviewHtml(i,occAlerts,'occDetailLocationBtn',currentState)" in occ
 assert "bindEventMapActions(i,'eventDetailMapsBtn','eventDetailLocationBtn')" in item
 assert "bindEventMapActions(i,'occDetailMapsBtn','occDetailLocationBtn')" in occ
 assert 'function bindEventLocationField' in js
