@@ -1790,9 +1790,38 @@ function recordEditorActionBar(saveId,editId,shareId,deleteId,duplicateId='',map
     '<button id="'+deleteId+'" class="danger-button" type="button">'+uiIcon('trash')+' Eliminar</button>'+
     '</div></details></div>';
 }
+
+function eventDetailOverviewHtml(item,alerts,locationButtonId,statusOverride=''){
+  const start=Number(item?.dueAt)||0,end=start?itemEffectiveEndAt(item):0;
+  const hasTime=item?.allDay!==true&&item?.hasTime!==false;
+  const sameDay=start&&end?isoDateLocal(new Date(start))===isoDateLocal(new Date(end)):true;
+  const longDate=ms=>{
+    const value=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(ms));
+    return value.charAt(0).toLocaleUpperCase('es-ES')+value.slice(1);
+  };
+  const dateLabel=start?(longDate(start)+(end>start&&!sameDay?' → '+longDate(end):'')):'Sin fecha asignada';
+  const timeLabel=!start?'Sin horario':!hasTime?'Todo el día':(fmtTime(start)+(end>start?' – '+fmtTime(end):''));
+  const leadTimes=normalizeAlertMinutes(alerts);
+  const status=String(statusOverride||item?.occurrenceStatus||item?.status||'pending');
+  const statusLabel={active:'Pendiente',pending:'Pendiente',done:'Completada',postponed:'Pospuesta',cancelled:'Cancelada'}[status]||status;
+  const alertsLabel=leadTimes.length?leadTimes.map(value=>'<span class="event-detail-alert-tag">'+esc(humanLeadMinutes(value))+'</span>').join(''):'<span class="event-detail-empty">Sin avisos configurados</span>';
+  return '<div class="event-detail-overview">'+
+    '<div class="detail-meta"><span class="pill category-pill" style="--event-category-color:'+familyCategoryColor(item.category)+'">'+uiIcon(familyCategoryIcon(item.category))+esc(categoryLabel(item.category))+'</span><span class="meta-tag">'+esc(typeLabel(item.type))+'</span></div>'+
+    '<section class="event-detail-main" aria-label="Datos principales de la cita">'+
+      '<div class="event-detail-fact">'+uiIcon('calendar')+'<div><span class="event-detail-label">FECHA</span><strong class="event-detail-date">'+esc(dateLabel)+'</strong></div></div>'+
+      '<div class="event-detail-fact event-detail-fact--time">'+uiIcon('clock')+'<div><span class="event-detail-label">HORARIO</span><strong class="event-detail-time">'+esc(timeLabel)+'</strong></div></div>'+
+      (isAppointmentType(item.type)?'<div class="event-detail-status"><span>Estado</span><strong>'+esc(statusLabel)+'</strong></div>':'')+
+      '<div class="event-detail-description"><span class="event-detail-label">MOTIVO / DESCRIPCIÓN</span><div class="event-detail-text">'+(String(item.body||'').trim()?esc(item.body):'<span class="event-detail-empty">Sin descripción</span>')+'</div></div>'+
+    '</section>'+
+    '<section class="event-detail-alerts" aria-label="Recordatorios configurados"><div class="event-detail-alert-title">'+uiIcon('bell')+'<strong>Avisos y recordatorios</strong></div><div class="event-detail-alert-tags">'+alertsLabel+'</div>'+
+      (leadTimes.length&&item.voiceEnabled?'<small>Lectura por voz activada</small>':'')+'</section>'+
+    eventParticipantAvatarsHtml(item,'event-participant-avatars--detail')+eventLocationShortcutHtml(item,locationButtonId)+'</div>';
+}
+
 function bindCompactRecordActions(){
   const bar=$('#modalBody .record-form-actions--compact'),editor=$('#modalBody .details-box');
   if(!bar||!editor)return;
+  const isEventDetail=!!$('#modalBody .event-detail-overview');
   const edit=bar.querySelector('button.secondary-button'),save=bar.querySelector('button.primary-button');
   if(bar.querySelector('#saveEditBtn,#saveOccurrenceBtn')){
     // El editor de eventos y el de recurrencias comparten una barra inferior.
@@ -1812,7 +1841,37 @@ function bindCompactRecordActions(){
     // El pie queda fuera del contenedor desplazable para que esté siempre visible.
     $('#modal .modal-sheet')?.appendChild(bar);
   }
-  const refresh=()=>{edit.hidden=editor.open;save.hidden=!editor.open;};
+  if(isEventDetail){
+    $('#modal .modal-sheet')?.classList.add('event-detail-sheet');
+    const actions=$('#modal .modal-head-actions');
+    if(actions){edit.classList.add('event-detail-edit-head');actions.insertBefore(edit,$('#modalClose'));}
+    const link=bar.querySelector('#editLinkButton,#occLinkButton');
+    if(link){
+      const caption=link.querySelector('span');
+      if(caption)caption.textContent='Vínculos';
+      link.setAttribute('aria-label','Ver vínculos de la cita');
+      link.setAttribute('aria-controls','eventDetailLinksPanel');
+      link.setAttribute('aria-expanded','false');
+      link.addEventListener('click',event=>{
+        const panel=$('#eventDetailLinksPanel');if(!panel)return;
+        event.stopImmediatePropagation();
+        panel.hidden=!panel.hidden;
+        link.setAttribute('aria-expanded',String(!panel.hidden));
+        if(!panel.hidden)panel.scrollIntoView?.({block:'nearest'});
+      });
+    }
+  }
+  const refresh=()=>{
+    edit.hidden=editor.open;save.hidden=!editor.open;
+    if(isEventDetail){
+      $('#modalBody .event-detail-overview').hidden=editor.open;
+      if(editor.open){
+        const links=$('#eventDetailLinksPanel');
+        if(links)links.hidden=true;
+        bar.querySelector('#editLinkButton,#occLinkButton')?.setAttribute('aria-expanded','false');
+      }
+    }
+  };
   editor.addEventListener('toggle',refresh);refresh();
 }
 
@@ -3595,11 +3654,8 @@ function openItem(id){
   if(isPlaceType(i.type)){openPlaceEditor(id);return;}
   if(i.recurrence&&i.recurrence!=='none'&&i.dueAt){const dayStart=new Date();dayStart.setHours(0,0,0,0);const next=Number(NexoNative.getNextOccurrence(i.id,dayStart.getTime()-1))||i.dueAt;openOccurrence(i.id,next);return;}
   const url=(i.body||'').match(/https?:\/\/\S+/)?.[0],iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,endTime=endTimeForItem(i),originalAlerts=getItemAlertMinutes(id);let editAlerts=[...originalAlerts];
-  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'',eventHasLocation(i)?'eventDetailMapsBtn':'')}<div class="detail-meta"><span class="pill category-pill" style="--event-category-color:${familyCategoryColor(i.category)}">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span>${i.dueAt?`<span class="meta-tag">${esc(fmtDueItem(i))}</span>`:''}</div>
-    ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}${i.attachmentName?`<div class="attachment-chip">Archivo guardado: ${esc(i.attachmentName)}</div>`:''}
-    ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
-    ${eventLocationShortcutHtml(i,'eventDetailLocationBtn')}
-    ${relatedLinksSectionHtml(id)}
+  openModal(i.title,`${recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn',i.type==='event'?'duplicateItemBtn':'',eventHasLocation(i)?'eventDetailMapsBtn':'')}${eventDetailOverviewHtml(i,originalAlerts,'eventDetailLocationBtn')}
+    <section class="event-detail-links-panel" id="eventDetailLinksPanel" hidden>${relatedLinksSectionHtml(id)}</section>
     <details class="details-box"><summary>Editar</summary><div class="detail-grid">
       ${i.type==='event'?'<div class="event-edit-related"><button id="editLinkButton" type="button" class="secondary-button">'+uiIcon('link')+' Vincular / crear</button></div>':''}
       <label>Título<input id="editTitle" type="text" value="${escAttr(i.title)}"></label>
@@ -3668,11 +3724,8 @@ function openOccurrence(seriesId,occurrenceAt){
   if(isPlaceType(i.type)){openPlaceEditor(seriesId);return;}
   const iso=isoFromMs(i.dueAt),endAt=itemEffectiveEndAt(i),endIso=isoFromMs(endAt),allDay=i.allDay===true||i.hasTime===false,until=i.recurrenceUntil?isoFromMs(i.recurrenceUntil).date:'',originalDate=iso.date,originalTime=!allDay?iso.time:'',originalEndDate=endIso.date,endTime=endTimeForItem(i),originalEndTime=endTime,originalAllDay=allDay,originalVoiceEnabled=!!i.voiceEnabled,originalRecurrence=i.recurrence||'none',originalUntil=until||'',currentState=i.occurrenceStatus||'active',originalAlerts=getItemAlertMinutes(seriesId);let occAlerts=[...originalAlerts];
   openModal(i.title,`${recordEditorActionBar('saveOccurrenceBtn','editOccurrenceTopBtn','shareOccurrenceBtn','deleteOccurrenceBtn',i.type==='event'?'duplicateOccurrenceBtn':'',eventHasLocation(i)?'occDetailMapsBtn':'')}<div class="series-banner"><strong>↻ ${esc(recurrenceLabel(i.recurrence))}</strong><span>Esta es una aparición de una serie${i.recurrenceUntil?` · hasta ${esc(fmtDate(i.recurrenceUntil,false))}`:''}</span></div>
-    <div class="detail-meta"><span class="pill category-pill" style="--event-category-color:${familyCategoryColor(i.category)}">${uiIcon(familyCategoryIcon(i.category))}${esc(categoryLabel(i.category))}</span><span class="meta-tag">${esc(typeLabel(i.type))}</span><span class="meta-tag">${esc(fmtDueItem(i))}</span>${currentState==='done'?'<span class="meta-tag done-tag">Realizada</span>':''}</div>
-    ${i.body?`<div class="detail-body">${esc(i.body)}</div>`:''}
-    ${eventParticipantAvatarsHtml(i,'event-participant-avatars--detail')}
-    ${eventLocationShortcutHtml(i,'occDetailLocationBtn')}
-    ${relatedLinksSectionHtml(seriesId)}
+    ${eventDetailOverviewHtml(i,occAlerts,'occDetailLocationBtn',currentState)}
+    <section class="event-detail-links-panel" id="eventDetailLinksPanel" hidden>${relatedLinksSectionHtml(seriesId)}</section>
     <details class="details-box"><summary>Editar</summary><div class="detail-grid">
       ${i.type==='event'?'<div class="event-edit-related"><button id="occLinkButton" type="button" class="secondary-button">'+uiIcon('link')+' Vincular / crear</button></div>':''}
       <label>Título<input id="occTitle" type="text" value="${escAttr(i.title)}"></label>
@@ -3847,6 +3900,8 @@ function openModal(title,html){
   if($('#modal').classList.contains('hidden'))state.modalReturnFocus=document.activeElement;
   // Una ficha sustituida no debe conservar los botones de la ficha anterior.
   $('#modal .modal-sheet > .record-form-actions--compact')?.remove();
+  $('#modal .modal-head-actions > .event-detail-edit-head')?.remove();
+  $('#modal .modal-sheet')?.classList.remove('event-detail-sheet');
   $('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;
   promoteRecordActions($('#modalBody'));
   $('#modal').classList.remove('hidden');
@@ -3888,6 +3943,8 @@ function closeModal(force=false){
   state.quoteEditor=null;state.placeEditor=null;
   $('#modal').classList.add('hidden');$('#modalBody').innerHTML='';
   $('#modal .modal-sheet > .record-form-actions--compact')?.remove();
+  $('#modal .modal-head-actions > .event-detail-edit-head')?.remove();
+  $('#modal .modal-sheet')?.classList.remove('event-detail-sheet');
   document.body.classList.remove('modal-open','note-reading-open','note-editor-open','journal-editor-open','quote-editor-open','medication-editor-open','place-editor-open','document-editor-open');
   if(noteWasOpen)refreshNotesSurface();
   if(journalWasOpen){if(state.screen==='panel'&&state.lastPanel==='journal')renderJournalPanel();renderJournalPrompt(false);}

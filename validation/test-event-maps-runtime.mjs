@@ -54,4 +54,31 @@ d.querySelector('#editLocation').dispatchEvent(new w.Event('input',{bubbles:true
 assert.equal(d.querySelector('#editMapsUrl').value,'','Cambiar la ubicación no debe mantener un enlace antiguo');
 d.querySelector('#editLocationMapBtn').click();
 assert.equal(destinations.at(-1),'Otro lugar');
-console.log('Mapas: pie fijo y acceso visible, enlaces heredados y campo edición OK');
+
+const sheet=d.querySelector('.modal-sheet');
+sheet.insertAdjacentHTML('afterbegin','<div class="modal-head"><h2 id="modalTitle">Fisio</h2><div class="modal-head-actions"><button id="modalClose">Cerrar</button></div></div>');
+bar.remove();
+modal.innerHTML=w.recordEditorActionBar('saveEditBtn','editItemTopBtn','shareItemBtn','deleteItemBtn','','eventDetailMapsBtn')+
+  '<div class="event-detail-overview"><strong>Viernes</strong></div>'+
+  '<section id="eventDetailLinksPanel" class="event-detail-links-panel" hidden>Lista de la compra</section>'+
+  '<details class="details-box"><summary>Editar</summary><div class="event-edit-related"><button id="editLinkButton"><span>Vincular</span></button></div><input id="editTitle"></details>';
+w.bindCompactRecordActions();
+const compactBar=d.querySelector('.modal-sheet>.record-form-actions--compact');
+assert.equal(d.querySelector('.modal-head-actions #editItemTopBtn')?.textContent.trim(),'Editar');
+assert(!compactBar.querySelector('#editItemTopBtn'),'Editar se presenta junto al título');
+assert.equal(compactBar.querySelector('#editLinkButton')?.textContent.trim(),'Vínculos');
+assert.equal(d.querySelector('#eventDetailLinksPanel').hidden,true);
+d.querySelector('#editLinkButton').click();
+assert.equal(d.querySelector('#eventDetailLinksPanel').hidden,false);
+d.querySelector('#editLinkButton').click();
+assert.equal(d.querySelector('#eventDetailLinksPanel').hidden,true);
+const editDetails=modal.querySelector('.details-box');
+editDetails.open=true;editDetails.dispatchEvent(new w.Event('toggle'));
+assert.equal(d.querySelector('.event-detail-overview').hidden,true);
+assert.equal(d.querySelector('#editItemTopBtn').hidden,true);
+assert.equal(d.querySelector('#saveEditBtn').hidden,false);
+editDetails.open=false;editDetails.dispatchEvent(new w.Event('toggle'));
+assert.equal(d.querySelector('.event-detail-overview').hidden,false);
+assert.equal(d.querySelector('#editItemTopBtn').hidden,false);
+
+console.log('Mapas y ficha compacta: navegación, vínculos y edición visibles OK');

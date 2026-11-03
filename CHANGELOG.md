@@ -1,3 +1,8 @@
+## Nexo 3.7.81 — Fichas de citas centradas en la información
+- Fecha, día de la semana, horario, descripción, estado y avisos configurados visibles sin abrir el editor, también en apariciones recurrentes.
+- Editar destacado junto al título. Vínculos desplegables y Maps compactos; se conservan las acciones de compartir, duplicar, posponer y eliminar.
+- Sin cambios en almacenamiento, permisos, firma Release o base de datos 34. Actualización opcional con `versionCode 174`.
+
 ## Nexo 3.7.80 — Mi salud y acompañamiento familiar
 - Nuevas categorías «Mi salud» (corazón rojo) y «Acompañar (salud)» (mano con corazón azul), distinguibles en agenda, calendario y fichas.
 - Los registros históricos «Salud / Médico» se visualizan como «Mi salud» sin migración ni modificación masiva de datos.
