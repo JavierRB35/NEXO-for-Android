@@ -2761,7 +2761,8 @@ body.startup-loading #app{visibility:hidden}
 .category-icon-label{display:inline-flex;align-items:center;gap:5px;vertical-align:middle}
 .category-icon-label .ui-icon,.category-pill .ui-icon,.family-result-card .pill .ui-icon{display:inline-block;width:16px;height:16px;flex:0 0 16px;vertical-align:-3px;margin-right:4px}
 .pill.category-pill{display:inline-flex;align-items:center;gap:4px;background:#f1f4f2;color:#34443d}
-.pill.category-pill .ui-icon{margin-right:0}
+.category-icon-label .ui-icon{color:var(--event-category-color,#475569)}
+.pill.category-pill .ui-icon{margin-right:0;color:var(--event-category-color,#475569)}
 .category-select-preview{display:flex;align-items:center;min-height:28px;padding:3px 0;font-size:.75rem;color:#465a50}
 .category-select-preview .ui-icon{width:18px;height:18px}
 .upcoming-category-pill .ui-icon{flex:0 0 16px}

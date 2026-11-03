@@ -19,4 +19,4 @@ assert 'DB_NAME = "nexo.db"' in db and 'DB_VERSION = 34' in db
 assert 'manifest.put("appVersion", BuildConfig.VERSION_NAME);' in backup
 assert not seed.exists(), 'La APK no debe volver a incluir una snapshot familiar privada'
 assert 'validatePayload(payload, events, rules)' in importer
-print('Nexo 3.7.79, versionCode 171, applicationId, BD 34 y snapshot privada retirada: OK')
+print('Nexo 3.7.79, versionCode 172, applicationId, BD 34 y snapshot privada retirada: OK')

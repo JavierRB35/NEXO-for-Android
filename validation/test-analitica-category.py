@@ -7,9 +7,9 @@ html=(root/'app/src/main/assets/index.html').read_text(encoding='utf8')
 java=(root/'app/src/main/java/com/jruiz/nexo/core/RuleClassifier.java').read_text(encoding='utf8')
 category_list=js.split('const CATEGORIES = [',1)[1].split('];',1)[0]
 categories=re.findall(r"'([^']+)'",category_list)
-assert len(categories)==20 and len(set(categories))==20
+assert len(categories)==21 and len(set(categories))==21
 ix=categories.index('Analítica')
-assert (categories[ix-1],categories[ix+1])==('Salud / Médico','Farmacia')
+assert categories[ix-2:ix+2]==['Mi salud','Acompañar (salud)','Analítica','Farmacia']
 assert "'analitica':'syringe-blood'" in js
 assert "'analitica':'#7F1D1D'" in js
 assert 'nx-icon-syringe-blood' in html
@@ -22,7 +22,7 @@ assert 'familyCategoryIcon(item.category)' in js
 assert 'familyCategoryColor(item.category)' in js
 assert 'categoryIconLabel(select.value)' in js
 assert 'DB_VERSION = 34' in (root/'app/src/main/java/com/jruiz/nexo/data/DatabaseHelper.java').read_text(encoding='utf8')
-assert 'versionCode 171' in (root/'app/build.gradle').read_text(encoding='utf8')
+assert 'versionCode 172' in (root/'app/build.gradle').read_text(encoding='utf8')
 symbol='<symbol id="nx-icon-syringe-blood"'+html.split('<symbol id="nx-icon-syringe-blood"',1)[1].split('</symbol>',1)[0]+'</symbol>'
 root_svg=ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg">'+symbol+'</svg>')
 children=list(root_svg)[0]
