@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.78",
-  "releaseNotes": "Corrige la pantalla de Copia de seguridad en Android: el texto vuelve a ocupar el ancho disponible y los botones aparecen debajo, sin desbordarse. Se mantiene la copia automática en un único archivo .nexo, la verificación del archivo y el cifrado del chat. Actualización opcional.",
+  "versionName": "3.7.79",
+  "releaseNotes": "Incorpora el logotipo transparente de Carlos Javier Ruiz Bermúdez en la pantalla de inicio como firma discreta del autor. Se mantienen las funciones de Nexo. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
