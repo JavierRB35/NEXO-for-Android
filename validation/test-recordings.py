@@ -41,9 +41,16 @@ assert 'MediaStore.Downloads.EXTERNAL_CONTENT_URI' in main
 assert 'Environment.DIRECTORY_DOWNLOADS + "/Nexo"' in main
 assert 'Intent.ACTION_CREATE_DOCUMENT' in main
 assert 'data-recording-export' in js
+for control in ['data-recording-resume', 'data-recording-pause', 'data-recording-stop']:
+    assert control in js, control
+assert 'recordingPlayer.pause()' in main
+assert 'recordingPlayer.start()' in main
+assert 'if(!wasPlaying)recordingPlayer.pause()' in main
+assert 'resume.disabled=!!p.playing' in js
+assert 'pause.disabled=!p.playing' in js
 assert 'RecordingService.isRecordingActive()' in main
 
-for bridge in ['getRecordingStatus','getRecordings','startRecording','pauseRecording','resumeRecording','stopRecording','renameRecording','deleteRecording','playRecording','stopRecordingPlayback','shareRecording','exportRecording']:
+for bridge in ['getRecordingStatus','getRecordings','startRecording','pauseRecording','resumeRecording','stopRecording','renameRecording','deleteRecording','playRecording','pauseRecordingPlayback','resumeRecordingPlayback','stopRecordingPlayback','shareRecording','exportRecording']:
     assert re.search(r'@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+'+bridge+r'\s*\(',main), bridge
     assert 'NexoNative.'+bridge+'(' in js, bridge+' JS'
 
