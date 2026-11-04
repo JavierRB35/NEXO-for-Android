@@ -1,3 +1,10 @@
+## Nexo 3.7.83 — Reproducción con pausa, continuación y detener
+
+- El reproductor de grabaciones ofrece controles separados de Reproducir/Continuar, Pausar y Detener.
+- La pausa conserva la posición y la reanudación continúa desde ese punto. Detener reinicia la reproducción.
+- Se mantienen velocidades 1×, 1,5× y 2×, el desplazamiento por la barra de progreso y las transcripciones.
+- Sin cambios de base de datos, permisos, firma o SDK. `versionCode 176`; actualización opcional.
+
 ## Nexo 3.7.82 — Calendario completo y títulos de citas
 
 - Las siete columnas del calendario se adaptan al ancho disponible sin recortar el domingo.
