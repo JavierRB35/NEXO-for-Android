@@ -313,6 +313,10 @@ main{max-width:760px;margin:0 auto}.screen{display:none;padding:20px 16px 28px}.
 .recording-actions{display:flex;gap:7px;flex-wrap:wrap}
 .recording-actions .mini-button{min-height:38px}
 .recording-actions .danger-text{color:#a53a3a;border-color:#efcaca;background:#fff8f8}
+.recording-player-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.recording-player-actions>button{min-width:0;min-height:44px;padding:7px 4px;font-size:.875rem}
+.recording-player-actions>button:disabled{opacity:.48}
+@media(max-width:360px){.recording-player-actions{gap:5px}.recording-player-actions>button{font-size:.78rem;padding-inline:2px}}
 
 
 
