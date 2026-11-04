@@ -41,9 +41,16 @@ assert 'MediaStore.Downloads.EXTERNAL_CONTENT_URI' in main
 assert 'Environment.DIRECTORY_DOWNLOADS + "/Nexo"' in main
 assert 'Intent.ACTION_CREATE_DOCUMENT' in main
 assert 'data-recording-export' in js
+for control in ['data-recording-resume', 'data-recording-pause', 'data-recording-stop']:
+    assert control in js, control
+assert 'recordingPlayer.pause()' in main
+assert 'recordingPlayer.start()' in main
+assert 'if(!wasPlaying)recordingPlayer.pause()' in main
+assert 'resume.disabled=!!p.playing' in js
+assert 'pause.disabled=!p.playing' in js
 assert 'RecordingService.isRecordingActive()' in main
 
-for bridge in ['getRecordingStatus','getRecordings','startRecording','pauseRecording','resumeRecording','stopRecording','renameRecording','deleteRecording','playRecording','stopRecordingPlayback','shareRecording','exportRecording']:
+for bridge in ['getRecordingStatus','getRecordings','startRecording','pauseRecording','resumeRecording','stopRecording','renameRecording','deleteRecording','playRecording','pauseRecordingPlayback','resumeRecordingPlayback','stopRecordingPlayback','shareRecording','exportRecording']:
     assert re.search(r'@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+'+bridge+r'\s*\(',main), bridge
     assert 'NexoNative.'+bridge+'(' in js, bridge+' JS'
 
@@ -56,6 +63,6 @@ assert 'Nexo no emite sonidos al iniciar o terminar' in js
 # Feature release must not alter DB identity/schema merely to store recordings.
 assert 'DB_NAME = "nexo.db"' in db
 assert 'DB_VERSION = 34' in db
-assert "versionName '3.7.82'" in gradle
-assert 'versionCode 175' in gradle
+assert "versionName '3.7.83'" in gradle
+assert 'versionCode 176' in gradle
 print('Grabadora: integración, permisos, privacidad local y puentes OK')

@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.82",
-  "releaseNotes": "El calendario muestra completas las siete columnas en pantallas pequeñas. Los títulos de nuevas citas conservan mejor la acción que dictas, como cancelar una reunión o pedir un presupuesto. Tus citas guardadas no cambian. Actualización opcional.",
+  "versionName": "3.7.83",
+  "releaseNotes": "El reproductor de grabaciones incorpora botones para reproducir, pausar y detener. Puedes continuar el audio desde donde lo pausaste y seguir usando las velocidades de reproducción y las transcripciones. Los audios guardados no cambian. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -115,7 +115,7 @@ window.NexoProductCatalog = {
           "title": "Grabadora y transcripción",
           "description": "Conserva reuniones y conversaciones autorizadas.",
           "features": [
-            "Grabación y reproducción de audio en el móvil",
+            "Grabación y reproducción de audio con controles Reproducir, Pausar, Continuar y Detener",
             "Exportación de archivos y transcripciones",
             "Transcripción local con modelos descargables según configuración"
           ]
