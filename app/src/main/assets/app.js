@@ -1608,7 +1608,10 @@ function openTranscription(id){
 
 function recordingCard(r,modelStatus=null){
   const playing=String(r.id)===String(state.playingRecordingId);
-  const player=playing?`<div class="recording-player" data-recording-player="${escAttr(r.id)}"><input class="recording-seek" data-recording-seek="${escAttr(r.id)}" type="range" min="0" max="${Math.max(1,Number(r.durationMs||1))}" value="0" step="250"><div class="recording-player-row"><span data-recording-time="${escAttr(r.id)}">00:00 / ${recordingDuration(r.durationMs||0)}</span><div class="recording-speed" role="group" aria-label="Velocidad"><button data-recording-speed="1" type="button">1×</button><button data-recording-speed="1.5" type="button">1,5×</button><button data-recording-speed="2" type="button">2×</button></div></div></div>`:'';
+  const playbackState=playing?parseNative(NexoNative.getRecordingPlaybackState(),{}):{};
+  const paused=playing&&playbackState.playing===false;
+  const playbackControls=playing?`<div class="recording-player-actions" role="group" aria-label="Controles de reproducción"><button class="primary-button" type="button" data-recording-resume="${escAttr(r.id)}" ${paused?'':'disabled'}>▶ ${paused?'Continuar':'Reproducir'}</button><button class="secondary-button" type="button" data-recording-pause="${escAttr(r.id)}" ${paused?'disabled':''}>Ⅱ Pausar</button><button class="secondary-button" type="button" data-recording-stop="${escAttr(r.id)}">■ Detener</button></div>`:'';
+  const player=playing?`<div class="recording-player" data-recording-player="${escAttr(r.id)}"><input class="recording-seek" data-recording-seek="${escAttr(r.id)}" type="range" min="0" max="${Math.max(1,Number(r.durationMs||1))}" value="0" step="250"><div class="recording-player-row"><span data-recording-time="${escAttr(r.id)}">00:00 / ${recordingDuration(r.durationMs||0)}</span><div class="recording-speed" role="group" aria-label="Velocidad"><button data-recording-speed="1" type="button">1×</button><button data-recording-speed="1.5" type="button">1,5×</button><button data-recording-speed="2" type="button">2×</button></div></div>${playbackControls}</div>`:'';
   const id=String(r.id),transcribed=NexoNative.hasTranscription(id),t=transcriptionStatus(id),stateName=String(t.state||'idle');
   const running=stateName==='running'||stateName==='starting';
   const model=modelStatus||transcriptionModelStatusSafe(),activeModel=selectedTranscriptionModel(model);
@@ -1620,7 +1623,8 @@ function recordingCard(r,modelStatus=null){
         ?`<button class="secondary-button recording-transcribe-button" type="button" disabled>Recursos insuficientes</button>`
         :`<button class="secondary-button recording-transcribe-button" data-transcription-needs-model="${escAttr(id)}">Transcribir</button>`))
     :'';
-  return `<div class="recording-card"><div class="recording-card-main"><div><strong>${esc(r.title||'Grabación')}</strong><span>${esc(fmtDate(Number(r.startedAt||0),true))}</span></div><div class="recording-meta"><span>${esc(recordingDuration(r.durationMs||0))}</span><span>${esc(recordingSize(r.sizeBytes||0))}${transcribed?' · Transcrita':''}</span></div></div>${player}<div data-transcription-host="${escAttr(id)}">${transcriptionSummary(id)}</div><div class="recording-actions"><button class="primary-button" data-recording-play="${escAttr(id)}">${uiIcon(playing?'close':'play')}${playing?' Detener':' Reproducir'}</button>${transcribed?`<button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver texto</button>`:transcribeAction}<button class="secondary-button recording-options-button" data-recording-menu="${escAttr(id)}" aria-label="Opciones de ${escAttr(r.title||'grabación')}">⋯ Opciones</button><div class="record-card-actions">${recordIconAction('edit','Renombrar grabación',`data-recording-rename="${escAttr(id)}"`)}${recordIconAction('share','Compartir audio',`data-recording-share="${escAttr(id)}"`)}${recordIconAction('trash','Eliminar grabación',`data-recording-delete="${escAttr(id)}"`,'icon-action--danger')}</div></div></div>`;
+  const startAction=playing?'':`<button class="primary-button" type="button" data-recording-play="${escAttr(id)}">${uiIcon('play')} Reproducir</button>`;
+  return `<div class="recording-card"><div class="recording-card-main"><div><strong>${esc(r.title||'Grabación')}</strong><span>${esc(fmtDate(Number(r.startedAt||0),true))}</span></div><div class="recording-meta"><span>${esc(recordingDuration(r.durationMs||0))}</span><span>${esc(recordingSize(r.sizeBytes||0))}${transcribed?' · Transcrita':''}</span></div></div>${player}<div data-transcription-host="${escAttr(id)}">${transcriptionSummary(id)}</div><div class="recording-actions">${startAction}${transcribed?`<button class="secondary-button" data-transcription-view="${escAttr(id)}">Ver texto</button>`:transcribeAction}<button class="secondary-button recording-options-button" data-recording-menu="${escAttr(id)}" aria-label="Opciones de ${escAttr(r.title||'grabación')}">⋯ Opciones</button><div class="record-card-actions">${recordIconAction('edit','Renombrar grabación',`data-recording-rename="${escAttr(id)}"`)}${recordIconAction('share','Compartir audio',`data-recording-share="${escAttr(id)}"`)}${recordIconAction('trash','Eliminar grabación',`data-recording-delete="${escAttr(id)}"`,'icon-action--danger')}</div></div></div>`;
 }
 
 function openRenameRecording(id){
@@ -1636,6 +1640,9 @@ function updateRecordingPlaybackUi(){
   const id=String(p.id||'');const seek=document.querySelector(`[data-recording-seek="${CSS.escape(id)}"]`),time=document.querySelector(`[data-recording-time="${CSS.escape(id)}"]`);
   if(seek&&!seek.matches(':active')){seek.max=String(Math.max(1,Number(p.durationMs||1)));seek.value=String(Math.max(0,Number(p.positionMs||0)));}
   if(time)time.textContent=`${recordingDuration(p.positionMs||0)} / ${recordingDuration(p.durationMs||0)}`;
+  const resume=document.querySelector(`[data-recording-resume="${CSS.escape(id)}"]`),pause=document.querySelector(`[data-recording-pause="${CSS.escape(id)}"]`);
+  if(resume){resume.disabled=!!p.playing;resume.textContent=p.playing?'▶ Reproducir':'▶ Continuar';}
+  if(pause)pause.disabled=!p.playing;
   document.querySelectorAll('[data-recording-speed]').forEach(b=>b.classList.toggle('active',Math.abs(Number(b.dataset.recordingSpeed)-Number(p.speed||1))<0.05));
 }
 function startRecordingPlaybackPolling(){stopRecordingPlaybackPolling();updateRecordingPlaybackUi();state.recordingPlaybackPoll=setInterval(updateRecordingPlaybackUi,500);}
@@ -1643,6 +1650,9 @@ function startRecordingPlaybackPolling(){stopRecordingPlaybackPolling();updateRe
 function bindRecordingButtons(root){
   root.querySelectorAll('[data-recording-menu]').forEach(b=>b.addEventListener('click',()=>openRecordingActions(String(b.dataset.recordingMenu))));
   root.querySelectorAll('[data-recording-play]').forEach(b=>b.addEventListener('click',()=>{const id=String(b.dataset.recordingPlay);if(state.playingRecordingId===id)NexoNative.stopRecordingPlayback();else NexoNative.playRecording(id);}));
+  root.querySelectorAll('[data-recording-resume]').forEach(b=>b.addEventListener('click',()=>NexoNative.resumeRecordingPlayback(String(b.dataset.recordingResume))));
+  root.querySelectorAll('[data-recording-pause]').forEach(b=>b.addEventListener('click',()=>NexoNative.pauseRecordingPlayback(String(b.dataset.recordingPause))));
+  root.querySelectorAll('[data-recording-stop]').forEach(b=>b.addEventListener('click',()=>NexoNative.stopRecordingPlayback()));
   root.querySelectorAll('[data-recording-share]').forEach(b=>b.addEventListener('click',()=>NexoNative.shareRecording(String(b.dataset.recordingShare))));
   root.querySelectorAll('[data-recording-export]').forEach(b=>b.addEventListener('click',()=>NexoNative.exportRecording(String(b.dataset.recordingExport))));
   root.querySelectorAll('[data-recording-seek]').forEach(el=>el.addEventListener('input',()=>NexoNative.seekRecordingPlayback(String(el.dataset.recordingSeek),Number(el.value||0))));
