@@ -1431,6 +1431,22 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void pauseRecordingPlayback(String id) {
+        runOnUiThread(() -> {
+            if (recordingPlayer == null || !playingRecordingId.equals(id)) return;
+            try { if (recordingPlayer.isPlaying()) recordingPlayer.pause(); }
+            catch (Exception e) { jsCallback("onRecordingError", "No se pudo pausar el audio."); }
+        });
+    }
+
+    private void resumeRecordingPlayback(String id) {
+        runOnUiThread(() -> {
+            if (recordingPlayer == null || !playingRecordingId.equals(id)) return;
+            try { if (!recordingPlayer.isPlaying()) recordingPlayer.start(); }
+            catch (Exception e) { jsCallback("onRecordingError", "No se pudo continuar el audio."); }
+        });
+    }
+
     private void stopRecordingPlayback() {
         runOnUiThread(() -> {
             String stopped = playingRecordingId;
@@ -1462,7 +1478,7 @@ public class MainActivity extends Activity {
     private void setRecordingPlaybackSpeed(float speed){
         float safe=(Math.abs(speed-1.5f)<0.1f)?1.5f:(speed>=1.9f?2.0f:1.0f);
         recordingPlaybackSpeed=safe;
-        runOnUiThread(()->{try{if(recordingPlayer!=null)recordingPlayer.setPlaybackParams(new PlaybackParams().setSpeed(safe));}catch(Exception ignored){}});
+        runOnUiThread(()->{try{if(recordingPlayer!=null){boolean wasPlaying=recordingPlayer.isPlaying();recordingPlayer.setPlaybackParams(new PlaybackParams().setSpeed(safe));if(!wasPlaying)recordingPlayer.pause();}}catch(Exception ignored){}});
     }
 
     private void shareRecording(String id) {
@@ -2712,6 +2728,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public boolean renameRecording(String id,String title) { return RecordingStore.rename(MainActivity.this,id,title); }
         @JavascriptInterface public boolean deleteRecording(String id) { if(RecordingService.isRecordingActive()&&id.equals(RecordingService.status().optString("id")))return false;boolean ok=RecordingStore.delete(MainActivity.this,id);if(ok)TranscriptionStore.deleteForRecording(MainActivity.this,id);return ok; }
         @JavascriptInterface public void playRecording(String id) { MainActivity.this.playRecording(id); }
+        @JavascriptInterface public void pauseRecordingPlayback(String id) { MainActivity.this.pauseRecordingPlayback(id); }
+        @JavascriptInterface public void resumeRecordingPlayback(String id) { MainActivity.this.resumeRecordingPlayback(id); }
         @JavascriptInterface public void stopRecordingPlayback() { MainActivity.this.stopRecordingPlayback(); }
         @JavascriptInterface public String getRecordingPlaybackState() { return MainActivity.this.recordingPlaybackState().toString(); }
         @JavascriptInterface public void seekRecordingPlayback(String id,long positionMs) { MainActivity.this.seekRecordingPlayback(id,positionMs); }
