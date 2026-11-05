@@ -182,6 +182,8 @@
 :root[data-nexo-theme] .settings-accordion,
 :root[data-nexo-theme] .about-card{
   background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line);box-shadow:none}
+/* La rejilla del calendario usa plato tenue y celdas de superficie. */
+:root[data-nexo-theme] .calendar-card{background:var(--nx-surface-2)}
 :root[data-nexo-theme] .family-home-search>.ui-icon{color:var(--primary)}
 :root[data-nexo-theme] .tgv-all-day-event small{color:var(--muted)}
 :root[data-nexo-theme] .family-home-search input{color:var(--text)}
@@ -207,11 +209,11 @@
 :root[data-nexo-theme] .fab-voice{background:var(--nx-surface);color:var(--nx-primary);border-color:var(--nx-line)}
 :root[data-nexo-theme] .toast{background:var(--nx-elevated);color:var(--nx-text);box-shadow:var(--nx-shadow-float)}
 :root[data-nexo-theme] .toast-action{color:var(--nx-primary)}
-:root[data-nexo-theme] .calendar-day{background:transparent;color:var(--nx-text)}
+:root[data-nexo-theme] .calendar-day{background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line)}
 :root[data-nexo-theme] .calendar-day.outside-month:not(.selected){color:var(--nx-text-3)}
 :root[data-nexo-theme] .calendar-day.today .day-number{background:var(--nx-primary);color:var(--nx-on-primary)}
 :root[data-nexo-theme] .calendar-day.today:not(.selected) .day-number{color:var(--nx-on-primary)}
-:root[data-nexo-theme] .calendar-day.selected{background:var(--nx-primary-soft);box-shadow:inset 0 0 0 1.5px var(--nx-primary)}
+:root[data-nexo-theme] .calendar-day.selected{background:var(--nx-primary-soft);border-color:var(--nx-primary);box-shadow:inset 0 0 0 1px var(--nx-primary)}
 :root[data-nexo-theme] .calendar-day.selected .day-number{background:var(--nx-primary);color:var(--nx-on-primary)}
 :root[data-nexo-theme] .calendar-weekdays{color:var(--nx-text-3)}
 :root[data-nexo-theme] .date-tile{background:var(--nx-surface-2)}

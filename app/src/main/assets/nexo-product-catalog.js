@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.84",
-  "releaseNotes": "Nexo estrena una imagen renovada en toda la aplicación: tres estilos de color más cuidados (Vivo, Mediterráneo y Noche), letras y espacios más claros, pantallas coherentes de principio a fin también en modo oscuro y una barra del sistema que acompaña al estilo elegido. Todo funciona exactamente igual. Actualización opcional.",
+  "versionName": "3.7.85",
+  "releaseNotes": "El calendario mensual vuelve a mostrar una cuadrícula visible: cada día es una celda delimitada, así los iconos de categorías se leen siempre dentro de su fecha. Los tres estilos (Vivo, Mediterráneo y Noche) adaptan la rejilla automáticamente. Todo lo demás funciona exactamente igual. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

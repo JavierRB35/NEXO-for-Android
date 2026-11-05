@@ -1,3 +1,9 @@
+## Nexo 3.7.85 — Cuadrícula visible en el calendario
+
+- El calendario mensual muestra de nuevo una rejilla: cada día es una celda delimitada (superficie + borde fino sobre un plato suave), de modo que los iconos de categorías pertenecen siempre a su fecha.
+- La rejilla se adapta a los tres temas con tokens; hoy conserva el círculo del acento y el día seleccionado su anillo.
+- Sin cambios de base de datos, permisos, firma o SDK. `versionCode 178`; actualización opcional.
+
 ## Nexo 3.7.84 — Rediseño visual premium integral
 
 - Sistema de diseño unificado por tokens (`--nx-*`): las tres identidades (Vivo, Mediterráneo y Noche) se definen una vez y cubren todas las pantallas, sin parches dispersos ni fugas claras en modo oscuro.
