@@ -34,15 +34,15 @@ final class NexoConnectMessageSelection {
         toolbar.setBackgroundColor(Color.WHITE);
         Button back=new Button(activity);back.setText("‹");back.setTextSize(26);
         back.setContentDescription("Cancelar selección");back.setAllCaps(false);
-        back.setTextColor(0xff0f766e);
+        back.setTextColor(0xff2563EB);
         back.setOnClickListener(v->clear());
         toolbar.addView(back,new LinearLayout.LayoutParams(dp(52),dp(48)));
-        counter=new TextView(activity);counter.setTextColor(0xff142337);counter.setTextSize(18);
+        counter=new TextView(activity);counter.setTextColor(0xff16233B);counter.setTextSize(18);
         counter.setTypeface(null,android.graphics.Typeface.BOLD);
         toolbar.addView(counter,new LinearLayout.LayoutParams(0,-2,1));
         Button trash=new Button(activity);trash.setText("🗑");trash.setTextSize(24);trash.setAllCaps(false);
         trash.setContentDescription("Eliminar para mí los mensajes seleccionados");
-        trash.setTextColor(0xffbc2840);
+        trash.setTextColor(0xffB42335);
         trash.setOnClickListener(v->deleteSelected());
         toolbar.addView(trash,new LinearLayout.LayoutParams(dp(60),dp(48)));
         root.addView(toolbar,1,new LinearLayout.LayoutParams(-1,-2));

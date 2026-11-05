@@ -1,9 +1,9 @@
-/* Nexo Vivo: persistencia local EXCLUSIVA de apariencia, independiente de datos y funciones. */
+/* Nexo: persistencia local EXCLUSIVA de apariencia, independiente de datos y funciones. */
 (function(){
   'use strict';
   const KEY='nexo.visual.theme.v1';
   const THEMES=['vivo','mediterraneo','noche'];
-  const STATUS_BAR={vivo:'#F6F8FF',mediterraneo:'#FFFAF1',noche:'#152237'};
+  const STATUS_BAR={vivo:'#F4F7FD',mediterraneo:'#FAF6ED',noche:'#121C2E'};
   function valid(theme){return THEMES.includes(theme)?theme:'vivo';}
   function remembered(){
     try{return valid(window.localStorage.getItem(KEY));}
@@ -25,6 +25,8 @@
     current=theme;
     reflect();
     try{window.localStorage.setItem(KEY,current);}catch(_){}
+    // Aviso público para quien quiera reaccionar (p. ej. app.js sincroniza la barra del sistema).
+    try{document.dispatchEvent(new CustomEvent('nexothemechange',{detail:{theme:current}}));}catch(_){}
     return true;
   }
   // Aplicar el tema antes de renderizar el primer fotograma: sin destello claro/oscuro.
@@ -36,5 +38,5 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});
   else bind();
-  window.NexoVisualTheme={get:()=>current,select};
+  window.NexoVisualTheme={get:()=>current,select,STATUS_BAR};
 })();

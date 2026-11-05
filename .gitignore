@@ -11,3 +11,4 @@ app/libs/*.aar
 *.p12
 *.password
 Nexo_Signing_Backup/
+node_modules/

@@ -23,7 +23,8 @@ public final class NexoConnectActivity extends NexoConnectPilotActivity {
     private NexoConnectMessageSelection messageSelection;
     private final Map<UUID,android.view.View> conversationRows=new HashMap<>();
     private final java.util.Map<UUID,String> drafts=new java.util.HashMap<>();
-    private static final int INK=0xff142337,MUTED=0xff526177,GREEN=0xff0f766e,PAPER=0xfff7f9fc;
+    // Paleta alineada con el tema visual Vivo de la interfaz principal.
+    private static final int INK=0xff16233B,MUTED=0xff4E5F7B,GREEN=0xff2563EB,PAPER=0xffF4F7FD;
     private int px(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     private android.graphics.drawable.GradientDrawable surface(int color,int radius){
         android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();d.setColor(color);d.setCornerRadius(px(radius));return d;

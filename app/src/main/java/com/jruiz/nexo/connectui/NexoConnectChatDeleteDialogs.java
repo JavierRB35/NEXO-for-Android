@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /** Confirm destructive changes locally. Never modifies device pairing or remote data. */
 final class NexoConnectChatDeleteDialogs {
-    private static final int RED=0xffbc2840;
+    private static final int RED=0xffB42335;
     private NexoConnectChatDeleteDialogs(){}
 
     static void showConversationMenu(Activity activity,String contactName,Runnable delete){

@@ -79,7 +79,7 @@ assert.equal(app.meta['color-scheme'].attrs.content,'light');
 app.buttons[2].handlers.click();
 assert.equal(app.theme.get(),'noche');
 assert.equal(app.meta['color-scheme'].attrs.content,'dark');
-assert.equal(app.meta['theme-color'].attrs.content,'#152237');
+assert.equal(app.meta['theme-color'].attrs.content,'#121C2E');
 assert.equal(app.theme.select('inexistente'),false,'Rechazar temas desconocidos');
 assert.equal(app.theme.get(),'noche');
 app=execute('noche');

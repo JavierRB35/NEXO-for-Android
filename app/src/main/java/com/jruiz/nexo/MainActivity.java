@@ -311,6 +311,32 @@ public class MainActivity extends Activity {
         webView.loadUrl("file:///android_asset/index.html");
     }
 
+    /**
+     * Alinea la barra de estado y de navegación del sistema con el tema visual
+     * activo de la interfaz (Vivo, Mediterráneo o Noche). Presentación pura.
+     */
+    private void applySystemChrome(String theme) {
+        android.view.Window window = getWindow();
+        if (window == null) return;
+        boolean dark = "noche".equals(theme);
+        int barColor;
+        if (dark) barColor = android.graphics.Color.parseColor("#121C2E");
+        else if ("mediterraneo".equals(theme)) barColor = android.graphics.Color.parseColor("#FAF6ED");
+        else barColor = android.graphics.Color.parseColor("#F4F7FD");
+        window.setStatusBarColor(barColor);
+        window.setNavigationBarColor(barColor);
+        android.view.View decor = window.getDecorView();
+        int visibility = decor.getSystemUiVisibility();
+        if (dark) {
+            visibility &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            visibility &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        } else {
+            visibility |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            visibility |= android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        }
+        decor.setSystemUiVisibility(visibility);
+    }
+
     private void handleIncomingIntent(Intent intent) {
         if (intent == null) return;
         if (intent.getBooleanExtra("nexo_check_updates", false)) {
@@ -2167,6 +2193,9 @@ public class MainActivity extends Activity {
             String m = ("normal".equals(mode) || "large".equals(mode)) ? mode : "comfortable";
             getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putString("display_mode", m).apply();
         }
+        // La interfaz informa del tema visual activo para alinear la barra del
+        // sistema. Solo presentación: no toca datos ni preferencias funcionales.
+        @JavascriptInterface public void applyChromeTheme(String theme) { runOnUiThread(() -> applySystemChrome(theme)); }
         @JavascriptInterface public String getAppVersion() { return BuildConfig.VERSION_NAME; }
         /**
          * Debug-only companion launcher: no note, token, key, account, URL or

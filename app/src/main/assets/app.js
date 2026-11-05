@@ -4603,7 +4603,17 @@ function refreshChatUnreadBadge(){
   button?.setAttribute('aria-label',unread?'Abrir Chat, '+unread+' mensaje'+(unread===1?'':'s')+' sin leer':'Abrir Chat');
 }
 window.NexoChatBadge={refresh:refreshChatUnreadBadge};
+// La barra del sistema acompaña al tema visual elegido (Vivo, Mediterráneo, Noche).
+function syncSystemChrome(){
+  try{
+    const theme=window.NexoVisualTheme?.get?.();
+    if(theme)NexoNative.applyChromeTheme?.(theme);
+  }catch(_){/* Nunca debe impedir el arranque. */}
+}
+document.addEventListener('nexothemechange',syncSystemChrome);
+
 function init(){
+  syncSystemChrome();
   refreshHeaderDate();
   setInterval(()=>{if(!document.hidden)refreshHeaderDate();},60*1000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshHeaderDate();});

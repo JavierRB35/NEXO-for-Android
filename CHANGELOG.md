@@ -1,3 +1,15 @@
+## Nexo 3.7.84 — Rediseño visual premium integral
+
+- Sistema de diseño unificado por tokens (`--nx-*`): las tres identidades (Vivo, Mediterráneo y Noche) se definen una vez y cubren todas las pantallas, sin parches dispersos ni fugas claras en modo oscuro.
+- Tipografía y ritmo renovados: pesos moderados, jerarquía de secciones con microtítulos neutros y espaciado consistente.
+- Componentes repasados: botones con estados, campos con foco anillado, tarjetas más ligeras con acento lateral de categoría, chips, hojas modales con tirador, toast, estados vacíos y FAB.
+- Inicio: tarjetas de pulso con cifra protagonista, pistas contextuales y tarjetas de próximos eventos más legibles.
+- Calendario sin bordes internos por celda, hoy y día seleccionado más claros; agenda horaria y vehículos adaptadas a cada tema.
+- Navegación inferior con indicador de píldora Material 3 y etiqueta «Herramientas» en español.
+- La barra de estado y de navegación del sistema se alinean con el tema activo mediante el nuevo puente `applyChromeTheme`; paleta nativa y pantallas de Nexo Connect actualizadas a la identidad Vivo.
+- Accesibilidad: contraste AA verificado por los tests (incluidos los tres temas), foco visible consistente y movimiento reducido respetado.
+- Sin cambios de base de datos, permisos, firma o SDK. `versionCode 177`; actualización opcional.
+
 ## Nexo 3.7.83 — Reproducción con pausa, continuación y detener
 
 - El reproductor de grabaciones ofrece controles separados de Reproducir/Continuar, Pausar y Detener.

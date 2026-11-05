@@ -151,7 +151,7 @@ assert.equal(afterSearch,beforeSearch+1,'La búsqueda debe crear el índice una 
 
 // Six destinations: Chat opens native UI; Search remains reachable and Back works.
 const labels=[...window.document.querySelectorAll('.nav-item small')].map(e=>e.textContent);
-assert.deepEqual(labels,['Inicio','Calendario','Notas','Chat','Inbox','Tools']);
+assert.deepEqual(labels,['Inicio','Calendario','Notas','Chat','Inbox','Herramientas']);
 window.document.querySelector('[data-nav="today"]').click();
 window.document.querySelector('#globalSearchBtn').click();
 assert.equal(window.__nexoTestState.screen,'search');

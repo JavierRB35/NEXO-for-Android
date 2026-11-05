@@ -1,333 +1,331 @@
-/* Nexo Vivo · EXCLUSIVAMENTE presentación. No altera dimensiones, navegación ni gestos. */
-/* Variables de tema: el color de las categorías del calendario NO se redefine. */
+/* ==========================================================================
+   Nexo · Temas visuales (Vivo · Mediterráneo · Noche)
+   --------------------------------------------------------------------------
+   Última capa: define los tokens de cada tema y repasa los archivos que se
+   cargan antes (styles, design-system, time-grid, vehicles).
+   Exclusivamente presentación: no altera dimensiones funcionales, gestos,
+   navegación, datos ni los colores semánticos de las 21 categorías.
+   ========================================================================== */
+
+/* 1 · Identidad Vivo: azul sereno sobre superficie fresca */
 :root[data-nexo-theme="vivo"]{
-  --nx-card-blue:#F0F6FF;--nx-card-green:#EEFAF5;--nx-card-coral:#FFF3F1;--nx-card-sun:#FFF9E9;--nx-card-violet:#F6F2FF;
   color-scheme:light;
-  --bg:#F6F8FF;--card:#FFFFFF;--text:#18304C;--navy:#18304C;
-  --muted:#52647F;--line:#DCE5F5;--primary:#2563EB;--blue:#2563EB;
-  --blue-soft:#E9F1FF;--green:#138B74;--green-soft:#E5F8F2;
-  --surface-soft:#F0F5FF;--primary-soft:#E9F1FF;--amber:#986100;--red:#B42335;
-  --shadow:0 4px 16px rgba(35,76,140,.07);
-  --nx-surface:#FFFFFF;--nx-surface-2:#F0F5FF;--nx-elevated:#FFFFFF;
-  --nx-on-primary:#FFFFFF;--nx-accent-two:#0E7866;--nx-accent-three:#C64B43;
-  --nx-accent-four:#9D6B0F;--nx-accent-five:#7856BE;--nx-header:#FFFFFF;
-  --nx-border:#DCE5F5;--nx-grid:#F1F5FC;
+  --nx-bg:#F4F7FD;--nx-surface:#FFFFFF;--nx-surface-2:#EEF3FB;--nx-elevated:#FFFFFF;
+  --nx-header:#FFFFFF;--nx-grid:#EEF3FB;
+  --nx-text:#16233B;--nx-text-2:#4E5F7B;--nx-text-3:#7E8DA6;
+  --nx-line:#DEE6F3;--nx-line-strong:#C3CFE4;
+  --nx-primary:#2563EB;--nx-primary-press:#1D4FD0;--nx-primary-soft:#E7EEFF;
+  --nx-on-primary:#FFFFFF;
+  --nx-danger:#B42335;--nx-danger-soft:#FBE9EB;
+  --nx-success:#177A54;--nx-success-soft:#E3F4EC;
+  --nx-warn:#8A5A00;--nx-warn-soft:#FFF3D6;
+  --nx-accent-two:#0E7866;--nx-accent-three:#C64B43;
+  --nx-accent-four:#9D6B0F;--nx-accent-five:#7856BE;
+  --nx-shadow:0 1px 2px rgba(22,35,59,.05),0 4px 16px rgba(22,35,59,.05);
+  --nx-shadow-float:0 2px 6px rgba(22,35,59,.10),0 12px 32px rgba(22,35,59,.14);
+  --nx-card-blue:#E7EEFF;--nx-card-green:#E3F4EC;--nx-card-coral:#FBE9EB;
+  --nx-card-sun:#FFF3D6;--nx-card-violet:#EEE8FA;
+  /* Compatibilidad con nombres heredados (valores literales) */
+  --bg:#F4F7FD;--card:#FFFFFF;--text:#16233B;--navy:#16233B;
+  --muted:#4E5F7B;--line:#DEE6F3;--primary:#2563EB;--blue:#2563EB;
+  --blue-soft:#E7EEFF;--green:#177A54;--green-soft:#E3F4EC;
+  --surface-soft:#EEF3FB;--primary-soft:#E7EEFF;
+  --amber:#8A5A00;--red:#B42335;--radius:16px;
+  --shadow:0 1px 2px rgba(22,35,59,.05),0 4px 16px rgba(22,35,59,.05);
+  --nx-border:#DEE6F3;
+  --surface:#FFFFFF;--navy:#16233B;
+  --tgv-now-color:#C62842;--tgv-now-ink:#FFFFFF;
 }
+
+/* 2 · Identidad Mediterráneo: aguas turbias y arena cálida */
 :root[data-nexo-theme="mediterraneo"]{
-  --nx-card-blue:#EFF9F7;--nx-card-green:#F2FAEC;--nx-card-coral:#FFF0E9;--nx-card-sun:#FFF6E1;--nx-card-violet:#F7F1FF;
   color-scheme:light;
-  --bg:#FFFAF1;--card:#FFFFFF;--text:#30475B;--navy:#30475B;
-  --muted:#536373;--line:#EADFCB;--primary:#126E76;--blue:#126E76;
-  --blue-soft:#DCF2F0;--green:#147D64;--green-soft:#E8F5E9;
-  --surface-soft:#FFF4E4;--primary-soft:#DCF2F0;--amber:#926100;--red:#AD3540;
-  --shadow:0 4px 16px rgba(118,80,37,.07);
-  --nx-surface:#FFFFFF;--nx-surface-2:#FFF3DF;--nx-elevated:#FFFFFF;
-  --nx-on-primary:#FFFFFF;--nx-accent-two:#986000;--nx-accent-three:#BA4937;
-  --nx-accent-four:#8760B7;--nx-accent-five:#2775AD;--nx-header:#FFFDF8;
-  --nx-border:#EADFCB;--nx-grid:#FFF5E8;
+  --nx-bg:#FAF6ED;--nx-surface:#FFFDF8;--nx-surface-2:#F3EDDE;--nx-elevated:#FFFDF8;
+  --nx-header:#FFFDF8;--nx-grid:#F3EDDE;
+  --nx-text:#33372F;--nx-text-2:#5F6457;--nx-text-3:#8B8E80;
+  --nx-line:#E6DECA;--nx-line-strong:#D2C8AE;
+  --nx-primary:#12707A;--nx-primary-press:#0C5A63;--nx-primary-soft:#DBEFEC;
+  --nx-on-primary:#FFFFFF;
+  --nx-danger:#AC3540;--nx-danger-soft:#FAE8E6;
+  --nx-success:#1B7A55;--nx-success-soft:#E4F1E4;
+  --nx-warn:#8F6200;--nx-warn-soft:#FBF0D3;
+  --nx-accent-two:#9A6009;--nx-accent-three:#C05B3C;
+  --nx-accent-four:#7C5FAC;--nx-accent-five:#2A6FA8;
+  --nx-shadow:0 1px 2px rgba(84,72,44,.06),0 4px 16px rgba(84,72,44,.06);
+  --nx-shadow-float:0 2px 6px rgba(84,72,44,.12),0 12px 32px rgba(84,72,44,.16);
+  --nx-card-blue:#DBEFEC;--nx-card-green:#E4F1E4;--nx-card-coral:#FAE8E6;
+  --nx-card-sun:#FBF0D3;--nx-card-violet:#ECE6F4;
+  --bg:#FAF6ED;--card:#FFFDF8;--text:#33372F;--navy:#33372F;
+  --muted:#5F6457;--line:#E6DECA;--primary:#12707A;--blue:#12707A;
+  --blue-soft:#DBEFEC;--green:#1B7A55;--green-soft:#E4F1E4;
+  --surface-soft:#F3EDDE;--primary-soft:#DBEFEC;
+  --amber:#8F6200;--red:#AC3540;--radius:16px;
+  --shadow:0 1px 2px rgba(84,72,44,.06),0 4px 16px rgba(84,72,44,.06);
+  --nx-border:#E6DECA;
+  --surface:#FFFDF8;--navy:#33372F;
+  --tgv-now-color:#C62842;--tgv-now-ink:#FFFFFF;
 }
+
+/* 3 · Identidad Noche: azul de medianoche, acento claro, sin negros planos */
 :root[data-nexo-theme="noche"]{
-  --nx-card-blue:#293C57;--nx-card-green:#26443F;--nx-card-coral:#423645;--nx-card-sun:#3E3A34;--nx-card-violet:#363550;
   color-scheme:dark;
-  --bg:#152237;--card:#23334B;--text:#F0F5FF;--navy:#101B2D;
-  --muted:#BAC8DB;--line:#455772;--primary:#9BC1FF;--blue:#9BC1FF;
-  --blue-soft:#314C72;--green:#78DEC1;--green-soft:#264F4A;
-  --surface-soft:#2A3D56;--primary-soft:#314C72;--amber:#FFD481;--red:#EF6C80;
-  --shadow:0 5px 20px rgba(0,0,0,.20);
-  --nx-surface:#23334B;--nx-surface-2:#2A3D56;--nx-elevated:#2E415A;
-  --nx-on-primary:#101F33;--nx-accent-two:#78DEC1;--nx-accent-three:#FFA48F;
-  --nx-accent-four:#FFD481;--nx-accent-five:#C6A7FF;--nx-header:#1C2B42;
-  --nx-border:#455772;--nx-grid:#1D2B40;
+  --nx-bg:#121C2E;--nx-surface:#1B2941;--nx-surface-2:#233250;--nx-elevated:#273A5A;
+  --nx-header:#16223A;--nx-grid:#1A2740;
+  --nx-text:#ECF2FC;--nx-text-2:#AEBED8;--nx-text-3:#7E90B0;
+  --nx-line:#2E3F5E;--nx-line-strong:#3D517A;
+  --nx-primary:#8FB4FF;--nx-primary-press:#A5C3FF;--nx-primary-soft:#26375C;
+  --nx-on-primary:#0E1930;
+  --nx-danger:#C4384B;--nx-danger-soft:#3A2331;
+  --nx-success:#6FD6AC;--nx-success-soft:#1D3A34;
+  --nx-warn:#FFC96B;--nx-warn-soft:#3B3222;
+  --nx-accent-two:#78DEC1;--nx-accent-three:#FFA48F;
+  --nx-accent-four:#FFD481;--nx-accent-five:#C6A7FF;
+  --nx-shadow:0 1px 2px rgba(0,0,0,.28),0 6px 20px rgba(0,0,0,.30);
+  --nx-shadow-float:0 4px 10px rgba(0,0,0,.34),0 16px 44px rgba(0,0,0,.44);
+  --nx-card-blue:#26375C;--nx-card-green:#1D3A34;--nx-card-coral:#3A2331;
+  --nx-card-sun:#3B3222;--nx-card-violet:#2E3352;
+  --bg:#121C2E;--card:#1B2941;--text:#ECF2FC;--navy:#101B2D;
+  --muted:#AEBED8;--line:#2E3F5E;--primary:#8FB4FF;--blue:#8FB4FF;
+  --blue-soft:#26375C;--green:#6FD6AC;--green-soft:#1D3A34;
+  --surface-soft:#233250;--primary-soft:#26375C;
+  --amber:#FFC96B;--red:#FF8B9B;--radius:16px;
+  --shadow:0 1px 2px rgba(0,0,0,.28),0 6px 20px rgba(0,0,0,.30);
+  --nx-border:#2E3F5E;
+  /* En Noche "navy" es el color de tinta de los textos heredados, no un fondo. */
+  --surface:#1B2941;--navy:#ECF2FC;
+  --tgv-now-color:#FB7185;--tgv-now-ink:#1A1420;
 }
-/* Bases: las dimensiones existentes, la agenda y los colores de categorías se conservan. */
-:root[data-nexo-theme] body,
-:root[data-nexo-theme] #app,
-:root[data-nexo-theme] .screen,
-:root[data-nexo-theme] .screen.family-home{background:var(--bg);color:var(--text)}
+
+/* 4 · Agenda horaria (time-grid.css): colores por tema, geometría intacta.
+   El acento de cada cita (--tgv-accent, categorías) no se redefine. */
+:root[data-nexo-theme] .tgv-head h2{color:var(--nx-text)}
+:root[data-nexo-theme] .tgv-head p{color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-back{background:var(--nx-surface-2);border-color:var(--nx-line);color:var(--nx-text)}
+:root[data-nexo-theme] .tgv-board{
+  background:linear-gradient(90deg,var(--nx-grid) 0 55px,var(--nx-surface) 55px 100%)}
+:root[data-nexo-theme] .tgv-hour{border-top-color:var(--nx-line)}
+:root[data-nexo-theme] .tgv-hour span{background:var(--nx-grid);color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-event{
+  border-color:color-mix(in srgb,var(--tgv-accent) 34%,var(--nx-surface));
+  background:color-mix(in srgb,var(--tgv-accent) 14%,var(--nx-surface));
+  color:var(--nx-text);
+  box-shadow:0 1px 2px rgba(10,20,40,.08)}
+:root[data-nexo-theme] .tgv-event-time{color:var(--tgv-accent)}
+:root[data-nexo-theme] .tgv-event-status{background:var(--nx-surface-2);color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-event-location,.tgv-event-description{color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-event-extras{color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-all-day{background:var(--nx-surface-2);border-color:var(--nx-line);box-shadow:none}
+:root[data-nexo-theme] .tgv-all-day-label{background:var(--nx-surface-2);color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-all-day-event{
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line)}
+:root[data-nexo-theme] .tgv-all-day-event small{color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-no-events{color:var(--nx-text-2)}
+:root[data-nexo-theme] .tgv-help{color:var(--nx-text-3)}
+:root[data-nexo-theme] .tgv-event:focus-visible,
+:root[data-nexo-theme] .tgv-all-day-event:focus-visible{outline-color:var(--nx-primary)}
+@media(max-width:420px){
+  :root[data-nexo-theme] .tgv-board{
+    background:linear-gradient(90deg,var(--nx-grid) 0 50px,var(--nx-surface) 50px 100%)}
+  :root[data-nexo-theme="noche"] .tgv-board{
+    background:linear-gradient(90deg,var(--nx-grid) 0 50px,var(--nx-surface) 50px 100%)}
+}
+
+/* 5 · Vehículos (vehicles.css) */
+:root[data-nexo-theme] .vehicle-card,
+:root[data-nexo-theme] .vehicle-service-row,
+:root[data-nexo-theme] .vehicle-stat,
+:root[data-nexo-theme] .vehicle-panel-head{
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line)}
+:root[data-nexo-theme] .vehicle-service-row small,
+:root[data-nexo-theme] .vehicle-stat small{color:var(--nx-text-2)}
+
+/* 6 · Repaso por tema de superficies cargadas antes */
+:root[data-nexo-theme] body,:root[data-nexo-theme] #app,
+:root[data-nexo-theme] .screen,:root[data-nexo-theme] .screen.family-home{
+  background:var(--nx-bg);color:var(--nx-text)}
 :root[data-nexo-theme] .topbar{
-  background:var(--nx-header);border-bottom-color:var(--nx-border);
-  box-shadow:0 2px 14px rgba(21,43,74,.035)
-}
+  background:var(--nx-header);border-bottom-color:var(--nx-line);
+  background-image:none;box-shadow:none}
 :root[data-nexo-theme] .bottom-nav{
-  background:var(--nx-header);border-top-color:var(--nx-border);
-  box-shadow:0 -3px 16px rgba(21,43,74,.035)
-}
-:root[data-nexo-theme] .brand,
-:root[data-nexo-theme] .screen-heading h1{color:var(--text)}
+  background:var(--nx-header);border-top-color:var(--nx-line);
+  box-shadow:none}
+:root[data-nexo-theme] .nav-item{color:var(--nx-text-3)}
+:root[data-nexo-theme] .nav-item.active{color:var(--nx-primary);box-shadow:none}
+:root[data-nexo-theme] .nav-item.active .ui-icon{background:var(--nx-primary-soft);color:var(--nx-primary)}
+:root[data-nexo-theme] .brand,:root[data-nexo-theme] .screen-heading h1,
+:root[data-nexo-theme] .panel-header h1{color:var(--nx-text)}
+:root[data-nexo-theme] .icon-button,:root[data-nexo-theme] .icon-action,
+:root[data-nexo-theme] .back-button{background:var(--nx-surface-2);color:var(--nx-text)}
 :root[data-nexo-theme] .home-pulse-card,
 :root[data-nexo-theme] .module-grid--family-info .module-card,
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(n),
 :root[data-nexo-theme] .tools-grid .module-tile,
 :root[data-nexo-theme] .upcoming-card,
 :root[data-nexo-theme] .note-card{
-  background:var(--nx-surface);color:var(--text);
-  border-color:var(--nx-border);box-shadow:var(--shadow)
-}
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line);box-shadow:none}
+:root[data-nexo-theme] .home-pulse-card__body strong{color:var(--nx-text)}
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n+1) .home-pulse-card__icon,
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+1)>.ui-icon{
+  background:var(--nx-primary-soft);color:var(--nx-primary)}
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n+2) .home-pulse-card__icon,
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+2)>.ui-icon{
+  background:var(--nx-success-soft);color:var(--nx-accent-two)}
+:root[data-nexo-theme] .home-pulse-card:nth-child(3n) .home-pulse-card__icon,
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+3)>.ui-icon{
+  background:var(--nx-surface-2);color:var(--nx-accent-three)}
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+4)>.ui-icon{
+  background:var(--nx-surface-2);color:var(--nx-accent-four)}
+:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+5)>.ui-icon{
+  background:var(--nx-surface-2);color:var(--nx-accent-five)}
 :root[data-nexo-theme] .family-home-search,
 :root[data-nexo-theme] .capture-card,
 :root[data-nexo-theme] .calendar-card,
 :root[data-nexo-theme] .settings-accordion,
 :root[data-nexo-theme] .about-card{
-  background:var(--nx-surface);color:var(--text);
-  border-color:var(--nx-border);box-shadow:var(--shadow)
-}
-:root[data-nexo-theme] .calendar-card{background:var(--nx-surface-2)}
-:root[data-nexo-theme] .calendar-day,
-:root[data-nexo-theme] .calendar-day:nth-child(7n),
-:root[data-nexo-theme] .calendar-day:nth-child(7n-1){
-  background:var(--nx-surface);color:var(--text);border-color:var(--nx-border)
-}
-:root[data-nexo-theme] .calendar-day.selected{
-  background:var(--primary-soft);border-color:var(--primary)
-}
-:root[data-nexo-theme] .calendar-day.outside-month:not(.selected){
-  background:var(--nx-surface-2);color:var(--muted)
-}
-:root[data-nexo-theme] .calendar-day.selected .day-number{
-  background:var(--primary);color:var(--nx-on-primary)
-}
-:root[data-nexo-theme] .calendar-weekdays{color:var(--muted)}
-:root[data-nexo-theme] .nav-item.active{color:var(--primary);box-shadow:inset 0 -3px var(--primary)}
-:root[data-nexo-theme] .nav-item.active .ui-icon{background:var(--primary-soft)}
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line);box-shadow:none}
+:root[data-nexo-theme] .family-home-search>.ui-icon{color:var(--primary)}
+:root[data-nexo-theme] .tgv-all-day-event small{color:var(--muted)}
+:root[data-nexo-theme] .family-home-search input{color:var(--text)}
+:root[data-nexo-theme] .family-home-search>.ui-icon{color:var(--nx-text-3)}
+:root[data-nexo-theme] :where(.design-empty,.calendar-icon-guide,.calendar-quote-guide,
+  .classification-preview,.note-save-status,.recording-info-card){
+  background:var(--nx-surface);border-color:var(--nx-line);color:var(--nx-text)}
+:root[data-nexo-theme] :where(.design-empty>.ui-icon){background:var(--nx-surface-2);color:var(--nx-text-3)}
+:root[data-nexo-theme] :where(.note-card-preview,.small.muted,.settings-accordion__label small){color:var(--nx-text-2)}
+:root[data-nexo-theme] :where(input:not([type="checkbox"]):not([type="radio"]),textarea,select,.date-wrap){
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line-strong)}
+:root[data-nexo-theme] input::placeholder,:root[data-nexo-theme] textarea::placeholder{
+  color:var(--nx-text-3);opacity:1}
 :root[data-nexo-theme] .primary-button,
 :root[data-nexo-theme] .fab-add,
-:root[data-nexo-theme] .mini-button.primary{background:var(--primary);color:var(--nx-on-primary);border-color:var(--primary)}
+:root[data-nexo-theme] .mini-button.primary{
+  background:var(--nx-primary);color:var(--nx-on-primary);border-color:transparent}
+:root[data-nexo-theme] .primary-button:active,
+:root[data-nexo-theme] .fab-add:active{background:var(--nx-primary-press)}
 :root[data-nexo-theme] .secondary-button,
-:root[data-nexo-theme] .mini-button:not(.primary),
-:root[data-nexo-theme] .tgv-back{background:var(--nx-surface-2);color:var(--text);border-color:var(--nx-border)}
-:root[data-nexo-theme] .settings-accordion--open .settings-accordion__summary{background:var(--nx-surface-2)}
-:root[data-nexo-theme] .settings-accordion__body{border-top-color:var(--nx-border)}
-:root[data-nexo-theme] .fab-voice{background:var(--nx-surface);color:var(--primary);border-color:var(--nx-border)}
-:root[data-nexo-theme] :where(.design-empty,.calendar-icon-guide,.classification-preview,.note-save-status,.recording-info-card){
-  background:var(--nx-surface-2);border-color:var(--nx-border);color:var(--text)
-}
-:root[data-nexo-theme] :where(.note-card-preview,.small.muted,.settings-accordion__label small){
-  color:var(--muted)
-}
-/* Tres acentos de Inicio y Herramientas; nada afecta a la semántica de categorías. */
-:root[data-nexo-theme] .home-pulse-card:nth-child(3n+1) .home-pulse-card__icon,
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+1)>.ui-icon{
-  background:var(--primary-soft);color:var(--primary)
-}
-:root[data-nexo-theme] .home-pulse-card:nth-child(3n+2) .home-pulse-card__icon,
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+2)>.ui-icon{
-  background:var(--green-soft);color:var(--nx-accent-two)
-}
-:root[data-nexo-theme] .home-pulse-card:nth-child(3n) .home-pulse-card__icon,
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+3)>.ui-icon{
-  background:var(--nx-surface-2);color:var(--nx-accent-three)
-}
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+4)>.ui-icon{
-  background:var(--nx-surface-2);color:var(--nx-accent-four)
-}
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+5)>.ui-icon{
-  background:var(--nx-surface-2);color:var(--nx-accent-five)
-}
-:root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile,.module-grid--family-info .module-card){
-  transition:background-color 170ms ease,border-color 170ms ease,box-shadow 170ms ease
-}
-:root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile):active{filter:brightness(.96)}
-/* Formulario de Apariencia: piezas puramente visuales, sin nuevas rutas. */
-.nexo-theme-intro{margin:6px 0 12px;font-size:.84rem;color:var(--muted)}
+:root[data-nexo-theme] .mini-button:not(.primary){
+  background:var(--nx-surface-2);color:var(--nx-text);border-color:var(--nx-line)}
+:root[data-nexo-theme] .fab-voice{background:var(--nx-surface);color:var(--nx-primary);border-color:var(--nx-line)}
+:root[data-nexo-theme] .toast{background:var(--nx-elevated);color:var(--nx-text);box-shadow:var(--nx-shadow-float)}
+:root[data-nexo-theme] .toast-action{color:var(--nx-primary)}
+:root[data-nexo-theme] .calendar-day{background:transparent;color:var(--nx-text)}
+:root[data-nexo-theme] .calendar-day.outside-month:not(.selected){color:var(--nx-text-3)}
+:root[data-nexo-theme] .calendar-day.today .day-number{background:var(--nx-primary);color:var(--nx-on-primary)}
+:root[data-nexo-theme] .calendar-day.today:not(.selected) .day-number{color:var(--nx-on-primary)}
+:root[data-nexo-theme] .calendar-day.selected{background:var(--nx-primary-soft);box-shadow:inset 0 0 0 1.5px var(--nx-primary)}
+:root[data-nexo-theme] .calendar-day.selected .day-number{background:var(--nx-primary);color:var(--nx-on-primary)}
+:root[data-nexo-theme] .calendar-weekdays{color:var(--nx-text-3)}
+:root[data-nexo-theme] .date-tile{background:var(--nx-surface-2)}
+:root[data-nexo-theme] .upcoming-category-pill{background:var(--nx-surface-2);color:var(--nx-text-2)}
+:root[data-nexo-theme] .modal{background:rgba(6,12,26,.5)}
+:root[data-nexo-theme="noche"] .modal{background:rgba(2,6,16,.62)}
+:root[data-nexo-theme] .modal-sheet,:root[data-nexo-theme] .confirm-sheet,
+:root[data-nexo-theme] .voice-sheet{
+  background:var(--nx-elevated);color:var(--nx-text)}
+:root[data-nexo-theme] .modal-sheet::before,:root[data-nexo-theme] .voice-sheet::before{
+  background:var(--nx-line-strong)}
+:root[data-nexo-theme] .settings-accordion__body{border-top-color:var(--nx-line)}
+:root[data-nexo-theme] .settings-security-action{background:var(--nx-surface-2)}
+:root[data-nexo-theme] .settings-security-action:active{background:var(--nx-line)}
+:root[data-nexo-theme] .display-mode-row button{background:var(--nx-surface);border-color:var(--nx-line);color:var(--nx-text)}
+:root[data-nexo-theme] .display-mode-row button.active{background:var(--nx-primary);color:var(--nx-on-primary);border-color:var(--nx-primary)}
+:root[data-nexo-theme] .capture-crud-toolbar{
+  background:var(--nx-bg);border-top-color:var(--nx-line)}
+:root[data-nexo-theme] .voice-pulse{background:var(--nx-primary-soft);color:var(--nx-primary);box-shadow:0 0 0 10px var(--nx-primary-soft)}
+:root[data-nexo-theme] .voice-sheet-copy>span{color:var(--nx-primary)}
+:root[data-nexo-theme] .voice-stop-button{background:var(--nx-text);color:var(--nx-bg)}
+:root[data-nexo-theme] .startup-splash{background:var(--nx-bg)}
+:root[data-nexo-theme] .startup-splash__wordmark{color:var(--nx-text)}
+:root[data-nexo-theme] .startup-splash__tagline,
+:root[data-nexo-theme] .startup-splash__status{color:var(--nx-text-2)}
+:root[data-nexo-theme] .startup-splash__credit{color:var(--nx-text-3)}
+:root[data-nexo-theme] .startup-splash__dot--blue{background:var(--nx-primary)}
+:root[data-nexo-theme] .startup-splash__dot--cyan{background:var(--nx-accent-two)}
+:root[data-nexo-theme] .startup-splash__dot--mint{background:var(--nx-accent-two);opacity:.6}
+
+/* 6b · Superficies heredadas que requieren adaptación por tema. */
+:root[data-nexo-theme] :where(
+  .home-tool-surface,.record-overflow-menu,.transcription-quality-card,
+  .transcription-quality-card.is-disabled,.contextual-voice-button
+){
+  background:var(--nx-surface-2);color:var(--nx-text);border-color:var(--nx-line)}
+:root[data-nexo-theme] :where(.calendar-weekdays){color:var(--nx-text-3)}
+:root[data-nexo-theme] :where(
+  .backup-card,.family-result-card,.gmail-connect-card,.parking-panel-card,
+  .weather-place-choice,.journal-preview,.journal-date-badge,.list-voice-items span,
+  .record-action-overflow>summary,.list-card-menu,.recording-meta span,
+  .multi-time-row input[type="time"],.journal-compose-flags .switch-row,
+  .journal-card-flag--revisit,.quote-card,.book-card,.media-card,.about-hero,
+  .about-card,.about-points,.restore-stats span,.restore-warning,.backup-security,
+  .weather-manual-fields,.people-settings-list .people-row,.transcription-quality-settings .quality-option,
+  .display-mode-row,.communication-apps .communication-app-row
+){
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line)}
+:root[data-nexo-theme] :where(.backup-copy>strong,.backup-security strong,
+  .restore-warning strong,.restore-preview h3){color:var(--nx-text)}
+:root[data-nexo-theme] :where(.inbox-source-health,.inbox-cleanup-card,
+  .inbox-capture-card,.inbox-candidate-reason){
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line)}
+:root[data-nexo-theme] :where(.inbox-source-health .source-off){color:var(--nx-warn)}
+:root[data-nexo-theme] :where(.inbox-cleanup-card strong){color:var(--nx-warn)}
+:root[data-nexo-theme] :where(.inbox-cleanup-card small,.inbox-candidate-reason span){color:var(--nx-text-2)}
+:root[data-nexo-theme] :where(.inbox-candidate-reason strong){color:var(--nx-text-3)}
+:root[data-nexo-theme] :where(.inbox-candidate-reason small){color:var(--nx-text-3)}
+:root[data-nexo-theme] :where(.backup-copy p,.backup-security p,.restore-warning p,
+  .restore-preview>p,.gmail-connect-head small,.weather-place-choice small){color:var(--nx-text-2)}
+:root[data-nexo-theme] :where(.backup-icon){background:var(--nx-primary-soft);color:var(--nx-primary)}
+:root[data-nexo-theme="noche"] .screen[data-screen="save"] .capture-crud-toolbar{
+  background:var(--nx-surface);color:var(--nx-text);border-color:var(--nx-line)}
+
+/* 7 · Selector de temas (Ajustes → Apariencia) */
+.nexo-theme-intro{margin:6px 0 12px;font-size:.84rem;color:var(--nx-text-2)}
 .nexo-theme-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .nexo-theme-option{
   display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;
   min-height:122px;padding:10px 8px;
-  border:2px solid var(--nx-border);border-radius:16px;
-  background:var(--nx-surface);color:var(--text);text-align:left;
-  transition:border-color 160ms ease,background-color 160ms ease,box-shadow 160ms ease
-}
+  border:2px solid var(--nx-line);border-radius:var(--nx-radius-m);
+  background:var(--nx-surface);color:var(--nx-text);text-align:left;
+  transition:border-color 160ms ease,background-color 160ms ease,box-shadow 160ms ease}
 .nexo-theme-option.is-selected{
-  border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-soft);
-  background:var(--nx-surface-2)
-}
+  border-color:var(--nx-primary);box-shadow:0 0 0 2px var(--nx-primary-soft);
+  background:var(--nx-surface-2)}
 .nexo-theme-swatch{display:flex;align-items:center;gap:4px}
 .nexo-theme-swatch i{display:block;flex:1;height:19px;min-width:0;border-radius:6px}
 .nexo-theme-option strong{display:block;font-size:.82rem;line-height:1.2}
-.nexo-theme-option small{display:block;font-size:.72rem;line-height:1.25;color:var(--muted)}
-.nexo-theme-option.is-selected strong::before{content:'✓ ';color:var(--primary);font-weight:900}
-.nexo-theme-option:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
-/* Formularios claros y superficies coherentes con el tema sin cambiar validaciones ni foco. */
-:root[data-nexo-theme] :where(input:not([type="checkbox"]):not([type="radio"]),textarea,select,.date-wrap){
-  background:var(--nx-surface);color:var(--text);border-color:var(--nx-border)
-}
-:root[data-nexo-theme] input::placeholder,:root[data-nexo-theme] textarea::placeholder{
-  color:var(--muted);opacity:1
-}
-/* Noche requiere anular blancos explícitos heredados, sin modificar componentes funcionales. */
-:root[data-nexo-theme="noche"] :where(
-  .modal-sheet,.voice-sheet,.about-hero,.about-card,.settings-card,.settings-accordion__summary,
-  .settings-security-action,.menu-row,.task-row,.list-row,.history-row,
-  .item-card,.journal-card,.document-card,.place-card,.med-card,.recording-card,
-  .integration-card,.future-card,.list-entry,.note-card,.capture-card,.capture-mode-row,
-  .calendar-toolbar,.calendar-day-title,.calendar-icon-guide,.calendar-card,
-  .capture-details,.detail-body,.detail-grid,.med-dose-row,.med-safety,
-  .alert-editor,.date-wrap,.calendar-viewport,.form-grid,.about-points,
-  .event-location-shortcut__button,.event-location-shortcut,.recording-live-card,
-  .quote-card,.book-card,.media-card,.parking-home-card,.journal-prompt,.startup-splash
-){
-  background-color:var(--nx-surface);color:var(--text);
-  border-color:var(--nx-border)
-}
-:root[data-nexo-theme="noche"] :where(.modal-sheet,.voice-sheet,.startup-splash){background:var(--bg)}
-:root[data-nexo-theme="noche"] :where(.detail-body,.med-safety,.alert-editor,.note-save-status,.calendar-icon-guide){background:var(--nx-surface-2)}
-:root[data-nexo-theme="noche"] :where(.calendar-day,.calendar-day:nth-child(7n),.calendar-day:nth-child(7n-1)){background:var(--nx-surface)}
-:root[data-nexo-theme="noche"] :where(.settings-accordion__summary,.calendar-toolbar button,.secondary-button,.mini-button,.back-button,.icon-action,.icon-button,.ghost-button,.query-chips button){
-  color:var(--text);border-color:var(--nx-border)
-}
-:root[data-nexo-theme="noche"] :where(.settings-accordion__label strong,.about-card h2,.section-heading h2,.tool-group h2,.panel-header h1,.modal-head h2,.note-card-head strong){
-  color:var(--text)
-}
-:root[data-nexo-theme="noche"] :where(.tgv-board){
-  background:linear-gradient(90deg,var(--nx-grid) 0 55px,var(--nx-surface) 55px 100%)
-}
-:root[data-nexo-theme="noche"] :where(.tgv-hour span){
-  background:var(--nx-grid);color:var(--muted)
-}
-:root[data-nexo-theme="noche"] :where(.tgv-hour){border-top-color:var(--nx-border)}
-:root[data-nexo-theme="noche"] :where(.tgv-all-day,.tgv-all-day-label){
-  background:var(--nx-surface);border-color:var(--nx-border);color:var(--text)
-}
-:root[data-nexo-theme="noche"] :where(.tgv-all-day-event){
-  background:var(--nx-elevated);color:var(--text);border-color:var(--nx-border);
-  border-left-color:var(--tgv-accent)
-}
-:root[data-nexo-theme="noche"] :where(.tgv-event){
-  background:color-mix(in srgb,var(--tgv-accent) 23%,var(--nx-surface));
-  color:var(--text);
-  border-color:color-mix(in srgb,var(--tgv-accent) 52%,var(--nx-surface));
-  border-left-color:var(--tgv-accent)
-}
-:root[data-nexo-theme="noche"] :where(.tgv-no-events,.tgv-help){color:var(--muted)}
-/* Mantener legibles los avisos y errores: jamás cambiar su significado por tema. */
-:root[data-nexo-theme="noche"] .danger-button.solid{background:#B42335;color:#FFFFFF}
-:root[data-nexo-theme="noche"] :where(.chat-nav-badge,.inbox-nav-badge){background:#BF3045;color:#FFFFFF}
-/* Animación mínima para entradas de fichas emergentes: nunca sobre la agenda que se arrastra. */
+.nexo-theme-option small{display:block;font-size:.72rem;line-height:1.25;color:var(--nx-text-2)}
+.nexo-theme-option.is-selected strong::before{content:'✓ ';color:var(--nx-primary);font-weight:900}
+.nexo-theme-option:focus-visible{outline:3px solid var(--nx-primary);outline-offset:2px}
+[data-settings-accordion="appearance"] .settings-accordion__icon{
+  background:var(--nx-card-violet);color:var(--nx-accent-five)}
+
+/* 8 · Swatches del selector coherentes con cada identidad */
+[data-nexo-theme-choice="vivo"] .nexo-theme-swatch i:nth-child(1){background:#2563EB}
+[data-nexo-theme-choice="vivo"] .nexo-theme-swatch i:nth-child(2){background:#0E7866}
+[data-nexo-theme-choice="vivo"] .nexo-theme-swatch i:nth-child(3){background:#C64B43}
+[data-nexo-theme-choice="mediterraneo"] .nexo-theme-swatch i:nth-child(1){background:#12707A}
+[data-nexo-theme-choice="mediterraneo"] .nexo-theme-swatch i:nth-child(2){background:#9A6009}
+[data-nexo-theme-choice="mediterraneo"] .nexo-theme-swatch i:nth-child(3){background:#C05B3C}
+[data-nexo-theme-choice="noche"] .nexo-theme-swatch i:nth-child(1){background:#121C2E}
+[data-nexo-theme-choice="noche"] .nexo-theme-swatch i:nth-child(2){background:#8FB4FF}
+[data-nexo-theme-choice="noche"] .nexo-theme-swatch i:nth-child(3){background:#78DEC1}
+
+/* 9 · Semáforo crítico invariable: error es error en cualquier tema. */
+:root[data-nexo-theme] .danger-button.solid{background:var(--nx-danger);color:#FFFFFF}
+:root[data-nexo-theme="noche"] .danger-button.solid{background:#C4384B;color:#FFFFFF}
+:root[data-nexo-theme] :where(.chat-nav-badge,.inbox-nav-badge){background:#C4384B;color:#FFFFFF}
+:root[data-nexo-theme="noche"] :where(.chat-nav-badge,.inbox-nav-badge){background:#C4384B;color:#FFFFFF;border-color:var(--nx-header)}
+
+/* 10 · Movimiento: mínimo y siempre silenciable */
 @media(prefers-reduced-motion:no-preference){
-  :root[data-nexo-theme] .modal:not(.hidden)>.modal-sheet{
-    animation:nexo-visual-sheet-in 155ms ease-out both
-  }
-  @keyframes nexo-visual-sheet-in{
-    from{opacity:.92;translate:0 8px}
-    to{opacity:1;translate:0 0}
-  }
+  :root[data-nexo-theme] .modal:not(.hidden)>.modal-sheet{animation:nexo-visual-sheet-in 155ms ease-out both}
+  @keyframes nexo-visual-sheet-in{from{opacity:.92;translate:0 8px}to{opacity:1;translate:0 0}}
+  :root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile,.module-grid--family-info .module-card){
+    transition:background-color 170ms ease,border-color 170ms ease,box-shadow 170ms ease,transform 120ms ease}
 }
 @media(prefers-reduced-motion:reduce){
-  .nexo-theme-option,:root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile,.module-grid--family-info .module-card){transition:none!important}
+  .nexo-theme-option{transition:none!important}
   :root[data-nexo-theme] .modal>.modal-sheet{animation:none!important}
+  :root[data-nexo-theme] :is(.home-pulse-card,.tools-grid .module-tile,.module-grid--family-info .module-card){transition:none!important}
 }
 @media(max-width:360px){
   .nexo-theme-picker{gap:5px}.nexo-theme-option{padding:9px 6px}.nexo-theme-option strong{font-size:.75rem}
-}
-
-/* Auditoría visual 3.7.73: evitar paneles claros heredados en el tema Noche.
-   Únicamente fondos, texto y bordes; no se altera la geometría ni los gestos. */
-:root[data-nexo-theme="noche"] :is(
-  .home-capture-bar,.home-tool-surface,.backup-card,.family-result-card,
-  .transcription-quality-card,.transcription-quality-card.is-disabled,
-  .gmail-connect-card,.parking-panel-card,.weather-place-choice,
-  .journal-filter-row button,.journal-preview,.journal-date-badge,
-  .journal-toolbar input,.list-voice-items span,.record-overflow-menu,
-  .record-action-overflow>summary,.list-card-menu,.recording-meta span,
-  .calendar-weekdays,.multi-time-row input[type="time"],
-  .journal-compose-flags .switch-row,.journal-card-flag--revisit
-){
-  background-color:var(--nx-surface);color:var(--text);
-  border-color:var(--nx-border)
-}
-:root[data-nexo-theme="noche"] :is(
-  .home-command-card .secondary-button,
-  .home-action-row button:not(.primary-button):not(.home-talk-button)
-){
-  background-color:var(--nx-surface-2);color:var(--text);
-  border-color:var(--nx-border)
-}
-/* Las barras de edición deben integrarse con el fondo oscuro, sin cambiar
-   su posición sticky ni sus botones de acción. */
-:root[data-nexo-theme="noche"] .screen[data-screen="save"] .capture-crud-toolbar,
-:root[data-nexo-theme="noche"] .modal-sheet>.record-form-actions--compact,
-:root[data-nexo-theme="noche"] .modal-head:has(>.modal-head-actions>.contextual-voice-button:not(.hidden)){
-  background:var(--nx-surface);color:var(--text);
-  border-color:var(--nx-border)
-}
-:root[data-nexo-theme="noche"] .screen[data-screen="save"] .capture-crud-toolbar .ghost-button,
-:root[data-nexo-theme="noche"] .contextual-voice-button,
-:root[data-nexo-theme="noche"] .document-card__actions .icon-action{
-  background:var(--nx-surface-2);color:var(--text);
-  border-color:var(--nx-border)
-}
-/* La misma anchura de banda horaria del calendario existente en móviles
-   estrechos (50 px). Los eventos mantienen su posición y sus gestos. */
-@media(max-width:420px){
-  :root[data-nexo-theme="noche"] .tgv-board{
-    background:linear-gradient(90deg,var(--nx-grid) 0 50px,var(--nx-surface) 50px 100%)
-  }
-}
-
-/* 3.7.74: acentos suaves para Inicio y Herramientas.
- * No modifica alturas, distribución, eventos ni colores de categorías. */
-:root[data-nexo-theme] .home-pulse-card:nth-child(3n+1),
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+1),
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+1){
-  background:var(--nx-card-blue)
-}
-:root[data-nexo-theme] .home-pulse-card:nth-child(3n+2),
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+2),
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+2){
-  background:var(--nx-card-green)
-}
-:root[data-nexo-theme] .home-pulse-card:nth-child(3n),
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+3),
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+3){
-  background:var(--nx-card-coral)
-}
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+4),
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+4){
-  background:var(--nx-card-sun)
-}
-:root[data-nexo-theme] .tools-grid .module-tile:nth-child(5n+5),
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+5){
-  background:var(--nx-card-violet)
-}
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+1) .module-card__icon{background:var(--primary-soft);color:var(--primary)}
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+2) .module-card__icon{background:var(--green-soft);color:var(--nx-accent-two)}
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+3) .module-card__icon{background:var(--nx-card-coral);color:var(--nx-accent-three)}
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+4) .module-card__icon{background:var(--nx-card-sun);color:var(--nx-accent-four)}
-:root[data-nexo-theme] .module-grid--family-info .module-card:nth-child(5n+5) .module-card__icon{background:var(--nx-card-violet);color:var(--nx-accent-five)}
-
-/* Cabecera con una línea multicolor discreta; sin añadir alto ni alterar el sticky. */
-:root[data-nexo-theme] .topbar{
-  background-image:linear-gradient(90deg,var(--primary),var(--nx-accent-two),var(--nx-accent-three),var(--nx-accent-four),var(--nx-accent-five));
-  background-position:left bottom;
-  background-repeat:no-repeat;
-  background-size:100% 2px
-}
-/* El día de hoy también debe contrastar en Noche: blanco sobre el azul
- * pastel incumplía contraste cuando hoy no estaba seleccionado. */
-:root[data-nexo-theme] .calendar-day.today .day-number{
-  background:var(--primary);
-  color:var(--nx-on-primary)
-}
-:root[data-nexo-theme] .calendar-day.today:not(.selected){border-color:var(--primary)}
-
-/* Ícono de búsqueda: el CSS anterior fijaba un azul muy oscuro.
- * En Noche quedaba casi invisible sobre el campo oscuro. */
-:root[data-nexo-theme] .family-home-search>.ui-icon{color:var(--primary)}
-:root[data-nexo-theme] .family-home-search input{color:var(--text)}
-:root[data-nexo-theme] [data-settings-accordion="appearance"] .settings-accordion__icon{
-  background:var(--nx-card-violet);
-  color:var(--nx-accent-five)
-}
-:root[data-nexo-theme] .nav-item.active>.ui-icon{border-radius:10px}
-
-/* Agenda horaria oscura: textos secundarios y etiquetas legibles.
- * El acento original de cada cita se conserva. */
-:root[data-nexo-theme="noche"] .tgv-all-day-event small{color:var(--muted)}
-:root[data-nexo-theme="noche"] .tgv-event-status{background:var(--nx-surface-2);color:var(--text)}
-
-/* Línea del instante actual: el tema Noche utiliza coral claro y texto oscuro
-   para conservar legibilidad sin modificar eventos ni gestos. */
-:root[data-nexo-theme="noche"]{
-  --tgv-now-color:#FB7185;
-  --tgv-now-ink:#152237
 }

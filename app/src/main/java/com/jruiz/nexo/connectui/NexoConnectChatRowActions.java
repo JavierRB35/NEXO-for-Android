@@ -30,7 +30,7 @@ final class NexoConnectChatRowActions {
         delete.setAllCaps(false);
         delete.setTextColor(Color.WHITE);
         GradientDrawable red=new GradientDrawable();
-        red.setColor(0xffbc2840);
+        red.setColor(0xffB42335);
         red.setCornerRadius(14*density);
         delete.setBackground(red);
         delete.setContentDescription("Eliminar conversación");
