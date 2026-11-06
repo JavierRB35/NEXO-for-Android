@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.85",
-  "releaseNotes": "El calendario mensual vuelve a mostrar una cuadrícula visible: cada día es una celda delimitada, así los iconos de categorías se leen siempre dentro de su fecha. Los tres estilos (Vivo, Mediterráneo y Noche) adaptan la rejilla automáticamente. Todo lo demás funciona exactamente igual. Actualización opcional.",
+  "versionName": "3.7.86",
+  "releaseNotes": "El acceso inferior de Chat ahora muestra el icono de búsqueda, más fácil de reconocer. Al tocarlo, sigue abriendo Chat como antes. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
