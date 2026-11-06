@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.86",
-  "releaseNotes": "El acceso inferior de Chat ahora muestra el icono de búsqueda, más fácil de reconocer. Al tocarlo, sigue abriendo Chat como antes. Actualización opcional.",
+  "versionName": "3.7.87",
+  "releaseNotes": "La pestaña inferior ahora se llama Buscar y abre la búsqueda global de Nexo. Busca en los datos guardados y filtra resultados por tipo, con la funcionalidad de búsqueda que ya incluye la aplicación. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

@@ -1,6 +1,11 @@
+## Nexo 3.7.87 — Búsqueda en la barra inferior
+
+- La pestaña inferior se llama Buscar y abre la búsqueda global de Nexo, con búsqueda de datos guardados y filtros por tipo.
+- Nexo Connect y sus notificaciones siguen funcionando desde sus accesos y servicios existentes. `versionCode 180`; actualización opcional.
+
 ## Nexo 3.7.86 — Icono de búsqueda en el acceso a Chat
 
-- El acceso fijo de Chat en la barra inferior ahora muestra el icono de búsqueda; al tocarlo, sigue abriendo Chat.
+- El acceso fijo de Chat en la barra inferior muestra el icono de búsqueda.
 - Sin cambios de datos, permisos, firma o SDK. `versionCode 179`; actualización opcional.
 
 ## Nexo 3.7.85 — Cuadrícula visible en el calendario

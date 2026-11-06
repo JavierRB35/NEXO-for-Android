@@ -26,8 +26,9 @@ assert 'Activar avisos de mensajes' in activity
 assert 'NexoConnectChatStore.unreadIds(db,identity.accountId(),trusted)' in activity
 assert '@JavascriptInterface public int getUnreadChatCount()' in main
 assert '@JavascriptInterface public void requestNexoChatRefresh()' in main
-assert 'id="chatNavBadge"' in html
-assert '.chat-nav-badge' in css
-assert 'function refreshChatUnreadBadge()' in js
+assert 'data-nav="search"' in html and '<small>Buscar</small>' in html
+assert 'id="chatNavBadge"' not in html
+assert '.chat-nav-badge' not in css
+assert 'function refreshChatUnreadBadge()' not in js
 assert 'NexoNative.requestNexoChatRefresh()' in js
 print('OK: Connect unread, notification permission, background delivery and badges')

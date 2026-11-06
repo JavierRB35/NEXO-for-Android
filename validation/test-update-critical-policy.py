@@ -9,7 +9,7 @@ policy = json.loads((root / ".github/nexo-update-policy.json").read_text())
 gradle = (root / "app/build.gradle").read_text()
 summary = json.loads((root / ".github/nexo-update-summary.json").read_text(encoding="utf-8"))
 notes = summary.get("notes")
-assert summary.get("versionName") == "3.7.86", "El resumen debe coincidir con la versión Release"
+assert summary.get("versionName") == "3.7.87", "El resumen debe coincidir con la versión Release"
 assert isinstance(notes, str) and 40 <= len(notes.strip()) <= 360, (
     "El resumen de cambios debe contener entre 40 y 360 caracteres"
 )
@@ -20,8 +20,8 @@ assert "github.ref_type == 'tag' && inputs.tag || github.sha" in publisher, (
     "En publicaciones desde main usar metadatos del mismo commit firmado"
 )
 
-assert policy == {"critical": False, "reason": ""}, "3.7.86 debe publicarse como opcional"
-assert "versionCode 179" in gradle and "versionName '3.7.86'" in gradle
+assert policy == {"critical": False, "reason": ""}, "3.7.87 debe publicarse como opcional"
+assert "versionCode 180" in gradle and "versionName '3.7.87'" in gradle
 assert 'result.put("critical", release.critical)' in java
 assert 'result.put("updateType", release.critical ? "critical" : "optional")' in java
 assert 'result.put("criticalReason", release.criticalReason)' in java

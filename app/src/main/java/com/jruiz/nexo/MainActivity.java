@@ -233,7 +233,6 @@ public class MainActivity extends Activity {
                     checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED ? "1" : "0");
             jsCallback("onInputHubChanged", "resume");
             if (headerWeather != null) headerWeather.refresh(false);
-            webView.evaluateJavascript("window.NexoChatBadge?.refresh()",null);
         }
     }
 

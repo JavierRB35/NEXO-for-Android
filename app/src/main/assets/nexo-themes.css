@@ -313,8 +313,8 @@
 /* 9 · Semáforo crítico invariable: error es error en cualquier tema. */
 :root[data-nexo-theme] .danger-button.solid{background:var(--nx-danger);color:#FFFFFF}
 :root[data-nexo-theme="noche"] .danger-button.solid{background:#C4384B;color:#FFFFFF}
-:root[data-nexo-theme] :where(.chat-nav-badge,.inbox-nav-badge){background:#C4384B;color:#FFFFFF}
-:root[data-nexo-theme="noche"] :where(.chat-nav-badge,.inbox-nav-badge){background:#C4384B;color:#FFFFFF;border-color:var(--nx-header)}
+:root[data-nexo-theme] .inbox-nav-badge{background:#C4384B;color:#FFFFFF}
+:root[data-nexo-theme="noche"] .inbox-nav-badge{background:#C4384B;color:#FFFFFF;border-color:var(--nx-header)}
 
 /* 10 · Movimiento: mínimo y siempre silenciable */
 @media(prefers-reduced-motion:no-preference){

@@ -348,7 +348,7 @@ details-box summary,.details-box summary{color:var(--nx-primary);font-weight:600
 .backup-hint{background:var(--nx-warn-soft);border:1px solid color-mix(in srgb,var(--nx-warn) 30%,transparent);border-radius:var(--nx-radius-m)}
 .backup-hint strong{color:var(--nx-warn)}
 .backup-hint span{color:var(--nx-text-2)}
-.inbox-nav-badge,.chat-nav-badge{background:var(--nx-danger);color:#fff;border:2px solid var(--nx-header);font-size:.625rem}
+.inbox-nav-badge{background:var(--nx-danger);color:#fff;border:2px solid var(--nx-header);font-size:.625rem}
 .restore-check{background:var(--nx-success-soft);color:var(--nx-success)}
 .attachment-chip{background:var(--nx-primary-soft);color:var(--nx-primary);border-radius:var(--nx-radius-s)}
 .info-strip{color:var(--nx-text-3)}

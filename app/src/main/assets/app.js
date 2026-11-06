@@ -4593,16 +4593,6 @@ function beginStartupSequence(startScreen){
   if(!state.startupSplashActive && !$('#startupSplash')) NexoNative.onStartupReadyForUpdates?.();
 }
 
-function refreshChatUnreadBadge(){
-  const badge=$('#chatNavBadge'),button=document.querySelector('[data-nav="chat"]');
-  if(!badge)return;
-  let unread=0;
-  try{unread=Math.max(0,Math.floor(Number(NexoNative.getUnreadChatCount())||0));}catch(_){}
-  badge.textContent=unread>99?'99+':String(unread);
-  badge.classList.toggle('hidden',unread===0);
-  button?.setAttribute('aria-label',unread?'Abrir Chat, '+unread+' mensaje'+(unread===1?'':'s')+' sin leer':'Abrir Chat');
-}
-window.NexoChatBadge={refresh:refreshChatUnreadBadge};
 // La barra del sistema acompaña al tema visual elegido (Vivo, Mediterráneo, Noche).
 function syncSystemChrome(){
   try{
@@ -4623,13 +4613,11 @@ function init(){
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';bindCategorySelectIcon('#captureCategory');
   setInterpretationStatus('idle','Interpretación local preparada');
-  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else if(b.dataset.nav==='chat')NexoNative.openNexoChat();else if(b.dataset.nav==='calendar'){resetCalendarToToday();navigate('calendar',{root:true,scrollY:0});}else navigate(b.dataset.nav,{root:true});}));
-  refreshChatUnreadBadge();
+  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else if(b.dataset.nav==='calendar'){resetCalendarToToday();navigate('calendar',{root:true,scrollY:0});}else navigate(b.dataset.nav,{root:true});}));
   try{NexoNative.requestNexoChatRefresh();}catch(_){}
-  setInterval(()=>{if(!document.hidden)refreshChatUnreadBadge();},12000);
   setInterval(()=>{if(!document.hidden)try{NexoNative.requestNexoChatRefresh();}catch(_){}},45000);
   document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden){refreshChatUnreadBadge();try{NexoNative.requestNexoChatRefresh();}catch(_){}}
+    if(!document.hidden)try{NexoNative.requestNexoChatRefresh();}catch(_){}
   });
   $('#globalSearchBtn').addEventListener('click',()=>navigate('search'));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));

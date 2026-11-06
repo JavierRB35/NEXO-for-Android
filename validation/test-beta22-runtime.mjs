@@ -149,18 +149,19 @@ input.dispatchEvent(new window.Event('input',{bubbles:true}));
 const afterSearch=calls.filter(x=>x==='getFamilyStyleSearchIndex').length;
 assert.equal(afterSearch,beforeSearch+1,'La búsqueda debe crear el índice una sola vez bajo demanda');
 
-// Six destinations: Chat opens native UI; Search remains reachable and Back works.
+// The Buscar tab opens the existing global search and Back returns to Inicio.
 const labels=[...window.document.querySelectorAll('.nav-item small')].map(e=>e.textContent);
-assert.deepEqual(labels,['Inicio','Calendario','Notas','Chat','Inbox','Herramientas']);
+assert.deepEqual(labels,['Inicio','Calendario','Notas','Buscar','Inbox','Herramientas']);
 window.document.querySelector('[data-nav="today"]').click();
-window.document.querySelector('#globalSearchBtn').click();
+window.document.querySelector('[data-nav="search"]').click();
 assert.equal(window.__nexoTestState.screen,'search');
+const searchInput=window.document.querySelector('#searchInput');
+searchInput.value='seguro';
+searchInput.dispatchEvent(new window.Event('input',{bubbles:true}));
+await new Promise(resolve=>setTimeout(resolve,220));
+assert.match(window.document.querySelector('#searchStatus').textContent,/resultado|No hay resultados/);
 window.NexoUI.handleBack();
 assert.equal(window.__nexoTestState.screen,'today');
-const chatCalls=calls.filter(x=>x==='openNexoChat').length;
-window.document.querySelector('[data-nav="chat"]').click();
-assert.equal(calls.filter(x=>x==='openNexoChat').length,chatCalls+1);
-assert.equal(window.__nexoTestState.screen,'today','Returning from native chat keeps the route');
 window.document.querySelector('[data-nav="tools"]').click();
 assert.equal(window.__nexoTestState.screen,'tools');
 assert.equal(window.document.querySelector('#toolsTitle').textContent,'Herramientas');
