@@ -1,3 +1,8 @@
+## Nexo 3.7.86 — Icono de búsqueda en el acceso a Chat
+
+- El acceso fijo de Chat en la barra inferior ahora muestra el icono de búsqueda; al tocarlo, sigue abriendo Chat.
+- Sin cambios de datos, permisos, firma o SDK. `versionCode 179`; actualización opcional.
+
 ## Nexo 3.7.85 — Cuadrícula visible en el calendario
 
 - El calendario mensual muestra de nuevo una rejilla: cada día es una celda delimitada (superficie + borde fino sobre un plato suave), de modo que los iconos de categorías pertenecen siempre a su fecha.
