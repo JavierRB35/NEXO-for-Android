@@ -2704,12 +2704,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private String getMedicationDoseStatus(long medicationId,long scheduledAt){try(Cursor c=getReadableDatabase().rawQuery("SELECT status FROM medication_doses WHERE medication_id=? AND scheduled_at=?",new String[]{String.valueOf(medicationId),String.valueOf(scheduledAt)})){if(c.moveToFirst())return c.getString(0);}catch(Exception ignored){}return "pending";}
     public String getMedicationDoseStatusPublic(long medicationId,long scheduledAt){return getMedicationDoseStatus(medicationId,scheduledAt);}
 
+    /** El aviso pospuesto ya ha sonado: volver a pendiente sin añadir un segundo evento de historial. */
+    public boolean resumeMedicationDoseAfterSnooze(long medicationId,long scheduledAt){
+        ContentValues values=new ContentValues();values.put("status","pending");
+        return getWritableDatabase().update("medication_doses",values,
+                "medication_id=? AND scheduled_at=? AND status='snoozed'",
+                new String[]{String.valueOf(medicationId),String.valueOf(scheduledAt)})>0;
+    }
+
     /** Dosis ya anunciadas que siguen pendientes/pospuestas. Se usa para reconstruir avisos tras reiniciar. */
     public JSONArray getUnresolvedMedicationDoses(){
         JSONArray a=new JSONArray();long now=System.currentTimeMillis();
-        String sql="SELECT d.medication_id,d.scheduled_at,d.status FROM medication_doses d JOIN medications m ON m.id=d.medication_id WHERE m.active=1 AND d.status IN ('pending','snoozed') AND d.scheduled_at<=? ORDER BY d.scheduled_at ASC";
+        String sql="SELECT d.medication_id,d.scheduled_at,d.status,d.action_at FROM medication_doses d JOIN medications m ON m.id=d.medication_id WHERE m.active=1 AND d.status IN ('pending','snoozed') AND (d.scheduled_at<=? OR d.status='snoozed') ORDER BY d.scheduled_at ASC";
         try(Cursor c=getReadableDatabase().rawQuery(sql,new String[]{String.valueOf(now)})){
-            while(c.moveToNext()){JSONObject o=new JSONObject();try{o.put("medicationId",c.getLong(0));o.put("scheduledAt",c.getLong(1));o.put("status",c.getString(2));a.put(o);}catch(Exception ignored){}}
+            while(c.moveToNext()){JSONObject o=new JSONObject();try{o.put("medicationId",c.getLong(0));o.put("scheduledAt",c.getLong(1));o.put("status",c.getString(2));o.put("actionAt",c.getLong(3));a.put(o);}catch(Exception ignored){}}
         }catch(Exception ignored){}
         return a;
     }

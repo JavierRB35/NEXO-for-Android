@@ -50,9 +50,22 @@ public final class MedicationScheduler {
         return true;
     }
 
-    public static boolean scheduleSnooze(Context context,long medicationId,long scheduledAt,int minutes){ return false; }
+    /** Programa un único aviso diez minutos después de pulsar Posponer, sin cambiar la pauta. */
+    public static boolean scheduleSnooze(Context context,long medicationId,long scheduledAt,int minutes){
+        long at=MedicationRepeatPolicy.snoozeAt(scheduledAt,System.currentTimeMillis(),minutes);
+        return scheduleSnoozeAt(context,medicationId,scheduledAt,at);
+    }
 
-    public static boolean canSnooze(long scheduledAt,int minutes){ return false; }
+    public static boolean canSnooze(long scheduledAt,int minutes){return scheduledAt>0&&minutes==10;}
+
+    private static boolean scheduleSnoozeAt(Context context,long medicationId,long scheduledAt,long whenMillis){
+        if(medicationId<=0||!canSnooze(scheduledAt,10)||whenMillis<=0)return false;
+        AlarmManager am=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);if(am==null)return false;
+        Intent i=baseIntent(context,medicationId,scheduledAt,"snooze");
+        PendingIntent pi=PendingIntent.getBroadcast(context,snoozeRequestCode(medicationId,scheduledAt),i,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        setAlarm(context,Math.max(System.currentTimeMillis()+1000,whenMillis),pi);
+        return true;
+    }
 
     /** Reconstruye solo repeticiones de tomas pendientes que aún están dentro de su ventana de 20 minutos. */
     public static void restorePendingRepeats(Context context, DatabaseHelper db) {
@@ -63,6 +76,15 @@ public final class MedicationScheduler {
                 org.json.JSONObject d=a.optJSONObject(i);if(d==null)continue;
                 long id=d.optLong("medicationId",0),at=d.optLong("scheduledAt",0);
                 if(id<=0||at<=0)continue;
+                if("snoozed".equals(d.optString("status"))){
+                    // El momento del botón queda registrado en action_at y sobrevive al reinicio.
+                    long actionAt=d.optLong("actionAt",0);
+                    long target=MedicationRepeatPolicy.snoozeAt(at,actionAt,10);
+                    // Recuperar avisos recién vencidos, pero nunca repetir un pospuesto de hace horas.
+                    if(target>0&&now<=target+20L*60000L)scheduleSnoozeAt(context,id,at,target);
+                    else cancelDoseAlerts(context,id,at);
+                    continue;
+                }
                 if(!MedicationRepeatPolicy.withinRepeatWindow(at,now)){
                     cancelDoseAlerts(context,id,at);
                     continue;
@@ -78,6 +100,14 @@ public final class MedicationScheduler {
 
     public static void cancelDoseAlerts(Context context,long medicationId,long scheduledAt){
         cancelRepeat(context,medicationId,scheduledAt);
+        cancelSnooze(context,medicationId,scheduledAt);
+    }
+    /** El pospuesto cancela las repeticiones normales, pero conserva su nueva alarma. */
+    public static void pauseDoseRepeats(Context context,long medicationId,long scheduledAt){
+        cancelRepeat(context,medicationId,scheduledAt);
+    }
+    /** Si el registro del pospuesto falla, retirar únicamente su alarma provisional. */
+    public static void cancelSnoozeAlert(Context context,long medicationId,long scheduledAt){
         cancelSnooze(context,medicationId,scheduledAt);
     }
 

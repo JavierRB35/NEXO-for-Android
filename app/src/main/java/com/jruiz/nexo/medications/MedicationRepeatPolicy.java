@@ -15,5 +15,10 @@ public final class MedicationRepeatPolicy {
         for(int min:offsets){long at=scheduledAt+min*MINUTE_MS;if(at>now+500)return at;}
         return 0;
     }
-    public static long snoozeAt(long scheduledAt,long now,int minutes){return 0;}
+    /** Posponer exactamente diez minutos desde que se pulsa el aviso, incluso después del último recordatorio fijo. */
+    public static long snoozeAt(long scheduledAt,long now,int minutes){
+        if(scheduledAt<=0||now<=0||minutes!=10)return 0;
+        long delay=minutes*MINUTE_MS;
+        return now>Long.MAX_VALUE-delay?0:now+delay;
+    }
 }

@@ -28,8 +28,17 @@ public class MedicationAlarmReceiver extends BroadcastReceiver {
             db.ensureMedicationDose(medicationId,scheduledAt);
             status=db.getMedicationDoseStatusPublic(medicationId,scheduledAt);
             if("taken".equals(status)||"skipped".equals(status)){MedicationScheduler.cancelDoseAlerts(context,medicationId,scheduledAt);return;}
+            // No adelantar una toma pospuesta mediante un PendingIntent de repetición ya en tránsito.
+            if("snoozed".equals(status)&&!"snooze".equals(kind))return;
 
-            if("initial".equals(kind)) {
+            if("snooze".equals(kind)){
+                // El aviso pospuesto se muestra aunque haya terminado la ventana fija de +20 min.
+                if(!"snoozed".equals(status)||!db.resumeMedicationDoseAfterSnooze(medicationId,scheduledAt))return;
+                if(MedicationRepeatPolicy.withinRepeatWindow(scheduledAt,now)){
+                    long nextRepeat=MedicationRepeatPolicy.nextRepeatAt(scheduledAt,now);
+                    if(nextRepeat>0)MedicationScheduler.scheduleRepeat(context,medicationId,scheduledAt,nextRepeat);
+                }
+            } else if("initial".equals(kind)) {
                 // El aviso previo no bloquea la programación de la siguiente toma de la pauta.
                 MedicationScheduler.scheduleNext(context,db,medicationId,scheduledAt);
                 // Si Android entregó el aviso con más de 30 min de retraso, no reabrimos el ciclo.
@@ -65,13 +74,14 @@ public class MedicationAlarmReceiver extends BroadcastReceiver {
         long medId=med.optLong("id");String name=med.optString("name","Medicamento"),dose=med.optString("dose","");String time=Instant.ofEpochMilli(scheduledAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"));
         Intent open=new Intent(context,MainActivity.class);open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent content=PendingIntent.getActivity(context,(int)(medId&0x7fffffff),open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        PendingIntent taken=actionPi(context,medId,scheduledAt,"taken",1),skip=actionPi(context,medId,scheduledAt,"skipped",3);
+        PendingIntent taken=actionPi(context,medId,scheduledAt,"taken",1),snooze=actionPi(context,medId,scheduledAt,"snooze",2),skip=actionPi(context,medId,scheduledAt,"skipped",3);
         Notification.Builder b=Build.VERSION.SDK_INT>=26?new Notification.Builder(context,CHANNEL_ID):new Notification.Builder(context);
         String label=dose.isBlank()?name:name+" "+dose;
         int offset=MedicationMessageConfig.nearestOffset(scheduledAt,System.currentTimeMillis());
         String body=MedicationMessageConfig.render(context,offset,label,scheduledAt);
         b.setSmallIcon(R.drawable.ic_notification_nexo).setContentTitle("Nexo · Medicación").setContentText(body).setStyle(new Notification.BigTextStyle().bigText(body)).setCategory(Notification.CATEGORY_ALARM).setVisibility(Notification.VISIBILITY_PRIVATE).setAutoCancel(false).setOngoing(false).setContentIntent(content)
                 .addAction(new Notification.Action.Builder(0,"✓ TOMADO",taken).build());
+        b.addAction(new Notification.Action.Builder(0,"POSPONER 10 MIN",snooze).build());
         b.addAction(new Notification.Action.Builder(0,"OMITIR",skip).build());
         try { nm.notify(notificationId(medId,scheduledAt),b.build()); } catch (Exception ignored) { }
     }
