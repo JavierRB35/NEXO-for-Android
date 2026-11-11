@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.87",
-  "notes": "La pestaña inferior ahora se llama Buscar y abre la búsqueda global de Nexo. Busca en los datos guardados y filtra resultados por tipo, con la funcionalidad de búsqueda que ya incluye la aplicación. Actualización opcional."
+  "versionName": "3.7.88",
+  "notes": "Los avisos de medicación añaden «Posponer 10 min» junto a «Tomado» y «Omitir». Al posponer, el aviso vuelve a sonar diez minutos después, sin cambiar el horario de las siguientes tomas. Actualización opcional."
 }

@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.87",
-  "releaseNotes": "La pestaña inferior ahora se llama Buscar y abre la búsqueda global de Nexo. Busca en los datos guardados y filtra resultados por tipo, con la funcionalidad de búsqueda que ya incluye la aplicación. Actualización opcional.",
+  "versionName": "3.7.88",
+  "releaseNotes": "Los avisos de medicación añaden «Posponer 10 min» junto a «Tomado» y «Omitir». Al posponer, el aviso vuelve a sonar diez minutos después, sin cambiar el horario de las siguientes tomas. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -151,6 +151,7 @@ window.NexoProductCatalog = {
           "features": [
             "Medicamentos, dosis, horarios y duración",
             "Avisos configurables por voz e historial de tomas",
+            "Posponer diez minutos los avisos sin alterar las siguientes tomas",
             "No prescribe ni sustituye el consejo médico"
           ]
         },
