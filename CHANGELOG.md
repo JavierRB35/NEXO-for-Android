@@ -1,3 +1,9 @@
+## Nexo 3.7.88 — Posponer avisos de medicación 10 minutos
+
+- Las notificaciones de medicación incorporan «POSPONER 10 MIN», además de «TOMADO» y «OMITIR».
+- Aplaza el aviso de esa toma diez minutos desde la pulsación, pausa sus recordatorios intermedios y conserva los horarios de la pauta.
+- Reprograma avisos pospuestos tras un reinicio sin cambiar el esquema SQLite, permisos, firma ni versiones de SDK. `versionCode 181`; actualización opcional.
+
 ## Nexo 3.7.87 — Búsqueda en la barra inferior
 
 - La pestaña inferior se llama Buscar y abre la búsqueda global de Nexo, con búsqueda de datos guardados y filtros por tipo.
