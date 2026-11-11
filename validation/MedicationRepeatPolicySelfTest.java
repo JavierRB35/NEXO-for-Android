@@ -16,7 +16,10 @@ public final class MedicationRepeatPolicySelfTest {
         eq(MedicationRepeatPolicy.nextRepeatAt(s,s+10*m),s+15*m,"+10 -> +15");
         eq(MedicationRepeatPolicy.nextRepeatAt(s,s+15*m),s+20*m,"+15 -> +20");
         eq(MedicationRepeatPolicy.nextRepeatAt(s,s+20*m),0,"+20 -> fin");
-        eq(MedicationRepeatPolicy.snoozeAt(s,s,10),0,"snooze disabled");
+        eq(MedicationRepeatPolicy.snoozeAt(s,s-5*m,10),s+5*m,"-5 alert -> +5 postponed");
+        eq(MedicationRepeatPolicy.snoozeAt(s,s+20*m,10),s+30*m,"+20 alert -> +30 postponed");
+        eq(MedicationRepeatPolicy.snoozeAt(s,s,0),0,"invalid snooze duration");
+        eq(MedicationRepeatPolicy.snoozeAt(0,s,10),0,"invalid medication dose");
         System.out.println("MedicationRepeatPolicy: "+tests+" tests OK");
     }
 }
