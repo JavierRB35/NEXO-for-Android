@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.88",
-  "releaseNotes": "Los avisos de medicación añaden «Posponer 10 min» junto a «Tomado» y «Omitir». Al posponer, el aviso vuelve a sonar diez minutos después, sin cambiar el horario de las siguientes tomas. Actualización opcional.",
+  "versionName": "3.7.89",
+  "releaseNotes": "Nexo se abre antes para que puedas consultar el calendario y anotar citas sin esperar a que terminen las comprobaciones iniciales. La copia automática, la consulta de actualizaciones, Inbox y el tiempo siguen funcionando.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
