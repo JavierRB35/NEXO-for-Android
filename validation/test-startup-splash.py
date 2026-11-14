@@ -40,7 +40,7 @@ assert 'startupSplashMinTimer' not in js and 'startupSplashMinReady' not in js
 assert '},3500);' not in js, 'La portada ya no tiene espera mínima artificial'
 assert 'state.startupSplashTimeout=setTimeout(finishStartupSplash,8500)' in js, 'Respaldo de emergencia'
 assert 'state.startupWeatherReady' in js and 'getStartupWeatherSnapshot()' in js
-assert 'Consultar el tiempo…' not in js or 'Consultando el tiempo…' in js
+assert 'Consultando el tiempo…' in js
 assert 'startupWeatherReady:true' not in js, 'No fingir que la consulta terminó'
 assert 'onHeaderWeather(raw)' in js
 assert "if(source!=='startup')renderToday();" in js
