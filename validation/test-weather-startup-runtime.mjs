@@ -9,12 +9,12 @@ const startup=source.slice(source.indexOf('function finishStartupSplash(){'),sou
 assert(weather.includes('function updateHeaderWeather(data)'));
 assert(startup.includes('function beginStartupSequence(startScreen)'));
 
-function setup(snapshot,{scanStarted=false,navigateFails=false}={}){
+function setup(snapshot,{scanStarted=false,navigateFails=false,startScreen='today'}={}){
   const html='<body class="startup-loading"><div id="startupSplash"><div id="startupSplashStatus">Buscando en Inbox…</div></div>'+
     '<div id="headerWeatherBtn"><span id="headerWeatherIcon">⛅</span><span id="headerWeatherTemp">…</span>'+
     '<span id="headerWeatherPlace">Consultando tiempo…</span></div></body>';
   const dom=new JSDOM(html,{url:'https://nexo.local/',runScripts:'outside-only'});
-  const w=dom.window,doc=w.document,queue=[],calls={inbox:0,home:0,updates:0,navigate:0};
+  const w=dom.window,doc=w.document,queue=[],calls={inbox:0,home:0,updates:0,navigate:0,calendarReset:0,calendarRender:0};
   w.state={screen:'today',startupSplashActive:false,startupInboxReady:false,startupHomeReady:false,
     startupUiReady:false,startupSplashTimeout:0,startupWeatherReady:false,startupHomeDashboard:null};
   w.$=s=>doc.querySelector(s);
@@ -25,14 +25,16 @@ function setup(snapshot,{scanStarted=false,navigateFails=false}={}){
     onStartupReadyForUpdates:()=>{calls.updates++;}
   };
   w.parseNative=(s,f)=>{try{return JSON.parse(s)}catch{return f}};
-  w.navigate=()=>{calls.navigate++;if(navigateFails)throw new Error('fallo al construir pantalla');w.state.screen='today'};
+  w.resetCalendarToToday=()=>{calls.calendarReset++};
+  w.renderCalendar=()=>{calls.calendarRender++};
+  w.navigate=screen=>{calls.navigate++;if(navigateFails)throw new Error('fallo al construir pantalla');w.state.screen=screen};
   w.updateFloatingActions=()=>{};
   w.requestAnimationFrame=fn=>fn();
   w.setTimeout=(fn,delay)=>{queue.push({fn,delay});return queue.length;};
   w.clearTimeout=()=>{};
   w.eval(weather+"\n"+startup);
-  if(navigateFails)assert.throws(()=>w.beginStartupSequence('today'),/fallo al construir pantalla/);
-  else w.beginStartupSequence('today');
+  if(navigateFails)assert.throws(()=>w.beginStartupSequence(startScreen),/fallo al construir pantalla/);
+  else w.beginStartupSequence(startScreen);
   const fire=delay=>{const timer=queue.find(x=>x.delay===delay);assert(timer,'Falta temporizador '+delay);timer.fn();};
   return {w,doc,fire,calls};
 }
@@ -59,6 +61,12 @@ const pending=setup({}, {scanStarted:true});
 assert.equal(pending.w.state.startupInboxReady,false,'Inbox sigue en segundo plano');
 assert(!pending.doc.body.classList.contains('startup-loading'),'Inbox no bloquea la interacción');
 assert.equal(pending.calls.inbox,1);
+
+const calendar=setup({}, {scanStarted:true,startScreen:'calendar'});
+assert.equal(calendar.w.state.screen,'calendar');
+assert.equal(calendar.calls.calendarReset,1,'El calendario se abre centrado en hoy');
+assert.equal(calendar.calls.calendarRender,1,'Se conserva el repintado inicial del calendario');
+assert(!calendar.doc.body.classList.contains('startup-loading'),'Calendario usable sin esperar a Inbox ni tiempo');
 
 const offline=setup({});
 assert(!offline.doc.body.classList.contains('startup-loading'),'No depende de red');
