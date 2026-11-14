@@ -2,71 +2,77 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {JSDOM} from 'jsdom';
 
-// Simula la WebView al iniciar Nexo; controla explícitamente reloj y datos
-// nativos para verificar el contrato de splash sin llamar a redes reales.
+// Simula la WebView al iniciar Nexo: tiempo, Inbox y actualizaciones no bloquean la UI.
 const source=fs.readFileSync('app/src/main/assets/app.js','utf8');
 const weather=source.slice(source.indexOf('function updateHeaderWeather(data){'),source.indexOf('function journalPromptText(',source.indexOf('function updateHeaderWeather(data){')));
 const startup=source.slice(source.indexOf('function finishStartupSplash(){'),source.indexOf('function init(){',source.indexOf('function finishStartupSplash(){')));
-assert(weather.includes('function updateHeaderWeather(data)'), 'Función meteorológica visible');
-assert(startup.includes('function beginStartupSequence(startScreen)'),'Preload de arranque');
+assert(weather.includes('function updateHeaderWeather(data)'));
+assert(startup.includes('function beginStartupSequence(startScreen)'));
 
-function setup(snapshot){
+function setup(snapshot,{scanStarted=false,navigateFails=false}={}){
   const html='<body class="startup-loading"><div id="startupSplash"><div id="startupSplashStatus">Buscando en Inbox…</div></div>'+
     '<div id="headerWeatherBtn"><span id="headerWeatherIcon">⛅</span><span id="headerWeatherTemp">…</span>'+
     '<span id="headerWeatherPlace">Consultando tiempo…</span></div></body>';
   const dom=new JSDOM(html,{url:'https://nexo.local/',runScripts:'outside-only'});
-  const w=dom.window,doc=w.document,queue=[];
+  const w=dom.window,doc=w.document,queue=[],calls={inbox:0,home:0,updates:0,navigate:0};
   w.state={screen:'today',startupSplashActive:false,startupInboxReady:false,startupHomeReady:false,
-    startupSplashMinReady:false,startupSplashMinTimer:0,startupSplashTimeout:0,startupWeatherReady:false,
-    startupHomeDashboard:null};
+    startupUiReady:false,startupSplashTimeout:0,startupWeatherReady:false,startupHomeDashboard:null};
   w.$=s=>doc.querySelector(s);
-  w.NexoNative={getStartupWeatherSnapshot:()=>JSON.stringify(snapshot),startStartupInboxScan:()=>false,
-    getHomeDashboard:()=>JSON.stringify({})};
+  w.NexoNative={
+    getStartupWeatherSnapshot:()=>JSON.stringify(snapshot),
+    startStartupInboxScan:()=>{calls.inbox++;return scanStarted;},
+    getHomeDashboard:()=>{calls.home++;return JSON.stringify({});},
+    onStartupReadyForUpdates:()=>{calls.updates++;}
+  };
   w.parseNative=(s,f)=>{try{return JSON.parse(s)}catch{return f}};
-  w.navigate=()=>{w.state.screen='today'};
+  w.navigate=()=>{calls.navigate++;if(navigateFails)throw new Error('fallo al construir pantalla');w.state.screen='today'};
   w.updateFloatingActions=()=>{};
   w.requestAnimationFrame=fn=>fn();
   w.setTimeout=(fn,delay)=>{queue.push({fn,delay});return queue.length;};
   w.clearTimeout=()=>{};
   w.eval(weather+"\n"+startup);
-  w.beginStartupSequence('today');
+  if(navigateFails)assert.throws(()=>w.beginStartupSequence('today'),/fallo al construir pantalla/);
+  else w.beginStartupSequence('today');
   const fire=delay=>{const timer=queue.find(x=>x.delay===delay);assert(timer,'Falta temporizador '+delay);timer.fn();};
-  return {w,doc,fire};
+  return {w,doc,fire,calls};
 }
 const fresh={ok:true,temperature:23.5,code:0,isDay:true,name:'La Pobla',stale:false,cachedAt:Date.now()};
 const cache=setup(fresh);
 assert.equal(cache.doc.querySelector('#headerWeatherTemp').textContent,'24°');
 assert.equal(cache.w.state.startupWeatherReady,true);
-assert(cache.doc.body.classList.contains('startup-loading'));
-cache.fire(3500);
-assert.equal(cache.w.state.startupSplashActive,false,'Caché reciente habilita apertura con mínimo 3,5s');
+assert(!cache.doc.body.classList.contains('startup-loading'),'Sin espera mínima al tener clima reciente');
+assert.equal(cache.calls.inbox,1,'El escaneo de Inbox sigue arrancando');
+assert.equal(cache.calls.home,1,'Inicio sigue precargando su información');
+assert.equal(cache.calls.navigate,1,'La navegación ocurre antes de retirar la portada');
+cache.fire(350);
+assert.equal(cache.calls.updates,1,'Las actualizaciones se siguen comprobando después de abrir');
 
 const stale={...fresh,temperature:21,stale:true,cachedAt:Date.now()-35*60*1000};
 const old=setup(stale);
-assert.equal(old.doc.querySelector('#headerWeatherTemp').textContent,'21°');
 assert.match(old.doc.querySelector('#headerWeatherPlace').textContent,/anterior/);
-assert.equal(old.w.state.startupWeatherReady,false,'Caché antigua no evita actualización');
-old.fire(3500);
-assert(old.doc.body.classList.contains('startup-loading'),'Splash sigue mientras espera el clima');
+assert.equal(old.w.state.startupWeatherReady,false,'Se distingue el tiempo obsoleto');
+assert(!old.doc.body.classList.contains('startup-loading'),'No bloquea por tiempo pendiente');
 old.w.updateHeaderWeather({...fresh,temperature:25});
-old.w.state.startupWeatherReady=true;old.w.maybeFinishStartupSplash();
-assert.equal(old.doc.querySelector('#headerWeatherTemp').textContent,'25°');
-assert.equal(old.w.state.startupSplashActive,false,'Nueva lectura permite entrar al Inicio');
+assert.equal(old.doc.querySelector('#headerWeatherTemp').textContent,'25°','El tiempo se actualiza después de abrir');
+
+const pending=setup({}, {scanStarted:true});
+assert.equal(pending.w.state.startupInboxReady,false,'Inbox sigue en segundo plano');
+assert(!pending.doc.body.classList.contains('startup-loading'),'Inbox no bloquea la interacción');
+assert.equal(pending.calls.inbox,1);
 
 const offline=setup({});
-offline.fire(3500);
-assert(offline.doc.body.classList.contains('startup-loading'),'No aparentar datos disponibles');
-offline.fire(8500);
-assert(!offline.doc.body.classList.contains('startup-loading'),'Límite de seguridad evita splash infinito');
+assert(!offline.doc.body.classList.contains('startup-loading'),'No depende de red');
 offline.w.updateHeaderWeather({ok:false,reason:'network'});
 assert.equal(offline.doc.querySelector('#headerWeatherTemp').textContent,'N/D');
 assert.equal(offline.doc.querySelector('#headerWeatherPlace').textContent,'Tiempo no disponible');
 
 const error=setup({});
 error.w.updateHeaderWeather({ok:false,reason:'permission'});
-error.w.state.startupWeatherReady=true;error.w.maybeFinishStartupSplash();
-error.fire(3500);
-assert.equal(error.w.state.startupSplashActive,false);
 assert.equal(error.doc.querySelector('#headerWeatherPlace').textContent,'Permite ubicación');
 
-console.log('OK: clima durante splash, caché identificada, éxito, error y salida segura a 8,5s');
+const broken=setup({}, {navigateFails:true});
+assert(broken.doc.body.classList.contains('startup-loading'),'Si falla la UI, no se oculta prematuramente');
+broken.fire(8500);
+assert(!broken.doc.body.classList.contains('startup-loading'),'El límite de seguridad sigue funcionando');
+
+console.log('OK: pantalla rápida; Inbox, Inicio, clima y actualizaciones conservados');
