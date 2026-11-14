@@ -51,7 +51,7 @@ const state = {
   displayMode:'comfortable', appointmentsFilter:'pending', appointmentsWindow:'', captureReturnRoute:null, searchFilter:'all', searchHistorical:false, modalReturnFocus:null,
   homeSearchIndex:[], homeSearchIndexReady:false, homeSearchResults:[], homeUpcoming:[], homeMemberMap:new Map(), homeTimelineVisible:false,
   startupSplashActive:true, startupInboxReady:false, startupHomeReady:false, startupHomeDashboard:null,
-  startupSplashMinReady:false, startupSplashMinTimer:0, startupSplashTimeout:0, startupWeatherReady:false,
+  startupUiReady:false, startupSplashTimeout:0, startupWeatherReady:false,
   holidayYears:{}, holidayLoading:new Set(),
   managedVoiceTarget:'', managedVoiceBase:'', managedVoiceSegments:[], managedVoicePartial:'', managedVoiceListId:0, managedVoiceShopping:false
 };
@@ -4378,7 +4378,8 @@ window.NexoUI={
   },
   onInputHubChanged(source){
     if(state.screen==='more')renderCommunicationCaptureSettings();
-    if(!(source==='startup'&&state.startupSplashActive))renderToday();
+    // La finalización del escaneo ya refresca Inicio; evita hacerlo dos veces.
+    if(source!=='startup')renderToday();
     if(state.screen==='panel'&&state.lastPanel==='inbox')renderInboxPanel();
   },
   onFileChosen(raw){const f=parseNative(raw,{});state.attachment=f;$('#attachmentChip').textContent=`Adjunto: ${f.name||'archivo'}`;$('#attachmentChip').classList.remove('hidden');if(!$('#captureText').value.trim())$('#captureText').value=f.name||'Documento';analyzeCapture({immediate:true});},
@@ -4512,7 +4513,6 @@ function bindPanelNavigation(){
 function finishStartupSplash(){
   if(!state.startupSplashActive)return;
   state.startupSplashActive=false;
-  if(state.startupSplashMinTimer){clearTimeout(state.startupSplashMinTimer);state.startupSplashMinTimer=0;}
   if(state.startupSplashTimeout){clearTimeout(state.startupSplashTimeout);state.startupSplashTimeout=0;}
   const splash=$('#startupSplash');
   document.body.classList.remove('startup-loading');
@@ -4534,8 +4534,8 @@ function maybeFinishStartupSplash(){
       :!state.startupHomeReady?'Preparando Inicio…'
       :!state.startupWeatherReady?'Consultando el tiempo…':'Abriendo Nexo…';
   }
-  if(state.startupSplashMinReady&&state.startupHomeReady&&state.startupInboxReady&&state.startupWeatherReady)
-    finishStartupSplash();
+  // La pantalla lista ya es usable: Inbox y meteorología actualizan después.
+  if(state.startupUiReady)finishStartupSplash();
 }
 
 function preloadStartupHomeDashboard(){
@@ -4553,7 +4553,7 @@ function beginStartupSequence(startScreen){
   state.startupSplashActive=!!$('#startupSplash');
   state.startupInboxReady=false;
   state.startupHomeReady=false;
-  state.startupSplashMinReady=!state.startupSplashActive;
+  state.startupUiReady=false;
   // Puede haberse completado antes de inicializar JS. Recuperar el dato nativo
   // sin esperar a otra llamada a Internet, incluso si llegó antes del onPageFinished.
   try{
@@ -4564,16 +4564,8 @@ function beginStartupSequence(startScreen){
     }
   }catch(_){/* El clima nunca debe impedir abrir Inicio. */}
   maybeFinishStartupSplash();
-  if(state.startupSplashActive){
-    state.startupSplashMinTimer=setTimeout(()=>{
-      state.startupSplashMinReady=true;
-      maybeFinishStartupSplash();
-    },3500);
-    state.startupSplashTimeout=setTimeout(()=>{
-      state.startupSplashMinReady=true;
-      finishStartupSplash();
-    },8500);
-  }
+  // Respaldo ante errores de inicialización; no añade espera en el camino normal.
+  if(state.startupSplashActive)state.startupSplashTimeout=setTimeout(finishStartupSplash,8500);
 
   let inboxStarted=false;
   try{
@@ -4588,6 +4580,7 @@ function beginStartupSequence(startScreen){
   preloadStartupHomeDashboard();
   navigate(startScreen,{root:true});
   if(startScreen==='calendar')requestAnimationFrame(()=>{if(state.screen==='calendar')renderCalendar();});
+  state.startupUiReady=true;
   maybeFinishStartupSplash();
   // Seguridad si en alguna instalación la pantalla de portada está desactivada.
   if(!state.startupSplashActive && !$('#startupSplash')) NexoNative.onStartupReadyForUpdates?.();
