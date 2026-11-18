@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.89",
-  "notes": "Nexo se abre antes para que puedas consultar el calendario y anotar citas sin esperar a que terminen las comprobaciones iniciales. La copia automática, la consulta de actualizaciones, Inbox y el tiempo siguen funcionando."
+  "versionName": "3.7.90",
+  "notes": "Las citas de «Acompañar (salud)» muestran en el calendario el color de la persona asignada, para distinguir de un vistazo a quién acompañar. No se amplían las casillas ni cambian las demás categorías. Con varias personas o ninguna, se conserva el color habitual."
 }
