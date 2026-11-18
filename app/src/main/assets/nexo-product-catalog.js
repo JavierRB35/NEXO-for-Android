@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.89",
-  "releaseNotes": "Nexo se abre antes para que puedas consultar el calendario y anotar citas sin esperar a que terminen las comprobaciones iniciales. La copia automática, la consulta de actualizaciones, Inbox y el tiempo siguen funcionando.",
+  "versionName": "3.7.90",
+  "releaseNotes": "Las citas de «Acompañar (salud)» muestran en el calendario el color de la persona asignada, para distinguir de un vistazo a quién acompañar. No se amplían las casillas ni cambian las demás categorías. Con varias personas o ninguna, se conserva el color habitual.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
