@@ -2820,6 +2820,8 @@ body.startup-loading #app{visibility:hidden}
 .calendar-category-marker,.calendar-day.selected .calendar-category-marker{
   color:var(--event-category-color,#475569);
 }
+/* Blanco y amarillo necesitan contorno sobre las casillas claras, sin ocupar más espacio. */
+.calendar-category-marker--person-light .ui-icon{filter:drop-shadow(0 0 1px #526277)}
 .calendar-category-marker .ui-icon{width:13px;max-width:13px;height:13px;stroke-width:2.25}
 .day-dots>.calendar-category-marker{flex:0 1 13px}
 .calendar-marker-more{
