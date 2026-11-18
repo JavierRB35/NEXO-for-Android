@@ -1707,9 +1707,24 @@ function calendarMarkerItems(items){
   if(!reservation)return list.slice(0,3);
   return [reservation,...list.filter(item=>item!==reservation)].slice(0,3);
 }
+function calendarAccompanyPerson(item){
+  if(familyNorm(categoryLabel(item?.category))!=='acompanar (salud)')return null;
+  const participants=item?.participants;
+  if(!Array.isArray(participants)||participants.length!==1)return null;
+  const person=participants[0],id=Number(person?.id),color=String(person?.color||'').toUpperCase();
+  if(!Number.isSafeInteger(id)||id<=0||!/^#[0-9A-F]{6}$/.test(color))return null;
+  return {name:String(person.name||'').trim(),color};
+}
+function calendarMonthItemLabel(item){
+  const label=categoryLabel(item.category),person=calendarAccompanyPerson(item);
+  return person?.name?label+' · '+person.name:label;
+}
 function calendarMarkerHtml(item){
   if(isVehicleReservation(item))return '<span class="calendar-category-marker calendar-event-vehicle" style="--event-category-color:'+familyCategoryColor('Vehículos / ITV')+'" title="Reserva de coche" aria-hidden="true">'+uiIcon('car')+'</span>';
-  return '<span class="calendar-category-marker" style="--event-category-color:'+familyCategoryColor(item.category)+'" title="'+escAttr(categoryLabel(item.category))+'" aria-hidden="true">'+uiIcon(familyCategoryIcon(item.category))+'</span>';
+  const person=calendarAccompanyPerson(item),color=person?.color||familyCategoryColor(item.category);
+  const light=person&&(color==='#FFFFFF'||color==='#FACC15');
+  const className='calendar-category-marker'+(person?' calendar-category-marker--person':'')+(light?' calendar-category-marker--person-light':'');
+  return '<span class="'+className+'" style="--event-category-color:'+color+'" title="'+escAttr(calendarMonthItemLabel(item))+'" aria-hidden="true">'+uiIcon(familyCategoryIcon(item.category))+'</span>';
 }
 
 function requestHolidayYears(years){[...new Set(years.map(Number).filter(y=>y>=2000&&y<=2100))].forEach(year=>{if(state.holidayYears[year]||state.holidayLoading.has(year))return;state.holidayLoading.add(year);try{NexoNative.requestHolidayCalendar(year);}catch(_){state.holidayLoading.delete(year);}});}
@@ -2692,7 +2707,7 @@ function renderCalendar(direction=0){
   for(let cell=0;cell<cells;cell++){
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+cell,12),iso=isoDateLocal(d),list=byDay[iso]||[],hs=holidaysByDay[iso]||[],selected=iso===state.calendarSelected;
     const base=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);
-    const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(list.length?' · Categorías: '+[...new Set(list.map(i=>categoryLabel(i.category)))].join(', '):'')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');
+    const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(list.length?' · Categorías: '+[...new Set(list.map(calendarMonthItemLabel))].join(', '):'')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');
     const shownMarkers=calendarMarkerItems(list),markerLimit=list.length>3?2:3;
     const dots=shownMarkers.slice(0,markerLimit).map(calendarMarkerHtml).join('')+(list.length>3?'<span class="calendar-marker-more" title="'+(list.length-markerLimit)+' eventos adicionales">+'+(list.length-markerLimit)+'</span>':'');
     calendarHtml+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1&&list.length<=3?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
