@@ -2845,8 +2845,11 @@ function scheduleCalendarMonthFit(){
   calendarMonthFitScheduled=true;
   requestAnimationFrame(()=>{calendarMonthFitScheduled=false;fitCalendarMonthToViewport();});
 }
-window.addEventListener('resize',scheduleCalendarMonthFit);
-window.visualViewport?.addEventListener('resize',scheduleCalendarMonthFit);
+// Unit-test VMs evaluate the calendar controller without a browser window.
+if(typeof window!=='undefined'){
+  window.addEventListener('resize',scheduleCalendarMonthFit);
+  window.visualViewport?.addEventListener('resize',scheduleCalendarMonthFit);
+}
 
 function renderCalendar(direction=0){
   if(state.calendarView!=='month'&&window.NexoCalendarViews){window.NexoCalendarViews.render();return;}
