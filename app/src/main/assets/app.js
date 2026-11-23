@@ -2866,7 +2866,7 @@ function renderCalendar(direction=0){
       return '<button type="button" class="calendar-month-event" data-calendar-month-item="'+index+'" data-calendar-event-day="'+iso+'" style="--calendar-chip-color:'+color+'" title="'+escAttr(item.title||'Evento')+'" aria-label="Ver '+escAttr(item.title||'Evento')+' en el horario del '+escAttr(base)+'"><span>'+esc(time+(item.title||'Evento'))+'</span></button>';
     }).join('');
     const eventOverflow=list.length>2?'<span class="calendar-month-event-overflow">+'+(list.length-2)+'</span>':'';
-    calendarHtml+=`<div class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}">
+    calendarHtml+=`<div class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-cell-day="${iso}">
       <button type="button" class="calendar-day-open" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1&&list.length<=3?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span></button>
       <div class="calendar-month-events">${visibleEvents}${eventOverflow}</div>
       <span class="day-dots" aria-hidden="true">${dots}</span>
@@ -2878,7 +2878,10 @@ function renderCalendar(direction=0){
   const note=$('#holidayCalendarNote');
   if(note){note.classList.toggle('hidden',!partial);note.textContent=partial?'Festivos parciales: se muestran los datos disponibles y Nexo volverá a actualizar cuando haya conexión.':'';}
 
-  document.querySelectorAll('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>openCalendarDayFromMonth(b.dataset.calendarDay)));
+  document.querySelectorAll('[data-calendar-cell-day]').forEach(cell=>cell.addEventListener('click',event=>{
+    if(event.target.closest?.('[data-calendar-month-item]'))return;
+    openCalendarDayFromMonth(cell.dataset.calendarCellDay);
+  }));
   document.querySelectorAll('[data-calendar-month-item]').forEach(b=>b.addEventListener('click',()=>{
     const item=state.calendarItems[Number(b.dataset.calendarMonthItem)];
     openCalendarDayFromMonth(b.dataset.calendarEventDay,item);
