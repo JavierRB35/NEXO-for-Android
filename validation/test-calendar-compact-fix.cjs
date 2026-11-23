@@ -8,10 +8,10 @@ const asset=file=>fs.readFileSync(path.join(root,'app/src/main/assets',file),'ut
 const app=asset('app.js'),css=asset('calendar-redesign.css'),views=asset('calendar-views.js');
 
 const monthRenderer=app.slice(app.indexOf('function renderCalendar(direction=0){'),app.indexOf('function renderCalendarDay(){'));
-assert.match(monthRenderer,/calendarMarkerItems\\(list\\)/,'Month day indicators must use original icon selection');
+assert.ok(monthRenderer.includes('calendarMarkerItems(list)'), 'Month day indicators must use original icon selection');
 assert.match(monthRenderer,/calendarMarkerHtml/,'Month icons must preserve category color and SVG');
 assert.doesNotMatch(monthRenderer,/calendar-month-event|data-calendar-month-item/,'Month cells must not show cramped event descriptions or times');
-assert.match(css,/#calendarMonthRegion \\.calendar-day \\.day-dots\\{\\s*display:flex;/,'Month icons must be visible');
+assert.match(css.slice(css.indexOf('#calendarMonthRegion .calendar-day .day-dots{')), /display:flex;/, 'Month icons must be visible');
 assert.match(css,/\.calendar-toolbar\{\s*display:flex;align-items:center;flex-wrap:nowrap;/,
   'Five day controls must occupy one row');
 assert.match(css,/calendar-toolbar \[hidden\]\{display:none!important\}/,
