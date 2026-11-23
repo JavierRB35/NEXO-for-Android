@@ -112,7 +112,7 @@
         }).join('')+'</div></div>');
     }
     host.innerHTML='<div class="calendar-week-track">'+
-      '<div class="calendar-week-hours">'+Array.from({length:24},(_,h)=>'<span style="top:'+(h*60*MINUTE_HEIGHT)+'px">'+two(h)+':00</span>').join('')+'</div>'+
+      '<div class="calendar-week-hours">'+Array.from({length:24},(_,h)=>'<span style="top:'+(132+h*60*MINUTE_HEIGHT)+'px">'+two(h)+':00</span>').join('')+'</div>'+
       columns.join('')+'</div>';
     host.querySelectorAll('[data-calendar-date]').forEach(btn=>btn.addEventListener('click',()=>{state.calendarSelected=btn.dataset.calendarDate;setView('day');}));
     bindItems(host,items);
