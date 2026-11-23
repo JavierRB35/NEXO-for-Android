@@ -73,7 +73,7 @@ public final class NexoAiCapture {
             prefs().edit().remove(field).putBoolean("groq_enabled", false).apply();
             return;
         }
-        if (value.length() > 400 || value.matches(".*\s+.*"))
+        if (value.length() > 400 || value.matches(".*\\s+.*"))
             throw new IllegalArgumentException("Formato de clave no válido.");
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, secret(provider));
