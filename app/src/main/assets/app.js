@@ -2331,6 +2331,59 @@ function prepareTimeGridAppointment(iso,startMinute,endMinute){
 
 function startVoiceCapture(pinnedDate='',pinnedType='') { state.voiceMode='capture'; const existing=(!pinnedDate&&state.screen==='save')?($('#captureText')?.value.trim()||''):''; state.voiceBaseText=existing;state.voicePinnedDate=pinnedDate||'';state.voicePinnedType=pinnedType||state.capturePinnedType||'event';navigate('save'); if(pinnedDate){state.capturePinnedDate=pinnedDate;state.capturePinnedType=pinnedType||'';state.captureReturn='today';clearCapture(true);state.voiceBaseText='';$('#captureDate').value=pinnedDate;$('#captureEndDate').value=pinnedDate;if(pinnedType)$('#captureType').value=pinnedType;refreshCaptureAlertEditor();} setInterpretationStatus('listening','Escuchando… puedes hacer una pausa corta'); NexoNative.startVoiceInput(); }
 
+
+function renderNexoAiSettings(){
+  const info=parseNative(NexoNative.getNexoAiSettings(),{});
+  const g=$('#nexoAiGeminiStatus'),r=$('#nexoAiGroqStatus'),toggle=$('#nexoAiGroqEnable');
+  if(g)g.textContent=info.geminiConfigured?'Gemini configurado · '+String(info.geminiModel||''):'Gemini sin configurar';
+  if(r)r.textContent=info.groqConfigured?'Groq configurado · '+String(info.groqModel||''):'Groq sin configurar';
+  if(toggle){toggle.checked=!!info.groqEnabled;toggle.disabled=!info.groqConfigured;}
+}
+function saveNexoAiCredential(provider){
+  const input=$(provider==='gemini'?'#nexoAiGeminiKey':'#nexoAiGroqKey');
+  if(!input)return;
+  const key=input.value.trim();
+  if(!key&&!window.confirm('¿Eliminar la clave '+(provider==='gemini'?'Gemini':'Groq')+' guardada y desactivar el respaldo?'))return;
+  const result=parseNative(NexoNative.saveNexoAiKey(provider,key),{});
+  input.value='';renderNexoAiSettings();
+  toast(result.ok?(key?'Clave protegida en este dispositivo.':'Clave eliminada.'):(result.error||'No se pudo guardar la clave.'));
+}
+function requestNexoAiCapture(){
+  const raw=$('#captureText')?.value.trim()||'';
+  if(raw.length<8||raw.length>1800){toast('Escribe entre 8 y 1800 caracteres para consultar la IA.');return;}
+  const settings=parseNative(NexoNative.getNexoAiSettings(),{});
+  if(!settings.geminiConfigured){toast('Configura tu clave Gemini en Ajustes → Inteligencia artificial.');return;}
+  if(!window.confirm('¿Enviar únicamente este texto de captura a Gemini para proponer datos de la cita?'+(settings.groqEnabled?' Si Gemini falla por cuota o disponibilidad, autorizas el mismo envío a Groq.':'')+' No se enviará tu agenda ni se guardará ningún evento automáticamente.'))return;
+  state.captureAiPendingText=raw;
+  const btn=$('#captureAiAnalyze');if(btn){btn.disabled=true;btn.textContent='Consultando IA…';}
+  setInterpretationStatus('working','Preparando propuesta de IA…');
+  NexoNative.analyzeNexoCapture(raw);
+}
+function receiveNexoAiCapture(raw){
+  const btn=$('#captureAiAnalyze');if(btn){btn.disabled=false;btn.textContent='✦ Mejorar propuesta con IA';}
+  const source=state.captureAiPendingText;state.captureAiPendingText='';
+  if(!source||state.screen!=='save'||source!==($('#captureText')?.value.trim()||''))return;
+  const result=parseNative(raw,{});
+  if(!result.ok||!result.classification){setInterpretationStatus('review','No se pudo consultar IA. La interpretación local sigue disponible.');toast(result.error||'La IA no está disponible.');return;}
+  const proposal=result.classification;
+  const current=state.classification||{},merged={...current,...proposal,type:'event'};
+  for(const key of ['dueDate','dueTime','dueEndDate','dueEndTime','locationText','description'])
+    if(!proposal[key]&&current[key])merged[key]=current[key];
+  if(!merged.dueDate){merged.hasTime=false;merged.dueTime='';}
+  if(merged.category==='Otro'&&current.category&&current.category!=='Otro')merged.category=current.category;
+  renderClassification(merged,true);
+  const personName=String(proposal.personName||'').trim();
+  let personLabel='';
+  if(personName&&!captureFieldLocked('participants')){
+    const people=parseNative(NexoNative.getPeople(),[]);
+    const target=familySearchNormalize(personName);
+    const matches=people.filter(p=>familySearchNormalize(p.name)===target&&Number(p.id)>0);
+    if(matches.length===1){state.captureParticipantIds=[Number(matches[0].id)];renderCapturePeopleAssignment();personLabel=' · persona: '+String(matches[0].name);}
+    else personLabel=' · comprueba la persona asignada';
+  }
+  setInterpretationStatus('review',String(result.provider||'IA')+' · propuesta aplicada para revisar'+personLabel+'. No se ha guardado.');
+}
+
 function analyzeCapture(options={}) {
   const text=$('#captureText').value.trim();
   if(!text){ resetAnalysis(); return; }
@@ -2481,6 +2534,7 @@ function clearCapture(keepPinned=false) {
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
   $('#captureCloneNotice')?.classList.add('hidden');
   const identity=$('#captureSenderInfo');if(identity){identity.innerHTML='';identity.classList.add('hidden');}
+  state.captureAiPendingText='';const aiBtn=$('#captureAiAnalyze');if(aiBtn){aiBtn.disabled=false;aiBtn.textContent='✦ Mejorar propuesta con IA';}
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
   resetAnalysis();
 }
@@ -2964,6 +3018,7 @@ function renderMore(){
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
   renderUpdateStatus(NexoNative.getUpdateStatus());
+  renderNexoAiSettings();
 }
 
 function renderCommunicationCaptureSettings(){
@@ -4278,6 +4333,7 @@ function renderMedicationsPanel(){
 
 window.NexoUI={
   onUpdateStatusChanged(raw){renderUpdateStatus(raw);},
+  onNexoAiCapture(raw){receiveNexoAiCapture(raw);},
   onPlaceLocation(raw){onPlaceLocationResult(raw);},
   onPlaceLocationError(message){onPlaceLocationError(message);},
   onHeaderWeather(raw){
@@ -4658,6 +4714,16 @@ function init(){
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
   $('#searchFilter').addEventListener('change',()=>runSearch());
   $('#captureText').addEventListener('input',()=>analyzeCapture());
+  $('#captureAiAnalyze')?.addEventListener('click',requestNexoAiCapture);
+  $('#nexoAiSaveGemini')?.addEventListener('click',()=>saveNexoAiCredential('gemini'));
+  $('#nexoAiSaveGroq')?.addEventListener('click',()=>saveNexoAiCredential('groq'));
+  $('#nexoAiGroqEnable')?.addEventListener('change',()=>{
+    const check=$('#nexoAiGroqEnable');
+    if(check.checked&&!window.confirm('¿Autorizar Groq como respaldo? Solo cuando una consulta que hayas iniciado falle en Gemini por cuota, error temporal o timeout. Groq recibirá el mismo texto de captura.')){check.checked=false;return;}
+    const result=parseNative(NexoNative.setNexoAiFallback(!!check.checked),{});
+    if(!result.ok)toast(result.error||'No se pudo cambiar el respaldo.');
+    renderNexoAiSettings();
+  });
   bindEventLocationField('#captureLocation','#captureMapsUrl','#captureMapPreview',()=>markCaptureManual('location','mapsUrl'));
   const captureFieldMap={
     captureTitle:'title',captureDescription:'description',captureCategory:'category',captureLocation:'location',
