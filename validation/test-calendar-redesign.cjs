@@ -1,4 +1,4 @@
-/* Regresión focalizada Nexo 3.7.94: controlador de calendario y tipos conservados. */
+/* Regresión focalizada Nexo 3.7.95: controlador de calendario y tipos conservados. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
@@ -70,7 +70,7 @@ assert.match(app,/state\.calendarQuickOpen=true/,'protección de borrador inicia
 assert.ok(html.includes('id="homeDailyQuoteText"'));
 assert.ok(!html.slice(html.indexOf('id="calendarMonthRegion"'),html.indexOf('data-screen="more"')).includes('calendarDailyQuoteText'));
 assert.match(css,/calendar-week-track/);
-console.log('OK Nexo 3.7.94: 4 vistas, persistencia, tareas fechadas, frases en Inicio y creación sin conversión');
+console.log('OK Nexo 3.7.95: 4 vistas, persistencia, tareas fechadas, frases en Inicio y creación sin conversión');
 
 
 /* Recorrido de creación: el selector debe ser clicable y las tareas no convertirse
