@@ -2181,6 +2181,14 @@ public class MainActivity extends Activity {
             String m = ("normal".equals(mode) || "large".equals(mode)) ? mode : "comfortable";
             getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putString("display_mode", m).apply();
         }
+        // Preferencia visual del calendario en Android. WebView mantiene DOM Storage deshabilitado.
+        @JavascriptInterface public String getCalendarViewPreference() {
+            return getSharedPreferences("nexo_settings", MODE_PRIVATE).getString("calendar_view", "month");
+        }
+        @JavascriptInterface public void setCalendarViewPreference(String value) {
+            String view = ("week".equals(value) || "day".equals(value) || "agenda".equals(value)) ? value : "month";
+            getSharedPreferences("nexo_settings", MODE_PRIVATE).edit().putString("calendar_view", view).apply();
+        }
         // La interfaz informa del tema visual activo para alinear la barra del
         // sistema. Solo presentación: no toca datos ni preferencias funcionales.
         @JavascriptInterface public void applyChromeTheme(String theme) { runOnUiThread(() -> applySystemChrome(theme)); }

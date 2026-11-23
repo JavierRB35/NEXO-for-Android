@@ -257,7 +257,9 @@
     (Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds))
       .forEach(item=>byIdentity.set(eventKey(item),item));
     const items=[...byIdentity.values()];
-    const allDay=items.filter(item=>!isTimed(item));
+    const taskHost=host.id==='calendarDayItems'?document.getElementById?.('calendarDayTasks')||null:null;
+    const noTimeTasks=taskHost?items.filter(item=>!isTimed(item)&&(item.type==='task'||categoryLabel(item.category)==='Tarea / Recado')):[];
+    const allDay=items.filter(item=>!isTimed(item)&&!noTimeTasks.includes(item));
     const timed=assignColumns(items.filter(isTimed).map(item=>segment(item,bounds)));
     // Toda la jornada, incluso citas de madrugada o a última hora.
     const first=0,last=1440,total=last*PX_PER_MINUTE;
@@ -289,6 +291,14 @@
     // La franja «Todo el día» se fija dentro de la agenda desplazable.
     // En Inicio continúa fijada bajo la cabecera principal.
     host.style?.setProperty?.('--tgv-top-offset',host.id==='calendarDayItems'?'0px':(topBarHeight+6)+'px');
+    if(taskHost){
+      taskHost.classList.toggle('hidden',!noTimeTasks.length);
+      taskHost.innerHTML=noTimeTasks.length?'<div class="tgv-task-no-time-label">Tareas del día · '+noTimeTasks.length+'</div>'+noTimeTasks.map((item,index)=>
+        '<button type="button" class="tgv-all-day-event'+(item.status==='done'||item.occurrenceStatus==='done'?' calendar-item-done':'')+'" data-tgv-no-time="'+index+'" style="--tgv-accent:'+validColor(item)+'">'+uiIcon('tasks')+'<span><strong>'+esc(item.title||'Tarea')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join(''):'';
+      taskHost.querySelectorAll('[data-tgv-no-time]').forEach(btn=>btn.addEventListener('click',()=>{
+        const item=noTimeTasks[Number(btn.dataset.tgvNoTime)];if(item)openExistingDetail(item);
+      }));
+    }
     host.innerHTML=(allDay.length?'<div class="tgv-all-day" role="region" aria-label="Eventos de todo el día"><span class="tgv-all-day-label">Todo el día · '+allDay.length+' evento'+(allDay.length===1?'':'s')+'</span>'+allDay.map((item,index)=>
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'" title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr('Abrir '+fullLabel(item))+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</div>':'')+

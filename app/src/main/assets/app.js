@@ -41,10 +41,10 @@ const state = {
   userAdjusted:false, captureManualFields:new Set(), pendingSave:false, pendingSaveTimer:null, confirmAction:null,
   captureAiTimer:0, captureAiActive:false, captureAiSerial:0, captureAiPendingId:0,
   captureAiPendingText:'', captureAiDesiredText:'', captureAiLastSuccessfulText:'', captureAiSuppressed:false,
-  calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarReturn:'more',
+  calendarMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1), calendarSelected:isoDateLocal(new Date()), calendarItems:[], calendarView:'month', calendarReturn:'more',
   capturePinnedDate:'', capturePinnedType:'', captureReturn:'today', voicePinnedDate:'', voicePinnedType:'', voiceBaseText:'',
   captureAlerts:[], captureSuggestedAlert:null, captureParticipantIds:[], todaySummaryExpanded:false, todaySummaryLines:[],
-  calendarLastQuoteId:0,
+  homeLastQuoteId:0, homeLastQuoteDate:'', calendarQuickOpen:false, calendarQuickDirty:false,
   journalFilter:'all', journalSearch:'', journalPick:null, journalEditor:null, quoteEditor:null, voiceMode:'capture', journalVoiceBase:'', journalVoiceKind:'', journalVoiceId:0, journalVoiceTitle:'', journalVoiceTitleManual:false, journalVoiceFavorite:false, journalVoiceRevisit:false, medicationVoiceBase:'', medicationEditor:null, medicationVoiceEditor:false,
   noteVoiceId:0, noteVoiceTitle:'', noteVoiceTitleManual:false, noteEditor:null,
   placeFilter:'all', placeTypeFilter:'all', placeSearch:'', places:[], placeEditor:null,
@@ -217,7 +217,7 @@ function isPlaceType(type){return type==='place'||type==='restaurant';}
 function placeLabel(item){return String(item.subcategory||'').trim()||(item.type==='restaurant'||item.category==='Restaurantes'?'Restaurante':'Otros');}
 function categoryLabel(category){const raw=String(category||'').trim();return LEGACY_CATEGORY_MAP[raw]||raw||'Otro';}
 function itemTypeControl(id,type){
-  if(isAppointmentType(type))return `<input id="${id}" type="hidden" value="event">`;
+  if(isAppointmentType(type))return `<input id="${id}" type="hidden" value="${escAttr(type)}">`;
   return `<label>Tipo<select id="${id}">${Object.entries(TYPE_LABEL).filter(([k])=>!['parking','medication','task','reminder','expiry','place','restaurant'].includes(k)).map(([k,v])=>`<option value="${k}" ${k===type?'selected':''}>${esc(v)}</option>`).join('')}</select></label>`;
 }
 
@@ -529,7 +529,8 @@ function runEventAddFab(){
     return;
   }
   const today=isoDateLocal(new Date());
-  prepareQuickNoteForType('event',state.screen==='calendar'?(state.calendarSelected||today):today);
+  if(state.screen==='calendar'){openCalendarQuickCreate(state.calendarSelected||today);return;}
+  prepareQuickNoteForType('event',today);
 }
 function startListVoiceFor(listId){
   const id=Number(listId)||0;
@@ -748,6 +749,7 @@ function renderToday(dashboardOverride=null) {
   $('#homeCalendarHint').textContent='Ver todos';
   $('#homeUpcomingList').innerHTML=state.homeUpcoming.length?state.homeUpcoming.map(homeUpcomingCard).join(''):'<div class="empty-card design-empty"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-calendar"></use></svg><strong>No hay próximos eventos.</strong><span>Añade el primero desde Agenda.</span></div>';
   bindHomeUpcoming();
+  if(state.homeLastQuoteDate!==isoDateLocal(new Date()))showRandomHomeQuote();
   if(state.homeTimelineVisible&&window.NexoTimeGrid)window.NexoTimeGrid.renderHome();
 
   // El índice global puede leer miles de filas y transcripciones. Solo se crea
@@ -880,8 +882,8 @@ function renderParkingHomeCard(parking){
 
 
 /* El desplegable consulta directamente las frases locales, sin duplicar ni sincronizar datos. */
-function showRandomCalendarQuote(){
-  const textEl=$('#calendarDailyQuoteText'),sourceEl=$('#calendarDailyQuoteSource');
+function showRandomHomeQuote(){
+  const textEl=$('#homeDailyQuoteText'),sourceEl=$('#homeDailyQuoteSource');
   if(!textEl||!sourceEl)return;
   let quotes=[];
   try{
@@ -891,11 +893,13 @@ function showRandomCalendarQuote(){
   if(!quotes.length){
     textEl.textContent='Aún no tienes frases guardadas. Puedes añadirlas en Herramientas → Frases.';
     sourceEl.textContent='';sourceEl.classList.add('hidden');
+    state.homeLastQuoteDate=isoDateLocal(new Date());
     return;
   }
-  const choices=quotes.length>1?quotes.filter(j=>Number(j.id)!==state.calendarLastQuoteId):quotes;
+  const choices=quotes.length>1?quotes.filter(j=>Number(j.id)!==state.homeLastQuoteId):quotes;
   const selected=choices[Math.floor(Math.random()*choices.length)]||quotes[0];
-  state.calendarLastQuoteId=Number(selected.id)||0;
+  state.homeLastQuoteId=Number(selected.id)||0;
+  state.homeLastQuoteDate=isoDateLocal(new Date());
   textEl.textContent=String(selected.body||'').trim();
   const author=String(selected.summary||'').trim();
   sourceEl.textContent=author;
@@ -1756,6 +1760,7 @@ function shiftCalendarMonthValue(value,delta){
 function changeHomeCalendarMonth(delta){changeCalendarMonth(delta);}
 
 function changeCalendarMonth(delta){
+  if(state.calendarView!=='month'&&window.NexoCalendarViews){window.NexoCalendarViews.shift(delta);return;}
   const previous=state.calendarSelected?new Date(state.calendarSelected+'T12:00:00'):new Date();
   state.calendarMonth=shiftCalendarMonthValue(state.calendarMonth,delta);
   const m=state.calendarMonth,day=Math.min(previous.getDate(),new Date(m.getFullYear(),m.getMonth()+1,0).getDate());
@@ -2292,13 +2297,13 @@ function prepareQuickNoteForType(type='event',date=''){
   }
   if(type==='document'){openDocumentEditor();return;}
   if(isPlaceType(type)){openPlaceEditor();return;}
-  type=(!type||isAppointmentType(type))?'event':type;
+  type=type==='task'?'task':(!type||isAppointmentType(type))?'event':type;
   navigate('save');clearCapture();
   state.capturePinnedType=type;state.capturePinnedDate=date||'';
   $('#captureType').value=type;
   if(date){$('#captureDate').value=date;$('#captureEndDate').value=date;}
   $('#captureDetails').open=false;
-  $('#captureHeading').textContent=type==='event'?'Nueva cita':`Crear ${typeLabel(type).toLocaleLowerCase('es-ES')}`;
+  $('#captureHeading').textContent=type==='event'?'Nueva cita':type==='task'?'Nueva tarea':`Crear ${typeLabel(type).toLocaleLowerCase('es-ES')}`;
   updateCaptureContext();refreshCaptureAlertEditor();
   setTimeout(()=>$('#captureText').focus(),80);
 }
@@ -2311,6 +2316,7 @@ function prepareTimeGridAppointment(iso,startMinute,endMinute){
   if(!Number.isInteger(startMinute)||!Number.isInteger(endMinute)||
      startMinute<0||endMinute>1440||endMinute-startMinute!==60)return;
   if(state.screen!=='calendar'&&!(state.screen==='today'&&state.homeTimelineVisible))return;
+  if(state.screen==='calendar'&&typeof window!=='undefined'&&window.NexoCalendarViews){openCalendarQuickCreate(iso,startMinute,endMinute);return;}
   prepareQuickNoteForType('event',iso);
   if(state.screen!=='save')return;
   const localDate=new Date(iso+'T12:00:00');
@@ -2662,7 +2668,7 @@ function commitCapture() {
   const recurrence=appointment?($('#captureRecurrence').value||'none'):'none';
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||typeLabel(type),
-    category:$('#captureCategory').value||'Otro', type, appointmentCapture:appointment,
+    category:$('#captureCategory').value||'Otro', type, appointmentCapture:appointment&&type!=='task',
     dueAt, endAt, hasTime:!!(appointment&&date&&time&&!allDay), allDay:!!allDay, durationMinutes,
     locationText:appointment?$('#captureLocation').value.trim():'', mapsUrl:appointment?$('#captureMapsUrl').value.trim():'', timeZone,
     priority:appointment?Number($('#capturePriority').value||1):1, participantIds:appointment?normalizeParticipantIds(state.captureParticipantIds):[],
@@ -2721,6 +2727,7 @@ function openCalendar(returnScreen='today',selectedDate=''){
   state.calendarReturn=returnScreen;
   if(selectedDate){const d=new Date(selectedDate+'T12:00:00');if(Number.isFinite(d.getTime())){state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);state.calendarSelected=selectedDate;}}
   navigate('calendar');
+  if(selectedDate&&window.NexoCalendarViews)window.NexoCalendarViews.setView('day');
 }
 
 function isGoogleMapsLocation(value){
@@ -2785,6 +2792,8 @@ function itemCoversIsoDate(item,iso){
 }
 
 function renderCalendar(direction=0){
+  if(state.calendarView!=='month'&&window.NexoCalendarViews){window.NexoCalendarViews.render();return;}
+  window.NexoCalendarViews?.showRegions('month');
   const now=new Date();
   if(!(state.calendarMonth instanceof Date)||Number.isNaN(state.calendarMonth.getTime()))state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(state.calendarSelected||'')))state.calendarSelected=isoDateLocal(now);
@@ -2834,14 +2843,11 @@ function renderCalendar(direction=0){
     const d=new Date(b.dataset.calendarDay+'T12:00:00');
     state.calendarSelected=b.dataset.calendarDay;
     const agenda=$('#calendarDayItems');if(agenda)delete agenda.dataset.tgvFocusedDay;
-    if(d.getMonth()!==state.calendarMonth.getMonth()||d.getFullYear()!==state.calendarMonth.getFullYear()){
-      state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();
-    }else{
-      renderCalendarDay();
-      $$('[data-calendar-day]').forEach(x=>{const s=x.dataset.calendarDay===state.calendarSelected;x.classList.toggle('selected',s);x.setAttribute('aria-pressed',String(s));});
-    }
+    state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);
+    if(window.NexoCalendarViews)window.NexoCalendarViews.setView('day');
+    else renderCalendarDay();
   }));
-  renderCalendarDay();
+  if(!window.NexoCalendarViews)renderCalendarDay();
 
   // Festivos se solicitan después de tener ya un calendario utilizable.
   requestHolidayYears(years);
@@ -4049,6 +4055,8 @@ function closeModal(force=false){
   window.NexoVehicles?.onModalClose?.();
   if(!forced&&window.NexoMedia?.preventClose?.())return false;
   if(!forced&&guardPlaceEditorClose())return false;
+  if(!forced&&state.calendarQuickOpen&&state.calendarQuickDirty&&!window.confirm('Hay cambios sin guardar. ¿Descartar la nueva cita o tarea?'))return false;
+  state.calendarQuickOpen=false;state.calendarQuickDirty=false;
   const noteWasOpen=!!state.noteEditor;
   if(noteWasOpen&&!forced&&noteHasUnsavedChanges()){showNoteUnsavedGuard();return false;}
 
@@ -4722,6 +4730,7 @@ function init(){
   setInterval(()=>{if(!document.hidden)refreshHeaderDate();},60*1000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshHeaderDate();});
   bindPanelNavigation();
+  window.NexoCalendarViews?.init();
   const appVersion=String(NexoNative.getAppVersion());
   $$('[data-app-version]').forEach(el=>{el.textContent='v'+appVersion;el.setAttribute('aria-label','Versión '+appVersion);});
   state.displayMode=String(NexoNative.getDisplayMode()||'comfortable');applyDisplayMode(state.displayMode,false);
@@ -4747,9 +4756,7 @@ function init(){
     if(e.key==='Enter'){e.preventDefault();lookupWeatherPlaces();}
   });
   setInterval(()=>{if(!document.hidden)NexoNative.refreshHeaderWeather();},20*60*1000);
-  $('#calendarDailyQuoteGuide')?.addEventListener('toggle',e=>{
-    if(e.target.open)showRandomCalendarQuote();
-  });
+  $('#homeNextQuote')?.addEventListener('click',()=>showRandomHomeQuote());
   $('#brandInfoBtn')?.addEventListener('click',()=>navigate('about'));
   $('#aboutBackBtn')?.addEventListener('click',()=>navigateBack());
   $('#aboutCopyDiagnostics')?.addEventListener('click',copyAboutDiagnostics);
@@ -4945,6 +4952,96 @@ function syncCaptureAllDay(userChange=false){
   }
   if(userChange)markCaptureManual('dateTime');
 }
+/* Editor compacto: escribe únicamente mediante el servicio nativo existente. */
+function openCalendarQuickCreate(date=state.calendarSelected||isoDateLocal(new Date()),startMinute=null,endMinute=null){
+  if(state.screen!=='calendar'){prepareQuickNoteForType('event',date);return;}
+  const iso=/^\d{4}-\d{2}-\d{2}$/.test(String(date||''))?date:isoDateLocal(new Date());
+  const hhmm=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+  const prefilled=Number.isInteger(startMinute)&&startMinute>=0&&startMinute<1440;
+  const hour=prefilled?hhmm(startMinute):'09:00';
+  const last=prefilled&&Number.isInteger(endMinute)?hhmm(endMinute):'10:00';
+  openModal('Añadir al calendario','<div class="calendar-quick-create">'+
+    '<div class="calendar-quick-choice"><button type="button" data-quick-type="event" class="active">Evento</button><button type="button" data-quick-type="task">Tarea</button></div>'+
+    '<label>Título<input id="calendarQuickTitle" type="text" maxlength="180" placeholder="¿Qué necesitas planificar?" autocomplete="off"></label>'+
+    '<label>Fecha<input id="calendarQuickDate" type="date" value="'+escAttr(iso)+'"></label>'+
+    '<label id="calendarQuickTimed"><span>Hora de inicio</span><input id="calendarQuickStart" type="time" value="'+hour+'"></label>'+
+    '<label id="calendarQuickEndLabel"><span>Hora de fin</span><input id="calendarQuickEnd" type="time" value="'+last+'"></label>'+
+    '<label class="calendar-quick-check"><input id="calendarQuickNoTime" type="checkbox"><span>Sin hora / todo el día</span></label>'+
+    '<div class="calendar-quick-buttons"><button type="button" id="calendarQuickAdvanced" class="secondary-button">Más opciones</button><button type="button" id="calendarQuickSave" class="primary-button">Guardar</button></div>'+
+    '</div>');
+  state.calendarQuickOpen=true;
+  state.calendarQuickDirty=false;
+  const title=$('#calendarQuickTitle'),start=$('#calendarQuickStart'),end=$('#calendarQuickEnd'),noTime=$('#calendarQuickNoTime');
+  let type='event';
+  const refresh=()=>{
+    document.querySelectorAll('.calendar-quick-choice button').forEach(btn=>{
+      const selected=btn.dataset.quickType===type;
+      btn.classList.toggle('active',selected);
+      btn.setAttribute('aria-pressed',String(selected));
+    });
+    const hidden=!!noTime.checked;
+    $('#calendarQuickTimed').classList.toggle('hidden',hidden);
+    $('#calendarQuickEndLabel').classList.toggle('hidden',hidden||type==='task');
+    $('#calendarQuickNoTime').nextElementSibling.textContent=type==='task'?'Tarea sin hora':'Todo el día';
+  };
+  noTime.checked=!prefilled&&false;
+  document.querySelectorAll('.calendar-quick-choice button').forEach(btn=>btn.addEventListener('click',()=>{
+    if(type===btn.dataset.quickType)return;
+    type=btn.dataset.quickType;
+    noTime.checked=type==='task';
+    state.calendarQuickDirty=true;
+    refresh();
+  }));
+  document.getElementById('modalBody').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{state.calendarQuickDirty=true;}));
+  noTime.addEventListener('change',refresh);
+  refresh();
+  $('#calendarQuickAdvanced').addEventListener('click',()=>{
+    const chosen=$('#calendarQuickDate').value,typed=title.value.trim(),time=start.value,finish=end.value,withoutTime=noTime.checked;
+    state.calendarQuickDirty=false;closeModal(true);
+    prepareQuickNoteForType(type,chosen);
+    if(state.screen!=='save')return;
+    $('#captureTitle').value=typed;
+    $('#captureCategory').value=type==='task'?'Tarea / Recado':'Otro';
+    $('#captureAllDay').checked=withoutTime;
+    if(!withoutTime){$('#captureTime').value=time;$('#captureEndTime').value=finish;}
+    syncCaptureAllDay(false);
+    markCaptureManual('title','category','dateTime','type');
+  });
+  $('#calendarQuickSave').addEventListener('click',()=>{
+    const chosen=$('#calendarQuickDate').value,name=title.value.trim(),withoutTime=!!noTime.checked;
+    if(!name){toast('Escribe un título.');title.focus();return;}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(chosen)||!Number.isFinite(dateOfCalendar(chosen))){toast('Selecciona una fecha válida.');return;}
+    const time=withoutTime?'':start.value;
+    const finish=withoutTime?'':type==='event'?end.value:'';
+    if(!withoutTime&&!/^\d{2}:\d{2}$/.test(time)){toast('Selecciona una hora válida.');return;}
+    if(type==='event'&&!withoutTime&&(!finish||finish===time)){toast('La hora de fin debe ser distinta a la inicial.');return;}
+    const dueAt=dateTimeToMsInZone(chosen,time,'Europe/Madrid');
+    const endDate=type==='event'&&!withoutTime&&finish<time?addIsoDays(chosen,1):chosen;
+    const endAt=type==='event'?eventEndFromFields(chosen,time,endDate,finish,withoutTime,'Europe/Madrid'):dueAt;
+    if(!Number.isFinite(dueAt)||dueAt<=0||!Number.isFinite(endAt)||endAt<dueAt){toast('Comprueba la fecha y la hora.');return;}
+    const payload={title:name,originalText:name,body:'',category:type==='task'?'Tarea / Recado':'Otro',
+      type,appointmentCapture:type==='event',dueAt,endAt,hasTime:!withoutTime,allDay:type==='event'&&withoutTime,
+      durationMinutes:type==='event'?Math.max(0,Math.round((endAt-dueAt)/60000)):0,
+      timeZone:'Europe/Madrid',priority:1,recurrence:'none',recurrenceRule:'',recurrenceUntil:0,
+      reminderLeadMinutes:[],voiceEnabled:false,needsReview:false,status:'pending',source:'manual'};
+    const save=$('#calendarQuickSave');
+    save.disabled=true;
+    let response;
+    try{response=parseNative(NexoNative.saveCapture(JSON.stringify(payload)),{});}
+    catch(_){response={ok:false,error:'No se pudo guardar en Nexo.'};}
+    if(!response?.ok){save.disabled=false;toast(response?.error||'No se pudo guardar.');return;}
+    state.calendarQuickDirty=false;state.calendarQuickOpen=false;
+    closeModal(true);
+    state.calendarSelected=chosen;
+    const d=new Date(chosen+'T12:00:00');
+    state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);
+    renderCalendar();
+    toast(type==='task'?'Tarea guardada':'Evento guardado');
+  });
+  setTimeout(()=>title.focus(),60);
+}
+function dateOfCalendar(iso){return new Date(iso+'T12:00:00').getTime();}
+
 function openCreationMenu(date=''){prepareQuickNoteForType('event',date);}
 
 function openCalendarMonthPicker(){

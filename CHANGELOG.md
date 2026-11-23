@@ -1,3 +1,11 @@
+## Nexo 3.7.94 — Rediseño de Inicio y Calendario
+
+- Calendario autónomo con vistas Mes, Semana, Día y Agenda, recordando localmente la última vista usada; al tocar un día del mes se abre su agenda diaria.
+- Tareas fechadas sin hora en la cabecera diaria, separadas de eventos y tareas con horario; conservación de recurrencias, estados y avisos existentes.
+- Panel inferior de creación rápida de Evento o Tarea con fecha y hora precargadas y acceso al formulario completo; guardado mediante el servicio y la base de datos existentes.
+- Frase del día trasladada a Inicio, sin duplicar los datos del Cuaderno; calendario con más espacio y controles compactos.
+- Versión 3.7.94, versionCode 187; firma, applicationId, permisos, SDK y esquema SQLite sin modificaciones. Actualización opcional.
+
 ## Nexo 3.7.88 — Posponer avisos de medicación 10 minutos
 
 - Las notificaciones de medicación incorporan «POSPONER 10 MIN», además de «TOMADO» y «OMITIR».

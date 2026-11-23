@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="time-grid.css">
   <link rel="stylesheet" href="vehicles.css">
   <link rel="stylesheet" href="nexo-themes.css">
+  <link rel="stylesheet" href="calendar-redesign.css">
 <style>
 [data-nav="inbox"]{position:relative}
 .inbox-nav-badge{position:absolute;top:2px;left:calc(50% + 5px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#c62828;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;pointer-events:none}
@@ -57,6 +58,10 @@
   </section>
 
   <div id="homeDashboardContent">
+    <section class="home-quote-guide" aria-labelledby="homeQuoteTitle">
+      <div class="home-quote-head"><h2 id="homeQuoteTitle">Frase del día</h2><button id="homeNextQuote" type="button" aria-label="Mostrar otra frase">Otra frase</button></div>
+      <div class="home-daily-quote" aria-live="polite"><p id="homeDailyQuoteText">Tus frases guardadas, para empezar el día.</p><small id="homeDailyQuoteSource" class="hidden"></small></div>
+    </section>
     <section class="home-section family-home-section home-section--pulse" aria-labelledby="homeNowTitle">
       <div class="section-heading family-section-heading">
         <div>
@@ -295,26 +300,36 @@
         <div id="searchResults" class="stack"></div>
       </section>
 
-      <section class="screen" data-screen="calendar" aria-labelledby="calendarTitle"><h1 id="calendarTitle" class="sr-only">Calendario</h1><div class="calendar-toolbar">
-<button id="calendarMonthPickerBtn" class="calendar-month-button" aria-label="Elegir mes y año"><span id="calendarMonthTitle"></span></button><button id="calendarToday" class="text-button" aria-label="Ir a hoy">Hoy</button>
-<button id="calendarPrev" class="icon-button" aria-label="Mes anterior"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button><button id="calendarNext" class="icon-button" aria-label="Mes siguiente"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg></button>
-</div>
-<div class="calendar-card">
-<div class="calendar-weekdays" aria-hidden="true">
-<span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
-</div>
-<div class="calendar-viewport"><div id="calendarGrid" class="calendar-grid" role="group" aria-label="Días del mes"></div></div>
-<p id="holidayCalendarNote" class="holiday-calendar-note hidden" aria-live="polite"></p>
-<details class="calendar-icon-guide"><summary>Iconos de categorías</summary><div id="calendarIconLegend" class="calendar-icon-legend" aria-label="Iconos de las 21 categorías"></div></details>
-<details id="calendarDailyQuoteGuide" class="calendar-quote-guide"><summary>Frase del día</summary><div class="calendar-daily-quote" aria-live="polite"><p id="calendarDailyQuoteText">Abre para leer una de tus frases guardadas en Nexo.</p><small id="calendarDailyQuoteSource" class="hidden"></small></div></details>
-</div>
-<div class="section-title calendar-day-title"><div>
-<h2 id="calendarSelectedTitle" aria-live="polite"></h2>
-<p id="calendarSelectedMeta" class="small muted"></p>
-</div></div>
-<div id="calendarDayHolidays" class="selected-day-holidays"></div>
-<div id="calendarDayItems" class="stack"></div>
-</section><section class="screen" data-screen="more"><div class="screen-heading"><div>
+      <section class="screen" data-screen="calendar" aria-labelledby="calendarTitle">
+        <h1 id="calendarTitle" class="sr-only">Calendario</h1>
+        <div class="calendar-toolbar">
+          <button id="calendarMonthPickerBtn" class="calendar-month-button" aria-label="Elegir mes y año"><span id="calendarMonthTitle"></span></button>
+          <button id="calendarToday" class="text-button" aria-label="Ir a hoy">Hoy</button>
+          <button id="calendarPrev" class="icon-button" aria-label="Periodo anterior"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
+          <button id="calendarNext" class="icon-button" aria-label="Periodo siguiente"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg></button>
+        </div>
+        <div class="calendar-view-bar"><label for="calendarViewSelect">Vista</label><select id="calendarViewSelect" aria-label="Vista del calendario">
+          <option value="month">Mes</option><option value="week">Semana</option><option value="day">Día</option><option value="agenda">Agenda</option>
+        </select></div>
+        <div id="calendarMonthRegion">
+          <div class="calendar-card">
+            <div class="calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+            <div class="calendar-viewport"><div id="calendarGrid" class="calendar-grid" role="group" aria-label="Días del mes"></div></div>
+            <p id="holidayCalendarNote" class="holiday-calendar-note hidden" aria-live="polite"></p>
+            <details class="calendar-icon-guide"><summary>Iconos de categorías</summary><div id="calendarIconLegend" class="calendar-icon-legend" aria-label="Iconos de las 21 categorías"></div></details>
+          </div>
+        </div>
+        <div id="calendarWeekView" class="calendar-week-view" aria-label="Vista semanal por horas" hidden></div>
+        <div id="calendarDayRegion" hidden>
+          <div class="section-title calendar-day-title"><div>
+            <h2 id="calendarSelectedTitle" aria-live="polite"></h2><p id="calendarSelectedMeta" class="small muted"></p>
+          </div></div>
+          <div id="calendarDayHolidays" class="selected-day-holidays"></div>
+          <div id="calendarDayTasks" class="tgv-task-no-time hidden" aria-label="Tareas del día sin hora"></div>
+          <div id="calendarDayItems" class="stack"></div>
+        </div>
+        <div id="calendarAgendaView" class="calendar-agenda-view" aria-label="Próximos eventos y tareas" hidden></div>
+      </section><section class="screen" data-screen="more"><div class="screen-heading"><div>
 <h1>Ajustes</h1>
 <p class="muted">Todo ordenado por categorías. Abre solo lo que quieras cambiar.</p>
 </div></div>
@@ -555,7 +570,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.93</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.94</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -568,7 +583,7 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.93</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.94</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>
@@ -695,6 +710,6 @@
   <div id="toast" class="toast hidden" aria-live="polite">
 <span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button>
 </div>
-  <script src="navigation.js"></script><script src="nexo-product-catalog.js"></script><script src="app.js"></script><script src="time-grid.js"></script><script src="books.js"></script><script src="media.js"></script><script src="vehicles.js"></script>
+  <script src="navigation.js"></script><script src="nexo-product-catalog.js"></script><script src="app.js"></script><script src="time-grid.js"></script><script src="calendar-views.js"></script><script src="books.js"></script><script src="media.js"></script><script src="vehicles.js"></script>
 </body>
 </html>

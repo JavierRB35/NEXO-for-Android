@@ -3,6 +3,8 @@ set -eu
 cd "$(dirname "$0")/.."
 node --check app/src/main/assets/app.js
 node --check app/src/main/assets/time-grid.js
+node --check app/src/main/assets/calendar-views.js
+node validation/test-calendar-redesign.cjs
 node validation/test-time-grid-view.cjs
 node validation/test-visual-themes.cjs
 node validation/test-time-grid-slot-create.cjs

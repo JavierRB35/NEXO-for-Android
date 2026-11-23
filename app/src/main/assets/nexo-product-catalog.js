@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.93",
-  "releaseNotes": "Captura rápida de citas con IA automática y consentimiento: Gemini primero, Groq si falla y algoritmo local si ambos servicios no responden. Se proponen todos los campos expresados, incluidas direcciones, personas, horarios, repeticiones, avisos y prioridad. Revisión manual antes de guardar.",
+  "versionName": "3.7.94",
+  "releaseNotes": "Nuevo calendario con vistas de mes, semana, día y agenda; navegación familiar, creación rápida de eventos y tareas fechadas, y frase del día trasladada a Inicio. Conserva los datos y los avisos existentes. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -16,7 +16,8 @@ window.NexoProductCatalog = {
           "description": "Un vistazo a las próximas citas y compromisos.",
           "features": [
             "Panel de hoy, mañana y próximos siete días",
-            "Acceso a agenda del día y próximos eventos"
+            "Acceso a agenda del día y próximos eventos",
+            "Frase del día y resumen compacto de próximas citas y tareas"
           ]
         },
         {
@@ -24,11 +25,12 @@ window.NexoProductCatalog = {
           "title": "Calendario y agenda",
           "description": "Planifica lo importante sin dispersarlo entre aplicaciones.",
           "features": [
-            "Vistas mensual y cronológica con citas, tareas y eventos",
+            "Vistas de mes, semana, día y agenda con eventos y tareas fechadas",
             "Horas, ubicaciones, categorías, personas, recurrencias y recordatorios",
             "Festivos y acceso a Google Maps desde los eventos",
             "Calendario mensual visible y agenda horaria con desplazamiento independiente, regreso sin saltos",
-            "Mantener pulsada una franja horaria libre prepara una cita; las citas existentes pueden arrastrarse"
+            "Mantener pulsada una franja horaria libre prepara una cita; las citas existentes pueden arrastrarse",
+            "Selección diaria y creación rápida de eventos o tareas; tareas sin hora visibles por encima del horario"
           ]
         },
         {
