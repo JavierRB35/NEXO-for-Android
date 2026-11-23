@@ -179,6 +179,7 @@
           </div>
 
           <textarea id="captureText" rows="3" placeholder="Ej. Llamar al seguro el viernes a las 18 h y avisarme una hora antes" aria-label="Describe lo que quieres guardar" class="capture-text"></textarea>
+          <div class="capture-ai-actions"><button id="captureAiAnalyze" class="secondary-button" type="button">✦ Mejorar propuesta con IA</button><small>Solo se enviará el texto si autorizas la consulta. Revisa antes de guardar.</small></div>
           <div id="localStatus" class="interpretation-status idle">
 <span class="status-dot"></span><span>Interpretación local preparada</span>
 </div>
@@ -347,6 +348,27 @@
         <p id="updateStatusSettings" class="small muted" role="status">Todavía no se han buscado actualizaciones.</p>
         <button id="checkUpdatesSettings" class="secondary-button" type="button">Buscar actualizaciones</button>
         <p class="small muted">La instalación de una APK requiere tu confirmación en Android.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="settings-accordion" data-settings-accordion="ai">
+    <button class="settings-accordion__summary" type="button" data-settings-section="ai" aria-expanded="false">
+      <span class="settings-accordion__icon"><svg class="ui-icon"><use href="#nx-icon-sparkles"></use></svg></span>
+      <span class="settings-accordion__label"><strong>Inteligencia artificial</strong><small>Captura inteligente · opcional y bajo tu control</small></span>
+      <svg class="ui-icon settings-accordion__chevron" aria-hidden="true"><use href="#nx-icon-right"></use></svg>
+    </button>
+    <div class="settings-accordion__body hidden">
+      <div class="settings-card settings-card--embedded nexo-ai-settings">
+        <p class="small muted">Nexo seguirá interpretando las citas localmente. La IA solo se consulta cuando pulsas su botón y confirmas el envío del texto de esa captura. No se envían automáticamente tus agendas, fichas, contactos ni grabaciones.</p>
+        <label>Clave personal de Gemini<input id="nexoAiGeminiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Introduce tu clave personal"></label>
+        <button id="nexoAiSaveGemini" class="secondary-button" type="button">Guardar clave Gemini</button>
+        <p id="nexoAiGeminiStatus" class="small muted" role="status">Gemini sin configurar</p>
+        <label>Clave personal de Groq · respaldo opcional<input id="nexoAiGroqKey" type="password" autocomplete="off" spellcheck="false" placeholder="Introduce tu clave Groq"></label>
+        <button id="nexoAiSaveGroq" class="secondary-button" type="button">Guardar clave Groq</button>
+        <label class="switch-row"><input id="nexoAiGroqEnable" type="checkbox"><span><strong>Autorizar respaldo con Groq</strong><small>Solo ante cuota agotada, fallo temporal o timeout de Gemini. Recibirá el mismo texto de captura autorizado.</small></span></label>
+        <p id="nexoAiGroqStatus" class="small muted" role="status">Groq desactivado</p>
+        <p class="small muted">Las claves se cifran con Android Keystore, no se incluyen en la APK ni en las copias. Puedes revocar el acceso borrando cada clave y guardando el campo vacío. El uso está sujeto a cuotas y condiciones de tus proveedores.</p>
       </div>
     </div>
   </section>
