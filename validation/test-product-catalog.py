@@ -40,7 +40,7 @@ sections=catalog["sections"]
 assert len(sections)>=5
 modules=[module for group in sections for module in group["modules"]]
 ids=[module["id"] for module in modules]
-assert len(ids)==len(set(ids))>=26,"Missing or duplicated product modules"
+assert len(ids)==len(set(ids))>=23,"Missing or duplicated product modules"
 for group in sections:
     assert group["title"] and group["icon"] and group["modules"]
 for module in modules:
@@ -58,8 +58,7 @@ mapped={
 }
 assert panels==set(mapped),"Update catalog/coverage when Tools modules change: "+str(panels^set(mapped))
 assert set(mapped.values()).issubset(ids)
-assert set(("nexo-connect","chat","compartir","inbox","familia","calendario","captura","actualizaciones")).issubset(ids)
-assert any("extremo a extremo" in " ".join(m["features"]) for m in modules if m["id"]=="chat")
-assert any("desvincular" in " ".join(m["features"]) for m in modules if m["id"]=="nexo-connect")
+assert set(("inbox","familia","calendario","captura","actualizaciones")).issubset(ids)
+assert not set(("nexo-connect","chat","compartir")) & set(ids), "Se ha retirado Nexo Connect"
 print(f"Catálogo Nexo v{version}: {len(sections)} grupos, {len(modules)} módulos, "+
       f"{sum(len(m['features']) for m in modules)} funciones; autoría y versión OK")

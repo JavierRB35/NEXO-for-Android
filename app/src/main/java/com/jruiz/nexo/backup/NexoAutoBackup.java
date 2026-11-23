@@ -8,7 +8,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import com.jruiz.nexo.connect.vault.NexoConnectChatBackup;
 import com.jruiz.nexo.data.DatabaseHelper;
 
 import org.json.JSONObject;
@@ -20,8 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -89,23 +86,15 @@ public final class NexoAutoBackup {
                             accessible(app,Uri.parse(target))){
                         result=Result.UNCHANGED;
                     }else{
-                        char[] password=null;
-                        try{
-                            if(NexoConnectChatBackup.hasHistory(app)){
-                                password=NexoBackupPasswordStore.load(app);
-                                if(password==null)
-                                    throw new IOException("Configura una contraseña para proteger las conversaciones antes de activar la copia automática.");
-                            }
-                            if(RESTORING.get())result=Result.RESTORING;
-                            else if(!target.equals(prefs(app).getString("uri","")))result=Result.DESTINATION_CHANGED;
-                            else{
-                                details=NexoBackupManager.exportToUri(app,db,Uri.parse(target),password);
-                                prefs(app).edit().putString("fingerprint",before)
-                                    .putLong("lastExportAt",details.optLong("createdAt",System.currentTimeMillis()))
-                                    .putString("error","").putInt("failures",0).apply();
-                                result=Result.SAVED;
-                            }
-                        }finally{if(password!=null)Arrays.fill(password,'\0');}
+                        if(RESTORING.get())result=Result.RESTORING;
+                        else if(!target.equals(prefs(app).getString("uri","")))result=Result.DESTINATION_CHANGED;
+                        else{
+                            details=NexoBackupManager.exportToUri(app,db,Uri.parse(target));
+                            prefs(app).edit().putString("fingerprint",before)
+                                .putLong("lastExportAt",details.optLong("createdAt",System.currentTimeMillis()))
+                                .putString("error","").putInt("failures",0).apply();
+                            result=Result.SAVED;
+                        }
                     }
                 }
             }catch(Exception failure){
@@ -133,11 +122,7 @@ public final class NexoAutoBackup {
     private static String signature(Context context) throws Exception {
         StringBuilder value=new StringBuilder();
         appendFile(value,"database",context.getDatabasePath(DatabaseHelper.databaseName()));
-        appendFile(value,"connect",context.getDatabasePath("nexo-connect-pilot.db"));
         appendFolder(value,new File(context.getFilesDir(),"attachments"),"attachments");
-        Map<String,?> profiles=new TreeMap<>(context.getSharedPreferences("nexo-connect-profiles",0).getAll());
-        for(Map.Entry<String,?> entry:profiles.entrySet())
-            value.append("profile:").append(entry.getKey()).append('=').append(String.valueOf(entry.getValue())).append(';');
         return hash(value.toString().getBytes(StandardCharsets.UTF_8));
     }
     private static void appendFile(StringBuilder signature,String key,File file){

@@ -9,7 +9,7 @@ const html=fs.readFileSync(path.join(root,'app/src/main/assets/index.html'),'utf
 const app=fs.readFileSync(path.join(root,'app/src/main/assets/app.js'),'utf8');
 const native=fs.readFileSync(path.join(root,'app/src/main/java/com/jruiz/nexo/MainActivity.java'),'utf8');
 
-// The action belongs to General settings, is visible without enabling Connect,
+// The action belongs to General settings, is visible without any account setup,
 // and has a single handler. The URL is stable across APK version bumps.
 const general=html.split('data-settings-accordion="general"',2)[1]
   .split('data-settings-accordion="updates"',1)[0];
@@ -35,7 +35,7 @@ const stable='https://github.com/JavierRB35/nexo-android-updates/releases/latest
 assert.ok(message.includes(stable),'the shared link must always point to the latest public release');
 assert.match(message,/\.apk/);
 assert.match(message,/sin compartir mis datos/i);
-assert.match(message,/sin.*vincular Nexo Connect/i);
+assert.doesNotMatch(message,/Nexo Connect/i);
 assert.doesNotMatch(message,/releases\/download\/v\d/,'never freeze the download to one APK version');
 assert.doesNotMatch(excerpt,/getCalendar|getItems|getContacts|getPeople|getProfile|shareNexoItem|syncProfiles/,
   'sharing the installation link must not access or export private data');

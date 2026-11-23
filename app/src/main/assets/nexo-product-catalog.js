@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.90",
-  "releaseNotes": "Las citas de «Acompañar (salud)» muestran en el calendario el color de la persona asignada, para distinguir de un vistazo a quién acompañar. No se amplían las casillas ni cambian las demás categorías. Con varias personas o ninguna, se conserva el color habitual.",
+  "versionName": "3.7.91",
+  "releaseNotes": "Se retiran Nexo Connect y Chat, manteniendo Inbox, Gmail, Nexo Familia y las copias personales. Nueva captura inteligente opcional con Gemini y respaldo Groq: claves cifradas, autorización por consulta y propuesta revisable, sin guardar citas automáticamente.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -37,7 +37,8 @@ window.NexoProductCatalog = {
           "description": "Introduce información y revísala antes de guardarla.",
           "features": [
             "Escritura y dictado para crear citas y notas",
-            "Interpretación de fecha, categoría y avisos con confirmación"
+            "Interpretación de fecha, categoría y avisos con confirmación",
+            "IA opcional para propuestas de citas con Gemini, respaldo Groq y confirmación antes del envío"
           ]
         },
         {
@@ -185,39 +186,9 @@ window.NexoProductCatalog = {
       ]
     },
     {
-      "title": "Nexo Connect y contenido recibido",
-      "icon": "shield",
+      "title": "Inbox y capturas externas",
+      "icon": "inbox",
       "modules": [
-        {
-          "id": "nexo-connect",
-          "title": "Nexo Connect: identidad y personas",
-          "description": "Conecta tu Nexo con personas de confianza.",
-          "features": [
-            "Perfil con nombre y fotografía",
-            "Invitaciones QR o a distancia y verificación del código de seguridad",
-            "Gestión de personas autorizadas: editar, verificar y desvincular"
-          ]
-        },
-        {
-          "id": "chat",
-          "title": "Chat privado",
-          "description": "Mensajes con contactos vinculados.",
-          "features": [
-            "Conversaciones entre personas verificadas con cifrado extremo a extremo",
-            "Indicadores de mensajes sin leer y avisos de recepción cuando se autorizan",
-            "Gestión del historial de conversación en el dispositivo"
-          ]
-        },
-        {
-          "id": "compartir",
-          "title": "Compartir fichas cifradas",
-          "description": "Intercambia información desde la ficha que estás viendo.",
-          "features": [
-            "Envío de fichas y notas compatibles a contactos verificados",
-            "Revisión y aceptación de contenido recibido antes de incorporarlo a Nexo",
-            "Las opciones de compartir por Android continúan disponibles"
-          ]
-        },
         {
           "id": "inbox",
           "title": "Inbox y capturas externas",
