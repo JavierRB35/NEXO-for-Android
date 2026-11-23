@@ -26,6 +26,9 @@ tests={
     "Datos seleccionados a mano antes de guardar": 'renderClassification(merged,true)' in js and 'captureFieldLocked(' in js and 'No se ha guardado' in js,
     "Enlace de personas local": 'NexoNative.getPeople()' in js.split('function receiveNexoAiCapture(raw){',1)[1].split('function analyzeCapture',1)[0],
     "Ajustes de proveedor opt-in": 'id="nexoAiGeminiKey"' in html and 'id="nexoAiGroqEnable"' in html,
+    "Gemini: URL oficial junto a su campo": 'id="nexoAiGeminiKeyLink"' in html and 'href="https://aistudio.google.com/apikey"' in html,
+    "Groq: URL oficial junto a su campo": 'id="nexoAiGroqKeyLink"' in html and 'href="https://console.groq.com/keys"' in html,
+    "Enlaces al navegador exterior": "NexoNative.openExternal(link.href)" in js and "@JavascriptInterface public void openExternal(String url)" in bridge,
     "Sin credenciales en copia": '"nexo_ai_credentials"' not in backup and 'app.getSharedPreferences' not in backup,
     "Se conserva Internet para actualizaciones e IA": 'android.permission.INTERNET' in manifest,
 }
