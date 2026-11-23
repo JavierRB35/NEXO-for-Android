@@ -97,7 +97,7 @@ const writes=[];
 let shouldSave=true;
 const quickState={screen:'calendar',calendarSelected:selected,calendarMonth:new Date(2026,10,1)};
 const quickContext={
-  state:quickState,document:{querySelectorAll:selector=>selector==='.calendar-quick-choice button'?kinds:[]},
+  state:quickState,document:{getElementById:quickNode,querySelectorAll:selector=>selector==='.calendar-quick-choice button'?kinds:[]},
   $:selector=>quickNode(selector.replace('#','')),
   isoDateLocal:date=>date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0'),
   escAttr:String,
