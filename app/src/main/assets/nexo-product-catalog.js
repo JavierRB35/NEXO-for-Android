@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.94",
-  "releaseNotes": "Nuevo calendario con vistas de mes, semana, día y agenda; navegación familiar, creación rápida de eventos y tareas fechadas, y frase del día trasladada a Inicio. Conserva los datos y los avisos existentes. Actualización opcional.",
+  "versionName": "3.7.95",
+  "releaseNotes": "Calendario mensual con eventos pulsables: al elegir un día se abre el horario y al elegir una cita se muestra su hora. Toca una franja vacía para crear un evento con ese horario; Atrás vuelve al mes. Sin selector de vistas, sin migración de datos ni cambios de avisos. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -25,12 +25,13 @@ window.NexoProductCatalog = {
           "title": "Calendario y agenda",
           "description": "Planifica lo importante sin dispersarlo entre aplicaciones.",
           "features": [
-            "Vistas de mes, semana, día y agenda con eventos y tareas fechadas",
+            "Calendario mensual con eventos seleccionables y agenda diaria organizada por horas",
             "Horas, ubicaciones, categorías, personas, recurrencias y recordatorios",
             "Festivos y acceso a Google Maps desde los eventos",
             "Calendario mensual visible y agenda horaria con desplazamiento independiente, regreso sin saltos",
             "Mantener pulsada una franja horaria libre prepara una cita; las citas existentes pueden arrastrarse",
-            "Selección diaria y creación rápida de eventos o tareas; tareas sin hora visibles por encima del horario"
+            "Selección diaria y creación rápida de eventos o tareas; tareas sin hora visibles por encima del horario",
+            "Pulsar un evento del mes enfoca su hora; un toque en una franja libre abre un alta preseleccionada y Atrás devuelve al mes"
           ]
         },
         {
