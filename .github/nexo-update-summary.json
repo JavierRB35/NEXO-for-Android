@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.94",
-  "notes": "Nuevo calendario con vistas de mes, semana, día y agenda; navegación familiar, creación rápida de eventos y tareas fechadas, y frase del día trasladada a Inicio. Conserva los datos y los avisos existentes. Actualización opcional."
+  "versionName": "3.7.95",
+  "notes": "Calendario mensual con eventos pulsables: al elegir un día se abre el horario y al elegir una cita se muestra su hora. Toca una franja vacía para crear un evento con ese horario; Atrás vuelve al mes. Sin selector de vistas, sin migración de datos ni cambios de avisos. Actualización opcional."
 }

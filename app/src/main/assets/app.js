@@ -685,6 +685,9 @@ function navigate(screen, options={}) {
     discardPendingRelatedDrafts();
   }
   const previousScreen=state.screen;
+  // La pestaña Calendario es siempre el punto de entrada mensual.
+  // El día es un detalle navegable, no una vista predeterminada persistente.
+  if(screen==='calendar'&&previousScreen!=='calendar')state.calendarView='month';
   const route={screen};
   if(screen==='panel'){route.panel=options.panel||state.lastPanel;route.list=options.list??null;}
   if(screen==='save'&&state.screen!=='save')state.captureReturnRoute={...router.current,scrollY:window.scrollY};
@@ -1750,6 +1753,32 @@ function resetCalendarToToday(){
   const now=new Date();
   state.calendarMonth=new Date(now.getFullYear(),now.getMonth(),1);
   state.calendarSelected=isoDateLocal(now);
+}
+function returnCalendarToMonth(){
+  if(state.screen!=='calendar'||state.calendarView==='month')return false;
+  state.calendarView='month';
+  window.NexoCalendarViews?.showRegions('month');
+  renderCalendar();
+  window.scrollTo?.(0,0);
+  return true;
+}
+function openCalendarDayFromMonth(iso,item=null){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||'')))return;
+  const day=new Date(iso+'T12:00:00');
+  if(!Number.isFinite(day.getTime()))return;
+  state.calendarSelected=iso;
+  state.calendarMonth=new Date(day.getFullYear(),day.getMonth(),1);
+  const host=$('#calendarDayItems');
+  if(host){
+    delete host.dataset.tgvFocusedDay;
+    // El evento elegido determina la posición inicial, incluso si es hoy.
+    // Una tarea sin hora permanece accesible encima de la rejilla.
+    const start=Number(item?.dueAt)||0,startsOnDay=start&&isoDateLocal(new Date(start))===iso;
+    host._tgvFocusMinute=startsOnDay&&item?.hasTime!==false&&item?.allDay!==true
+      ?new Date(start).getHours()*60+new Date(start).getMinutes():null;
+  }
+  if(window.NexoCalendarViews)window.NexoCalendarViews.setView('day',false);
+  else renderCalendarDay();
 }
 
 function shiftCalendarMonthValue(value,delta){
@@ -2831,7 +2860,17 @@ function renderCalendar(direction=0){
     const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(list.length?' · Categorías: '+[...new Set(list.map(calendarMonthItemLabel))].join(', '):'')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');
     const shownMarkers=calendarMarkerItems(list),markerLimit=list.length>3?2:3;
     const dots=shownMarkers.slice(0,markerLimit).map(calendarMarkerHtml).join('')+(list.length>3?'<span class="calendar-marker-more" title="'+(list.length-markerLimit)+' eventos adicionales">+'+(list.length-markerLimit)+'</span>':'');
-    calendarHtml+=`<button type="button" class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1&&list.length<=3?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span><span class="day-dots" aria-hidden="true">${dots}</span></button>`;
+    const visibleEvents=list.slice(0,2).map(item=>{
+      const index=items.indexOf(item),color=familyCategoryColor(item.category);
+      const time=item.allDay===true||item.hasTime===false?'':new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit'}).format(new Date(Number(item.dueAt)))+' ';
+      return '<button type="button" class="calendar-month-event" data-calendar-month-item="'+index+'" data-calendar-event-day="'+iso+'" style="--calendar-chip-color:'+color+'" title="'+escAttr(item.title||'Evento')+'" aria-label="Ver '+escAttr(item.title||'Evento')+' en el horario del '+escAttr(base)+'"><span>'+esc(time+(item.title||'Evento'))+'</span></button>';
+    }).join('');
+    const eventOverflow=list.length>2?'<span class="calendar-month-event-overflow">+'+(list.length-2)+'</span>':'';
+    calendarHtml+=`<div class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-cell-day="${iso}">
+      <button type="button" class="calendar-day-open" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1&&list.length<=3?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span></button>
+      <div class="calendar-month-events">${visibleEvents}${eventOverflow}</div>
+      <span class="day-dots" aria-hidden="true">${dots}</span>
+    </div>`;
   }
   $('#calendarGrid').innerHTML=calendarHtml;
 
@@ -2839,13 +2878,13 @@ function renderCalendar(direction=0){
   const note=$('#holidayCalendarNote');
   if(note){note.classList.toggle('hidden',!partial);note.textContent=partial?'Festivos parciales: se muestran los datos disponibles y Nexo volverá a actualizar cuando haya conexión.':'';}
 
-  $$('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>{
-    const d=new Date(b.dataset.calendarDay+'T12:00:00');
-    state.calendarSelected=b.dataset.calendarDay;
-    const agenda=$('#calendarDayItems');if(agenda)delete agenda.dataset.tgvFocusedDay;
-    state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);
-    if(window.NexoCalendarViews)window.NexoCalendarViews.setView('day');
-    else renderCalendarDay();
+  document.querySelectorAll('[data-calendar-cell-day]').forEach(cell=>cell.addEventListener('click',event=>{
+    if(event.target.closest?.('[data-calendar-month-item]'))return;
+    openCalendarDayFromMonth(cell.dataset.calendarCellDay);
+  }));
+  document.querySelectorAll('[data-calendar-month-item]').forEach(b=>b.addEventListener('click',()=>{
+    const item=state.calendarItems[Number(b.dataset.calendarMonthItem)];
+    openCalendarDayFromMonth(b.dataset.calendarEventDay,item);
   }));
   if(!window.NexoCalendarViews)renderCalendarDay();
 
@@ -4808,6 +4847,7 @@ function init(){
   });
   $('#resetMedicationMessages')?.addEventListener('click',()=>{NexoNative.resetMedicationMessages();renderMedicationMessageSettings();toast('Frases restauradas');});
   $('#calendarMonthPickerBtn').addEventListener('click',openCalendarMonthPicker);
+  $('#calendarBackToMonth')?.addEventListener('click',returnCalendarToMonth);
   $('#searchFilter').addEventListener('change',()=>runSearch());
   $('#captureText').addEventListener('input',()=>analyzeCapture());
   $('#captureAiAnalyze')?.addEventListener('click',requestNexoAiCapture);
@@ -4904,6 +4944,7 @@ function refreshHeaderDate(){
   if(target.textContent!==formatted)target.textContent=formatted;
 }
 function navigateBack(){
+  if(returnCalendarToMonth())return true;
   if(state.screen==='today'&&state.homeTimelineVisible){window.NexoTimeGrid?.hideHome();return true;}
   // Comprobar ANTES de consumir el historial: cancelar debe dejar la cita intacta.
   if(state.screen==='save'&&state.capturePendingLinks?.length){

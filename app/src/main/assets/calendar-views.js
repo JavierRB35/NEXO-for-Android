@@ -1,4 +1,4 @@
-/* Nexo 3.7.94 · Cuatro vistas de calendario sin modificar el almacenamiento nativo. */
+/* Nexo 3.7.95 · Cuatro vistas de calendario sin modificar el almacenamiento nativo. */
 (function(){
   'use strict';
   const VIEWS=['month','week','day','agenda'];
@@ -35,6 +35,8 @@
   function showRegions(view){
     const regions={month:'calendarMonthRegion',week:'calendarWeekView',day:'calendarDayRegion',agenda:'calendarAgendaView'};
     Object.entries(regions).forEach(([name,id])=>{const node=element(id);if(node)node.hidden=name!==view;});
+    const back=element('calendarBackToMonth');
+    if(back)back.hidden=view==='month';
     syncSelector();
   }
   function setView(view,remember=true){

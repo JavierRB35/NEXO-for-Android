@@ -1,4 +1,4 @@
-/* Regresión focalizada Nexo 3.7.94: controlador de calendario y tipos conservados. */
+/* Regresión focalizada Nexo 3.7.95: controlador de calendario y tipos conservados. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
@@ -70,7 +70,7 @@ assert.match(app,/state\.calendarQuickOpen=true/,'protección de borrador inicia
 assert.ok(html.includes('id="homeDailyQuoteText"'));
 assert.ok(!html.slice(html.indexOf('id="calendarMonthRegion"'),html.indexOf('data-screen="more"')).includes('calendarDailyQuoteText'));
 assert.match(css,/calendar-week-track/);
-console.log('OK Nexo 3.7.94: 4 vistas, persistencia, tareas fechadas, frases en Inicio y creación sin conversión');
+console.log('OK Nexo 3.7.95: 4 vistas, persistencia, tareas fechadas, frases en Inicio y creación sin conversión');
 
 
 /* Recorrido de creación: el selector debe ser clicable y las tareas no convertirse
@@ -133,3 +133,43 @@ quickNode('calendarQuickSave').handlers.click();
 assert.equal(quickState.calendarQuickOpen,true,'Error de escritura no debe cerrar el borrador');
 assert.equal(quickNode('calendarQuickSave').disabled,false,'Debe permitir reintentar el guardado');
 console.log('OK: selección Evento/Tarea, guardado nativo simulado y recuperación tras error');
+
+
+/* Regresión de navegación mensual → detalle diario → vuelta al mes. */
+assert.ok(!html.includes('id="calendarViewSelect"'),'El selector de vistas no debe estar visible en la UI');
+assert.ok(html.includes('id="calendarBackToMonth"'),'La vista diaria necesita regreso explícito');
+assert.match(app,/data-calendar-month-item/,'Los eventos del mes deben ser pulsables individualmente');
+assert.match(app,/data-calendar-cell-day/,'Toda la celda del día debe abrir su agenda');
+assert.match(app,/event\.target\.closest\?\.\('\[data-calendar-month-item\]'\)/,'Un evento pulsado no debe activar también el día vacío');
+assert.match(app,/class="calendar-month-event"/,'El mes muestra eventos identificables');
+const navigationSource=app.slice(app.indexOf('function resetCalendarToToday(){'),app.indexOf('function shiftCalendarMonthValue(',app.indexOf('function resetCalendarToToday(){')));
+assert.ok(navigationSource.includes('function openCalendarDayFromMonth'));
+const navHost={dataset:{tgvFocusedDay:'old-date'},_tgvFocusMinute:null};
+const navigationState={screen:'calendar',calendarView:'month',calendarSelected:'2026-11-23',calendarMonth:new Date(2026,10,1)};
+let renderedMonths=0,openedDays=0;
+const navContext={
+  state:navigationState,window:{NexoCalendarViews:{
+    showRegions(){},
+    setView(view,remember){assert.equal(view,'day');assert.equal(remember,false);navigationState.calendarView=view;openedDays++;}
+  },scrollTo(){}},
+  $:()=>navHost,
+  isoDateLocal:d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'),
+  renderCalendar(){renderedMonths++;}
+};
+vm.createContext(navContext);
+vm.runInContext(navigationSource,navContext);
+navContext.openCalendarDayFromMonth('2026-11-23',{id:20,type:'event',dueAt:millis('2026-11-23',17),hasTime:true});
+assert.equal(openedDays,1);
+assert.equal(navigationState.calendarSelected,'2026-11-23');
+assert.equal(navHost._tgvFocusMinute,1020,'Seleccionar evento a las 17:00 enfoca 17:00');
+assert.equal(navHost.dataset.tgvFocusedDay,undefined,'Nueva selección obliga a recalcular el scroll');
+assert.equal(navContext.returnCalendarToMonth(),true);
+assert.equal(navigationState.calendarView,'month');
+assert.equal(renderedMonths,1);
+navContext.openCalendarDayFromMonth('2026-11-24');
+assert.equal(navHost._tgvFocusMinute,null,'Seleccionar fecha vacía no arrastra la hora de otro evento');
+assert.equal(openedDays,2);
+assert.match(app.slice(app.indexOf('function navigateBack(){'),app.indexOf('function updateCaptureContext(){')),/if\(returnCalendarToMonth\(\)\)return true;/,
+  'Android Atrás regresa al mes antes de salir de Calendario');
+assert.match(script,/back\.hidden=view==='month'/,'Flecha de regreso solo visible en detalle');
+console.log('OK: mes → evento a su hora, mes → fecha vacía y Atrás → mes, sin selector');

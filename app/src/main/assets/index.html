@@ -303,14 +303,12 @@
       <section class="screen" data-screen="calendar" aria-labelledby="calendarTitle">
         <h1 id="calendarTitle" class="sr-only">Calendario</h1>
         <div class="calendar-toolbar">
+          <button id="calendarBackToMonth" class="icon-button" type="button" aria-label="Volver al calendario mensual" title="Volver al mes" hidden><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
           <button id="calendarMonthPickerBtn" class="calendar-month-button" aria-label="Elegir mes y año"><span id="calendarMonthTitle"></span></button>
           <button id="calendarToday" class="text-button" aria-label="Ir a hoy">Hoy</button>
           <button id="calendarPrev" class="icon-button" aria-label="Periodo anterior"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
           <button id="calendarNext" class="icon-button" aria-label="Periodo siguiente"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-right"></use></svg></button>
         </div>
-        <div class="calendar-view-bar"><label for="calendarViewSelect">Vista</label><select id="calendarViewSelect" aria-label="Vista del calendario">
-          <option value="month">Mes</option><option value="week">Semana</option><option value="day">Día</option><option value="agenda">Agenda</option>
-        </select></div>
         <div id="calendarMonthRegion">
           <div class="calendar-card">
             <div class="calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
@@ -570,7 +568,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.94</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.95</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -583,7 +581,7 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.94</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.95</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>
