@@ -1,4 +1,4 @@
-/* Nexo 3.7.94 · Cuatro vistas de calendario sin modificar el almacenamiento nativo. */
+/* Nexo 3.7.95 · Cuatro vistas de calendario sin modificar el almacenamiento nativo. */
 (function(){
   'use strict';
   const VIEWS=['month','week','day','agenda'];
