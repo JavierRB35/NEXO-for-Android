@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.95",
-  "releaseNotes": "Calendario mensual con eventos pulsables: al elegir un día se abre el horario y al elegir una cita se muestra su hora. Toca una franja vacía para crear un evento con ese horario; Atrás vuelve al mes. Sin selector de vistas, sin migración de datos ni cambios de avisos. Actualización opcional.",
+  "versionName": "3.7.96",
+  "releaseNotes": "Se recuperan los iconos de las citas y tareas del calendario. El mes completo cabe en pantalla, incluso con seis semanas, y el horario diario muestra todos sus controles en una sola fila. Sin cambios en tus datos, citas, tareas o avisos. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
