@@ -2349,6 +2349,7 @@ function saveNexoAiCredential(provider){
   toast(result.ok?(key?'Clave protegida en este dispositivo.':'Clave eliminada.'):(result.error||'No se pudo guardar la clave.'));
 }
 function requestNexoAiCapture(){
+  if(!isAppointmentType(captureReviewType())){toast('De momento la IA interpreta solo citas y recordatorios.');return;}
   const raw=$('#captureText')?.value.trim()||'';
   if(raw.length<8||raw.length>1800){toast('Escribe entre 8 y 1800 caracteres para consultar la IA.');return;}
   const settings=parseNative(NexoNative.getNexoAiSettings(),{});
@@ -2416,6 +2417,7 @@ function captureReviewType(){
 function updateCaptureReviewMode(){
   const type=captureReviewType(),appointment=isAppointmentType(type);
   $('#captureEventFields')?.classList.toggle('hidden',!appointment);
+  $('#captureAiAnalyze')?.classList.toggle('hidden',!appointment);
   renderCaptureRelated();
   const hint=$('#captureRouteHint'),subtitle=$('#captureSubtitle'),save=$('#saveCaptureBtn');
   if(subtitle)subtitle.textContent=appointment
