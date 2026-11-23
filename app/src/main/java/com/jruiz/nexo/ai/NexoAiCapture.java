@@ -199,9 +199,8 @@ public final class NexoAiCapture {
         out.put("description",safe(value.optString("description",""),1200));
         out.put("locationText",safe(value.optString("locationText",""),240));
         String mapsUrl=safe(value.optString("mapsUrl",""),500);
-        // Una dirección sin enlace explícito se abre con la búsqueda habitual de Maps.
-        if(!mapsUrl.matches("https://(?:maps\\.app\\.goo\\.gl/|(?:www\\.)?google\\.[a-z.]+/maps(?:/|\\?|$)).*"))
-            mapsUrl="";
+        // No confiar en enlaces producidos por el modelo: solo hosts exactos de Maps.
+        if(!isTrustedMapsUrl(mapsUrl))mapsUrl="";
         out.put("mapsUrl",mapsUrl);
         String zone=safe(value.optString("timeZone","Europe/Madrid"),80);
         try {ZoneId.of(zone);} catch(Exception invalid){zone="Europe/Madrid";}
@@ -250,6 +249,16 @@ public final class NexoAiCapture {
         out.put("needsReview",value.optBoolean("needsReview",false)||date.isEmpty());
         out.put("reason","Propuesta de IA: revisa todos los campos antes de guardar.");
         return out;
+    }
+    private static boolean isTrustedMapsUrl(String input) {
+        try {
+            URL url=new URL(input);
+            String host=url.getHost().toLowerCase(Locale.ROOT);
+            if(!"https".equals(url.getProtocol()))return false;
+            if("maps.app.goo.gl".equals(host))return true;
+            boolean google=host.matches("(?:www\\\\.|maps\\\\.)?google\\\\.(?:com|es)");
+            return google && (host.startsWith("maps.")||url.getPath().startsWith("/maps"));
+        } catch(Exception ignored){return false;}
     }
     private static String safeDate(String value) {
         if(value==null||!value.matches("\\d{4}-\\d{2}-\\d{2}"))return "";
