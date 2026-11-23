@@ -122,7 +122,12 @@ public final class NexoAiCapture {
         if(enabled && prefs().getString("gemini_key","").isEmpty()
                 && prefs().getString("groq_key","").isEmpty())
             throw new IllegalStateException("Configura primero Gemini o Groq.");
-        prefs().edit().putBoolean("auto_enabled",enabled).apply();
+        SharedPreferences.Editor edit=prefs().edit().putBoolean("auto_enabled",enabled);
+        // La autorización del modo automático incluye Groq si ya hay clave; se puede
+        // desactivar de nuevo con su control independiente en Ajustes.
+        if(enabled&&!prefs().getString("groq_key","").isEmpty())
+            edit.putBoolean("groq_enabled",true);
+        edit.apply();
     }
     private void requireNetwork() throws IOException {
         ConnectivityManager manager=(ConnectivityManager)app.getSystemService(Context.CONNECTIVITY_SERVICE);
