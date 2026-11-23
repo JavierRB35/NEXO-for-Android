@@ -2095,16 +2095,25 @@ public class MainActivity extends Activity {
                 return "{\"ok\":true}";
             } catch(Exception ignored) { return "{\"ok\":false,\"error\":\"Introduce primero tu clave Groq.\"}"; }
         }
-        @JavascriptInterface public void analyzeNexoCapture(String text) {
-            // Las peticiones son explícitas; nunca consultamos IA en el arranque.
+        @JavascriptInterface public String setNexoAiAutomatic(boolean enabled) {
+            try {
+                new NexoAiCapture(MainActivity.this).setAutomaticEnabled(enabled);
+                return "{\"ok\":true}";
+            } catch(Exception ignored) {
+                return "{\"ok\":false,\"error\":\"Configura primero una clave Gemini o Groq.\"}";
+            }
+        }
+        @JavascriptInterface public void analyzeNexoCapture(String text,int requestId) {
+            // Una consulta explícitamente autorizada; el identificador evita aplicar respuestas caducadas.
             new Thread(()->{
                 JSONObject response;
                 try { response=new NexoAiCapture(MainActivity.this).analyze(text); }
                 catch(Exception ignored) {
                     response=new JSONObject();
-                    try {response.put("ok",false).put("error","No se pudo obtener una propuesta. Revisa la conexión, modelo y cuotas de tus claves.");}
+                    try {response.put("ok",false).put("error","Sin IA disponible. Se usará el algoritmo local de Nexo.");}
                     catch(Exception impossible){}
                 }
+                try {response.put("requestId",requestId);} catch(Exception ignored){}
                 jsCallbackJson("onNexoAiCapture",response);
             },"nexo-ai-capture").start();
         }
