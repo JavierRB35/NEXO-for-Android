@@ -23,11 +23,14 @@ assert "function appointmentsWindowDateIso()" in app
 assert "state.appointmentsWindow==='tomorrow'" in app
 assert "prepareQuickNoteForType('event',appointmentsWindowDateIso())" in app
 
-# Calendario: los dos flotantes crean citas para el día seleccionado.
+# Calendario: la voz mantiene su ruta y el + abre el panel rápido del día seleccionado.
 assert "state.screen==='calendar'?'Añadir cita por voz'" in app
 assert "state.screen==='calendar'?'Nueva cita'" in app
 assert "startAppointmentVoice(state.calendarSelected||isoDateLocal(new Date()))" in app
-assert "prepareQuickNoteForType('event',state.screen==='calendar'?(state.calendarSelected||today):today)" in app
+assert "if(state.screen==='calendar'){openCalendarQuickCreate(state.calendarSelected||today);return;}" in app
+assert "prepareQuickNoteForType('event',today)" in app
+assert "function openCalendarQuickCreate(" in app
+assert "appointmentCapture:type==='event'" in app
 assert "attachMonthSwipe(document.querySelector('.calendar-viewport')" in app
 assert "suppressClickUntil" in app
 assert "e.stopImmediatePropagation?.()" in app
