@@ -257,7 +257,7 @@
     (Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds))
       .forEach(item=>byIdentity.set(eventKey(item),item));
     const items=[...byIdentity.values()];
-    const taskHost=host.id==='calendarDayItems'?document.getElementById('calendarDayTasks'):null;
+    const taskHost=host.id==='calendarDayItems'?document.getElementById?.('calendarDayTasks')||null:null;
     const noTimeTasks=taskHost?items.filter(item=>!isTimed(item)&&(item.type==='task'||categoryLabel(item.category)==='Tarea / Recado')):[];
     const allDay=items.filter(item=>!isTimed(item)&&!noTimeTasks.includes(item));
     const timed=assignColumns(items.filter(isTimed).map(item=>segment(item,bounds)));
