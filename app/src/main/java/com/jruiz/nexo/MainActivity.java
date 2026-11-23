@@ -25,6 +25,7 @@ import android.content.ClipboardManager;
 import android.content.ClipData;
 
 import com.jruiz.nexo.core.NexoService;
+import com.jruiz.nexo.ai.NexoAiCapture;
 import com.jruiz.nexo.core.PlaceEntry;
 import com.jruiz.nexo.calendar.CalendarExporter;
 import com.jruiz.nexo.calendar.CalendarImporter;
@@ -2079,6 +2080,34 @@ public class MainActivity extends Activity {
 
     public final class Bridge {
         @JavascriptInterface public String classify(String text) { return service.classify(text).toString(); }
+        @JavascriptInterface public String getNexoAiSettings() {
+            return new NexoAiCapture(MainActivity.this).settings().toString();
+        }
+        @JavascriptInterface public String saveNexoAiKey(String provider,String value) {
+            try {
+                new NexoAiCapture(MainActivity.this).saveKey(provider,value);
+                return "{\"ok\":true}";
+            } catch(Exception ignored) { return "{\"ok\":false,\"error\":\"No se pudo proteger la clave. Revisa el formato.\"}"; }
+        }
+        @JavascriptInterface public String setNexoAiFallback(boolean enabled) {
+            try {
+                new NexoAiCapture(MainActivity.this).setBackupEnabled(enabled);
+                return "{\"ok\":true}";
+            } catch(Exception ignored) { return "{\"ok\":false,\"error\":\"Introduce primero tu clave Groq.\"}"; }
+        }
+        @JavascriptInterface public void analyzeNexoCapture(String text) {
+            // Las peticiones son explícitas; nunca consultamos IA en el arranque.
+            new Thread(()->{
+                JSONObject response;
+                try { response=new NexoAiCapture(MainActivity.this).analyze(text); }
+                catch(Exception ignored) {
+                    response=new JSONObject();
+                    try {response.put("ok",false).put("error","No se pudo obtener una propuesta. Revisa la conexión, modelo y cuotas de tus claves.");}
+                    catch(Exception impossible){}
+                }
+                jsCallbackJson("onNexoAiCapture",response);
+            },"nexo-ai-capture").start();
+        }
         @JavascriptInterface public void requestHolidayCalendar(int year) { MainActivity.this.requestHolidayCalendar(year); }
         @JavascriptInterface public String classifyAppointment(String text) { return service.classifyAppointment(text).toString(); }
         @JavascriptInterface public String getAppointments() { return db.getAppointments().toString(); }
