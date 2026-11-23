@@ -2297,13 +2297,13 @@ function prepareQuickNoteForType(type='event',date=''){
   }
   if(type==='document'){openDocumentEditor();return;}
   if(isPlaceType(type)){openPlaceEditor();return;}
-  type=(!type||isAppointmentType(type))?'event':type;
+  type=type==='task'?'task':(!type||isAppointmentType(type))?'event':type;
   navigate('save');clearCapture();
   state.capturePinnedType=type;state.capturePinnedDate=date||'';
   $('#captureType').value=type;
   if(date){$('#captureDate').value=date;$('#captureEndDate').value=date;}
   $('#captureDetails').open=false;
-  $('#captureHeading').textContent=type==='event'?'Nueva cita':`Crear ${typeLabel(type).toLocaleLowerCase('es-ES')}`;
+  $('#captureHeading').textContent=type==='event'?'Nueva cita':type==='task'?'Nueva tarea':`Crear ${typeLabel(type).toLocaleLowerCase('es-ES')}`;
   updateCaptureContext();refreshCaptureAlertEditor();
   setTimeout(()=>$('#captureText').focus(),80);
 }
@@ -2668,7 +2668,7 @@ function commitCapture() {
   const recurrence=appointment?($('#captureRecurrence').value||'none'):'none';
   const payload={
     body:$('#captureDescription').value.trim(), originalText:text, title:$('#captureTitle').value.trim()||state.classification?.title||$('#captureDescription').value.trim().split('\n')[0]||typeLabel(type),
-    category:$('#captureCategory').value||'Otro', type, appointmentCapture:appointment,
+    category:$('#captureCategory').value||'Otro', type, appointmentCapture:appointment&&type!=='task',
     dueAt, endAt, hasTime:!!(appointment&&date&&time&&!allDay), allDay:!!allDay, durationMinutes,
     locationText:appointment?$('#captureLocation').value.trim():'', mapsUrl:appointment?$('#captureMapsUrl').value.trim():'', timeZone,
     priority:appointment?Number($('#capturePriority').value||1):1, participantIds:appointment?normalizeParticipantIds(state.captureParticipantIds):[],
@@ -4998,11 +4998,10 @@ function openCalendarQuickCreate(date=state.calendarSelected||isoDateLocal(new D
   $('#calendarQuickAdvanced').addEventListener('click',()=>{
     const chosen=$('#calendarQuickDate').value,typed=title.value.trim(),time=start.value,finish=end.value,withoutTime=noTime.checked;
     state.calendarQuickDirty=false;closeModal(true);
-    prepareQuickNoteForType('event',chosen);
+    prepareQuickNoteForType(type,chosen);
     if(state.screen!=='save')return;
     $('#captureTitle').value=typed;
     $('#captureCategory').value=type==='task'?'Tarea / Recado':'Otro';
-    if(type==='task')$('#captureType').value='task';
     $('#captureAllDay').checked=withoutTime;
     if(!withoutTime){$('#captureTime').value=time;$('#captureEndTime').value=finish;}
     syncCaptureAllDay(false);
@@ -5015,9 +5014,10 @@ function openCalendarQuickCreate(date=state.calendarSelected||isoDateLocal(new D
     const time=withoutTime?'':start.value;
     const finish=withoutTime?'':type==='event'?end.value:'';
     if(!withoutTime&&!/^\d{2}:\d{2}$/.test(time)){toast('Selecciona una hora válida.');return;}
-    if(type==='event'&&!withoutTime&&(!finish||finish<=time)){toast('La hora de fin debe ser posterior a la inicial.');return;}
+    if(type==='event'&&!withoutTime&&(!finish||finish===time)){toast('La hora de fin debe ser distinta a la inicial.');return;}
     const dueAt=dateTimeToMsInZone(chosen,time,'Europe/Madrid');
-    const endAt=type==='event'?eventEndFromFields(chosen,time,chosen,finish,withoutTime,'Europe/Madrid'):dueAt;
+    const endDate=type==='event'&&!withoutTime&&finish<time?addIsoDays(chosen,1):chosen;
+    const endAt=type==='event'?eventEndFromFields(chosen,time,endDate,finish,withoutTime,'Europe/Madrid'):dueAt;
     if(!Number.isFinite(dueAt)||dueAt<=0||!Number.isFinite(endAt)||endAt<dueAt){toast('Comprueba la fecha y la hora.');return;}
     const payload={title:name,originalText:name,body:'',category:type==='task'?'Tarea / Recado':'Otro',
       type,appointmentCapture:type==='event',dueAt,endAt,hasTime:!withoutTime,allDay:type==='event'&&withoutTime,
