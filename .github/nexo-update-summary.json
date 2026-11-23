@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.93",
-  "notes": "Captura rápida de citas con IA automática y consentimiento: Gemini primero, Groq si falla y algoritmo local si ambos servicios no responden. Se proponen todos los campos expresados, incluidas direcciones, personas, horarios, repeticiones, avisos y prioridad. Revisión manual antes de guardar."
+  "versionName": "3.7.94",
+  "notes": "Nuevo calendario con vistas de mes, semana, día y agenda; navegación familiar, creación rápida de eventos y tareas fechadas, y frase del día trasladada a Inicio. Conserva los datos y los avisos existentes. Actualización opcional."
 }
