@@ -2834,7 +2834,8 @@ function fitCalendarMonthToViewport(){
   // Account for the collapsed icon legend, holiday note, card border and padding.
   const belowGrid=Math.max(0,cardBounds.bottom-gridBounds.bottom);
   const rows=Math.ceil(grid.childElementCount/7);
-  const available=Math.max(0,navTop-gridBounds.top-belowGrid-8);
+  const rowGap=parseFloat(getComputedStyle(grid).rowGap)||0;
+  const available=Math.max(0,navTop-gridBounds.top-belowGrid-8-(rows-1)*rowGap);
   const rowHeight=Math.max(42,Math.min(150,Math.floor(available/rows)));
   grid.style.setProperty('--calendar-row-height',rowHeight+'px');
   grid.dataset.calendarDensity=rowHeight<68?'tight':'normal';
