@@ -4992,7 +4992,7 @@ function openCalendarQuickCreate(date=state.calendarSelected||isoDateLocal(new D
     state.calendarQuickDirty=true;
     refresh();
   }));
-  $('#modalBody').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{state.calendarQuickDirty=true;}));
+  document.getElementById('modalBody').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{state.calendarQuickDirty=true;}));
   noTime.addEventListener('change',refresh);
   refresh();
   $('#calendarQuickAdvanced').addEventListener('click',()=>{
