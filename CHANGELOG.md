@@ -1,4 +1,11 @@
-## Nexo 3.7.95 — Navegación mensual y alta horaria inmediata\n\n- Calendario mensual como entrada principal: selección de fecha o evento abre el detalle diario por horas; si se pulsa un evento, el horario se desplaza a su hora real.\n- Pulsación breve sobre hora libre prepara un evento con fecha y franja preseleccionadas; se conserva el gesto prolongado.\n- Flecha y botón Atrás regresan desde el día al mes sin salir de Calendario; retirado el selector desplegable de vistas.\n- VersionCode 188 y versionName 3.7.95; mismos datos, firma, permisos, SDK y esquema SQLite. Actualización opcional.\n\n## Nexo 3.7.94 — Rediseño de Inicio y Calendario
+## Nexo 3.7.95 — Navegación mensual y alta horaria inmediata
+
+- Calendario mensual como entrada principal: selección de fecha o evento abre el detalle diario por horas; si se pulsa un evento, el horario se desplaza a su hora real.
+- Pulsación breve sobre hora libre prepara un evento con fecha y franja preseleccionadas; se conserva el gesto prolongado.
+- Flecha y botón Atrás regresan desde el día al mes sin salir de Calendario; retirado el selector desplegable de vistas.
+- VersionCode 188 y versionName 3.7.95; mismos datos, firma, permisos, SDK y esquema SQLite. Actualización opcional.
+
+## Nexo 3.7.94 — Rediseño de Inicio y Calendario
 
 - Calendario autónomo con vistas Mes, Semana, Día y Agenda, recordando localmente la última vista usada; al tocar un día del mes se abre su agenda diaria.
 - Tareas fechadas sin hora en la cabecera diaria, separadas de eventos y tareas con horario; conservación de recurrencias, estados y avisos existentes.
