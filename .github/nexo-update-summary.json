@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.91",
-  "notes": "Se retiran Nexo Connect y Chat, manteniendo Inbox, Gmail, Nexo Familia y las copias personales. Nueva captura inteligente opcional con Gemini y respaldo Groq: claves cifradas, autorización por consulta y propuesta revisable, sin guardar citas automáticamente."
+  "versionName": "3.7.92",
+  "notes": "En Ajustes → Inteligencia artificial se añaden enlaces oficiales para crear claves API de Gemini y Groq. Se abren en el navegador, para copiar la clave y pegarla en Nexo. Se mantienen el cifrado de credenciales y la autorización por consulta."
 }
