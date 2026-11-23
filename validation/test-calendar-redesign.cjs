@@ -25,8 +25,12 @@ function element(id){
 const storage=new Map(),asked=[],selectedEvents=[];
 const state={calendarView:'month',calendarSelected:selected,calendarItems:[],calendarMonth:new Date(2026,10,1)};
 const ctx={window:{NexoTimeGrid:{assignColumns(rows){return rows.map(row=>({...row,column:0,columns:1}));}}},
-  state,document:{getElementById:element},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
-  NexoNative:{getCalendar:(start,end)=>{asked.push({start,end});return JSON.stringify(data.filter(i=>i.dueAt>0&&i.dueAt>=start&&i.dueAt<=end));}},
+  state,document:{getElementById:element},
+  NexoNative:{
+    getCalendarViewPreference:()=>storage.get('calendar_view')||'month',
+    setCalendarViewPreference:value=>storage.set('calendar_view',value),
+    getCalendar:(start,end)=>{asked.push({start,end});return JSON.stringify(data.filter(i=>i.dueAt>0&&i.dueAt>=start&&i.dueAt<=end));}
+  },
   parseNative:JSON.parse,categoryLabel:v=>v,familyCategoryColor:()=> '#3758cc',familyCategoryIcon:()=> 'calendar',
   uiIcon:()=>'',esc:s=>String(s),escAttr:s=>String(s),
   itemCoversIsoDate:(i,iso)=>new Date(i.dueAt).toLocaleDateString('en-CA')===iso || new Date(i.dueAt).toISOString().slice(0,10)===iso,
@@ -39,7 +43,7 @@ const views=ctx.window.NexoCalendarViews;
 views.init();
 assert.equal(state.calendarView,'month','primera vista mensual');
 views.setView('day');
-assert.equal(storage.get('nexo.calendar.view'),'day');
+assert.equal(storage.get('calendar_view'),'day');
 assert.equal(element('calendarDayRegion').hidden,false);
 assert.equal(element('calendarMonthRegion').hidden,true);
 assert.equal(state.calendarItems.length,2,'solo elementos fechados');
@@ -56,7 +60,7 @@ assert.doesNotMatch(element('calendarAgendaView').innerHTML,/Sin fecha/);
 views.shift(1);
 assert.equal(state.calendarSelected,'2026-12-14','agenda avanza 21 días');
 assert.equal(element('calendarMonthRegion').hidden,true);
-storage.set('nexo.calendar.view','week');
+storage.set('calendar_view','week');
 state.calendarView='month';
 views.load();
 assert.equal(state.calendarView,'week','recupera última vista');
