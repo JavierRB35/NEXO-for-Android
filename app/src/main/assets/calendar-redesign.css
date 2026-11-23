@@ -72,3 +72,56 @@
 .calendar-week-event strong{font-size:.61rem}
 .calendar-week-event small{font-size:.55rem}
 @media(min-width:600px){.calendar-week-event strong{font-size:.72rem}}
+
+
+/* 3.7.95: calendario mensual principal + franja horaria diaria a pantalla útil.
+   Fecha y eventos son controles independientes (sin botones anidados). */
+#calendarMonthRegion .calendar-day{
+  min-height:clamp(83px,12.2dvh,145px);
+  justify-content:flex-start;
+  align-items:stretch;
+  padding:4px 2px;
+  gap:3px;
+  overflow:hidden;
+}
+#calendarMonthRegion .calendar-day-open{
+  flex:none;display:flex;align-items:center;justify-content:center;
+  min-height:29px;width:100%;padding:1px;
+  border:0;border-radius:8px;background:transparent;color:inherit;
+  cursor:pointer;
+}
+#calendarMonthRegion .calendar-day-open:focus-visible,
+#calendarMonthRegion .calendar-month-event:focus-visible{
+  outline:2px solid var(--nx-primary,#2563eb);outline-offset:-2px;
+}
+#calendarMonthRegion .calendar-month-events{
+  display:grid;gap:3px;align-content:start;min-width:0;padding:0 1px;
+}
+#calendarMonthRegion .calendar-month-event{
+  display:block;width:100%;min-width:0;
+  padding:3px 2px 3px 3px;border:0;border-left:3px solid var(--calendar-chip-color,#367cba);
+  border-radius:5px;text-align:left;line-height:1.15;
+  font-size:clamp(.55rem,1.8vw,.72rem);font-weight:650;
+  color:var(--nx-text,#17253c);
+  background:color-mix(in srgb,var(--calendar-chip-color,#367cba) 22%,var(--nx-surface,#fff));
+  cursor:pointer;
+}
+#calendarMonthRegion .calendar-month-event span{
+  display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#calendarMonthRegion .calendar-month-event-overflow{
+  display:block;text-align:center;font-size:.64rem;font-weight:800;
+  color:var(--nx-text-2,#64748b);
+}
+#calendarMonthRegion .calendar-day .day-dots{display:none}
+#calendarMonthRegion .calendar-day.today .day-number{background:var(--nx-primary,#2563eb);color:#fff}
+#calendarBackToMonth[hidden]{display:none!important}
+#calendarDayRegion #calendarDayItems.tgv-host{
+  height:min(73dvh,880px);
+  min-height:330px;
+  overflow-y:auto;overscroll-behavior-y:contain;
+}
+@media(max-width:420px){
+  #calendarMonthRegion .calendar-day{min-height:clamp(76px,11.4dvh,122px);padding:3px 1px}
+  #calendarMonthRegion .calendar-month-event{font-size:.57rem;padding:3px 1px 3px 2px}
+}
