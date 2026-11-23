@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.90",
-  "releaseNotes": "Las citas de «Acompañar (salud)» muestran en el calendario el color de la persona asignada, para distinguir de un vistazo a quién acompañar. No se amplían las casillas ni cambian las demás categorías. Con varias personas o ninguna, se conserva el color habitual.",
+  "versionName": "3.7.91",
+  "releaseNotes": "Se retiran Nexo Connect y Chat, manteniendo Inbox, Gmail, Nexo Familia y las copias personales. Nueva captura inteligente opcional con Gemini y respaldo Groq: claves cifradas, autorización por consulta y propuesta revisable, sin guardar citas automáticamente.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -37,7 +37,8 @@ window.NexoProductCatalog = {
           "description": "Introduce información y revísala antes de guardarla.",
           "features": [
             "Escritura y dictado para crear citas y notas",
-            "Interpretación de fecha, categoría y avisos con confirmación"
+            "Interpretación de fecha, categoría y avisos con confirmación",
+            "IA opcional para propuestas de citas con Gemini, respaldo Groq y confirmación antes del envío"
           ]
         },
         {

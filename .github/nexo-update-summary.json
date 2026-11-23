@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.90",
-  "notes": "Las citas de «Acompañar (salud)» muestran en el calendario el color de la persona asignada, para distinguir de un vistazo a quién acompañar. No se amplían las casillas ni cambian las demás categorías. Con varias personas o ninguna, se conserva el color habitual."
+  "versionName": "3.7.91",
+  "notes": "Se retiran Nexo Connect y Chat, manteniendo Inbox, Gmail, Nexo Familia y las copias personales. Nueva captura inteligente opcional con Gemini y respaldo Groq: claves cifradas, autorización por consulta y propuesta revisable, sin guardar citas automáticamente."
 }
