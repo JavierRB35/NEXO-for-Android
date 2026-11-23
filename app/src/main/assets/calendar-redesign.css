@@ -1,4 +1,4 @@
-/* Nexo 3.7.94 · Vistas compactas inspiradas en patrones Android familiares. */
+/* Nexo 3.7.95 · Vistas compactas inspiradas en patrones Android familiares. */
 .screen[data-screen="calendar"] [hidden]{display:none!important}
 .screen[data-screen="calendar"]{padding:6px 8px 10px}
 .screen[data-screen="calendar"] .calendar-toolbar{margin-bottom:2px}
