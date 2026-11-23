@@ -31,7 +31,7 @@ const ctx={window:{NexoTimeGrid:{assignColumns(rows){return rows.map(row=>({...r
   uiIcon:()=>'',esc:s=>String(s),escAttr:s=>String(s),
   itemCoversIsoDate:(i,iso)=>new Date(i.dueAt).toLocaleDateString('en-CA')===iso || new Date(i.dueAt).toISOString().slice(0,10)===iso,
   itemEffectiveEndAt:i=>i.endAt||i.dueAt,openEventInAgenda:(...args)=>selectedEvents.push(args),
-  renderCalendar:()=>{},renderCalendarDay:()=>{element('calendarDayRegion').innerHTML='day rendered';},
+  renderCalendar:()=>{ctx.window.NexoCalendarViews.render();},renderCalendarDay:()=>{element('calendarDayRegion').innerHTML='day rendered';},
   requestHolidayYears:()=>{},attachMonthSwipe:()=>{}};
 vm.createContext(ctx);
 vm.runInContext(script,ctx);
