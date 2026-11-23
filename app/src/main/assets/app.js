@@ -2353,7 +2353,7 @@ function saveNexoAiCredential(provider){
 }
 function setNexoAiAutomaticFromSettings(){
   const checkbox=$('#nexoAiAutomatic'),enabled=!!checkbox?.checked;
-  if(enabled&&!window.confirm('¿Autorizar el envío automático del texto de tus citas a Gemini y, si se ha autorizado el respaldo, a Groq cuando Gemini falle? Se analiza tras una pausa al escribir o al terminar el dictado. Los proveedores pueden aplicar cuotas o cargos. Nexo no enviará fichas, agenda ni contactos. Siempre revisarás antes de guardar.')){
+  if(enabled&&!window.confirm('¿Autorizar el envío automático del texto de tus citas a Gemini y a Groq como respaldo si ya has guardado su clave? Se analiza tras una pausa al escribir o al terminar el dictado. Los proveedores pueden aplicar cuotas o cargos. Nexo no enviará fichas, agenda ni contactos. Siempre revisarás antes de guardar.')){
     checkbox.checked=false;return;
   }
   const result=parseNative(NexoNative.setNexoAiAutomatic(enabled),{});
@@ -2426,7 +2426,7 @@ function receiveNexoAiCapture(raw){
   const btn=$('#captureAiAnalyze');
   if(btn){btn.disabled=false;btn.textContent='✦ Reintentar con IA';}
   const current=$('#captureText')?.value.trim()||'';
-  if(!source||state.screen!=='save')return;
+  if(!source||state.screen!=='save'||!isAppointmentType(captureReviewType()))return;
   if(source!==current){
     if(current)analyzeCapture(); // descarta respuesta antigua; reinterpreta solo el texto actual.
     return;
@@ -2619,12 +2619,16 @@ function clearCapture(keepPinned=false) {
   $('#captureDetails').open=false;$('#captureHeading').textContent='Nueva cita';
   $('#captureCloneNotice')?.classList.add('hidden');
   const identity=$('#captureSenderInfo');if(identity){identity.innerHTML='';identity.classList.add('hidden');}
-  state.captureAiPendingText='';const aiBtn=$('#captureAiAnalyze');if(aiBtn){aiBtn.disabled=false;aiBtn.textContent='✦ Mejorar propuesta con IA';}
+  resetNexoAiCapture();
   $('#captureText').value=''; $('#attachmentChip').classList.add('hidden'); $('#attachmentChip').textContent='';
   resetAnalysis();
 }
 
 function saveCapture() {
+  if(state.captureAiActive||state.captureAiTimer){
+    toast('La IA está completando la cita. Revisa su propuesta antes de guardar.');
+    return;
+  }
   const text=$('#captureText').value.trim();
   if(!text && !$('#captureTitle').value.trim() && !$('#captureDescription').value.trim() && !state.attachment){toast('Escribe qué necesitas guardar.');return;}
   commitCapture();
@@ -4806,6 +4810,7 @@ function init(){
     link?.addEventListener('click',event=>{event.preventDefault();NexoNative.openExternal(link.href);});
   }
   $('#nexoAiSaveGemini')?.addEventListener('click',()=>saveNexoAiCredential('gemini'));
+  $('#nexoAiAutomatic')?.addEventListener('change',setNexoAiAutomaticFromSettings);
   $('#nexoAiSaveGroq')?.addEventListener('click',()=>saveNexoAiCredential('groq'));
   $('#nexoAiGroqEnable')?.addEventListener('change',()=>{
     const check=$('#nexoAiGroqEnable');
