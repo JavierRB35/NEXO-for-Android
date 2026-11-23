@@ -62,3 +62,13 @@
 .tgv-task-no-time .tgv-all-day-event{margin:0}
 @media(max-width:390px){#calendarMonthRegion .calendar-day{min-height:58px;padding-top:5px}.calendar-toolbar .calendar-month-button{font-size:.9rem}.calendar-view-bar{margin-bottom:5px}}
 @media(prefers-reduced-motion:reduce){.calendar-week-event,.calendar-agenda-item{transition:none!important}}
+
+/* Semana en siete columnas visibles; gestos horizontales cambian de semana. */
+.calendar-week-track{min-width:0}
+.calendar-week-hours{width:39px;flex-basis:39px}
+.calendar-week-hours span{transform:translateY(127px);font-size:.58rem}
+.calendar-week-column{min-width:0;flex:1;width:calc((100% - 39px)/7)}
+.calendar-week-event{padding:2px;overflow-wrap:anywhere}
+.calendar-week-event strong{font-size:.61rem}
+.calendar-week-event small{font-size:.55rem}
+@media(min-width:600px){.calendar-week-event strong{font-size:.72rem}}
