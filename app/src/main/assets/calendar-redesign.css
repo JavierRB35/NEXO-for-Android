@@ -113,7 +113,12 @@
   display:block;text-align:center;font-size:.64rem;font-weight:800;
   color:var(--nx-text-2,#64748b);
 }
-#calendarMonthRegion .calendar-day .day-dots{display:none}
+/* Iconos originales visibles; el mes no representa etiquetas ni horas truncadas. */
+#calendarMonthRegion .calendar-day .day-dots{
+  display:flex;justify-content:center;align-items:center;
+  flex-wrap:wrap;gap:2px;margin:3px auto 0;
+  min-height:16px;max-width:100%;
+}
 #calendarMonthRegion .calendar-day.today .day-number{background:var(--nx-primary,#2563eb);color:#fff}
 #calendarBackToMonth[hidden]{display:none!important}
 #calendarDayRegion #calendarDayItems.tgv-host{
@@ -154,10 +159,7 @@
 #calendarMonthRegion .calendar-month-event .calendar-month-event-content{
   display:flex;align-items:center;gap:2px;min-width:0;width:100%;
 }
-#calendarMonthRegion .calendar-month-event-content>.ui-icon{
-  display:block;flex:0 0 10px;width:10px;height:10px;min-width:10px;
-  color:var(--calendar-chip-color,#367cba);stroke-width:2.25;
-}
+
 #calendarMonthRegion .calendar-month-event .calendar-month-event-text{
   display:block;flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }
