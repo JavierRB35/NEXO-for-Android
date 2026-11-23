@@ -185,39 +185,9 @@ window.NexoProductCatalog = {
       ]
     },
     {
-      "title": "Nexo Connect y contenido recibido",
-      "icon": "shield",
+      "title": "Inbox y capturas externas",
+      "icon": "inbox",
       "modules": [
-        {
-          "id": "nexo-connect",
-          "title": "Nexo Connect: identidad y personas",
-          "description": "Conecta tu Nexo con personas de confianza.",
-          "features": [
-            "Perfil con nombre y fotografía",
-            "Invitaciones QR o a distancia y verificación del código de seguridad",
-            "Gestión de personas autorizadas: editar, verificar y desvincular"
-          ]
-        },
-        {
-          "id": "chat",
-          "title": "Chat privado",
-          "description": "Mensajes con contactos vinculados.",
-          "features": [
-            "Conversaciones entre personas verificadas con cifrado extremo a extremo",
-            "Indicadores de mensajes sin leer y avisos de recepción cuando se autorizan",
-            "Gestión del historial de conversación en el dispositivo"
-          ]
-        },
-        {
-          "id": "compartir",
-          "title": "Compartir fichas cifradas",
-          "description": "Intercambia información desde la ficha que estás viendo.",
-          "features": [
-            "Envío de fichas y notas compatibles a contactos verificados",
-            "Revisión y aceptación de contenido recibido antes de incorporarlo a Nexo",
-            "Las opciones de compartir por Android continúan disponibles"
-          ]
-        },
         {
           "id": "inbox",
           "title": "Inbox y capturas externas",
