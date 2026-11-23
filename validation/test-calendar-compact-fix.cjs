@@ -1,4 +1,4 @@
-/* Regressions for Nexo 3.7.96 mobile month/day calendar layout. */
+/* Regressions for Nexo 3.7.97 mobile month/day calendar layout. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
