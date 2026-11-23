@@ -4717,6 +4717,11 @@ function init(){
   $('#searchFilter').addEventListener('change',()=>runSearch());
   $('#captureText').addEventListener('input',()=>analyzeCapture());
   $('#captureAiAnalyze')?.addEventListener('click',requestNexoAiCapture);
+  // Enlaces oficiales: usa el mismo Intent ACTION_VIEW que las demás URLs de Nexo.
+  for(const id of ['#nexoAiGeminiKeyLink','#nexoAiGroqKeyLink']){
+    const link=$(id);
+    link?.addEventListener('click',event=>{event.preventDefault();NexoNative.openExternal(link.href);});
+  }
   $('#nexoAiSaveGemini')?.addEventListener('click',()=>saveNexoAiCredential('gemini'));
   $('#nexoAiSaveGroq')?.addEventListener('click',()=>saveNexoAiCredential('groq'));
   $('#nexoAiGroqEnable')?.addEventListener('change',()=>{

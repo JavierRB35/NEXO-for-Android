@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.91",
-  "releaseNotes": "Se retiran Nexo Connect y Chat, manteniendo Inbox, Gmail, Nexo Familia y las copias personales. Nueva captura inteligente opcional con Gemini y respaldo Groq: claves cifradas, autorización por consulta y propuesta revisable, sin guardar citas automáticamente.",
+  "versionName": "3.7.92",
+  "releaseNotes": "En Ajustes → Inteligencia artificial se añaden enlaces oficiales para crear claves API de Gemini y Groq. Se abren en el navegador, para copiar la clave y pegarla en Nexo. Se mantienen el cifrado de credenciales y la autorización por consulta.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

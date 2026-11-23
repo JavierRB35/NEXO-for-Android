@@ -361,9 +361,12 @@
     <div class="settings-accordion__body hidden">
       <div class="settings-card settings-card--embedded nexo-ai-settings">
         <p class="small muted">Nexo seguirá interpretando las citas localmente. La IA solo se consulta cuando pulsas su botón y confirmas el envío del texto de esa captura. No se envían automáticamente tus agendas, fichas, contactos ni grabaciones.</p>
+        <p class="small muted">Abre el enlace oficial, copia tu clave API y vuelve a Nexo para pegarla en el campo correspondiente.</p>
+        <a id="nexoAiGeminiKeyLink" class="nexo-ai-key-link" href="https://aistudio.google.com/apikey">Crear o consultar clave Gemini ↗</a>
         <label>Clave personal de Gemini<input id="nexoAiGeminiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Introduce tu clave personal"></label>
         <button id="nexoAiSaveGemini" class="secondary-button" type="button">Guardar clave Gemini</button>
         <p id="nexoAiGeminiStatus" class="small muted" role="status">Gemini sin configurar</p>
+        <a id="nexoAiGroqKeyLink" class="nexo-ai-key-link" href="https://console.groq.com/keys">Crear o consultar clave Groq ↗</a>
         <label>Clave personal de Groq · respaldo opcional<input id="nexoAiGroqKey" type="password" autocomplete="off" spellcheck="false" placeholder="Introduce tu clave Groq"></label>
         <button id="nexoAiSaveGroq" class="secondary-button" type="button">Guardar clave Groq</button>
         <label class="switch-row"><input id="nexoAiGroqEnable" type="checkbox"><span><strong>Autorizar respaldo con Groq</strong><small>Solo ante cuota agotada, fallo temporal o timeout de Gemini. Recibirá el mismo texto de captura autorizado.</small></span></label>
@@ -551,7 +554,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.91</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.92</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -564,7 +567,7 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.91</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.92</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>
