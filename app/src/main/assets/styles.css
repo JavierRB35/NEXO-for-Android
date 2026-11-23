@@ -3744,3 +3744,12 @@ button.nexo-unified-save>.ui-icon{
 .event-detail-sheet>.record-form-actions--compact{padding:6px 8px 1px;box-shadow:0 -4px 12px rgba(20,35,60,.07)}
 .event-detail-sheet>.record-form-actions--compact>button,.event-detail-sheet>.record-form-actions--compact .record-action-overflow>summary{min-height:47px!important;font-size:.75rem}
 @media(max-width:360px){.event-detail-sheet .event-detail-edit-head{min-width:75px;padding:7px;font-size:.79rem}.event-detail-main{padding:11px}.event-detail-date{font-size:.98rem}.event-detail-time{font-size:1.22rem}}
+
+/* Captura IA bajo demanda: sin cambiar el layout del calendario ni el arranque. */
+.capture-ai-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:7px 0 2px}
+.capture-ai-actions small{font-size:.73rem;line-height:1.35;color:var(--muted)}
+.capture-ai-actions button{min-height:37px;padding:8px 12px}
+.nexo-ai-settings{display:grid;gap:9px}
+.nexo-ai-settings>label:not(.switch-row){display:grid;gap:4px}
+.nexo-ai-settings input[type=password]{width:100%;min-width:0}
+.nexo-ai-settings .switch-row{margin:2px 0}
