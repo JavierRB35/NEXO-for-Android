@@ -139,7 +139,7 @@ console.log('OK: selección Evento/Tarea, guardado nativo simulado y recuperaci�
 assert.ok(!html.includes('id="calendarViewSelect"'),'El selector de vistas no debe estar visible en la UI');
 assert.ok(html.includes('id="calendarBackToMonth"'),'La vista diaria necesita regreso explícito');
 const monthRenderer=app.slice(app.indexOf('function renderCalendar(direction=0){'),app.indexOf('function renderCalendarDay(){'));
-assert.match(monthRenderer,/calendarMarkerItems\\(list\\)/,'El mes conserva los símbolos de categoría');
+assert.ok(monthRenderer.includes('calendarMarkerItems(list)'), 'El mes conserva los símbolos de categoría');
 assert.match(monthRenderer,/calendarMarkerHtml/,'El mes debe pintar los SVG originales');
 assert.match(monthRenderer,/class="day-dots"/,'Los iconos se muestran debajo del día');
 assert.doesNotMatch(monthRenderer,/calendar-month-event|data-calendar-month-item/,'El mes no debe mostrar textos, horas ni etiquetas truncadas');
