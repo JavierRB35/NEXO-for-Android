@@ -998,7 +998,7 @@ function bindJournalButtons(root=document){
     const id=Number(b.dataset.editJournal),j=parseNative(NexoNative.getJournal(id),{});
     if(j.kind==='quote')openJournalComposer('','quote',id);else openJournalComposer('','',id);
   }));
-  root.querySelectorAll('[data-journal-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openConnectShareChoice('journal',Number(b.dataset.journalShare),()=>NexoNative.shareNexoJournal(Number(b.dataset.journalShare)));}));
+  root.querySelectorAll('[data-journal-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoJournal(Number(b.dataset.journalShare));}));
   root.querySelectorAll('[data-journal-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const id=Number(b.dataset.journalDelete),j=parseNative(NexoNative.getJournal(id),{});confirmGeneric('Eliminar entrada','Se eliminará “'+(j.title||'esta entrada')+'”.',()=>{if(NexoNative.deleteJournal(id)){toast('Entrada eliminada');renderJournalPanel();renderJournalPrompt(false);}else toast('No se pudo eliminar');},'Eliminar');}));
 }
 function startQuoteEditorVoice(){
@@ -1176,7 +1176,7 @@ function openJournal(id){
   const isQuote=j.kind==='quote';
   const flags=[j.favorite?'<span class="journal-read-flag">★ Favorita</span>':'',!isQuote&&j.revisit?'<span class="journal-read-flag">↺ Para releer</span>':''].filter(Boolean).join('');
   openModal(isQuote?'Frase':'Cuaderno',`<article class="journal-read"><div class="journal-date-badge">${esc(fmtDate(j.createdAt,true))}</div><h3>${esc(j.title||(isQuote?'Frase':'Entrada'))}</h3>${isQuote&&j.summary?`<div class="journal-read-reference">${esc(j.summary)}</div>`:''}${flags?`<div class="journal-read-flags">${flags}</div>`:''}<div class="journal-read-body">${esc(j.body||'')}</div></article><div class="modal-actions wrap-actions"><button id="journalDelete" class="danger-button">Eliminar</button><button id="journalShare" class="secondary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg> Compartir</button><button id="journalEdit" class="primary-button"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg> Editar</button></div>`);
-  $('#journalShare').addEventListener('click',()=>openConnectShareChoice('journal',j.id,()=>NexoNative.shareNexoJournal(j.id)));
+  $('#journalShare').addEventListener('click',()=>NexoNative.shareNexoJournal(j.id));
   $('#journalEdit').addEventListener('click',()=>{closeModal();setTimeout(()=>openJournalComposer('',isQuote?'quote':'',Number(j.id)),60);});
   $('#journalDelete').addEventListener('click',()=>{closeModal();$('#confirmTitle').textContent=isQuote?'Eliminar frase':'Eliminar del Cuaderno';$('#confirmText').textContent='Se eliminará esta entrada. Esta acción no afecta al calendario.';$('#confirmModal').classList.remove('hidden');state.confirmAction=()=>{const ok=NexoNative.deleteJournal(j.id);$('#confirmModal').classList.add('hidden');toast(ok?'Entrada eliminada':'No se pudo eliminar');refreshCurrent();renderJournalPrompt(false);};});
 }
@@ -1273,7 +1273,7 @@ function openNoteReader(id){
   document.body.classList.add('note-reading-open');
   bindRelatedOwners($('#modalBody'));
   $('#noteReaderEdit').addEventListener('click',()=>openNoteComposer(Number(note.id)));
-  $('#noteReaderShare').addEventListener('click',()=>openConnectShareChoice('items',Number(note.id),()=>NexoNative.shareNexoItem(Number(note.id),0,false)));
+  $('#noteReaderShare').addEventListener('click',()=>NexoNative.shareNexoItem(Number(note.id),0,false));
   $('#noteReaderDelete').addEventListener('click',()=>confirmDeleteItem(note));
   const changeSize=step=>{
     const body=$('#noteReaderText');if(!body)return;
@@ -1292,7 +1292,7 @@ function openNoteReader(id){
 function bindNoteButtons(root=document){
   root.querySelectorAll('[data-note-read]').forEach(b=>b.addEventListener('click',()=>openNoteReader(Number(b.dataset.noteRead))));
   root.querySelectorAll('[data-open-note]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openNoteComposer(Number(b.dataset.openNote));}));
-  root.querySelectorAll('[data-note-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openConnectShareChoice('items',Number(b.dataset.noteShare),()=>NexoNative.shareNexoItem(Number(b.dataset.noteShare),0,false));}));
+  root.querySelectorAll('[data-note-share]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();NexoNative.shareNexoItem(Number(b.dataset.noteShare),0,false);}));
   root.querySelectorAll('[data-note-delete]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deleteItemFromCard(Number(b.dataset.noteDelete));}));
 }
 
@@ -1530,7 +1530,7 @@ function openNoteComposer(id=0,prefill='',titlePrefill='',titleManualPrefill=fal
   const share=()=>{
     const ed=state.noteEditor;if(!ed)return;
     if(noteHasUnsavedChanges()){toast('Guarda los cambios antes de compartir la nota.');return;}
-    if(ed.id>0)openConnectShareChoice('items',ed.id,()=>NexoNative.shareNexoItem(ed.id,0,false));
+    if(ed.id>0)NexoNative.shareNexoItem(ed.id,0,false);
   };
   const del=()=>{
     const ed=state.noteEditor;if(!ed||ed.id<=0)return;
@@ -2189,45 +2189,14 @@ function bindItemButtons(root=document){
   root.querySelectorAll('[data-go-location]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const place=String(b.dataset.goLocation||'').trim();if(place)NexoNative.openLocationDirections(place);}));
   root.querySelectorAll('[data-postpone-event]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openPostponeSheet(Number(b.dataset.postponeEvent),Number(b.dataset.postponeOccurrence||0),b.dataset.postponeRecurring==='1');}));
 }
-// Experimental in-app E2EE option; never replace the existing Android export.
-function openConnectShareChoice(section,id,shareNormally){
-  let enabled=false;
-  try{enabled=NexoNative.isNexoConnectExperimentEnabled()===true;}catch(_){}
-  if(!enabled||!Number.isSafeInteger(Number(id))||Number(id)<=0){
-    shareNormally();return;
-  }
-  const overlay=document.createElement('div');
-  overlay.className='modal scope-overlay';
-  overlay.innerHTML=`<div class="confirm-sheet scope-sheet">
-    <h2>¿Cómo quieres compartir?</h2>
-    <p class="muted">Puedes compartirlo de forma habitual o preparar una copia cifrada para un contacto verificado de Nexo.</p>
-    <div class="scope-buttons">
-      <button class="primary-button" type="button" data-connect-share>Con una persona en Nexo</button>
-      <button class="secondary-button" type="button" data-normal-share>Compartir por Android</button>
-      <button class="ghost-button" type="button" data-share-close>Cancelar</button>
-    </div></div>`;
-  document.body.appendChild(overlay);
-  overlay.querySelector('[data-connect-share]').addEventListener('click',()=>{
-    overlay.remove();NexoNative.openNexoConnectShare(section,Number(id));
-  });
-  overlay.querySelector('[data-normal-share]').addEventListener('click',()=>{
-    overlay.remove();shareNormally();
-  });
-  overlay.querySelector('[data-share-close]').addEventListener('click',()=>overlay.remove());
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-}
 function openItemShareMenu(id,occurrenceAt,recurring,hasDate){
   const overlay=document.createElement('div');overlay.className='modal scope-overlay';
-  let connectEnabled=false;
-  try{connectEnabled=NexoNative.isNexoConnectExperimentEnabled()===true;}catch(_){}
-  overlay.innerHTML=`<div class="confirm-sheet scope-sheet"><h2>Compartir</h2><p class="muted">Elige el formato según quién vaya a recibirlo.</p><div class="scope-buttons">${connectEnabled?'<button class="primary-button" data-share-format="connect">Con una persona en Nexo</button>':''}<button class="secondary-button" data-share-format="nexo">Nexo · archivo para compartir</button>${hasDate?'<button class="secondary-button" data-share-format="ics">Calendario (.ics)</button>':''}<button class="ghost-button" data-share-cancel>Cancelar</button></div></div>`;
+  overlay.innerHTML=`<div class="confirm-sheet scope-sheet"><h2>Compartir</h2><p class="muted">Elige el formato según quién vaya a recibirlo.</p><div class="scope-buttons"><button class="secondary-button" data-share-format="nexo">Nexo · archivo para compartir</button>${hasDate?'<button class="secondary-button" data-share-format="ics">Calendario (.ics)</button>':''}<button class="ghost-button" data-share-cancel>Cancelar</button></div></div>`;
   document.body.appendChild(overlay);
-  overlay.querySelector('[data-share-format="connect"]')?.addEventListener('click',()=>{
-    overlay.remove();NexoNative.openNexoConnectShare('items',Number(id));
-  });
   overlay.querySelector('[data-share-format="nexo"]').addEventListener('click',()=>{overlay.remove();shareNexoItem(id,occurrenceAt,recurring);});
-  if(overlay.querySelector('[data-share-format="ics"]'))overlay.querySelector('[data-share-format="ics"]').addEventListener('click',()=>{overlay.remove();shareCalendarEvent(id,occurrenceAt,recurring);});
-  overlay.querySelector('[data-share-cancel]').addEventListener('click',()=>overlay.remove());overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  overlay.querySelector('[data-share-format="ics"]')?.addEventListener('click',()=>{overlay.remove();shareCalendarEvent(id,occurrenceAt,recurring);});
+  overlay.querySelector('[data-share-cancel]').addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
 }
 function shareNexoItem(id,occurrenceAt,recurring){
   if(recurring){
@@ -2978,7 +2947,7 @@ function shareNexoApp(){
   const message='Te comparto Nexo, una aplicación Android para organizar tus citas, notas y tu día.\n\n'+
     'Descarga siempre la última versión desde:\n'+NEXO_PUBLIC_DOWNLOAD_URL+'\n\n'+
     'En la página, abre «Assets» y descarga el archivo .apk.\n'+
-    'La aplicación se instala de forma independiente, sin compartir mis datos ni vincular Nexo Connect.';
+    'La aplicación se instala de forma independiente, sin compartir mis datos.';
   try{NexoNative.sharePlainText('Nexo · Descargar aplicación',message);}
   catch(_){toast('No se pudo abrir el menú para compartir Nexo.');}
 }
@@ -2994,12 +2963,6 @@ function renderMore(){
   renderTranscriptionQualitySettings();
   renderCommunicationCaptureSettings();
   renderMedicationMessageSettings();
-  const labEntry=$('#nexoConnectExperimentSection');
-  if(labEntry){
-    let enabled=false;
-    try{enabled=NexoNative.isNexoConnectExperimentEnabled()===true;}catch(_){}
-    labEntry.classList.toggle('hidden',!enabled);
-  }
   renderUpdateStatus(NexoNative.getUpdateStatus());
 }
 
@@ -3349,25 +3312,23 @@ function renderBackupPanel(){
         <div class="stack-actions family-sync-actions"><button id="nexoFamiliaLinkBtn" class="primary-button">Vincular Nexo Familia</button></div>
       </div>`;
 
-  const configured=!!b.configured,chatPresent=!!b.chatPresent,chatPassword=!!b.chatPasswordConfigured;
+  const configured=!!b.configured;
   const backupError=String(b.lastError||''),running=!!b.running;
   $('#panelContent').innerHTML=`<div class="backup-stack">
     <div class="backup-card">
       <div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-share"></use></svg></div>
       <div class="backup-copy"><strong>Copia automática en un único archivo</strong>
         <p>Elige una ubicación una sola vez. Nexo actualizará el mismo archivo <b>.nexo</b> al abrirse si hay cambios y comprobará que se guardó correctamente.</p>
-        <p>Incluye tus datos, adjuntos y conversaciones cifradas. <strong>Los audios se exportan por separado.</strong></p>
+        <p>Incluye tus datos y adjuntos. <strong>Los audios se exportan por separado.</strong></p>
         <div class="small muted">${configured?'Ubicación configurada.':'Sin destino configurado: elige dónde guardar la copia.'}</div>
         <div class="small muted">${last?`Última copia verificada: ${esc(fmtDate(last,true))}`:'Aún no hay ninguna copia verificada.'}</div>
         ${running?'<div class="small muted">Creando y comprobando la copia…</div>':''}
         ${backupError?`<div class="family-sync-warning">La copia necesita atención: ${esc(backupError)}</div>`:''}
-        ${chatPresent?`<div class="small muted">${chatPassword?'Contraseña del chat protegida en este dispositivo.':'Configura una contraseña para incluir y proteger el chat automáticamente.'}</div>`:''}
         <div class="small muted">${esc(backupStatLine(stats))}</div>
       </div>
       <div class="backup-actions">
         <button id="backupChooseBtn" class="secondary-button">${configured?'Cambiar ubicación':'Elegir ubicación'}</button>
         <button id="backupExportBtn" class="primary-button">${configured?'Crear copia ahora':'Configurar copia'}</button>
-        ${chatPresent?`<button id="backupPasswordBtn" class="secondary-button">${chatPassword?'Cambiar contraseña del chat':'Proteger conversaciones'}</button>`:''}
       </div>
     </div>
     <div class="backup-card"><div class="backup-icon"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg></div><div class="backup-copy"><strong>Restaurar copia</strong><p>Selecciona un archivo <b>.nexo</b> desde el teléfono, la nube, USB u otra ubicación disponible.</p><div class="small muted">${restored?`Última restauración: ${esc(fmtDate(restored,true))}`:'La restauración sustituye el contenido actual por el de la copia.'}</div></div><button id="backupRestoreBtn" class="secondary-button">Restaurar copia</button></div>
@@ -3377,7 +3338,6 @@ function renderBackupPanel(){
 
   $('#backupChooseBtn').addEventListener('click',()=>{NexoNative.chooseBackupLocation();});
   $('#backupExportBtn').addEventListener('click',()=>{toast(configured?'Comprobando la copia en el archivo elegido…':'Elige dónde guardar la copia.');NexoNative.exportBackup();});
-  if(chatPresent)$('#backupPasswordBtn').addEventListener('click',()=>{NexoNative.configureBackupPassword();});
   $('#backupRestoreBtn').addEventListener('click',()=>{toast('Selecciona una copia .nexo para revisarla antes de restaurar.');NexoNative.chooseBackupRestore();});
 
   if(connected){
@@ -3567,7 +3527,7 @@ function openListCardMenu(id){
     '<button id="listCardDuplicate" type="button" class="secondary-button">⧉ Duplicar</button>'+
     '<button id="listCardDelete" type="button" class="danger-button">'+uiIcon('trash')+' Eliminar lista</button></div>');
   $('#listCardRename').addEventListener('click',()=>openRenameListModal(id));
-  $('#listCardShare').addEventListener('click',()=>{closeModal();openConnectShareChoice('lists',id,()=>NexoNative.shareNexoList(id));});
+  $('#listCardShare').addEventListener('click',()=>{closeModal();NexoNative.shareNexoList(id);});
   $('#listCardDuplicate').addEventListener('click',()=>{
     const newId=Number(NexoNative.duplicateList(id));closeModal();
     if(newId>0){toast('Lista duplicada');openList(newId);}else toast('No se pudo duplicar');
@@ -3602,7 +3562,7 @@ function openList(id,options={}){
     '<button id="shareListBtn" type="button" class="secondary-button">'+uiIcon('share')+' Compartir</button>'+
     '<button id="manageListBtn" type="button" class="secondary-button list-manage-button" aria-label="Más opciones">'+uiIcon('more')+'</button></div>';
   $('#listRenameInline').addEventListener('click',()=>openRenameListModal(id));
-  $('#shareListBtn').addEventListener('click',()=>openConnectShareChoice('lists',id,()=>NexoNative.shareNexoList(id)));
+  $('#shareListBtn').addEventListener('click',()=>NexoNative.shareNexoList(id));
   $('#manageListBtn').addEventListener('click',()=>openListManagement(id));
   const voiceHint=shopping?'Puedes dictar varios productos diciendo «huevos y mantequilla y pan». También puedes decir «quita el azúcar» o «ya he comprado los huevos».':
     'Puedes dictar varios elementos diciendo «pasaporte y cargador y medicamentos».';
@@ -4491,7 +4451,8 @@ window.NexoUI={
   onBackupExported(raw){const r=parseNative(raw,{});toast('Copia de seguridad creada correctamente.', '', null, 4500);if(state.screen==='panel'&&state.lastPanel==='backup')renderBackupPanel();renderMore();},
   onBackupRestorePreview(raw){
     const p=parseNative(raw,{}),st=p.stats||{},when=Number(p.createdAt||0);
-    openModal('Restaurar copia',`<div class="restore-preview"><div class="restore-check">✓</div><h3>COPIA VÁLIDA</h3><p>${when?`Creada el <strong>${esc(fmtDate(when,true))}</strong>.`:''}</p><div class="restore-stats"><span>${Number(st.items||0)} elementos</span><span>${Number(st.lists||0)} listas</span><span>${Number(st.journal||0)} Cuaderno</span><span>${Number(st.medications||0)} medicamentos</span><span>${Number(st.attachments||0)} adjuntos</span></div><p>${p.chatIncluded?'Incluye tus conversaciones y nombres. Necesitarás la contraseña de la copia.':'Esta copia no contiene conversaciones.'}</p><div class="restore-warning"><strong>Importante</strong><p>Las fichas y los adjuntos actuales se sustituirán por los de esta copia. Las conversaciones recuperadas se añadirán al historial sin duplicarlas. Antes de hacerlo, Nexo guardará una copia interna de seguridad.</p></div><div class="modal-actions"><button id="restoreCancelBtn" class="secondary-button">Cancelar</button><button id="restoreConfirmBtn" class="danger-button solid">Restaurar ahora</button></div></div>`);
+    if(p.chatIncluded){openModal('Copia antigua con conversaciones','<p>Esta copia contiene conversaciones de Nexo Connect. Esta versión no puede recuperarlas. No se ha modificado ningún dato.</p><p>Para conservarlas, restáurala con Nexo 3.7.90.</p><div class="modal-actions"><button id="restoreLegacyClose" class="secondary-button">Cerrar</button></div>');$('#restoreLegacyClose').addEventListener('click',closeModal);return;}
+    openModal('Restaurar copia',`<div class="restore-preview"><div class="restore-check">✓</div><h3>COPIA VÁLIDA</h3><p>${when?`Creada el <strong>${esc(fmtDate(when,true))}</strong>.`:''}</p><div class="restore-stats"><span>${Number(st.items||0)} elementos</span><span>${Number(st.lists||0)} listas</span><span>${Number(st.journal||0)} Cuaderno</span><span>${Number(st.medications||0)} medicamentos</span><span>${Number(st.attachments||0)} adjuntos</span></div><div class="restore-warning"><strong>Importante</strong><p>Las fichas y los adjuntos actuales se sustituirán por los de esta copia. Antes de hacerlo, Nexo guardará una copia interna de seguridad.</p></div><div class="modal-actions"><button id="restoreCancelBtn" class="secondary-button">Cancelar</button><button id="restoreConfirmBtn" class="danger-button solid">Restaurar ahora</button></div></div>`);
     $('#restoreCancelBtn').addEventListener('click',closeModal);$('#restoreConfirmBtn').addEventListener('click',()=>{const b=$('#restoreConfirmBtn');b.disabled=true;b.textContent='Restaurando…';NexoNative.confirmRestoreBackup();});
   },
   onBackupRestored(raw){closeModal();toast('Copia restaurada. Recargando Nexo…','',null,5000);setTimeout(()=>window.location.reload(),900);},
@@ -4622,11 +4583,6 @@ function init(){
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;$('#captureCategory').appendChild(o);}); $('#captureCategory').value='Otro';bindCategorySelectIcon('#captureCategory');
   setInterpretationStatus('idle','Interpretación local preparada');
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.nav==='notes')openPanel('notes',{root:true});else if(b.dataset.nav==='inbox')openPanel('inbox',{root:true});else if(b.dataset.nav==='calendar'){resetCalendarToToday();navigate('calendar',{root:true,scrollY:0});}else navigate(b.dataset.nav,{root:true});}));
-  try{NexoNative.requestNexoChatRefresh();}catch(_){}
-  setInterval(()=>{if(!document.hidden)try{NexoNative.requestNexoChatRefresh();}catch(_){}},45000);
-  document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden)try{NexoNative.requestNexoChatRefresh();}catch(_){}
-  });
   $('#globalSearchBtn').addEventListener('click',()=>navigate('search'));
   $('#settingsBtn').addEventListener('click',()=>navigate('more'));
   $('#shareNexoApp')?.addEventListener('click',shareNexoApp);
@@ -4656,17 +4612,6 @@ function init(){
   const runningVersion=String(NexoNative.getAppVersion()||'');
   if($('#headerVersion'))$('#headerVersion').textContent=runningVersion?'v'+runningVersion:'';
   document.querySelectorAll('[data-settings-section]').forEach(btn=>btn.addEventListener('click',()=>toggleSettingsAccordion(btn.dataset.settingsSection)));
-  $('#nexoChatOpen')?.addEventListener('click',()=>NexoNative.openNexoChat());
-  // Connect setup links directly to a single native screen; no hub in between.
-  [['#nexoConnectProfileOpen','profile'],['#nexoConnectCodeOpen','code'],
-   ['#nexoConnectGenerateOpen','generate'],['#nexoConnectPairOpen','pair'],
-   ['#nexoConnectInvitationOpen','invitation'],['#nexoConnectPeopleOpen','people']]
-    .forEach(([id,action])=>$(id)?.addEventListener('click',()=>{
-      try{
-        if(NexoNative.isNexoConnectExperimentEnabled()!==true)return;
-        NexoNative.openNexoConnectSettings(action);
-      }catch(_){toast('No se pudo abrir Nexo Connect.');}
-    }));
   $('#peopleAddBtn')?.addEventListener('click',()=>openPersonEditor());
   $('#homeSearchInput')?.addEventListener('input',e=>runHomeSearch(e.target.value));
   $('#homeTodayCard')?.addEventListener('click',openHomeToday);
@@ -5131,7 +5076,7 @@ function openPlaceDetail(id){
     if(live.id)savePlaceDetailChange(id,{placeRating:Number(live.placeRating)===n?0:n});
   }));
   $('#placeDetailMaps').addEventListener('click',()=>placeMaps(i));
-  $('#placeDetailShare').addEventListener('click',()=>openConnectShareChoice('items',id,()=>NexoNative.shareNexoItem(id,0,false)));
+  $('#placeDetailShare').addEventListener('click',()=>NexoNative.shareNexoItem(id,0,false));
   $('#placeDetailEdit').addEventListener('click',()=>openPlaceEditor(id));
   $('#placeDetailDelete').addEventListener('click',()=>confirmDeleteItem(i));
 }
