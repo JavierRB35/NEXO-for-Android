@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.92",
-  "releaseNotes": "En Ajustes → Inteligencia artificial se añaden enlaces oficiales para crear claves API de Gemini y Groq. Se abren en el navegador, para copiar la clave y pegarla en Nexo. Se mantienen el cifrado de credenciales y la autorización por consulta.",
+  "versionName": "3.7.93",
+  "releaseNotes": "Captura rápida de citas con IA automática y consentimiento: Gemini primero, Groq si falla y algoritmo local si ambos servicios no responden. Se proponen todos los campos expresados, incluidas direcciones, personas, horarios, repeticiones, avisos y prioridad. Revisión manual antes de guardar.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [
@@ -38,7 +38,7 @@ window.NexoProductCatalog = {
           "features": [
             "Escritura y dictado para crear citas y notas",
             "Interpretación de fecha, categoría y avisos con confirmación",
-            "IA opcional para propuestas de citas con Gemini, respaldo Groq y confirmación antes del envío"
+            "IA automática de citas con autorización, Gemini → Groq → local, campos completos y revisión antes de guardar"
           ]
         },
         {

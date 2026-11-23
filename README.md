@@ -1,8 +1,10 @@
-# Nexo 3.7.92
+# Nexo 3.7.93
 
 Nexo es una aplicación Android **local-first** para organizar agenda, tareas, recordatorios, medicación, notas, documentos, listas, escritos, libros, grabaciones, lugares y capturas de Inbox desde una única interfaz.
 
-Esta versión corresponde a **Nexo 3.7.92**, `versionCode 185`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **34**.
+Esta versión corresponde a **Nexo 3.7.93**, `versionCode 186`, `applicationId com.jruiz.nexo` y base de datos local `nexo.db` esquema **34**.
+
+**Nuevo en 3.7.93:** Captura automática de citas mediante IA tras activar el consentimiento en Ajustes. Gemini prioritario, Groq de respaldo si está configurado y algoritmo local cuando no es posible obtener una propuesta válida. Se proponen los campos disponibles (título, descripción, categoría, horarios, zona, lugar/Maps, personas, recurrencia, avisos y prioridad); se respetan los cambios manuales y nunca se guarda automáticamente. No se comparten datos del repositorio de personas. Actualización opcional.
 
 **Nuevo en 3.7.92:** Dos enlaces oficiales para obtener claves de Gemini y Groq en Ajustes → Inteligencia artificial. Se abren en el navegador para copiar y pegar las claves; la configuración, el cifrado y el uso optativo permanecen intactos. Actualización opcional.
 

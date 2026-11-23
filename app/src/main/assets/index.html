@@ -179,7 +179,7 @@
           </div>
 
           <textarea id="captureText" rows="3" placeholder="Ej. Llamar al seguro el viernes a las 18 h y avisarme una hora antes" aria-label="Describe lo que quieres guardar" class="capture-text"></textarea>
-          <div class="capture-ai-actions"><button id="captureAiAnalyze" class="secondary-button" type="button">✦ Mejorar propuesta con IA</button><small>Solo se enviará el texto si autorizas la consulta. Revisa antes de guardar.</small></div>
+          <div class="capture-ai-actions"><button id="captureAiAnalyze" class="secondary-button" type="button">✦ Reintentar con IA</button><small>Con IA automática autorizada: Gemini → Groq → algoritmo local. Revisa los campos antes de guardar.</small></div>
           <div id="localStatus" class="interpretation-status idle">
 <span class="status-dot"></span><span>Interpretación local preparada</span>
 </div>
@@ -360,7 +360,8 @@
     </button>
     <div class="settings-accordion__body hidden">
       <div class="settings-card settings-card--embedded nexo-ai-settings">
-        <p class="small muted">Nexo seguirá interpretando las citas localmente. La IA solo se consulta cuando pulsas su botón y confirmas el envío del texto de esa captura. No se envían automáticamente tus agendas, fichas, contactos ni grabaciones.</p>
+        <p class="small muted">Captura rápida puede interpretar automáticamente el texto de las citas mediante Gemini, después Groq si falla, y finalmente el algoritmo local si no hay IA disponible. Solo se envía el texto de la captura; nunca se transmite la agenda ni el listado de personas. Revisa antes de guardar.</p>
+        <label class="switch-row"><input id="nexoAiAutomatic" type="checkbox"><span><strong>Interpretar citas automáticamente con IA</strong><small>Al activarlo autorizas el envío del texto tras una pausa al escribir o terminar el dictado. Puede consumir cuota. Sin acceso o ante errores se usa el algoritmo local.</small></span></label>
         <p class="small muted">Abre el enlace oficial, copia tu clave API y vuelve a Nexo para pegarla en el campo correspondiente.</p>
         <a id="nexoAiGeminiKeyLink" class="nexo-ai-key-link" href="https://aistudio.google.com/apikey">Crear o consultar clave Gemini ↗</a>
         <label>Clave personal de Gemini<input id="nexoAiGeminiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Introduce tu clave personal"></label>
@@ -554,7 +555,7 @@
   </section>
 
 </div>
-<p class="version-info">Nexo <span data-app-version>v3.7.92</span></p></section>
+<p class="version-info">Nexo <span data-app-version>v3.7.93</span></p></section>
 <section class="screen about-screen" data-screen="about" aria-labelledby="aboutTitle">
   <div class="panel-header about-header">
     <button id="aboutBackBtn" class="back-button" type="button" aria-label="Volver"><svg class="ui-icon" aria-hidden="true"><use href="#nx-icon-left"></use></svg></button>
@@ -567,7 +568,7 @@
     <h2>Nexo</h2>
     <p class="about-tagline">Tu información. Tu día. Tu Nexo.</p>
     <div class="about-version-row" aria-label="Versión instalada">
-      <span>Nexo <strong data-app-version>v3.7.92</strong></span>
+      <span>Nexo <strong data-app-version>v3.7.93</strong></span>
       <span>Release</span>
       <span>Compilación <strong id="aboutVersionCode">—</strong></span>
     </div>

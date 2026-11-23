@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.92",
-  "notes": "En Ajustes → Inteligencia artificial se añaden enlaces oficiales para crear claves API de Gemini y Groq. Se abren en el navegador, para copiar la clave y pegarla en Nexo. Se mantienen el cifrado de credenciales y la autorización por consulta."
+  "versionName": "3.7.93",
+  "notes": "Captura rápida de citas con IA automática y consentimiento: Gemini primero, Groq si falla y algoritmo local si ambos servicios no responden. Se proponen todos los campos expresados, incluidas direcciones, personas, horarios, repeticiones, avisos y prioridad. Revisión manual antes de guardar."
 }
