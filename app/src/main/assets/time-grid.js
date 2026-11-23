@@ -144,7 +144,7 @@
   }
   function attachEmptySlotCreate(board,iso){
     if(!board||typeof board.addEventListener!=='function'||typeof prepareTimeGridAppointment!=='function')return;
-    let gesture=null,timer=0,lastTouch=0;
+    let gesture=null,timer=0,lastTouch=0,suppressClickUntil=0;
     const existingEvent=target=>!!target?.closest?.('[data-tgv-index], [data-tgv-allday]');
     const cancel=()=>{if(timer)clearTimeout(timer);timer=0;gesture=null;};
     const start=(kind,x,y,target)=>{
@@ -162,12 +162,13 @@
     };
     const moved=(kind,x,y)=>{
       if(!gesture||gesture.kind!==kind)return;
-      if(Math.abs(x-gesture.x)>9||Math.abs(y-gesture.y)>9)cancel();
+      if(Math.abs(x-gesture.x)>9||Math.abs(y-gesture.y)>9){if(kind==='touch')suppressClickUntil=Date.now()+350;cancel();}
     };
     const finish=kind=>{
       if(!gesture||gesture.kind!==kind)return false;
       const triggered=gesture.triggered;
       cancel();
+      if(triggered)suppressClickUntil=Date.now()+800;
       return triggered;
     };
     board.addEventListener('touchstart',e=>{
@@ -185,6 +186,12 @@
       if(finish('touch'))e.preventDefault(); // Evitar el click fantasma tras abrir el editor.
     },{passive:false});
     board.addEventListener('touchcancel',cancel);
+    // Pulsar una hora vacía abre el alta con la franja preseleccionada.
+    board.addEventListener('click',e=>{
+      if(writing||Date.now()<suppressClickUntil||existingEvent(e.target))return;
+      const slot=slotRangeAtY(board,e.clientY);
+      prepareTimeGridAppointment(iso,slot.start,slot.end);
+    });
     board.addEventListener('contextmenu',e=>{
       if(!existingEvent(e.target))e.preventDefault();
     });
@@ -200,6 +207,8 @@
     // No ocultamos ninguna hora: seguimos mostrando las 24 h y desplazamos
     // la vista al primer evento, tanto en HOY como al seleccionar una fecha.
     if(host.dataset.tgvFocusedDay===iso)return;
+    const requestedMinute=Number.isInteger(host._tgvFocusMinute)?host._tgvFocusMinute:null;
+    host._tgvFocusMinute=null;
     const ticket=String((Number(host.dataset.tgvFocusTicket)||0)+1);
     host.dataset.tgvFocusTicket=ticket;
     const action=()=>{
@@ -229,7 +238,7 @@
       // Dejar 45 minutos de contexto arriba; en fechas distintas se conserva
       // el foco previo sobre la primera cita y no aparece la línea de «ahora».
       const today=isToday(iso);
-      const targetMinute=today?minuteNow(new Date()):minute;
+      const targetMinute=requestedMinute!==null?requestedMinute:(today?minuteNow(new Date()):minute);
       const offset=Math.max(0,targetMinute-(today?NOW_CONTEXT_MINUTES:8))*PX_PER_MINUTE;
       if(scroller){
         const origin=scroller.getBoundingClientRect().top;
@@ -302,10 +311,10 @@
     host.innerHTML=(allDay.length?'<div class="tgv-all-day" role="region" aria-label="Eventos de todo el día"><span class="tgv-all-day-label">Todo el día · '+allDay.length+' evento'+(allDay.length===1?'':'s')+'</span>'+allDay.map((item,index)=>
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'" title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr('Abrir '+fullLabel(item))+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</div>':'')+
-      '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas, de 00:00 a 24:00. Mantén pulsado un espacio vacío para crear una cita.">'+
+      '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas, de 00:00 a 24:00. Toca una hora vacía para crear una cita.">'+
       hours.join('')+'<div class="tgv-event-layer" style="height:'+total+'px">'+cards+'</div>'+nowMarkup(iso,new Date())+
       (!timed.length?'<div class="tgv-no-events">No hay eventos con hora para este día.</div>':'')+
-      '</div><p class="tgv-help">Mantén pulsado un espacio vacío para crear una cita en esa hora. Sobre una cita existente, mantén pulsado el centro para moverla o sus bordes para cambiar su duración (15 min).</p>';
+      '</div><p class="tgv-help">Toca una hora vacía para crear una cita en esa franja. Sobre una cita existente, mantén pulsado el centro para moverla o sus bordes para cambiar su duración (15 min).</p>';
     attachEmptySlotCreate(host.querySelector?.('.tgv-board'),iso);
     host.querySelectorAll('[data-tgv-allday]').forEach(btn=>btn.addEventListener('click',()=>{
       const item=allDay[Number(btn.dataset.tgvAllday)];
@@ -315,7 +324,7 @@
       const row=timed[Number(btn.dataset.tgvIndex)];
       attachDrag(btn,row,iso,host);
     });
-    focusInitialHour(host,iso,timed.length?Math.min(...timed.map(r=>r.start)):0);
+    focusInitialHour(host,iso,timed.length?Math.min(...timed.map(r=>r.start)):480);
   }
   /** Abre la ficha única que ya utiliza Nexo, con el apartado Editar plegado. */
   function openExistingDetail(item){
