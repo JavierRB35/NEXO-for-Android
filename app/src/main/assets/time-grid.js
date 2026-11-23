@@ -257,7 +257,8 @@
     (Array.isArray(rawItems)?rawItems:[]).filter(item=>item?.dueAt&&visibleInDay(item,bounds))
       .forEach(item=>byIdentity.set(eventKey(item),item));
     const items=[...byIdentity.values()];
-    const allDay=items.filter(item=>!isTimed(item));
+    const noTimeTasks=host.id==='calendarDayItems'?items.filter(item=>!isTimed(item)&&(item.type==='task'||categoryLabel(item.category)==='Tarea / Recado')):[];
+    const allDay=items.filter(item=>!isTimed(item)&&!noTimeTasks.includes(item));
     const timed=assignColumns(items.filter(isTimed).map(item=>segment(item,bounds)));
     // Toda la jornada, incluso citas de madrugada o a última hora.
     const first=0,last=1440,total=last*PX_PER_MINUTE;
@@ -289,7 +290,9 @@
     // La franja «Todo el día» se fija dentro de la agenda desplazable.
     // En Inicio continúa fijada bajo la cabecera principal.
     host.style?.setProperty?.('--tgv-top-offset',host.id==='calendarDayItems'?'0px':(topBarHeight+6)+'px');
-    host.innerHTML=(allDay.length?'<div class="tgv-all-day" role="region" aria-label="Eventos de todo el día"><span class="tgv-all-day-label">Todo el día · '+allDay.length+' evento'+(allDay.length===1?'':'s')+'</span>'+allDay.map((item,index)=>
+    host.innerHTML=(noTimeTasks.length?'<section class="tgv-task-no-time" aria-label="Tareas sin hora"><div class="tgv-task-no-time-label">Tareas del día · '+noTimeTasks.length+'</div>'+noTimeTasks.map((item,index)=>
+      '<button type="button" class="tgv-all-day-event'+(item.status==='done'||item.occurrenceStatus==='done'?' calendar-item-done':'')+'" data-tgv-no-time="'+index+'" style="--tgv-accent:'+validColor(item)+'">'+uiIcon('tasks')+'<span><strong>'+esc(item.title||'Tarea')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</section>':'')+
+      (allDay.length?'<div class="tgv-all-day" role="region" aria-label="Eventos de todo el día"><span class="tgv-all-day-label">Todo el día · '+allDay.length+' evento'+(allDay.length===1?'':'s')+'</span>'+allDay.map((item,index)=>
       '<button type="button" class="tgv-all-day-event" data-tgv-allday="'+index+'" style="--tgv-accent:'+validColor(item)+'" title="'+escAttr(fullLabel(item))+'" aria-label="'+escAttr('Abrir '+fullLabel(item))+'">'+uiIcon(isVehicleReservation(item)?'car':familyCategoryIcon(item.category))+
       '<span><strong>'+esc(item.title||'Evento')+'</strong><small>'+esc(subtitle(item))+'</small></span></button>').join('')+'</div>':'')+
       '<div class="tgv-board" style="height:'+total+'px" role="group" aria-label="Agenda por horas, de 00:00 a 24:00. Mantén pulsado un espacio vacío para crear una cita.">'+
@@ -297,6 +300,9 @@
       (!timed.length?'<div class="tgv-no-events">No hay eventos con hora para este día.</div>':'')+
       '</div><p class="tgv-help">Mantén pulsado un espacio vacío para crear una cita en esa hora. Sobre una cita existente, mantén pulsado el centro para moverla o sus bordes para cambiar su duración (15 min).</p>';
     attachEmptySlotCreate(host.querySelector?.('.tgv-board'),iso);
+    host.querySelectorAll('[data-tgv-no-time]').forEach(btn=>btn.addEventListener('click',()=>{
+      const item=noTimeTasks[Number(btn.dataset.tgvNoTime)];if(item)openExistingDetail(item);
+    }));
     host.querySelectorAll('[data-tgv-allday]').forEach(btn=>btn.addEventListener('click',()=>{
       const item=allDay[Number(btn.dataset.tgvAllday)];
       if(item)openExistingDetail(item);
