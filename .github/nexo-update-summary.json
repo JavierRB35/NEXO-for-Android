@@ -1,4 +1,4 @@
 {
-  "versionName": "3.7.96",
-  "notes": "Se recuperan los iconos de las citas y tareas del calendario. El mes completo cabe en pantalla, incluso con seis semanas, y el horario diario muestra todos sus controles en una sola fila. Sin cambios en tus datos, citas, tareas o avisos. Actualización opcional."
+  "versionName": "3.7.97",
+  "notes": "El calendario mensual vuelve a mostrar únicamente los símbolos de categoría, sin horas ni títulos recortados. Pulsa un día para ver sus eventos y el horario completo. Se mantiene la vista mensual ajustada a pantalla y la cabecera diaria compacta. Sin cambios en tus datos ni avisos. Actualización opcional."
 }
