@@ -60,6 +60,7 @@ python validation/test-related-links.py
 node validation/test-list-quick-runtime.cjs
 python validation/test-version-identity.py
 python validation/test-nexo-ai-capture.py
+node validation/test-nexo-ai-capture-runtime.cjs
 python validation/test-contextual-voice-keyboard.py
 python validation/test-in-app-updates.py
 python validation/test-event-maps-ui.py
