@@ -1,3 +1,9 @@
+## Nexo 3.7.97 — Solo símbolos en el calendario mensual
+
+- Restaurados los símbolos originales de categoría en las casillas del mes, con sus colores. Eliminados los chips de texto con horas y títulos que quedaban truncados.
+- Al pulsar una fecha se sigue abriendo su horario diario; allí permanecen todos los detalles de las citas y tareas. Se conserva el ajuste del mes completo en pantalla y el diseño de la cabecera diaria.
+- Misma base SQLite, permisos, certificado y funciones. Versión opcional, versionCode 190.
+
 ## Nexo 3.7.96 — Calendario mensual completo y cabecera diaria compacta
 
 - Recuperados los iconos de categoría dentro de las etiquetas de eventos del mes.
