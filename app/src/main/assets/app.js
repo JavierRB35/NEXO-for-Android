@@ -4952,6 +4952,96 @@ function syncCaptureAllDay(userChange=false){
   }
   if(userChange)markCaptureManual('dateTime');
 }
+/* Editor compacto: escribe únicamente mediante el servicio nativo existente. */
+function openCalendarQuickCreate(date=state.calendarSelected||isoDateLocal(new Date()),startMinute=null,endMinute=null){
+  if(state.screen!=='calendar'){prepareQuickNoteForType('event',date);return;}
+  const iso=/^\d{4}-\d{2}-\d{2}$/.test(String(date||''))?date:isoDateLocal(new Date());
+  const hhmm=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+  const prefilled=Number.isInteger(startMinute)&&startMinute>=0&&startMinute<1440;
+  const hour=prefilled?hhmm(startMinute):'09:00';
+  const last=prefilled&&Number.isInteger(endMinute)?hhmm(endMinute):'10:00';
+  openModal('Añadir al calendario','<div class="calendar-quick-create">'+
+    '<div class="calendar-quick-choice"><button type="button" data-quick-type="event" class="active">Evento</button><button type="button" data-quick-type="task">Tarea</button></div>'+
+    '<label>Título<input id="calendarQuickTitle" type="text" maxlength="180" placeholder="¿Qué necesitas planificar?" autocomplete="off"></label>'+
+    '<label>Fecha<input id="calendarQuickDate" type="date" value="'+escAttr(iso)+'"></label>'+
+    '<label id="calendarQuickTimed"><span>Hora de inicio</span><input id="calendarQuickStart" type="time" value="'+hour+'"></label>'+
+    '<label id="calendarQuickEndLabel"><span>Hora de fin</span><input id="calendarQuickEnd" type="time" value="'+last+'"></label>'+
+    '<label class="calendar-quick-check"><input id="calendarQuickNoTime" type="checkbox"><span>Sin hora / todo el día</span></label>'+
+    '<div class="calendar-quick-buttons"><button type="button" id="calendarQuickAdvanced" class="secondary-button">Más opciones</button><button type="button" id="calendarQuickSave" class="primary-button">Guardar</button></div>'+
+    '</div>');
+  state.calendarQuickOpen=true;
+  state.calendarQuickDirty=false;
+  const title=$('#calendarQuickTitle'),start=$('#calendarQuickStart'),end=$('#calendarQuickEnd'),noTime=$('#calendarQuickNoTime');
+  let type='event';
+  const refresh=()=>{
+    $('.calendar-quick-choice button').forEach(btn=>{
+      const selected=btn.dataset.quickType===type;
+      btn.classList.toggle('active',selected);
+      btn.setAttribute('aria-pressed',String(selected));
+    });
+    const hidden=!!noTime.checked;
+    $('#calendarQuickTimed').classList.toggle('hidden',hidden);
+    $('#calendarQuickEndLabel').classList.toggle('hidden',hidden||type==='task');
+    $('#calendarQuickNoTime').nextElementSibling.textContent=type==='task'?'Tarea sin hora':'Todo el día';
+  };
+  noTime.checked=!prefilled&&false;
+  $('.calendar-quick-choice button').forEach(btn=>btn.addEventListener('click',()=>{
+    if(type===btn.dataset.quickType)return;
+    type=btn.dataset.quickType;
+    noTime.checked=type==='task';
+    state.calendarQuickDirty=true;
+    refresh();
+  }));
+  $('#modalBody').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{state.calendarQuickDirty=true;}));
+  noTime.addEventListener('change',refresh);
+  refresh();
+  $('#calendarQuickAdvanced').addEventListener('click',()=>{
+    const chosen=$('#calendarQuickDate').value,typed=title.value.trim(),time=start.value,finish=end.value,withoutTime=noTime.checked;
+    state.calendarQuickDirty=false;closeModal(true);
+    prepareQuickNoteForType('event',chosen);
+    if(state.screen!=='save')return;
+    $('#captureTitle').value=typed;
+    $('#captureCategory').value=type==='task'?'Tarea / Recado':'Otro';
+    if(type==='task')$('#captureType').value='task';
+    $('#captureAllDay').checked=withoutTime;
+    if(!withoutTime){$('#captureTime').value=time;$('#captureEndTime').value=finish;}
+    syncCaptureAllDay(false);
+    markCaptureManual('title','category','dateTime','type');
+  });
+  $('#calendarQuickSave').addEventListener('click',()=>{
+    const chosen=$('#calendarQuickDate').value,name=title.value.trim(),withoutTime=!!noTime.checked;
+    if(!name){toast('Escribe un título.');title.focus();return;}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(chosen)||!Number.isFinite(dateOfCalendar(chosen))){toast('Selecciona una fecha válida.');return;}
+    const time=withoutTime?'':start.value;
+    const finish=withoutTime?'':type==='event'?end.value:'';
+    if(!withoutTime&&!/^\d{2}:\d{2}$/.test(time)){toast('Selecciona una hora válida.');return;}
+    if(type==='event'&&!withoutTime&&(!finish||finish<=time)){toast('La hora de fin debe ser posterior a la inicial.');return;}
+    const dueAt=dateTimeToMsInZone(chosen,time,'Europe/Madrid');
+    const endAt=type==='event'?eventEndFromFields(chosen,time,chosen,finish,withoutTime,'Europe/Madrid'):dueAt;
+    if(!Number.isFinite(dueAt)||dueAt<=0||!Number.isFinite(endAt)||endAt<dueAt){toast('Comprueba la fecha y la hora.');return;}
+    const payload={title:name,originalText:name,body:'',category:type==='task'?'Tarea / Recado':'Otro',
+      type,appointmentCapture:type==='event',dueAt,endAt,hasTime:!withoutTime,allDay:type==='event'&&withoutTime,
+      durationMinutes:type==='event'?Math.max(0,Math.round((endAt-dueAt)/60000)):0,
+      timeZone:'Europe/Madrid',priority:1,recurrence:'none',recurrenceRule:'',recurrenceUntil:0,
+      reminderLeadMinutes:[],voiceEnabled:false,needsReview:false,status:'pending',source:'manual'};
+    const save=$('#calendarQuickSave');
+    save.disabled=true;
+    let response;
+    try{response=parseNative(NexoNative.saveCapture(JSON.stringify(payload)),{});}
+    catch(_){response={ok:false,error:'No se pudo guardar en Nexo.'};}
+    if(!response?.ok){save.disabled=false;toast(response?.error||'No se pudo guardar.');return;}
+    state.calendarQuickDirty=false;state.calendarQuickOpen=false;
+    closeModal(true);
+    state.calendarSelected=chosen;
+    const d=new Date(chosen+'T12:00:00');
+    state.calendarMonth=new Date(d.getFullYear(),d.getMonth(),1);
+    renderCalendar();
+    toast(type==='task'?'Tarea guardada':'Evento guardado');
+  });
+  setTimeout(()=>title.focus(),60);
+}
+function dateOfCalendar(iso){return new Date(iso+'T12:00:00').getTime();}
+
 function openCreationMenu(date=''){prepareQuickNoteForType('event',date);}
 
 function openCalendarMonthPicker(){
