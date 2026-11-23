@@ -2878,8 +2878,8 @@ function renderCalendar(direction=0){
   const note=$('#holidayCalendarNote');
   if(note){note.classList.toggle('hidden',!partial);note.textContent=partial?'Festivos parciales: se muestran los datos disponibles y Nexo volverá a actualizar cuando haya conexión.':'';}
 
-  $('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>openCalendarDayFromMonth(b.dataset.calendarDay)));
-  $('[data-calendar-month-item]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-calendar-day]').forEach(b=>b.addEventListener('click',()=>openCalendarDayFromMonth(b.dataset.calendarDay)));
+  document.querySelectorAll('[data-calendar-month-item]').forEach(b=>b.addEventListener('click',()=>{
     const item=state.calendarItems[Number(b.dataset.calendarMonthItem)];
     openCalendarDayFromMonth(b.dataset.calendarEventDay,item);
   }));
