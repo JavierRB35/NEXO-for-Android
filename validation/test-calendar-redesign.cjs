@@ -1,4 +1,4 @@
-/* Regresión focalizada Nexo 3.7.96: controlador de calendario y tipos conservados. */
+/* Regresión focalizada Nexo 3.7.97: controlador de calendario y tipos conservados. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
@@ -70,7 +70,7 @@ assert.match(app,/state\.calendarQuickOpen=true/,'protección de borrador inicia
 assert.ok(html.includes('id="homeDailyQuoteText"'));
 assert.ok(!html.slice(html.indexOf('id="calendarMonthRegion"'),html.indexOf('data-screen="more"')).includes('calendarDailyQuoteText'));
 assert.match(css,/calendar-week-track/);
-console.log('OK Nexo 3.7.96: 4 vistas, persistencia, tareas fechadas, frases en Inicio y creación sin conversión');
+console.log('OK Nexo 3.7.97: 4 vistas, persistencia, tareas fechadas, frases en Inicio y creación sin conversión');
 
 
 /* Recorrido de creación: el selector debe ser clicable y las tareas no convertirse
@@ -138,10 +138,12 @@ console.log('OK: selección Evento/Tarea, guardado nativo simulado y recuperaci�
 /* Regresión de navegación mensual → detalle diario → vuelta al mes. */
 assert.ok(!html.includes('id="calendarViewSelect"'),'El selector de vistas no debe estar visible en la UI');
 assert.ok(html.includes('id="calendarBackToMonth"'),'La vista diaria necesita regreso explícito');
-assert.match(app,/data-calendar-month-item/,'Los eventos del mes deben ser pulsables individualmente');
+const monthRenderer=app.slice(app.indexOf('function renderCalendar(direction=0){'),app.indexOf('function renderCalendarDay(){'));
+assert.ok(monthRenderer.includes('calendarMarkerItems(list)'), 'El mes conserva los símbolos de categoría');
+assert.match(monthRenderer,/calendarMarkerHtml/,'El mes debe pintar los SVG originales');
+assert.match(monthRenderer,/class="day-dots"/,'Los iconos se muestran debajo del día');
+assert.doesNotMatch(monthRenderer,/calendar-month-event|data-calendar-month-item/,'El mes no debe mostrar textos, horas ni etiquetas truncadas');
 assert.match(app,/data-calendar-cell-day/,'Toda la celda del día debe abrir su agenda');
-assert.match(app,/event\.target\.closest\?\.\('\[data-calendar-month-item\]'\)/,'Un evento pulsado no debe activar también el día vacío');
-assert.match(app,/class="calendar-month-event"/,'El mes muestra eventos identificables');
 const navigationSource=app.slice(app.indexOf('function resetCalendarToToday(){'),app.indexOf('function shiftCalendarMonthValue(',app.indexOf('function resetCalendarToToday(){')));
 assert.ok(navigationSource.includes('function openCalendarDayFromMonth'));
 const navHost={dataset:{tgvFocusedDay:'old-date'},_tgvFocusMinute:null};

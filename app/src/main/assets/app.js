@@ -2891,15 +2891,10 @@ function renderCalendar(direction=0){
     const label=base+' · '+(list.length?list.length+' elementos':'sin elementos')+(list.length?' · Categorías: '+[...new Set(list.map(calendarMonthItemLabel))].join(', '):'')+(hs.length?' · Festivo: '+hs.map(holidayName).join(', '):'');
     const shownMarkers=calendarMarkerItems(list),markerLimit=list.length>3?2:3;
     const dots=shownMarkers.slice(0,markerLimit).map(calendarMarkerHtml).join('')+(list.length>3?'<span class="calendar-marker-more" title="'+(list.length-markerLimit)+' eventos adicionales">+'+(list.length-markerLimit)+'</span>':'');
-    const visibleEvents=list.slice(0,2).map(item=>{
-      const index=items.indexOf(item),color=familyCategoryColor(item.category);
-      const time=item.allDay===true||item.hasTime===false?'':new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit'}).format(new Date(Number(item.dueAt)))+' ';
-      return '<button type="button" class="calendar-month-event" data-calendar-month-item="'+index+'" data-calendar-event-day="'+iso+'" style="--calendar-chip-color:'+color+'" title="'+escAttr(item.title||'Evento')+'" aria-label="Ver '+escAttr(item.title||'Evento')+' en el horario del '+escAttr(base)+'"><span class="calendar-month-event-content">'+uiIcon(item.type==='task'?'tasks':familyCategoryIcon(item.category))+'<span class="calendar-month-event-text">'+esc(time+(item.title||'Evento'))+'</span></span></button>';
-    }).join('');
-    const eventOverflow=list.length>2?'<span class="calendar-month-event-overflow">+'+(list.length-2)+'</span>':'';
+    // El mes usa exclusivamente los símbolos de categoría originales.
+    // Horas, títulos y datos completos se consultan al abrir la agenda del día.
     calendarHtml+=`<div class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-cell-day="${iso}">
       <button type="button" class="calendar-day-open" data-calendar-day="${iso}" aria-label="${escAttr(label)}" aria-pressed="${selected}" ${iso===today?'aria-current="date"':''}><span class="day-heading"><span class="day-number">${d.getDate()}</span>${list.length>1&&list.length<=3?`<span class="day-total" aria-hidden="true">${list.length}</span>`:''}</span></button>
-      <div class="calendar-month-events">${visibleEvents}${eventOverflow}</div>
       <span class="day-dots" aria-hidden="true">${dots}</span>
     </div>`;
   }
@@ -2910,13 +2905,8 @@ function renderCalendar(direction=0){
   const note=$('#holidayCalendarNote');
   if(note){note.classList.toggle('hidden',!partial);note.textContent=partial?'Festivos parciales: se muestran los datos disponibles y Nexo volverá a actualizar cuando haya conexión.':'';}
 
-  document.querySelectorAll('[data-calendar-cell-day]').forEach(cell=>cell.addEventListener('click',event=>{
-    if(event.target.closest?.('[data-calendar-month-item]'))return;
+  document.querySelectorAll('[data-calendar-cell-day]').forEach(cell=>cell.addEventListener('click',()=>{
     openCalendarDayFromMonth(cell.dataset.calendarCellDay);
-  }));
-  document.querySelectorAll('[data-calendar-month-item]').forEach(b=>b.addEventListener('click',()=>{
-    const item=state.calendarItems[Number(b.dataset.calendarMonthItem)];
-    openCalendarDayFromMonth(b.dataset.calendarEventDay,item);
   }));
   if(!window.NexoCalendarViews)renderCalendarDay();
 

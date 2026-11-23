@@ -1,4 +1,4 @@
-/* Regressions for Nexo 3.7.96 mobile month/day calendar layout. */
+/* Regressions for Nexo 3.7.97 mobile month/day calendar layout. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
@@ -7,10 +7,11 @@ const root=path.resolve(__dirname,'..');
 const asset=file=>fs.readFileSync(path.join(root,'app/src/main/assets',file),'utf8');
 const app=asset('app.js'),css=asset('calendar-redesign.css'),views=asset('calendar-views.js');
 
-assert.match(app,/uiIcon\(item\.type==='task'\?'tasks':familyCategoryIcon\(item\.category\)\)/,
-  'Month event chips must show their category icons');
-assert.match(css,/calendar-month-event-content>\.ui-icon\{/,
-  'Month event icons require an explicit visible size');
+const monthRenderer=app.slice(app.indexOf('function renderCalendar(direction=0){'),app.indexOf('function renderCalendarDay(){'));
+assert.ok(monthRenderer.includes('calendarMarkerItems(list)'), 'Month day indicators must use original icon selection');
+assert.match(monthRenderer,/calendarMarkerHtml/,'Month icons must preserve category color and SVG');
+assert.doesNotMatch(monthRenderer,/calendar-month-event|data-calendar-month-item/,'Month cells must not show cramped event descriptions or times');
+assert.match(css.slice(css.indexOf('#calendarMonthRegion .calendar-day .day-dots{')), /display:flex;/, 'Month icons must be visible');
 assert.match(css,/\.calendar-toolbar\{\s*display:flex;align-items:center;flex-wrap:nowrap;/,
   'Five day controls must occupy one row');
 assert.match(css,/calendar-toolbar \[hidden\]\{display:none!important\}/,
@@ -59,4 +60,4 @@ const prior=rowHeight;hidden=true;ctx.fitCalendarMonthToViewport();
 assert.equal(rowHeight,prior,'Hidden calendar must not be remeasured');
 hidden=false;active=false;ctx.fitCalendarMonthToViewport();
 assert.equal(rowHeight,prior,'Inactive calendar must not be remeasured');
-console.log('OK: category icons, five-control toolbar and 4/5/6 week viewport fit.');
+console.log('OK: original month symbols only, five-control toolbar and 4/5/6 week viewport fit.');
