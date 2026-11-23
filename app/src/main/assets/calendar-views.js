@@ -128,7 +128,7 @@
     const end=dayAfter(start,view==='week'?7:view==='agenda'?21:1);
     const data=query(start,end);
     state.calendarItems=data;
-    const title=view==='week'?'Semana del '+dayName(start):view==='day'?longDay(selected):'Agenda · '+dayName(start);
+    const title=view==='week'?'Semana del '+dayName(start):view==='day'?dayName(selected):'Agenda · '+dayName(start);
     element('calendarMonthTitle').textContent=title.replace(/^./,c=>c.toUpperCase());
     element('calendarMonthPickerBtn').setAttribute('aria-label','Seleccionar fecha. '+title);
     requestHolidayYears([...new Set([Number(start.slice(0,4)),Number(end.slice(0,4))])]);

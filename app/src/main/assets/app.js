@@ -2820,6 +2820,34 @@ function itemCoversIsoDate(item,iso){
   return start<=bounds.end&&(end>bounds.start||start===bounds.start);
 }
 
+// Keep every week visible above the fixed bottom navigation, including six-row months.
+// Geometry is measured after render so it also works with Android font/display scaling.
+let calendarMonthFitScheduled=false;
+function fitCalendarMonthToViewport(){
+  const region=$('#calendarMonthRegion'),grid=$('#calendarGrid');
+  if(!region||!grid||!grid.childElementCount||region.hidden||!region.closest('.screen.active'))return;
+  const card=region.querySelector('.calendar-card');
+  if(!card)return;
+  const nav=document.querySelector('.bottom-nav');
+  const navTop=nav&&getComputedStyle(nav).display!=='none'?nav.getBoundingClientRect().top:window.innerHeight;
+  const gridBounds=grid.getBoundingClientRect(),cardBounds=card.getBoundingClientRect();
+  // Account for the collapsed icon legend, holiday note, card border and padding.
+  const belowGrid=Math.max(0,cardBounds.bottom-gridBounds.bottom);
+  const rows=Math.ceil(grid.childElementCount/7);
+  const rowGap=parseFloat(getComputedStyle(grid).rowGap)||0;
+  const available=Math.max(0,navTop-gridBounds.top-belowGrid-8-(rows-1)*rowGap);
+  const rowHeight=Math.max(42,Math.min(150,Math.floor(available/rows)));
+  grid.style.setProperty('--calendar-row-height',rowHeight+'px');
+  grid.dataset.calendarDensity=rowHeight<68?'tight':'normal';
+}
+function scheduleCalendarMonthFit(){
+  if(calendarMonthFitScheduled)return;
+  calendarMonthFitScheduled=true;
+  requestAnimationFrame(()=>{calendarMonthFitScheduled=false;fitCalendarMonthToViewport();});
+}
+window.addEventListener('resize',scheduleCalendarMonthFit);
+window.visualViewport?.addEventListener('resize',scheduleCalendarMonthFit);
+
 function renderCalendar(direction=0){
   if(state.calendarView!=='month'&&window.NexoCalendarViews){window.NexoCalendarViews.render();return;}
   window.NexoCalendarViews?.showRegions('month');
@@ -2863,7 +2891,7 @@ function renderCalendar(direction=0){
     const visibleEvents=list.slice(0,2).map(item=>{
       const index=items.indexOf(item),color=familyCategoryColor(item.category);
       const time=item.allDay===true||item.hasTime===false?'':new Intl.DateTimeFormat('es-ES',{hour:'2-digit',minute:'2-digit'}).format(new Date(Number(item.dueAt)))+' ';
-      return '<button type="button" class="calendar-month-event" data-calendar-month-item="'+index+'" data-calendar-event-day="'+iso+'" style="--calendar-chip-color:'+color+'" title="'+escAttr(item.title||'Evento')+'" aria-label="Ver '+escAttr(item.title||'Evento')+' en el horario del '+escAttr(base)+'"><span>'+esc(time+(item.title||'Evento'))+'</span></button>';
+      return '<button type="button" class="calendar-month-event" data-calendar-month-item="'+index+'" data-calendar-event-day="'+iso+'" style="--calendar-chip-color:'+color+'" title="'+escAttr(item.title||'Evento')+'" aria-label="Ver '+escAttr(item.title||'Evento')+' en el horario del '+escAttr(base)+'"><span class="calendar-month-event-content">'+uiIcon(item.type==='task'?'tasks':familyCategoryIcon(item.category))+'<span class="calendar-month-event-text">'+esc(time+(item.title||'Evento'))+'</span></span></button>';
     }).join('');
     const eventOverflow=list.length>2?'<span class="calendar-month-event-overflow">+'+(list.length-2)+'</span>':'';
     calendarHtml+=`<div class="calendar-day ${d.getMonth()!==m.getMonth()?'outside-month':''} ${iso===today?'today':''} ${selected?'selected':''} ${hs.length?'calendar-day--holiday':''}" data-calendar-cell-day="${iso}">
@@ -2873,6 +2901,7 @@ function renderCalendar(direction=0){
     </div>`;
   }
   $('#calendarGrid').innerHTML=calendarHtml;
+  scheduleCalendarMonthFit();
 
   const partial=years.map(y=>state.holidayYears[y]).filter(Boolean).some(r=>r.status==='partial'||r.status==='unavailable');
   const note=$('#holidayCalendarNote');

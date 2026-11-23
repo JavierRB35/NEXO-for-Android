@@ -5,6 +5,7 @@ node --check app/src/main/assets/app.js
 node --check app/src/main/assets/time-grid.js
 node --check app/src/main/assets/calendar-views.js
 node validation/test-calendar-redesign.cjs
+node validation/test-calendar-compact-fix.cjs
 python3 validation/test-contextual-navigation.py
 node validation/test-time-grid-view.cjs
 node validation/test-visual-themes.cjs

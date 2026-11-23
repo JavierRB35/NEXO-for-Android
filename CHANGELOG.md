@@ -1,3 +1,10 @@
+## Nexo 3.7.96 — Calendario mensual completo y cabecera diaria compacta
+
+- Recuperados los iconos de categoría dentro de las etiquetas de eventos del mes.
+- Altura de las semanas ajustada al espacio real entre la cabecera y la navegación inferior: los meses de seis filas caben sin desplazar la pantalla para llegar al último día.
+- Corregida la cabecera del horario: cinco controles en una sola fila (volver, fecha abreviada, Hoy, anterior y siguiente), sin título descompuesto ni flecha en otra línea.
+- Se mantienen las entradas y los datos locales, las alarmas, la navegación y la creación de eventos y tareas. Sin migración; versión opcional, versionCode 189.
+
 ## Nexo 3.7.95 — Navegación mensual y alta horaria inmediata
 
 - Calendario mensual como entrada principal: selección de fecha o evento abre el detalle diario por horas; si se pulsa un evento, el horario se desplaza a su hora real.
