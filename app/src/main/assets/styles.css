@@ -3753,3 +3753,5 @@ button.nexo-unified-save>.ui-icon{
 .nexo-ai-settings>label:not(.switch-row){display:grid;gap:4px}
 .nexo-ai-settings input[type=password]{width:100%;min-width:0}
 .nexo-ai-settings .switch-row{margin:2px 0}
+.nexo-ai-key-link{display:inline-flex;align-items:center;justify-self:start;min-height:36px;padding:6px 0;color:var(--blue);font-size:.8125rem;font-weight:750;line-height:1.35;text-decoration:underline;text-underline-offset:3px}
+.nexo-ai-key-link:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:3px}
