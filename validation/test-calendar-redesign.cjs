@@ -138,10 +138,12 @@ console.log('OK: selección Evento/Tarea, guardado nativo simulado y recuperaci�
 /* Regresión de navegación mensual → detalle diario → vuelta al mes. */
 assert.ok(!html.includes('id="calendarViewSelect"'),'El selector de vistas no debe estar visible en la UI');
 assert.ok(html.includes('id="calendarBackToMonth"'),'La vista diaria necesita regreso explícito');
-assert.match(app,/data-calendar-month-item/,'Los eventos del mes deben ser pulsables individualmente');
+const monthRenderer=app.slice(app.indexOf('function renderCalendar(direction=0){'),app.indexOf('function renderCalendarDay(){'));
+assert.match(monthRenderer,/calendarMarkerItems\\(list\\)/,'El mes conserva los símbolos de categoría');
+assert.match(monthRenderer,/calendarMarkerHtml/,'El mes debe pintar los SVG originales');
+assert.match(monthRenderer,/class="day-dots"/,'Los iconos se muestran debajo del día');
+assert.doesNotMatch(monthRenderer,/calendar-month-event|data-calendar-month-item/,'El mes no debe mostrar textos, horas ni etiquetas truncadas');
 assert.match(app,/data-calendar-cell-day/,'Toda la celda del día debe abrir su agenda');
-assert.match(app,/event\.target\.closest\?\.\('\[data-calendar-month-item\]'\)/,'Un evento pulsado no debe activar también el día vacío');
-assert.match(app,/class="calendar-month-event"/,'El mes muestra eventos identificables');
 const navigationSource=app.slice(app.indexOf('function resetCalendarToToday(){'),app.indexOf('function shiftCalendarMonthValue(',app.indexOf('function resetCalendarToToday(){')));
 assert.ok(navigationSource.includes('function openCalendarDayFromMonth'));
 const navHost={dataset:{tgvFocusedDay:'old-date'},_tgvFocusMinute:null};
