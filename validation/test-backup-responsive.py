@@ -21,8 +21,9 @@ assert ".backup-card>.backup-actions>button{" in css and "width:100%;min-width:0
 assert '<div class="backup-actions">' in primary_card
 assert 'class="stack-actions"' not in primary_card
 assert 'class="backup-copy"' in primary_card
-for name in ("backupChooseBtn", "backupExportBtn", "backupPasswordBtn"):
+for name in ("backupChooseBtn", "backupExportBtn"):
     assert name in primary_card, name
+assert "backupPasswordBtn" not in primary_card
 assert "Nexo actualizará el mismo archivo" in primary_card
 assert "backupRestoreBtn" in panel, "Restore action must remain available"
 
