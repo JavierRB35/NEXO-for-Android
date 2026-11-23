@@ -4974,7 +4974,7 @@ function openCalendarQuickCreate(date=state.calendarSelected||isoDateLocal(new D
   const title=$('#calendarQuickTitle'),start=$('#calendarQuickStart'),end=$('#calendarQuickEnd'),noTime=$('#calendarQuickNoTime');
   let type='event';
   const refresh=()=>{
-    $('.calendar-quick-choice button').forEach(btn=>{
+    document.querySelectorAll('.calendar-quick-choice button').forEach(btn=>{
       const selected=btn.dataset.quickType===type;
       btn.classList.toggle('active',selected);
       btn.setAttribute('aria-pressed',String(selected));
@@ -4985,7 +4985,7 @@ function openCalendarQuickCreate(date=state.calendarSelected||isoDateLocal(new D
     $('#calendarQuickNoTime').nextElementSibling.textContent=type==='task'?'Tarea sin hora':'Todo el día';
   };
   noTime.checked=!prefilled&&false;
-  $('.calendar-quick-choice button').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.calendar-quick-choice button').forEach(btn=>btn.addEventListener('click',()=>{
     if(type===btn.dataset.quickType)return;
     type=btn.dataset.quickType;
     noTime.checked=type==='task';
