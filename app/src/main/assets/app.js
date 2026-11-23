@@ -2316,7 +2316,7 @@ function prepareTimeGridAppointment(iso,startMinute,endMinute){
   if(!Number.isInteger(startMinute)||!Number.isInteger(endMinute)||
      startMinute<0||endMinute>1440||endMinute-startMinute!==60)return;
   if(state.screen!=='calendar'&&!(state.screen==='today'&&state.homeTimelineVisible))return;
-  if(state.screen==='calendar'&&window.NexoCalendarViews){openCalendarQuickCreate(iso,startMinute,endMinute);return;}
+  if(state.screen==='calendar'&&typeof window!=='undefined'&&window.NexoCalendarViews){openCalendarQuickCreate(iso,startMinute,endMinute);return;}
   prepareQuickNoteForType('event',iso);
   if(state.screen!=='save')return;
   const localDate=new Date(iso+'T12:00:00');
