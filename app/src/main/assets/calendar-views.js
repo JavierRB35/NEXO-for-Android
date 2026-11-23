@@ -2,7 +2,6 @@
 (function(){
   'use strict';
   const VIEWS=['month','week','day','agenda'];
-  const STORAGE_KEY='nexo.calendar.view';
   const MINUTE_HEIGHT=0.95;
   const two=n=>String(n).padStart(2,'0');
   const dateIso=d=>d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate());
@@ -21,13 +20,13 @@
   const icon=i=>uiIcon(isTask(i)?'tasks':familyCategoryIcon(i.category));
   function load(){
     try{
-      const stored=localStorage.getItem(STORAGE_KEY);
+      const stored=NexoNative.getCalendarViewPreference();
       if(VIEWS.includes(stored))state.calendarView=stored;
     }catch(_){}
     syncSelector();
   }
   function persist(view){
-    try{localStorage.setItem(STORAGE_KEY,view);}catch(_){}
+    try{NexoNative.setCalendarViewPreference(view);}catch(_){}
   }
   function syncSelector(){
     const select=element('calendarViewSelect');
