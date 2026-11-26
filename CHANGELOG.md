@@ -1,3 +1,9 @@
+## Nexo 3.7.98 — Agenda diaria más compacta
+
+- Cada hora ocupa 81 px CSS en lugar de 96 (15,6 % menos). Conserva las 24 horas y los horarios originales.
+- Ajuste proporcional de las tarjetas de 15 minutos para evitar solapamientos; se conservan creación, arrastre, redimensionado y línea de hora actual.
+- Misma base de datos, permisos y firma. Actualización opcional, versionCode 191.
+
 ## Nexo 3.7.97 — Solo símbolos en el calendario mensual
 
 - Restaurados los símbolos originales de categoría en las casillas del mes, con sus colores. Eliminados los chips de texto con horas y títulos que quedaban truncados.

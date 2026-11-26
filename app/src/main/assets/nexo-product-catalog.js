@@ -1,8 +1,8 @@
 /* Catálogo funcional público, versionado y validado en cada Release. */
 window.NexoProductCatalog = {
   "schemaVersion": 1,
-  "versionName": "3.7.97",
-  "releaseNotes": "El calendario mensual vuelve a mostrar únicamente los símbolos de categoría, sin horas ni títulos recortados. Pulsa un día para ver sus eventos y el horario completo. Se mantiene la vista mensual ajustada a pantalla y la cabecera diaria compacta. Sin cambios en tus datos ni avisos. Actualización opcional.",
+  "versionName": "3.7.98",
+  "releaseNotes": "La agenda diaria muestra más horas en pantalla: las franjas son un 16 % más compactas. Se conservan las 24 horas, los horarios reales de las citas, el arrastre y el ajuste de duración. Sin cambios en tus datos ni avisos. Actualización opcional.",
   "developer": "Carlos Javier Ruiz Bermúdez",
   "copyrightYear": 2026,
   "sections": [

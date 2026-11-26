@@ -196,8 +196,8 @@ dragHost._tgvItems=[movable];
 dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[movable]);
 dragButton.fire('touchstart',{touches:[{clientY:180}]});
 for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
-dragButton.fire('touchmove',{touches:[{clientY:217.5}],preventDefault:()=>prevented++});
-dragButton.fire('touchend',{changedTouches:[{clientY:217.5}]});
+dragButton.fire('touchmove',{touches:[{clientY:180+30*pxPerMinute}],preventDefault:()=>prevented++});
+dragButton.fire('touchend',{changedTouches:[{clientY:180+30*pxPerMinute}]});
 assert.equal(prevented,1);
 assert.equal(writes.length,1);
 assert.equal(writes[0].data.dueAt,movable.dueAt); // optimistic update
@@ -217,8 +217,8 @@ assert.equal(movable.dueAt,day+10*3600000,'undo restores event in-memory');
 dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[movable]);
 dragButton.fire('touchstart',{touches:[{clientY:180}]});
 for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
-dragButton.fire('touchmove',{touches:[{clientY:198.75}],preventDefault:noop});
-dragButton.fire('touchend',{changedTouches:[{clientY:198.75}]});
+dragButton.fire('touchmove',{touches:[{clientY:180+15*pxPerMinute}],preventDefault:noop});
+dragButton.fire('touchend',{changedTouches:[{clientY:180+15*pxPerMinute}]});
 assert.equal(writes.length,3);
 assert.equal(writes[2].data.dueAt,day+10*3600000+15*60000);
 dragCtx.window.NexoTimeGrid.onSaved(writes[2].id,'{"ok":false,"error":"Base de datos ocupada"}');
@@ -234,8 +234,8 @@ const rec={
 dragCtx.window.NexoTimeGrid.render(dragHost,'2026-10-23',[rec]);
 dragButton.fire('touchstart',{touches:[{clientY:180}]});
 for(const [key,fn] of [...fakeTimers]){fakeTimers.delete(key);fn();}
-dragButton.fire('touchmove',{touches:[{clientY:217.5}],preventDefault:noop});
-dragButton.fire('touchend',{changedTouches:[{clientY:217.5}]});
+dragButton.fire('touchmove',{touches:[{clientY:180+30*pxPerMinute}],preventDefault:noop});
+dragButton.fire('touchend',{changedTouches:[{clientY:180+30*pxPerMinute}]});
 assert.equal(writes.length,4);
 assert.equal(writes[3].data.recurring,true);
 assert.equal(writes[3].data.seriesId,82);
