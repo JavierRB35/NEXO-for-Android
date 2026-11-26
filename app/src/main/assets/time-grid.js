@@ -1,7 +1,7 @@
 /* Nexo 3.7.62 · Agenda diaria completa, movimiento y cambio de duración. */
 (function(){
   'use strict';
-  const PX_PER_MINUTE=1.6;
+  const PX_PER_MINUTE=1.35; // 81 px/h: franja más compacta sin cambiar minutos
   const SNAP_MINUTES=15;
   const NOW_CONTEXT_MINUTES=45; // Al abrir hoy, mostrar 45 minutos antes de la hora actual.
   const pending=new Map();
@@ -278,7 +278,7 @@
     }
     const cards=timed.map((row,index)=>{
       const item=row.item,top=row.start*PX_PER_MINUTE,
-        height=Math.max(24,(row.end-row.start)*PX_PER_MINUTE),
+        height=Math.max(SNAP_MINUTES*PX_PER_MINUTE,(row.end-row.start)*PX_PER_MINUTE),
         width=100/row.columns,left=row.column*width,
         canResize=Number(item.dueAt)>=bounds.start&&itemEffectiveEndAt(item)<=bounds.end&&itemDuration(item)<86400000,
         density=height<84?' tgv-event--compact':'',
@@ -424,7 +424,7 @@
     const paint=range=>{
       preview=range;
       btn.style.top=(range.start*PX_PER_MINUTE)+'px';
-      btn.style.height=(Math.max(24,(range.end-range.start)*PX_PER_MINUTE))+'px';
+      btn.style.height=(Math.max(SNAP_MINUTES*PX_PER_MINUTE,(range.end-range.start)*PX_PER_MINUTE))+'px';
       const text=btn.querySelector?.('.tgv-event-time');
       if(text)text.textContent=hhmm(range.start)+' – '+hhmm(range.end);
       btn.setAttribute('aria-label','Nuevo horario '+hhmm(range.start)+' a '+hhmm(range.end));
@@ -461,7 +461,7 @@
       document.body.classList.remove('tgv-drag-active');
       const result=nextRange(y),moved=Math.abs(viewportDelta(y))>=7;
       btn.style.top=(row.start*PX_PER_MINUTE)+'px';
-      btn.style.height=(Math.max(24,(row.end-row.start)*PX_PER_MINUTE))+'px';
+      btn.style.height=(Math.max(SNAP_MINUTES*PX_PER_MINUTE,(row.end-row.start)*PX_PER_MINUTE))+'px';
       const time=btn.querySelector?.('.tgv-event-time');
       if(time)time.textContent=hhmm(row.start)+' – '+hhmm(row.end);
       if(cancel||!moved||(result.start===startMinutes&&result.end===endMinutes))return;

@@ -7,6 +7,7 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'app/src/main/assets/time-grid.js'),'utf8');
+const pxPerMinute=Number(source.match(/const PX_PER_MINUTE=([0-9.]+);/)[1]);
 const app=fs.readFileSync(path.join(root,'app/src/main/assets/app.js'),'utf8');
 const noop=()=>{};
 function makeScenario(){
@@ -49,35 +50,35 @@ function makeScenario(){
   return {board,calls,scheduled,emitStart,emitMove,flush,event,touch};
 }
 let test=makeScenario();
-test.emitStart(120,100+10.25*60*1.6); // 10:15 dentro de la franja 10:00–11:00
+test.emitStart(120,100+10.25*60*pxPerMinute); // 10:15 dentro de la franja 10:00–11:00
 test.flush();
 assert.deepEqual(test.calls,[[ '2026-10-23',600,660 ]]);
 let blockedClick=false;
 test.board.fire('touchend',{preventDefault:()=>{blockedClick=true;}});
 assert.equal(blockedClick,true,'El click fantasma se elimina cuando se abrió el editor');
-test.board.fire('click',{clientY:100+10.25*60*1.6,target:{closest:()=>null}});
+test.board.fire('click',{clientY:100+10.25*60*pxPerMinute,target:{closest:()=>null}});
 assert.equal(test.calls.length,1,'Una pulsación larga no produce un segundo alta al dispararse click');
 test.board.fire('touchend',{preventDefault:()=>test.calls.push('doble')});
 assert.equal(test.calls.length,1,'Una pulsación no abre dos borradores');
 
 // 23:55 genera 23:00–00:00, el editor resuelve fecha de fin posterior.
 test=makeScenario();
-test.emitStart(120,100+23.9*60*1.6);test.flush();
+test.emitStart(120,100+23.9*60*pxPerMinute);test.flush();
 assert.deepEqual(test.calls,[['2026-10-23',1380,1440]]);
 
 // Un toque normal abre el editor con la hora de la franja: regresión 3.7.95.
 test=makeScenario();
-test.emitStart(120,100+16.25*60*1.6);
+test.emitStart(120,100+16.25*60*pxPerMinute);
 test.board.fire('touchend',{preventDefault:()=>{throw Error('No debe bloquear un toque corto');}});
-test.board.fire('click',{clientY:100+16.25*60*1.6,target:{closest:()=>null}});
+test.board.fire('click',{clientY:100+16.25*60*pxPerMinute,target:{closest:()=>null}});
 assert.deepEqual(test.calls,[['2026-10-23',960,1020]],'Toque 16:15 abre 16:00–17:00');
-test.board.fire('click',{clientY:100+11.25*60*1.6,target:test.event});
+test.board.fire('click',{clientY:100+11.25*60*pxPerMinute,target:test.event});
 assert.equal(test.calls.length,1,'Tocar una cita existente no inicia otra');
 
 // Un scroll o cancelación no debe abrir un borrador.
 
 test=makeScenario();
-test.emitStart(120,100+8*60*1.6);
+test.emitStart(120,100+8*60*pxPerMinute);
 test.board.fire('touchend',{preventDefault:()=>{throw Error('Pulsación breve bloqueada');}});
 test.flush();assert.equal(test.calls.length,0);
 test.emitStart(120,300);test.emitMove(121,330);test.flush();
@@ -91,7 +92,7 @@ assert.equal(test.calls.length,0,'La pulsación sobre una tarjeta se ignora');
 
 // Ratón: mantener pulsado crea, soltar antes del umbral no hace nada.
 test=makeScenario();
-test.board.fire('mousedown',{button:0,clientX:80,clientY:100+14.5*60*1.6,target:{closest:()=>null}});
+test.board.fire('mousedown',{button:0,clientX:80,clientY:100+14.5*60*pxPerMinute,target:{closest:()=>null}});
 test.flush();test.board.fire('mouseup',{});
 assert.deepEqual(test.calls,[['2026-10-23',840,900]]);
 test=makeScenario();

@@ -7,6 +7,7 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'app/src/main/assets/time-grid.js'),'utf8');
+const pxPerMinute=Number(source.match(/const PX_PER_MINUTE=([0-9.]+);/)[1]);
 const gridCss=fs.readFileSync(path.join(root,'app/src/main/assets/time-grid.css'),'utf8');
 const html=fs.readFileSync(path.join(root,'app/src/main/assets/index.html'),'utf8');
 const app=fs.readFileSync(path.join(root,'app/src/main/assets/app.js'),'utf8');
@@ -39,6 +40,21 @@ assert.deepEqual(a.map(x=>x.columns),[3,3,3],'three simultaneous appointments');
 assert.equal(dayBounds('2026-10-23').end-dayBounds('2026-10-23').start,86400000);
 function makeHost(){return {classList:{add:noop},dataset:{},innerHTML:'',querySelectorAll:()=>[]};}
 const day=dayBounds('2026-10-23').start;
+
+assert.ok(Math.abs(pxPerMinute*60-81)<.001,'Más franjas: 81 px por hora');
+const quarterHost=makeHost();
+render(quarterHost,'2026-10-23',[
+  {id:701,title:'Primer cuarto',category:'Trabajo',hasTime:true,dueAt:day+10*3600000,endAt:day+10*3600000+15*60000},
+  {id:702,title:'Segundo cuarto',category:'Trabajo',hasTime:true,dueAt:day+10*3600000+15*60000,endAt:day+10*3600000+30*60000}
+]);
+const quarterRects=[...quarterHost.innerHTML.matchAll(/data-tgv-index="\d+" style="top:([0-9.]+)px;height:([0-9.]+)px;/g)]
+  .map(m=>({top:Number(m[1]),height:Number(m[2])}));
+assert.equal(quarterRects.length,2,'Ambas citas cortas se mantienen en pantalla');
+assert.ok(quarterRects[0].top+quarterRects[0].height<=quarterRects[1].top+0.001,
+  'Dos citas consecutivas de 15 minutos no deben superponerse');
+const dayHeight=Number(quarterHost.innerHTML.match(/class="tgv-board" style="height:([0-9.]+)px"/)?.[1]);
+assert.ok(Math.abs(dayHeight-1944)<.01,'Se conservan las 24 horas con escala compacta');
+
 const host=makeHost();
 render(host,'2026-10-23',[
   {id:1,title:'Cita médica',category:'Salud / Médico',hasTime:true,dueAt:day+10*3600000,endAt:day+11*3600000},
@@ -240,7 +256,7 @@ function resizeGesture(appointment,side,deltaPx){
 }
 const topAppointment={id:92,category:'Trabajo',title:'Redimensionar arriba',
   dueAt:day+10*3600000,endAt:day+11*3600000,hasTime:true,durationMinutes:60};
-let resized=resizeGesture(topAppointment,'start',-30*1.6);
+let resized=resizeGesture(topAppointment,'start',-30*pxPerMinute);
 assert.equal(resized.data.dueAt,day+9*3600000+30*60000);
 assert.equal(resized.data.endAt,day+11*3600000);
 assert.equal(resized.data.durationMinutes,90);
@@ -257,7 +273,7 @@ assert.equal(topAppointment.durationMinutes,60);
 // Redimensionar por abajo: cambia solo final.
 const bottomAppointment={id:93,category:'Trabajo',title:'Redimensionar abajo',
   dueAt:day+10*3600000,endAt:day+11*3600000,hasTime:true,durationMinutes:60};
-resized=resizeGesture(bottomAppointment,'end',45*1.6);
+resized=resizeGesture(bottomAppointment,'end',45*pxPerMinute);
 assert.equal(resized.data.dueAt,day+10*3600000);
 assert.equal(resized.data.endAt,day+11*3600000+45*60000);
 assert.equal(resized.data.durationMinutes,105);
@@ -266,7 +282,7 @@ dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
 // Reducir final respetando la duración mínima de 15 minutos.
 const shrink={id:94,category:'Trabajo',title:'Reducir cita',
   dueAt:day+10*3600000,endAt:day+11*3600000,hasTime:true,durationMinutes:60};
-resized=resizeGesture(shrink,'end',-120*1.6);
+resized=resizeGesture(shrink,'end',-120*pxPerMinute);
 assert.equal(resized.data.dueAt,day+10*3600000);
 assert.equal(resized.data.endAt,day+10*3600000+15*60000);
 assert.equal(resized.data.durationMinutes,15);
@@ -275,13 +291,13 @@ dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
 // Sin límite artificial 08:00–20:00: toda la jornada accesible.
 const early={id:95,category:'Trabajo',title:'Madrugada',
   dueAt:day+30*60000,endAt:day+90*60000,hasTime:true,durationMinutes:60};
-resized=resizeGesture(early,'start',-120*1.6);
+resized=resizeGesture(early,'start',-120*pxPerMinute);
 assert.equal(resized.data.dueAt,day); // 00:00
 assert.equal(resized.data.endAt,day+90*60000);
 dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');
 const late={id:96,category:'Trabajo',title:'Noche',
   dueAt:day+22*3600000,endAt:day+23*3600000,hasTime:true,durationMinutes:60};
-resized=resizeGesture(late,'end',180*1.6);
+resized=resizeGesture(late,'end',180*pxPerMinute);
 assert.equal(resized.data.dueAt,day+22*3600000);
 assert.equal(resized.data.endAt,day+24*3600000); // 24:00
 dragCtx.window.NexoTimeGrid.onSaved(resized.id,'{"ok":true}');

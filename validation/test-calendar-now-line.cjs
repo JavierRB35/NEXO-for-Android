@@ -7,6 +7,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const js=fs.readFileSync(path.join(root,'app/src/main/assets/time-grid.js'),'utf8');
+const pxPerMinute=Number(js.match(/const PX_PER_MINUTE=([0-9.]+);/)[1]);
 const css=fs.readFileSync(path.join(root,'app/src/main/assets/time-grid.css'),'utf8');
 const themes=fs.readFileSync(path.join(root,'app/src/main/assets/nexo-themes.css'),'utf8');
 const noop=()=>{};
@@ -69,7 +70,7 @@ assert.match(today.h.innerHTML,/tgv-event/,'Las citas siguen presentes');
 assert.equal(today.scrolls.length,0,'No desplazar hasta terminar la navegación');
 flushFrames();
 assert.equal(today.scrolls.length,1);
-const expected=140+(12*60+34+30/60-45)*1.6-12;
+const expected=140+(12*60+34+30/60-45)*pxPerMinute-12;
 assert.ok(Math.abs(today.scrolls[0].top-expected)<1,'En hoy, dejar 45 min encima de la línea');
 assert.ok(today.scrolls[0].top<1500,'No enfocar la cita de las 17:00');
 const retained=today.h.scrollTop;
@@ -89,7 +90,7 @@ assert.ok(other.scrolls[0].top>900,'En otra fecha sigue centrando la primera cit
 
 current=new Date(2026,9,30,12,36,15);
 intervals[0].fn();
-assert.equal(today.marker.style.top,((12*60+36+15/60)*1.6)+'px');
+assert.equal(today.marker.style.top,((12*60+36+15/60)*pxPerMinute)+'px');
 assert.equal(today.label.textContent,'12:36');
 assert.equal(today.marker.attrs['aria-label'],'Hora actual: 12:36');
 assert.equal(today.scrolls.length,1,'El avance del reloj NO fuerza scroll');
